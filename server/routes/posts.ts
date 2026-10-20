@@ -198,6 +198,11 @@ postsRouter.post('/posts', upload.single('imageFile'), async (req: Request, res:
       .then((m) => m.buildStaticGallery())
       .catch((err) => console.error('[:> 11ty] Background build error:', err));
 
+    // Trigger auto-deploy to Neocities if enabled for user
+    import('../services/neocitiesPublisher')
+      .then((m) => m.triggerAutoDeployIfEnabled(user.id))
+      .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
+
     res.status(201).json({
       ok: true,
       message: 'Photo published successfully via Neogram pipeline.',
@@ -327,6 +332,11 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
       .then((m) => m.buildStaticGallery())
       .catch((err) => console.error('[:> 11ty] Rebuild error after edit:', err));
 
+    // Trigger auto-deploy if enabled
+    import('../services/neocitiesPublisher')
+      .then((m) => m.triggerAutoDeployIfEnabled(updated.user_id))
+      .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
+
     res.json({
       ok: true,
       message: 'Post updated successfully.',
@@ -356,13 +366,13 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     const { id } = req.params;
 
     // 1. Fetch post to get image and thumbnail paths for disk cleanup
-    const postQuery = await query('SELECT image_path, thumbnail_path FROM posts WHERE id = $1', [id]);
+    const postQuery = await query('SELECT user_id, image_path, thumbnail_path FROM posts WHERE id = $1', [id]);
     if (postQuery.rows.length === 0) {
       res.status(404).json({ ok: false, error: 'Post not found.' });
       return;
     }
 
-    const { image_path, thumbnail_path } = postQuery.rows[0];
+    const { user_id, image_path, thumbnail_path } = postQuery.rows[0];
 
     // 2. Delete post row from PostgreSQL (comments cascade delete)
     await query('DELETE FROM posts WHERE id = $1', [id]);
@@ -384,6 +394,13 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     import('../services/staticBuilder')
       .then((m) => m.buildStaticGallery())
       .catch((err) => console.error('[:> 11ty] Rebuild error after delete:', err));
+
+    // Trigger auto-deploy if enabled
+    if (user_id) {
+      import('../services/neocitiesPublisher')
+        .then((m) => m.triggerAutoDeployIfEnabled(user_id))
+        .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
+    }
 
     res.json({
       ok: true,

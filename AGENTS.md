@@ -176,9 +176,13 @@ When building the production backend and views, extract and reuse the following 
    - `@11ty/eleventy` integration, Nunjucks templates in `eleventy/`, automated compilation to `dist/static-gallery`, live preview at `/preview/` and `/photos/<id>/`, real-time comment synchronization.
 5. **[x] Step 5: Gallery Management (Edit & Delete Uploads)**
    - Dashboard interface for browsing uploaded photos, editing captions/tags/filters, deleting posts, and rebuilding the static gallery.
-6. **[ ] Step 6: Neocities Settings & Deployment Adapter**
-   - Dashboard settings for Neocities API key (encrypted at rest), site name, and automated file push via Neocities REST API (`POST https://neocities.org/api/upload`).
-7. **[ ] Step 7: Embeds Studio (Counter, Guestbook, Comments) & JSON Feeds**
+6. **[x] Step 6 (Milestone 3): Neocities Settings & Deployment Adapter**
+   - Per-user encrypted credential storage (`users.deployment_credentials` using AES-256-GCM), masked key display, sitename auto-fetch.
+   - Live Neocities connection probe (`https://neocities.org/api/info`) displaying remote views, hits, and last updated time.
+   - Per-user 11ty static compilation (`server/services/staticBuilder.ts`) compiling isolated personal galleries to `dist/static-galleries/<userId>/`.
+   - REST API deployment pipeline pushing multipart bundle to `POST https://neocities.org/api/upload` with optional auto-deploy on photo changes.
+7. **[ ] Step 7 (Milestone 4): Embeds Studio (Counter, Guestbook, Comments) & JSON Feeds**
    - Dynamic SVG web hit counters (`/counter/:handle.svg`), public JSON feeds (`/api/users/:handle/feed.json`), and embed codes.
-8. **[ ] Step 8: Retro Chat Browser Extension**
+8. **[ ] Step 8 (Milestone 5): Retro Chat Browser Extension**
    - Manifest V3 browser extension for AIM/ICQ-style instant messaging.
+

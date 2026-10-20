@@ -1,7 +1,7 @@
 {% extends "layouts/base.njk" %}
 
 {% block content %}
-<div class="max-w-4xl w-full mx-auto p-4 flex-1">
+<div class="max-w-5xl w-full mx-auto p-4 flex-1">
 
   {% if currentUser %}
     <!-- ==============================================================
@@ -54,6 +54,14 @@
           >
             <span>📁 Manage Archive (<span id="manageCountBadge">{{ posts.length or 0 }}</span>)</span>
           </button>
+          <button
+            type="button"
+            id="tabSettingsBtn"
+            class="pixel-btn font-bold text-xs"
+            onclick="switchDashboardTab('settings')"
+          >
+            <span>⚙️ Neocities &amp; Host Settings</span>
+          </button>
           <a
             href="/preview/"
             target="_blank"
@@ -67,7 +75,7 @@
         <div id="uploadStudioSection">
           <!-- 2-Column Publishing Grid -->
           <form id="publishForm" onsubmit="handlePublishPost(event)">
-            <div class="flex flex-col md:flex-row gap-5">
+            <div class="flex-responsive">
             
             <!-- LEFT COLUMN: Image Source & Filter Shader -->
             <div class="flex-1 flex flex-col gap-3">
@@ -472,6 +480,222 @@
           </div>
         </dialog>
 
+        <!-- TAB 3: NEOCITIES & DEPLOYMENT SETTINGS SECTION -->
+        <div id="settingsSection" class="hidden">
+          <div class="grid-2-col">
+
+            <!-- LEFT COLUMN: Credentials & Config -->
+            <div class="flex-1 flex flex-col gap-4">
+              <div class="retro-card p-4 m-0">
+                <div class="window-header mb-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span>🔐</span>
+                    <span class="font-bold">[:&gt; NEOCITIES_CREDENTIALS.SYS - Encrypted at Rest]</span>
+                  </div>
+                  <span class="text-xs font-mono text-prompt font-bold">[AES-256-GCM]</span>
+                </div>
+
+                <div id="settingsAlert" class="retro-alert hidden mb-3">
+                  <span id="settingsAlertTag" class="retro-alert__tag"></span>
+                  <span id="settingsAlertMsg"></span>
+                </div>
+
+                <form id="settingsForm" onsubmit="handleSaveSettings(event)" class="space-y-4">
+                  <!-- Hosting Provider -->
+                  <div>
+                    <label class="block text-xs font-bold mb-1">
+                      Target Hosting Provider:
+                    </label>
+                    <select id="settingsDeployType" name="deploymentType" class="retro-input text-xs">
+                      <option value="neocities" selected>Neocities (Direct REST API v1)</option>
+                      <option value="github" disabled>GitHub Pages (Git Commit Pipeline - Coming soon)</option>
+                      <option value="sftp" disabled>SFTP / SSH Static Sync (Coming soon)</option>
+                    </select>
+                  </div>
+
+                  <!-- Sitename -->
+                  <div>
+                    <label for="settingsSiteName" class="block text-xs font-bold mb-1">
+                      Neocities Site Subdomain / Name:
+                    </label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        type="text"
+                        id="settingsSiteName"
+                        name="siteName"
+                        placeholder="e.g. wasson"
+                        class="retro-input text-xs flex-1"
+                        oninput="updateSiteUrlPreview()"
+                      />
+                      <span class="text-xs font-mono text-muted">.neocities.org</span>
+                    </div>
+                  </div>
+
+                  <!-- Full Site URL -->
+                  <div>
+                    <label for="settingsSiteUrl" class="block text-xs font-bold mb-1">
+                      Target Site URL (Or Custom Domain):
+                    </label>
+                    <input
+                      type="url"
+                      id="settingsSiteUrl"
+                      name="siteUrl"
+                      placeholder="https://wasson.neocities.org"
+                      class="retro-input text-xs"
+                    />
+                  </div>
+
+                  <!-- API Key -->
+                  <div>
+                    <div class="flex items-center justify-between mb-1">
+                      <label for="settingsApiKey" class="text-xs font-bold">
+                        Neocities API Key:
+                      </label>
+                      <span id="keyStatusBadge" class="text-xs font-mono text-mac">Checking status...</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input
+                        type="password"
+                        id="settingsApiKey"
+                        name="apiKey"
+                        placeholder="Enter API key from neocities.org/settings"
+                        class="retro-input text-xs flex-1"
+                        autocomplete="off"
+                      />
+                      <button
+                        type="button"
+                        id="toggleKeyVisibilityBtn"
+                        class="pixel-btn pixel-btn--sm"
+                        onclick="toggleKeyVisibility()"
+                        title="Show/Hide API Key"
+                      >
+                        <span id="toggleKeyIcon">👁️</span>
+                      </button>
+                    </div>
+                    <span class="text-xs text-muted block mt-1">
+                      Obtain your API key from your Neocities Dashboard: <em>Settings &gt; Manage Site &gt; API Key</em>.
+                    </span>
+                  </div>
+
+                  <!-- Auto Deploy Checkbox -->
+                  <div class="border-2 border-main p-3 bg-card">
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="settingsAutoDeploy"
+                        name="autoDeploy"
+                        class="mt-1"
+                      />
+                      <div class="text-xs">
+                        <span class="font-bold text-prompt block">⚡ Auto-Deploy on Modification</span>
+                        <span class="text-muted block">
+                          Automatically compile 11ty static site and push live to Neocities whenever you upload, edit, or delete a transmission.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+
+                  <!-- Action Buttons -->
+                  <div class="flex items-center gap-3 pt-2">
+                    <button
+                      type="submit"
+                      id="saveSettingsBtn"
+                      class="pixel-btn pixel-btn--green font-bold text-xs flex-1 py-2"
+                    >
+                      <span>💾 SAVE SETTINGS :&gt;</span>
+                    </button>
+                    <button
+                      type="button"
+                      id="testConnectionBtn"
+                      class="pixel-btn pixel-btn--yellow font-bold text-xs py-2 px-3"
+                      onclick="testNeocitiesApiConnection()"
+                    >
+                      <span>🧪 TEST CONNECTION</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Live Neocities Node Stats & Deploy Terminal -->
+            <div class="flex-1 flex flex-col gap-4">
+              <!-- Node Info Card -->
+              <div class="retro-card p-4 m-0">
+                <div class="window-header mb-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span>📡</span>
+                    <span class="font-bold">[:&gt; REMOTE_NODE_STATUS.EXE]</span>
+                  </div>
+                  <span id="remoteNodeIndicator" class="text-xs font-mono text-muted">STANDBY</span>
+                </div>
+
+                <div id="remoteStatsDisplay" class="space-y-2 text-xs font-mono">
+                  <div class="flex justify-between border-b border-main pb-1">
+                    <span class="text-muted">Target Host:</span>
+                    <span id="remoteSitename" class="font-bold text-prompt">--</span>
+                  </div>
+                  <div class="flex justify-between border-b border-main pb-1">
+                    <span class="text-muted">Neocities Views:</span>
+                    <span id="remoteViews" class="font-bold">--</span>
+                  </div>
+                  <div class="flex justify-between border-b border-main pb-1">
+                    <span class="text-muted">Neocities Hits:</span>
+                    <span id="remoteHits" class="font-bold">--</span>
+                  </div>
+                  <div class="flex justify-between border-b border-main pb-1">
+                    <span class="text-muted">Last Remote Update:</span>
+                    <span id="remoteLastUpdated" class="font-bold">--</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-muted">Profile Link:</span>
+                    <a id="remoteProfileLink" href="#" target="_blank" class="text-mac underline">Visit on Neocities :&gt;</a>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Manual Deploy Control -->
+              <div class="retro-card p-4 m-0 flex-1 flex flex-col">
+                <div class="window-header mb-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span>🚀</span>
+                    <span class="font-bold">[:&gt; PUSH_TO_NEOCITIES.BAT - 11ty Sync]</span>
+                  </div>
+                </div>
+
+                <p class="text-xs text-muted mb-3">
+                  Compile your personal photo records, paginated single-photo templates, and Sharp WebP assets, then upload the bundle directly to your Neocities root via their REST API.
+                </p>
+
+                <button
+                  type="button"
+                  id="deployNowBtn"
+                  class="pixel-btn pixel-btn--cyan font-bold text-xs py-3 w-full mb-3"
+                  onclick="triggerNeocitiesDeployment()"
+                >
+                  <span>🚀 DEPLOY TO NEOCITIES NOW :&gt;</span>
+                </button>
+
+                <!-- Live Baud Telemetry Console -->
+                <div class="flex-1 flex flex-col">
+                  <div class="text-xs font-bold text-muted mb-1 flex items-center justify-between">
+                    <span>CARRIER TELEMETRY LOG:</span>
+                    <span id="deployDurationLabel" class="text-prompt">READY</span>
+                  </div>
+                  <div
+                    id="telemetryConsole"
+                    class="bg-black text-prompt font-mono text-xs p-3 border-2 border-main flex-1 crt-scanlines telemetry-console"
+                  >
+                    <div>[:&gt; SYSTEM] Neogram Neocities Deployment Module Initialized.</div>
+                    <div>[:&gt; AWAITING COMMAND] Click 'Deploy to Neocities Now' or 'Test Connection'.</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -714,19 +938,242 @@
     if (window.retroAudio) window.retroAudio.playClick();
     var uploadSec = document.getElementById('uploadStudioSection');
     var manageSec = document.getElementById('manageGallerySection');
+    var settingsSec = document.getElementById('settingsSection');
     var uploadBtn = document.getElementById('tabUploadBtn');
     var manageBtn = document.getElementById('tabManageBtn');
+    var settingsBtn = document.getElementById('tabSettingsBtn');
+
+    uploadSec.classList.add('hidden');
+    manageSec.classList.add('hidden');
+    if (settingsSec) settingsSec.classList.add('hidden');
+
+    uploadBtn.classList.remove('pixel-btn--yellow');
+    manageBtn.classList.remove('pixel-btn--yellow');
+    if (settingsBtn) settingsBtn.classList.remove('pixel-btn--yellow');
 
     if (tab === 'upload') {
       uploadSec.classList.remove('hidden');
-      manageSec.classList.add('hidden');
       uploadBtn.classList.add('pixel-btn--yellow');
-      manageBtn.classList.remove('pixel-btn--yellow');
-    } else {
-      uploadSec.classList.add('hidden');
+    } else if (tab === 'manage') {
       manageSec.classList.remove('hidden');
       manageBtn.classList.add('pixel-btn--yellow');
-      uploadBtn.classList.remove('pixel-btn--yellow');
+    } else if (tab === 'settings') {
+      if (settingsSec) settingsSec.classList.remove('hidden');
+      if (settingsBtn) settingsBtn.classList.add('pixel-btn--yellow');
+      loadSettings();
+    }
+  }
+
+  function appendTelemetryLog(text, isError) {
+    var consoleEl = document.getElementById('telemetryConsole');
+    if (!consoleEl) return;
+    var line = document.createElement('div');
+    if (isError) line.className = 'text-crimson font-bold';
+    line.textContent = '[:> ' + new Date().toLocaleTimeString() + '] ' + text;
+    consoleEl.appendChild(line);
+    consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+
+  function updateSiteUrlPreview() {
+    var sitename = document.getElementById('settingsSiteName').value.trim();
+    var urlInput = document.getElementById('settingsSiteUrl');
+    if (sitename) {
+      urlInput.value = 'https://' + sitename + '.neocities.org';
+    }
+  }
+
+  function toggleKeyVisibility() {
+    var input = document.getElementById('settingsApiKey');
+    var icon = document.getElementById('toggleKeyIcon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.textContent = '🔒';
+    } else {
+      input.type = 'password';
+      icon.textContent = '👁️';
+    }
+    if (window.retroAudio) window.retroAudio.playClick();
+  }
+
+  async function loadSettings() {
+    try {
+      var res = await fetch('/api/settings');
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to load settings.');
+
+      var s = data.settings;
+      if (s.siteName) document.getElementById('settingsSiteName').value = s.siteName;
+      if (s.siteUrl) document.getElementById('settingsSiteUrl').value = s.siteUrl;
+      if (s.deploymentType) document.getElementById('settingsDeployType').value = s.deploymentType;
+      document.getElementById('settingsAutoDeploy').checked = !!s.autoDeploy;
+
+      var badge = document.getElementById('keyStatusBadge');
+      var keyInput = document.getElementById('settingsApiKey');
+      if (s.hasApiKey) {
+        badge.textContent = '[✓ KEY ENCRYPTED IN DB]';
+        badge.className = 'text-xs font-mono text-prompt font-bold';
+        keyInput.value = s.maskedApiKey || '••••••••••••••••';
+      } else {
+        badge.textContent = '[!] NO API KEY CONFIGURED';
+        badge.className = 'text-xs font-mono text-crimson font-bold';
+        keyInput.value = '';
+      }
+
+      if (s.siteName) {
+        document.getElementById('remoteSitename').textContent = s.siteName + '.neocities.org';
+        var profileLink = document.getElementById('remoteProfileLink');
+        profileLink.href = 'https://neocities.org/site/' + s.siteName;
+      }
+      if (s.lastDeployedAt) {
+        var durationLabel = document.getElementById('deployDurationLabel');
+        var d = new Date(s.lastDeployedAt);
+        durationLabel.textContent = 'LAST SYNC: ' + d.toLocaleDateString();
+      }
+    } catch (err) {
+      appendTelemetryLog('Failed to load settings: ' + err.message, true);
+    }
+  }
+
+  async function handleSaveSettings(e) {
+    e.preventDefault();
+    if (window.retroAudio) window.retroAudio.playClick();
+
+    var siteName = document.getElementById('settingsSiteName').value.trim();
+    var siteUrl = document.getElementById('settingsSiteUrl').value.trim();
+    var apiKey = document.getElementById('settingsApiKey').value.trim();
+    var deploymentType = document.getElementById('settingsDeployType').value;
+    var autoDeploy = document.getElementById('settingsAutoDeploy').checked;
+    var saveBtn = document.getElementById('saveSettingsBtn');
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'ENCRYPTING & SAVING...';
+
+    var alertBox = document.getElementById('settingsAlert');
+    var alertTag = document.getElementById('settingsAlertTag');
+    var alertMsg = document.getElementById('settingsAlertMsg');
+    alertBox.classList.add('hidden');
+
+    try {
+      var res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          siteName: siteName,
+          siteUrl: siteUrl,
+          apiKey: apiKey,
+          deploymentType: deploymentType,
+          autoDeploy: autoDeploy
+        })
+      });
+
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to save settings.');
+
+      alertBox.className = 'retro-alert retro-alert--success mb-3';
+      alertTag.textContent = '[✓] VAULT UPDATED:';
+      alertMsg.textContent = 'Hosting credentials encrypted with AES-256-GCM and saved to PostgreSQL.';
+      alertBox.classList.remove('hidden');
+
+      appendTelemetryLog('Saved deployment settings. Key encrypted in PostgreSQL database.');
+      if (window.retroAudio) window.retroAudio.playSuccess();
+      loadSettings();
+    } catch (err) {
+      if (window.retroAudio) window.retroAudio.playError();
+      alertBox.className = 'retro-alert retro-alert--error mb-3';
+      alertTag.textContent = '[:> ERROR]:';
+      alertMsg.textContent = err.message;
+      alertBox.classList.remove('hidden');
+      appendTelemetryLog('Error saving settings: ' + err.message, true);
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '💾 SAVE SETTINGS :>';
+    }
+  }
+
+  async function testNeocitiesApiConnection() {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var testBtn = document.getElementById('testConnectionBtn');
+    var apiKey = document.getElementById('settingsApiKey').value.trim();
+    var indicator = document.getElementById('remoteNodeIndicator');
+
+    testBtn.disabled = true;
+    testBtn.textContent = 'PROBING...';
+    indicator.textContent = 'NEGOTIATING...';
+    indicator.className = 'text-xs font-mono text-mac';
+
+    appendTelemetryLog('Pinging Neocities REST API (https://neocities.org/api/info)...');
+
+    try {
+      var res = await fetch('/api/settings/test-neocities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: apiKey })
+      });
+
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Connection refused.');
+
+      var info = data.info;
+      indicator.textContent = 'ONLINE [VERIFIED]';
+      indicator.className = 'text-xs font-mono text-prompt font-bold';
+
+      document.getElementById('remoteSitename').textContent = info.sitename + '.neocities.org';
+      document.getElementById('remoteViews').textContent = Number(info.views).toLocaleString();
+      document.getElementById('remoteHits').textContent = Number(info.hits).toLocaleString();
+      document.getElementById('remoteLastUpdated').textContent = info.last_updated ? new Date(info.last_updated).toLocaleString() : 'N/A';
+      document.getElementById('remoteProfileLink').href = 'https://neocities.org/site/' + info.sitename;
+
+      appendTelemetryLog('Verified site "' + info.sitename + '" | Views: ' + info.views + ' | Hits: ' + info.hits);
+      if (window.retroAudio) window.retroAudio.playSuccess();
+    } catch (err) {
+      indicator.textContent = 'AUTH FAILED';
+      indicator.className = 'text-xs font-mono text-crimson font-bold';
+      appendTelemetryLog('Neocities probe failed: ' + err.message, true);
+      if (window.retroAudio) window.retroAudio.playError();
+      alert('Neocities API Test Failed: ' + err.message);
+    } finally {
+      testBtn.disabled = false;
+      testBtn.textContent = '🧪 TEST CONNECTION';
+    }
+  }
+
+  async function triggerNeocitiesDeployment() {
+    if (window.retroAudio) window.retroAudio.playShutter();
+    var deployBtn = document.getElementById('deployNowBtn');
+    var durationLabel = document.getElementById('deployDurationLabel');
+
+    deployBtn.disabled = true;
+    deployBtn.textContent = '🚀 COMPILING & UPLOADING TO NEOCITIES...';
+    durationLabel.textContent = 'TRANSMITTING...';
+
+    appendTelemetryLog('Preparing personal 11ty static compilation for user...');
+
+    try {
+      appendTelemetryLog('Invoking Eleventy static compiler pipeline...');
+      appendTelemetryLog('Packaging Sharp WebP assets and paginated photo pages...');
+      appendTelemetryLog('Connecting to Neocities API upload stream (28.8k baud)...');
+
+      var res = await fetch('/api/deploy/neocities', {
+        method: 'POST'
+      });
+
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Neocities deployment rejected.');
+
+      appendTelemetryLog('[✓ SUCCESS] ' + data.filesCount + ' files uploaded to Neocities in ' + data.durationMs + 'ms!');
+      appendTelemetryLog('Live static gallery deployed to ' + (data.siteUrl || 'Neocities'));
+      durationLabel.textContent = 'DEPLOYED (' + data.durationMs + 'ms)';
+
+      if (window.retroAudio) window.retroAudio.playSuccess();
+      loadSettings();
+    } catch (err) {
+      durationLabel.textContent = 'FAILED';
+      appendTelemetryLog('Deployment error: ' + err.message, true);
+      if (window.retroAudio) window.retroAudio.playError();
+      alert('Neocities Deployment Error: ' + err.message);
+    } finally {
+      deployBtn.disabled = false;
+      deployBtn.textContent = '🚀 DEPLOY TO NEOCITIES NOW :>';
     }
   }
 

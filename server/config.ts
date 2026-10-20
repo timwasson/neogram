@@ -8,6 +8,7 @@ export interface AppConfig {
   port: number;
   databaseUrl: string;
   jwtSecret: string;
+  encryptionSecret: string;
   storageDir: string;
   appUrl: string;
   enableMemoryDbFallback: boolean;
@@ -18,6 +19,7 @@ export const config: AppConfig = {
   port: parseInt(process.env.PORT || '4000', 10),
   databaseUrl: process.env.DATABASE_URL || 'postgres://neogram:neogram_secret@localhost:5432/neogram_db',
   jwtSecret: process.env.JWT_SECRET || 'neogram_retro_super_secret_jwt_key_1996',
+  encryptionSecret: process.env.ENCRYPTION_SECRET || 'neogram_retro_aes256_vault_key_1996_master_secret',
   storageDir: process.env.STORAGE_DIR || path.resolve(process.cwd(), 'public/uploads'),
   appUrl: process.env.APP_URL || 'http://localhost:4000',
   enableMemoryDbFallback: process.env.USE_MEMORY_DB === 'true' || !process.env.DATABASE_URL,

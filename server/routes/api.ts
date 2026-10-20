@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { healthRouter } from './health';
 import { authRouter } from './auth';
 import { postsRouter } from './posts';
+import { settingsRouter } from './settings';
 import { query } from '../db';
 
 export const apiRouter = Router();
@@ -9,6 +10,7 @@ export const apiRouter = Router();
 apiRouter.use(healthRouter);
 apiRouter.use('/auth', authRouter);
 apiRouter.use(postsRouter);
+apiRouter.use(settingsRouter);
 
 // Temporary test route to verify database queries execute properly
 apiRouter.get('/stats', async (_req: Request, res: Response, next) => {

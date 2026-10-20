@@ -12,6 +12,7 @@
     "likes": 0,
     "createdAt": "2026-10-20T03:52:11.692Z",
     "email": "wasson@gmail.com",
+    "handle": "wasson",
     "author": "wasson",
     "comments": []
   },
@@ -28,6 +29,7 @@
     "likes": 0,
     "createdAt": "2026-10-20T03:47:31.065Z",
     "email": "surfer96@neocities.org",
+    "handle": "surfer96",
     "author": "surfer96",
     "comments": [
       {
@@ -53,6 +55,7 @@
     "likes": 95,
     "createdAt": "2026-10-20T03:24:01.934Z",
     "email": "root@neogram.retro",
+    "handle": null,
     "author": "root",
     "comments": [
       {
@@ -86,6 +89,7 @@
     "likes": 67,
     "createdAt": "2026-10-20T03:24:01.860Z",
     "email": "root@neogram.retro",
+    "handle": null,
     "author": "root",
     "comments": [
       {
@@ -111,6 +115,7 @@
     "likes": 88,
     "createdAt": "2026-10-20T03:24:01.800Z",
     "email": "root@neogram.retro",
+    "handle": null,
     "author": "root",
     "comments": [
       {
@@ -144,6 +149,7 @@
     "likes": 42,
     "createdAt": "2026-10-20T03:24:01.772Z",
     "email": "root@neogram.retro",
+    "handle": null,
     "author": "root",
     "comments": [
       {

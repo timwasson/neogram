@@ -144,6 +144,28 @@ body {
   flex-grow: 1;
 }
 
+.flex-responsive {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+@media (min-width: 768px) {
+  .flex-responsive {
+    flex-direction: row;
+  }
+}
+
+.grid-2-col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 768px) {
+  .grid-2-col {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
 .items-start {
   align-items: flex-start;
 }
@@ -199,6 +221,16 @@ body {
 
 .overflow-hidden {
   overflow: hidden;
+}
+
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
+.telemetry-console {
+  max-height: 220px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
 }
 
 .select-none {
@@ -447,6 +479,22 @@ body {
 
 .max-w-2xl {
   max-width: 900px;
+}
+
+.max-w-3xl {
+  max-width: 960px;
+}
+
+.max-w-4xl {
+  max-width: 1040px;
+}
+
+.max-w-5xl {
+  max-width: 1140px;
+}
+
+.max-w-6xl {
+  max-width: 1240px;
 }
 
 /* Typography */
