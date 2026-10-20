@@ -192,6 +192,13 @@ When building the production backend and views, extract and reuse the following 
    - 100% client-side `localStorage` message persistence (`neogram_im_<handle>`), eliminating long-term database storage liability.
    - Classic 90s AIM sound synthesis: door open chime, door slam thump, message received sparkle, send click.
    - Retro floating window UI with buddy list, status/away message selector, typing indicator, live CRT transcript, and chat logs JSON export/clear.
-9. **[ ] Step 9 (Milestone 5B): Retro Chat Browser Extension**
-   - Manifest V3 browser extension (Chrome/Firefox) with buddy list popup/sidebar connecting to the Neogram chat router.
+9. **[x] Step 9 (Milestone 5B): Retro Chat Browser Extension**
+   - Manifest V3 browser extension (`extension/`) connecting to the Neogram WebSocket chat router (`/ws/chat`).
+   - Reusable component architecture sharing pure CSS tokens (`extension/shared/neogram.css`) and audio engine (`extension/shared/retroAudio.js`).
+   - AJAX passwordless authentication with Baud rate telemetry and JWT Bearer token authorization.
+   - Retro AIM 97 popup interface (`popup.html`) with buddy list, instant messaging CRT transcript, export logs, and clear logs.
+   - Background service worker (`service-worker.js`) for unread count badge indicators and notifications.
+   - Built automated sync and package scripts (`npm run extension:sync`, `npm run extension:package`) producing `neogram-aim-extension.zip`.
+   - Complete store metadata and permissions justification in `CHROMEWEBSTORE.md`.
+
 

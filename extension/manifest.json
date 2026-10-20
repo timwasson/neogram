@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Neogram AIM Messenger",
+  "version": "1.0.0",
+  "description": "Retro 90s AIM/ICQ instant messenger client for Neogram cyber-publishers.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Neogram AIM Messenger",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications"
+  ],
+  "host_permissions": [
+    "http://localhost:4000/*",
+    "https://*.neocities.org/*"
+  ]
+}

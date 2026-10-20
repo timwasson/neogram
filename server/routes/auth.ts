@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { requestOtp, verifyOtp, getUserById } from '../auth/service';
-import { signSessionToken, setSessionCookie, clearSessionCookie, verifySessionToken, COOKIE_NAME } from '../auth/jwt';
+import { signSessionToken, setSessionCookie, clearSessionCookie, verifySessionToken, extractToken, COOKIE_NAME } from '../auth/jwt';
 
 export const authRouter = Router();
 
@@ -42,6 +42,7 @@ authRouter.post('/verify-otp', async (req: Request, res: Response, next: NextFun
     res.json({
       ok: true,
       message: 'Authentication successful. Carrier session established.',
+      token,
       user,
     });
   } catch (err: any) {
@@ -51,7 +52,7 @@ authRouter.post('/verify-otp', async (req: Request, res: Response, next: NextFun
 
 // 3. Current Session Info
 authRouter.get('/me', async (req: Request, res: Response) => {
-  const token = req.cookies[COOKIE_NAME];
+  const token = extractToken(req);
   if (!token) {
     res.status(401).json({ ok: false, user: null });
     return;

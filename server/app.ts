@@ -7,7 +7,7 @@ import { requestLogger } from './middleware/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { apiRouter } from './routes/api';
 import { embedsRouter } from './routes/embeds';
-import { COOKIE_NAME, verifySessionToken, clearSessionCookie } from './auth/jwt';
+import { COOKIE_NAME, verifySessionToken, clearSessionCookie, extractToken } from './auth/jwt';
 import { getUserById } from './auth/service';
 
 export function createApp(): Express {
@@ -45,6 +45,7 @@ export function createApp(): Express {
   // 3. Static Assets
   app.use(express.static(path.resolve(process.cwd(), 'public')));
   app.use('/embed', express.static(path.resolve(process.cwd(), 'embed')));
+  app.use('/extension', express.static(path.resolve(process.cwd(), 'extension')));
 
   // 3b. 11ty Static Gallery Preview
   const staticGalleryPath = path.resolve(process.cwd(), 'dist/static-gallery');
@@ -58,7 +59,7 @@ export function createApp(): Express {
   // Attach session user to res.locals for templates
   app.use(async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const token = req.cookies[COOKIE_NAME];
+      const token = extractToken(req);
       if (token) {
         const payload = verifySessionToken(token);
         if (payload) {

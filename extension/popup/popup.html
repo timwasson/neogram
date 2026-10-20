@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neogram AIM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../shared/neogram.css">
+    <style>
+      /* Extension Popup Constraints & Retro Shell */
+      html, body {
+        width: 100%;
+        height: 100%;
+        min-width: 340px;
+        min-height: 520px;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: var(--bg-desktop);
+        color: var(--text-main);
+        font-family: var(--font-mono);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .ext-container {
+        display: flex;
+        flex-direction: column;
+        width: 340px;
+        height: 520px;
+        box-sizing: border-box;
+        background-color: var(--surface-window);
+        border: 2px solid var(--border-main);
+        box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.8);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ext-container">
+      <!-- Retro Window Header -->
+      <div class="aim-window__header">
+        <div class="flex items-center gap-1.5 overflow-hidden">
+          <span>🏃</span>
+          <span class="truncate">AIM 97 // NEOGRAM</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <span id="connStatusDot" title="WebSocket Status">⚪</span>
+          <button type="button" id="extLogoutBtn" class="aim-window__btn-sm hidden" title="Sign off / Log out">✕</button>
+        </div>
+      </div>
+
+      <!-- VIEW 1: AUTHENTICATION SCREEN -->
+      <div id="extLoginView" class="flex-1 flex flex-col p-3 overflow-y-auto gap-2">
+        <!-- Baud Telemetry Bar -->
+        <div class="baud-progress-bar crt-scanlines">
+          <div class="baud-header">
+            <span class="baud-header__title">DIAL-UP TELEMETRY</span>
+            <span id="extBaudStatus" class="baud-header__status">STANDBY // 300 BAUD</span>
+          </div>
+          <div class="baud-steps">
+            <div id="ext-step-0" class="baud-step is-locked">
+              <div class="baud-step__led"></div>
+              <span>300</span>
+            </div>
+            <div id="ext-step-1" class="baud-step">
+              <div class="baud-step__led"></div>
+              <span>1200</span>
+            </div>
+            <div id="ext-step-2" class="baud-step">
+              <div class="baud-step__led"></div>
+              <span>9600</span>
+            </div>
+            <div id="ext-step-3" class="baud-step">
+              <div class="baud-step__led"></div>
+              <span>28.8k</span>
+            </div>
+            <div id="ext-step-4" class="baud-step">
+              <div class="baud-step__led"></div>
+              <span>56.6k</span>
+            </div>
+            <div id="ext-step-5" class="baud-step">
+              <div class="baud-step__led"></div>
+              <span>WWW</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-xs text-muted leading-tight">
+          Enter your email to connect to the Neogram carrier node.
+        </div>
+
+        <!-- Step 1: Identifier Form -->
+        <form id="extStep1Form" class="flex flex-col gap-2">
+          <div>
+            <label for="extIdentifierInput" class="block text-xs font-bold mb-1">
+              User Credential:
+            </label>
+            <input
+              type="text"
+              id="extIdentifierInput"
+              required
+              placeholder="e.g. wasson@gmail.com"
+              class="retro-input"
+              value="wasson@gmail.com"
+            />
+          </div>
+          <button
+            type="submit"
+            id="extRequestOtpBtn"
+            class="pixel-btn pixel-btn--yellow font-bold text-xs py-1.5"
+          >
+            <span>📡</span>
+            <span>CONNECT &amp; TRANSMIT OTP :&gt;</span>
+          </button>
+        </form>
+
+        <!-- Step 2: OTP Verification Form -->
+        <form id="extStep2Form" class="flex flex-col gap-2 hidden">
+          <div class="flex items-center justify-between">
+            <label for="extOtpInput" class="text-xs font-bold">
+              6-Digit Auth Key:
+            </label>
+            <button
+              type="button"
+              id="extChangeAddressBtn"
+              class="text-xs text-mac underline bg-transparent border-0 cursor-pointer p-0 font-bold"
+            >
+              [Change]
+            </button>
+          </div>
+          <input
+            type="text"
+            id="extOtpInput"
+            maxlength="6"
+            placeholder="123456"
+            class="retro-input retro-input--otp"
+          />
+
+          <!-- Quick Fill Demo Key Helper -->
+          <div id="extDemoHelper" class="retro-helper-box hidden">
+            <span class="retro-helper-box__key">KEY:</span>
+            <span id="extDemoCodeText" class="retro-helper-box__code"></span>
+            <button
+              type="button"
+              id="extQuickFillBtn"
+              class="pixel-btn pixel-btn--yellow pixel-btn--sm font-bold"
+            >
+              Auto-Fill
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            id="extVerifyOtpBtn"
+            class="pixel-btn pixel-btn--green font-bold text-xs py-1.5"
+          >
+            <span>🔐</span>
+            <span>AUTHENTICATE SESSION :&gt;</span>
+          </button>
+        </form>
+
+        <!-- Server URL Configuration (Advanced Toggle) -->
+        <div class="border-t border-main pt-2 mt-auto text-xs">
+          <div class="flex items-center justify-between text-muted">
+            <span>Node URL:</span>
+            <span id="extServerUrlLabel" class="font-mono text-prompt">http://localhost:4000</span>
+          </div>
+        </div>
+
+        <!-- Alert Banner -->
+        <div id="extAlertBox" class="retro-alert">
+          <span id="extAlertTag" class="retro-alert__tag"></span>
+          <span id="extAlertMsg"></span>
+        </div>
+      </div>
+
+      <!-- VIEW 2: BUDDY LIST SCREEN -->
+      <div id="extBuddiesView" class="flex-1 flex flex-col p-2 overflow-hidden gap-2 hidden">
+        <!-- User Status Bar -->
+        <div class="aim-window__user-bar">
+          <div class="flex items-center justify-between">
+            <span id="extMyHandle" class="font-bold text-prompt">@user</span>
+            <select id="extStatusSelect" class="border border-main text-xs font-mono bg-window cursor-pointer p-0.5">
+              <option value="online">🟢 Online</option>
+              <option value="away">🟡 Away</option>
+            </select>
+          </div>
+          <input
+            type="text"
+            id="extAwayInput"
+            placeholder="Status / Away message..."
+            class="text-xs p-1 border border-main bg-window font-mono"
+            maxlength="100"
+          />
+        </div>
+
+        <!-- Buddies Lists -->
+        <div class="aim-window__buddies-container">
+          <div class="aim-window__buddy-section-title">Online Buddies (🟢)</div>
+          <div id="extOnlineBuddies" class="flex flex-col gap-1">
+            <div class="text-xs text-muted p-1">Loading buddies...</div>
+          </div>
+
+          <div class="aim-window__buddy-section-title">Offline Buddies (⚪)</div>
+          <div id="extOfflineBuddies" class="flex flex-col gap-1">
+            <div class="text-xs text-muted p-1">...</div>
+          </div>
+        </div>
+
+        <!-- Utilities Footer -->
+        <div class="flex items-center justify-between border-t border-main pt-1 text-xs font-mono">
+          <button type="button" id="extExportLogsBtn" class="pixel-btn text-xs py-0.5 px-2">
+            <span>💾 Export</span>
+          </button>
+          <a href="http://localhost:4000/" target="_blank" class="text-mac underline text-xs">
+            [Open Workstation]
+          </a>
+          <button type="button" id="extClearLogsBtn" class="text-muted hover:text-crimson text-xs underline">
+            [Clear]
+          </button>
+        </div>
+      </div>
+
+      <!-- VIEW 3: DIRECT MESSAGE (IM) SCREEN -->
+      <div id="extImView" class="aim-window__im-view p-2 hidden">
+        <!-- IM Top Bar -->
+        <div class="flex items-center justify-between border-b border-main pb-1">
+          <button type="button" id="extBackToBuddiesBtn" class="aim-window__btn-sm">
+            &lt; Buddies
+          </button>
+          <div class="flex items-center gap-1 font-bold text-xs truncate max-w-40">
+            <span id="extImStatusDot">🟢</span>
+            <span id="extImTitle" class="truncate">@buddy</span>
+          </div>
+        </div>
+
+        <!-- Buddy Away Note -->
+        <div id="extImAwayBanner" class="aim-window__away-note hidden"></div>
+
+        <!-- Transcript -->
+        <div id="extImTranscript" class="aim-window__transcript crt-scanlines">
+          <!-- Messages populate here -->
+        </div>
+
+        <!-- Typing Indicator -->
+        <div id="extImTyping" class="aim-window__typing"></div>
+
+        <!-- Input Form -->
+        <form id="extImForm" class="aim-window__input-row">
+          <input
+            type="text"
+            id="extImInput"
+            placeholder="Type message..."
+            maxlength="1000"
+            autocomplete="off"
+          />
+          <button type="submit" class="pixel-btn pixel-btn--yellow font-bold text-xs py-1 px-3">
+            <span>Send</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- External Scripts (No inline JS for MV3 CSP) -->
+    <script src="../shared/retroAudio.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

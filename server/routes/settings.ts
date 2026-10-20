@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { query } from '../db';
-import { COOKIE_NAME, verifySessionToken } from '../auth/jwt';
+import { COOKIE_NAME, verifySessionToken, extractToken } from '../auth/jwt';
 import { encryptCredentials, decryptCredentials, maskApiKey, NeocitiesCredentials } from '../utils/crypto';
 import { testNeocitiesConnection, deployToNeocities } from '../services/neocitiesPublisher';
 
@@ -10,7 +10,7 @@ export const settingsRouter = Router();
  * Authentication middleware for settings routes
  */
 function requireSession(req: Request, res: Response, next: NextFunction) {
-  const token = req.cookies[COOKIE_NAME];
+  const token = extractToken(req);
   if (!token) {
     res.status(401).json({ ok: false, error: 'Authentication required. Please log in.' });
     return;

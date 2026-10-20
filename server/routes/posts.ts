@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { query } from '../db';
-import { COOKIE_NAME, verifySessionToken } from '../auth/jwt';
+import { COOKIE_NAME, verifySessionToken, extractToken } from '../auth/jwt';
 import { getUserById } from '../auth/service';
 import { processImageBuffer, processBase64Image } from '../services/imageProcessor';
 
@@ -14,10 +14,10 @@ const upload = multer({
 });
 
 /**
- * Helper to get the authenticated user from the session cookie
+ * Helper to get the authenticated user from the session cookie or Bearer header
  */
 async function getSessionUser(req: Request) {
-  const token = req.cookies[COOKIE_NAME];
+  const token = extractToken(req);
   if (!token) return null;
   const payload = verifySessionToken(token);
   if (!payload) return null;

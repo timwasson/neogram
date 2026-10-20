@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { config } from '../config';
 
 export interface UserSessionPayload {
@@ -24,6 +24,17 @@ export function verifySessionToken(token: string): UserSessionPayload | null {
   }
 }
 
+export function extractToken(req: Request): string | null {
+  if (req.cookies && req.cookies[COOKIE_NAME]) {
+    return req.cookies[COOKIE_NAME];
+  }
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7).trim();
+  }
+  return null;
+}
+
 export function setSessionCookie(res: Response, token: string): void {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
@@ -42,3 +53,4 @@ export function clearSessionCookie(res: Response): void {
     path: '/',
   });
 }
+

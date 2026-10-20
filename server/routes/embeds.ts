@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { query } from '../db';
 import { generateCounterSvg, CounterStyle } from '../services/counterSvg';
-import { COOKIE_NAME, verifySessionToken } from '../auth/jwt';
+import { COOKIE_NAME, verifySessionToken, extractToken } from '../auth/jwt';
 import { getUserById } from '../auth/service';
 
 export const embedsRouter = Router();
@@ -10,7 +10,7 @@ export const embedsRouter = Router();
  * Helper to optionally extract authenticated user
  */
 async function getAuthUser(req: Request) {
-  const token = req.cookies[COOKIE_NAME];
+  const token = extractToken(req);
   if (!token) return null;
   const payload = verifySessionToken(token);
   if (!payload) return null;
