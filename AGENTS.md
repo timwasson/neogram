@@ -174,7 +174,7 @@ When building the production backend and views, extract and reuse the following 
    - Multer upload handling, Sharp processing (1200px max, 400px thumbnails, WebP compression), preset sprites, database auto-seeding.
 4. **[x] Step 4: 11ty Static Gallery Generator & In-App Preview**
    - `@11ty/eleventy` integration, Nunjucks templates in `eleventy/`, automated compilation to `dist/static-gallery`, live preview at `/preview/` and `/photos/<id>/`, real-time comment synchronization.
-5. **[ ] Step 5: Gallery Management (Edit & Delete Uploads)**
+5. **[x] Step 5: Gallery Management (Edit & Delete Uploads)**
    - Dashboard interface for browsing uploaded photos, editing captions/tags/filters, deleting posts, and rebuilding the static gallery.
 6. **[ ] Step 6: Neocities Settings & Deployment Adapter**
    - Dashboard settings for Neocities API key (encrypted at rest), site name, and automated file push via Neocities REST API (`POST https://neocities.org/api/upload`).

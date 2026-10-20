@@ -14,10 +14,23 @@ export function createApp(): Express {
 
   // 1. Template Engine (Nunjucks)
   const viewsPath = path.resolve(process.cwd(), 'views');
-  nunjucks.configure(viewsPath, {
+  const nunjucksEnv = nunjucks.configure(viewsPath, {
     autoescape: true,
     express: app,
     noCache: process.env.NODE_ENV !== 'production',
+  });
+  nunjucksEnv.addFilter('formatDate', (dateStr: any) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch {
+      return String(dateStr);
+    }
   });
   app.set('view engine', 'njk');
 
@@ -58,13 +71,40 @@ export function createApp(): Express {
   });
 
   // 5. Server-rendered Web Views
-  app.get('/', (_req: Request, res: Response) => {
-    res.render('index', {
-      title: 'Neogram - 90s Retro Social Publishing Engine',
-      systemPrompt: ':> SYSTEM 7 WORKSTATION ONLINE',
-      version: '2.0.0',
-      activeView: 'dashboard',
-    });
+  app.get('/', async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { query } = await import('./db');
+      const postsQuery = await query(`
+        SELECT 
+          p.id,
+          p.user_id as "userId",
+          p.image_path as "imagePath",
+          p.thumbnail_path as "thumbnailPath",
+          p.caption,
+          p.filter_applied as "filterApplied",
+          p.mood,
+          p.webring,
+          p.location,
+          p.likes_count as "likes",
+          p.created_at as "createdAt",
+          u.email,
+          split_part(u.email, '@', 1) as author,
+          (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+        ORDER BY p.created_at DESC
+      `);
+
+      res.render('index', {
+        title: 'Neogram - 90s Retro Social Publishing Engine',
+        systemPrompt: ':> SYSTEM 7 WORKSTATION ONLINE',
+        version: '2.0.0',
+        activeView: 'dashboard',
+        posts: postsQuery.rows,
+      });
+    } catch (err) {
+      next(err);
+    }
   });
 
   app.get('/login', (_req: Request, res: Response) => {

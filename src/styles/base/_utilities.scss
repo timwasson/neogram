@@ -8,7 +8,7 @@
 .inline-flex { display: inline-flex; }
 .block { display: block; }
 .inline-block { display: inline-block; }
-.hidden { display: none; }
+.hidden { display: none !important; }
 
 .flex-row { flex-direction: row; }
 .flex-col { flex-direction: column; }

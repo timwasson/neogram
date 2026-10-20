@@ -36,9 +36,38 @@
           </div>
         </div>
 
-        <!-- 2-Column Publishing Grid -->
-        <form id="publishForm" onsubmit="handlePublishPost(event)">
-          <div class="flex flex-col md:flex-row gap-5">
+        <!-- Workstation Sub-Tabs -->
+        <div class="flex items-center gap-2 mb-4 border-b-2 border-main pb-2 flex-wrap">
+          <button
+            type="button"
+            id="tabUploadBtn"
+            class="pixel-btn pixel-btn--yellow font-bold text-xs"
+            onclick="switchDashboardTab('upload')"
+          >
+            <span>📸 Upload Studio</span>
+          </button>
+          <button
+            type="button"
+            id="tabManageBtn"
+            class="pixel-btn font-bold text-xs"
+            onclick="switchDashboardTab('manage')"
+          >
+            <span>📁 Manage Archive (<span id="manageCountBadge">{{ posts.length or 0 }}</span>)</span>
+          </button>
+          <a
+            href="/preview/"
+            target="_blank"
+            class="pixel-btn pixel-btn--cyan font-bold text-xs sm:ml-auto"
+          >
+            <span>🕹️ View 11ty Site :&gt;</span>
+          </a>
+        </div>
+
+        <!-- TAB 1: UPLOAD STUDIO SECTION -->
+        <div id="uploadStudioSection">
+          <!-- 2-Column Publishing Grid -->
+          <form id="publishForm" onsubmit="handlePublishPost(event)">
+            <div class="flex flex-col md:flex-row gap-5">
             
             <!-- LEFT COLUMN: Image Source & Filter Shader -->
             <div class="flex-1 flex flex-col gap-3">
@@ -224,6 +253,224 @@
 
           </div>
         </form>
+        </div><!-- END TAB 1 -->
+
+        <!-- TAB 2: MANAGE GALLERY / ARCHIVE SECTION -->
+        <div id="manageGallerySection" class="hidden">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div class="text-xs text-muted">
+              Showing <strong class="text-main" id="manageTotalCount">{{ posts.length or 0 }}</strong> published transmissions recorded in PostgreSQL.
+            </div>
+            <button
+              type="button"
+              onclick="triggerStaticRebuild()"
+              id="rebuildStaticBtn"
+              class="pixel-btn pixel-btn--sm pixel-btn--green text-xs font-bold"
+            >
+              <span>🔄 Rebuild 11ty Static Site</span>
+            </button>
+          </div>
+
+          <div id="rebuildAlert" class="retro-alert hidden mb-3">
+            <span id="rebuildAlertTag" class="retro-alert__tag"></span>
+            <span id="rebuildAlertMsg"></span>
+          </div>
+
+          {% if not posts or posts.length == 0 %}
+            <div class="pixel-box p-6 text-center bg-window">
+              <div class="text-2xl mb-2">📁</div>
+              <div class="font-bold text-mac text-xs mb-1">[:&gt; ARCHIVE EMPTY]</div>
+              <p class="text-muted text-xs mb-3">
+                No photographs uploaded to your gallery yet. Switch to the Upload Studio tab to publish your first photo.
+              </p>
+              <button type="button" onclick="switchDashboardTab('upload')" class="pixel-btn pixel-btn--yellow text-xs font-bold">
+                <span>📸 Open Upload Studio</span>
+              </button>
+            </div>
+          {% else %}
+            <div class="flex flex-col gap-4" id="managePostsList">
+              {% for post in posts %}
+                <div class="pixel-box p-3 bg-window border-2 border-main" id="manage-post-{{ post.id }}">
+                  <div class="flex flex-col sm:flex-row gap-4 items-start">
+                    
+                    <!-- Thumbnail Viewport with Active Filter Shader -->
+                    <div class="w-full sm:w-36 h-36 bg-black flex items-center justify-center p-1 crt-scanlines border-2 border-main shrink-0 overflow-hidden">
+                      <img
+                        src="{{ post.thumbnailPath or post.imagePath }}"
+                        alt="{{ post.caption }}"
+                        class="max-h-full max-w-full object-contain filter-{{ post.filterApplied or 'none' }}"
+                        id="manage-img-{{ post.id }}"
+                        loading="lazy"
+                      />
+                    </div>
+
+                    <!-- Metadata & Details -->
+                    <div class="flex-1 flex flex-col justify-between w-full h-full">
+                      <div>
+                        <div class="flex items-center justify-between text-xs mb-1">
+                          <span class="font-bold text-prompt">ID: <code>{{ post.id | truncate(16) }}</code></span>
+                          <span class="text-muted text-xs">{{ post.createdAt | formatDate }}</span>
+                        </div>
+
+                        <p class="text-xs text-main leading-relaxed mb-2" id="manage-caption-{{ post.id }}">
+                          {{ post.caption }}
+                        </p>
+
+                        <div class="flex flex-wrap gap-1 mb-2 text-xs">
+                          <span class="pixel-badge pixel-badge--cyan font-bold" id="manage-mood-{{ post.id }}">
+                            {{ post.mood or '[:> UNSET]' }}
+                          </span>
+                          <span class="pixel-badge pixel-badge--magenta font-bold" id="manage-webring-{{ post.id }}">
+                            ring: {{ post.webring or 'retro' }}
+                          </span>
+                          <span class="pixel-badge pixel-badge--amber font-bold" id="manage-filter-{{ post.id }}">
+                            shader: {{ post.filterApplied or 'none' }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <!-- Metrics & Action Buttons -->
+                      <div class="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-main mt-auto">
+                        <div class="text-xs text-muted flex items-center gap-3">
+                          <span>❤️ <strong class="text-main">{{ post.likes or 0 }}</strong> likes</span>
+                          <span>💬 <strong class="text-main">{{ post.commentCount or 0 }}</strong> comments</span>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                          <a href="/preview/photos/{{ post.id }}/" target="_blank" class="pixel-btn pixel-btn--sm">
+                            <span>👁️ Preview</span>
+                          </a>
+                          <button
+                            type="button"
+                            class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold"
+                            onclick="openEditModalById('{{ post.id }}')"
+                          >
+                            <span>✏️ Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            class="pixel-btn pixel-btn--sm pixel-btn--red font-bold"
+                            onclick="confirmDeletePost('{{ post.id }}')"
+                          >
+                            <span>🗑️ Delete</span>
+                          </button>
+                        </div>
+                      </div>
+
+                    </div>
+
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Retro Edit Modal Dialog (Accessible Native HTML5 Dialog) -->
+        <dialog id="editModalDialog" class="pixel-dialog" closedby="any" aria-labelledby="editDialogTitle">
+          <div class="pixel-box max-w-lg w-full bg-window border-4 border-black">
+            <div class="window-header flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span>✏️</span>
+                <span class="font-bold" id="editDialogTitle">[:&gt; EDIT_TRANSMISSION.EXE - Modify Metadata]</span>
+              </div>
+              <button type="button" class="pixel-btn pixel-btn--sm font-bold" onclick="closeEditModal()" aria-label="Close dialog">
+                <span>✕</span>
+              </button>
+            </div>
+
+            <form id="editPostForm" onsubmit="handleSaveEditPost(event)" class="p-4 space-y-3">
+              <input type="hidden" id="editPostId" name="id" />
+
+              <!-- Alert in modal -->
+              <div id="editModalAlert" class="retro-alert hidden">
+                <span id="editModalAlertTag" class="retro-alert__tag"></span>
+                <span id="editModalAlertMsg"></span>
+              </div>
+
+              <!-- Caption -->
+              <div>
+                <label for="editCaptionInput" class="block text-xs font-bold mb-1">
+                  Transmission Caption:
+                </label>
+                <textarea
+                  id="editCaptionInput"
+                  name="caption"
+                  rows="3"
+                  required
+                  class="retro-input text-xs"
+                ></textarea>
+              </div>
+
+              <!-- Filter Shader Selector -->
+              <div>
+                <label for="editFilterSelect" class="block text-xs font-bold mb-1">
+                  Retro Filter Shader:
+                </label>
+                <select id="editFilterSelect" name="filterApplied" class="retro-input text-xs">
+                  <option value="crt">📺 CRT Phosphor</option>
+                  <option value="vga">🎮 16-Color VGA</option>
+                  <option value="gameboy">👾 GameBoy 1-Bit</option>
+                  <option value="cyberpunk">🌆 Neon Cyber</option>
+                  <option value="sepia">📼 1996 Polaroid</option>
+                  <option value="none">📷 Raw 24-Bit</option>
+                </select>
+              </div>
+
+              <!-- System Mood Tag -->
+              <div>
+                <label for="editMoodSelect" class="block text-xs font-bold mb-1">
+                  System Mood:
+                </label>
+                <select id="editMoodSelect" name="mood" class="retro-input text-xs">
+                  <option value="[:> CODING IN THE DARK]">[:&gt; CODING IN THE DARK]</option>
+                  <option value="[:> COMPILING KERNEL]">[:&gt; COMPILING KERNEL]</option>
+                  <option value="[:> DOWNLOADING MIDI]">[:&gt; DOWNLOADING MIDI]</option>
+                  <option value="[:> VIBING TO CITY POP]">[:&gt; VIBING TO CITY POP]</option>
+                  <option value="[:> SURFING WEBRINGS]">[:&gt; SURFING WEBRINGS]</option>
+                  <option value="[:> DIAL-UP CONNECTED]">[:&gt; DIAL-UP CONNECTED]</option>
+                  <option value="[:> EATING PIZZA]">[:&gt; EATING PIZZA]</option>
+                </select>
+              </div>
+
+              <!-- Webring & Location -->
+              <div class="flex gap-2">
+                <div class="flex-1">
+                  <label for="editWebringInput" class="block text-xs font-bold mb-1">
+                    Webring Tag:
+                  </label>
+                  <input
+                    type="text"
+                    id="editWebringInput"
+                    name="webring"
+                    class="retro-input text-xs"
+                  />
+                </div>
+                <div class="flex-1">
+                  <label for="editLocationInput" class="block text-xs font-bold mb-1">
+                    Station Location:
+                  </label>
+                  <input
+                    type="text"
+                    id="editLocationInput"
+                    name="location"
+                    class="retro-input text-xs"
+                  />
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex items-center justify-end gap-2 pt-2 border-t border-main">
+                <button type="button" class="pixel-btn text-xs font-bold" onclick="closeEditModal()">
+                  <span>Cancel</span>
+                </button>
+                <button type="submit" id="editSaveBtn" class="pixel-btn pixel-btn--green text-xs font-bold py-1.5 px-3">
+                  <span>💾 SAVE CHANGES :&gt;</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </dialog>
 
       </div>
     </div>
@@ -459,6 +706,236 @@
       publishBtn.style.opacity = '1';
     }
   }
+
+  // -------------------------------------------------------------
+  // GALLERY MANAGEMENT & ARCHIVE CONTROLLERS
+  // -------------------------------------------------------------
+  function switchDashboardTab(tab) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var uploadSec = document.getElementById('uploadStudioSection');
+    var manageSec = document.getElementById('manageGallerySection');
+    var uploadBtn = document.getElementById('tabUploadBtn');
+    var manageBtn = document.getElementById('tabManageBtn');
+
+    if (tab === 'upload') {
+      uploadSec.classList.remove('hidden');
+      manageSec.classList.add('hidden');
+      uploadBtn.classList.add('pixel-btn--yellow');
+      manageBtn.classList.remove('pixel-btn--yellow');
+    } else {
+      uploadSec.classList.add('hidden');
+      manageSec.classList.remove('hidden');
+      manageBtn.classList.add('pixel-btn--yellow');
+      uploadBtn.classList.remove('pixel-btn--yellow');
+    }
+  }
+
+  async function openEditModalById(id) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    try {
+      var res = await fetch('/api/posts/' + id);
+      var data = await res.json();
+      if (!res.ok || !data.ok || !data.post) {
+        throw new Error(data.error || 'Could not load post data.');
+      }
+      var post = data.post;
+      document.getElementById('editPostId').value = post.id;
+      document.getElementById('editCaptionInput').value = post.caption || '';
+      document.getElementById('editFilterSelect').value = post.filterApplied || 'none';
+      document.getElementById('editMoodSelect').value = post.mood || '[:> SURFING WEBRINGS]';
+      document.getElementById('editWebringInput').value = post.webring || '';
+      document.getElementById('editLocationInput').value = post.location || '';
+
+      var alertBox = document.getElementById('editModalAlert');
+      alertBox.classList.add('hidden');
+
+      var dialog = document.getElementById('editModalDialog');
+      if (dialog && typeof dialog.showModal === 'function') {
+        dialog.showModal();
+      }
+    } catch (err) {
+      if (window.retroAudio) window.retroAudio.playError();
+      alert('Error opening edit dialog: ' + err.message);
+    }
+  }
+
+  function closeEditModal() {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var dialog = document.getElementById('editModalDialog');
+    if (dialog && dialog.open) {
+      dialog.close();
+    }
+  }
+
+  async function handleSaveEditPost(e) {
+    e.preventDefault();
+    var id = document.getElementById('editPostId').value;
+    var caption = document.getElementById('editCaptionInput').value.trim();
+    var filterApplied = document.getElementById('editFilterSelect').value;
+    var mood = document.getElementById('editMoodSelect').value;
+    var webring = document.getElementById('editWebringInput').value.trim();
+    var location = document.getElementById('editLocationInput').value.trim();
+    var saveBtn = document.getElementById('editSaveBtn');
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'SAVING...';
+    if (window.retroAudio) window.retroAudio.playClick();
+
+    try {
+      var res = await fetch('/api/posts/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caption: caption,
+          filterApplied: filterApplied,
+          mood: mood,
+          webring: webring,
+          location: location
+        })
+      });
+
+      var data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to update post.');
+      }
+
+      // Update DOM card
+      var captionEl = document.getElementById('manage-caption-' + id);
+      if (captionEl) captionEl.textContent = caption;
+
+      var moodEl = document.getElementById('manage-mood-' + id);
+      if (moodEl) moodEl.textContent = mood;
+
+      var ringEl = document.getElementById('manage-webring-' + id);
+      if (ringEl) ringEl.textContent = 'ring: ' + webring;
+
+      var filterEl = document.getElementById('manage-filter-' + id);
+      if (filterEl) filterEl.textContent = 'shader: ' + filterApplied;
+
+      var imgEl = document.getElementById('manage-img-' + id);
+      if (imgEl) {
+        imgEl.className = 'max-h-full max-w-full object-contain filter-' + filterApplied;
+      }
+
+      if (window.retroAudio) window.retroAudio.playSuccess();
+      closeEditModal();
+
+    } catch (err) {
+      if (window.retroAudio) window.retroAudio.playError();
+      var alertBox = document.getElementById('editModalAlert');
+      var tag = document.getElementById('editModalAlertTag');
+      var msg = document.getElementById('editModalAlertMsg');
+      alertBox.className = 'retro-alert retro-alert--error mb-3';
+      tag.textContent = '[:> ERROR]:';
+      msg.textContent = err.message;
+      alertBox.classList.remove('hidden');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '💾 SAVE CHANGES :>';
+    }
+  }
+
+  async function confirmDeletePost(id) {
+    if (!confirm('[:> SECURITY WARNING]\nPermanently delete transmission from PostgreSQL database and disk?')) {
+      return;
+    }
+
+    if (window.retroAudio) window.retroAudio.playClick();
+
+    try {
+      var res = await fetch('/api/posts/' + id, { method: 'DELETE' });
+      var data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to delete transmission.');
+      }
+
+      // Remove card from DOM
+      var card = document.getElementById('manage-post-' + id);
+      if (card) {
+        card.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.95)';
+        setTimeout(function() {
+          card.remove();
+          // Update counters
+          var badge = document.getElementById('manageCountBadge');
+          var total = document.getElementById('manageTotalCount');
+          var current = parseInt(badge ? badge.textContent : '1', 10);
+          if (badge) badge.textContent = Math.max(0, current - 1);
+          if (total) total.textContent = Math.max(0, current - 1);
+        }, 200);
+      }
+
+      if (window.retroAudio) window.retroAudio.playSuccess();
+
+    } catch (err) {
+      if (window.retroAudio) window.retroAudio.playError();
+      alert('Delete failed: ' + err.message);
+    }
+  }
+
+  async function triggerStaticRebuild() {
+    var btn = document.getElementById('rebuildStaticBtn');
+    var alertBox = document.getElementById('rebuildAlert');
+    var tag = document.getElementById('rebuildAlertTag');
+    var msg = document.getElementById('rebuildAlertMsg');
+
+    btn.disabled = true;
+    btn.textContent = '🔄 COMPILING 11TY...';
+    if (window.retroAudio) window.retroAudio.playClick();
+
+    try {
+      var res = await fetch('/api/build-static', { method: 'POST' });
+      var data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Compilation failed.');
+      }
+
+      alertBox.className = 'retro-alert retro-alert--success mb-3';
+      tag.textContent = '[✓] 11TY COMPILED:';
+      msg.textContent = data.postsCount + ' photos generated in ' + data.durationMs + 'ms -> dist/static-gallery';
+      alertBox.classList.remove('hidden');
+
+      if (window.retroAudio) window.retroAudio.playSuccess();
+    } catch (err) {
+      if (window.retroAudio) window.retroAudio.playError();
+      alertBox.className = 'retro-alert retro-alert--error mb-3';
+      tag.textContent = '[:> BUILD ERROR]:';
+      msg.textContent = err.message;
+      alertBox.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🔄 Rebuild 11ty Static Site';
+    }
+  }
+
+  // Native HTML5 <dialog> Event Handlers (Esc key & light dismiss)
+  document.addEventListener('DOMContentLoaded', function () {
+    var dialog = document.getElementById('editModalDialog');
+    if (dialog) {
+      // Play retro audio when dismissed natively via Esc
+      dialog.addEventListener('cancel', function () {
+        if (window.retroAudio) window.retroAudio.playClick();
+      });
+
+      // Light-dismiss: close when clicking on backdrop
+      dialog.addEventListener('click', function (e) {
+        if (e.target !== dialog) return;
+        var rect = dialog.getBoundingClientRect();
+        var isInDialog = (
+          rect.top <= e.clientY &&
+          e.clientY <= rect.top + rect.height &&
+          rect.left <= e.clientX &&
+          e.clientX <= rect.left + rect.width
+        );
+        if (!isInDialog) {
+          closeEditModal();
+        }
+      });
+    }
+  });
 </script>
 {% endif %}
 {% endblock %}

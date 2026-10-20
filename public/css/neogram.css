@@ -117,7 +117,7 @@ body {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 .flex-row {
@@ -686,13 +686,13 @@ body {
 .pixel-btn {
   /* Crimson Danger Button -> ALWAYS White text */
 }
-.pixel-btn--danger, .dark .pixel-btn--danger {
+.pixel-btn--danger, .pixel-btn--red, .dark .pixel-btn--danger, .dark .pixel-btn--red {
   background-color: var(--accent-crimson) !important;
   color: #ffffff !important;
   border-color: #000000 !important;
   text-shadow: none !important;
 }
-.pixel-btn--danger:hover, .dark .pixel-btn--danger:hover {
+.pixel-btn--danger:hover, .pixel-btn--red:hover, .dark .pixel-btn--danger:hover, .dark .pixel-btn--red:hover {
   filter: brightness(1.12);
 }
 .pixel-btn {
@@ -1328,6 +1328,39 @@ body {
   background-color: var(--accent-crimson) !important;
   color: #ffffff !important;
   border-color: var(--accent-crimson) !important;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 9999;
+}
+
+/* Native HTML5 Accessible Retro Dialog */
+dialog.pixel-dialog {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: 520px;
+  width: calc(100% - 32px);
+  margin: auto;
+  color: var(--text-main);
+}
+dialog.pixel-dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(2px);
+}
+dialog.pixel-dialog[open] {
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes shake {

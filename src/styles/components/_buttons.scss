@@ -87,7 +87,9 @@
 
   /* Crimson Danger Button -> ALWAYS White text */
   &--danger,
-  .dark &--danger {
+  &--red,
+  .dark &--danger,
+  .dark &--red {
     background-color: var(--accent-crimson) !important;
     color: #ffffff !important;
     border-color: #000000 !important;

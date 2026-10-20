@@ -291,3 +291,106 @@ postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next
     next(err);
   }
 });
+
+/**
+ * 6. PUT /api/posts/:id - Edit an existing post (caption, mood, filter, webring, location)
+ */
+postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
+  try {
+    const { id } = req.params;
+    const { caption, mood, webring, location, filterApplied } = req.body;
+
+    const updateResult = await query(
+      `
+      UPDATE posts
+      SET 
+        caption = COALESCE($1, caption),
+        mood = COALESCE($2, mood),
+        webring = COALESCE($3, webring),
+        location = COALESCE($4, location),
+        filter_applied = COALESCE($5, filter_applied)
+      WHERE id = $6
+      RETURNING *
+    `,
+      [caption, mood, webring, location, filterApplied, id]
+    );
+
+    if (updateResult.rows.length === 0) {
+      res.status(404).json({ ok: false, error: 'Post not found.' });
+      return;
+    }
+
+    const updated = updateResult.rows[0];
+
+    // Trigger 11ty static rebuild so static gallery immediately reflects edits
+    import('../services/staticBuilder')
+      .then((m) => m.buildStaticGallery())
+      .catch((err) => console.error('[:> 11ty] Rebuild error after edit:', err));
+
+    res.json({
+      ok: true,
+      message: 'Post updated successfully.',
+      post: {
+        id: updated.id,
+        imagePath: updated.image_path,
+        thumbnailPath: updated.thumbnail_path,
+        caption: updated.caption,
+        filterApplied: updated.filter_applied,
+        mood: updated.mood,
+        webring: updated.webring,
+        location: updated.location,
+        likes: updated.likes_count,
+        createdAt: updated.created_at,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * 7. DELETE /api/posts/:id - Delete post from database, remove assets, and rebuild static gallery
+ */
+postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Fetch post to get image and thumbnail paths for disk cleanup
+    const postQuery = await query('SELECT image_path, thumbnail_path FROM posts WHERE id = $1', [id]);
+    if (postQuery.rows.length === 0) {
+      res.status(404).json({ ok: false, error: 'Post not found.' });
+      return;
+    }
+
+    const { image_path, thumbnail_path } = postQuery.rows[0];
+
+    // 2. Delete post row from PostgreSQL (comments cascade delete)
+    await query('DELETE FROM posts WHERE id = $1', [id]);
+
+    // 3. Remove files from public/uploads if they exist
+    const fs = await import('fs/promises');
+    const path = await import('path');
+
+    if (image_path && image_path.startsWith('/uploads/')) {
+      const fullImgPath = path.join(process.cwd(), 'public', image_path);
+      fs.unlink(fullImgPath).catch(() => {});
+    }
+    if (thumbnail_path && thumbnail_path.startsWith('/uploads/')) {
+      const fullThumbPath = path.join(process.cwd(), 'public', thumbnail_path);
+      fs.unlink(fullThumbPath).catch(() => {});
+    }
+
+    // 4. Trigger 11ty static rebuild so the static gallery no longer contains the deleted post
+    import('../services/staticBuilder')
+      .then((m) => m.buildStaticGallery())
+      .catch((err) => console.error('[:> 11ty] Rebuild error after delete:', err));
+
+    res.json({
+      ok: true,
+      message: 'Post deleted successfully from database and static archive.',
+      id,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
