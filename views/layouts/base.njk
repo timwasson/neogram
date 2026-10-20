@@ -150,6 +150,114 @@
         });
       })();
     </script>
+
+    {% if currentUser %}
+      <!-- Floating AIM Dock Trigger Button -->
+      <button type="button" id="aimDockBtn" class="pixel-btn pixel-btn--yellow aim-dock-btn" title="Open Neogram Instant Messenger">
+        <span>🏃</span>
+        <span>AIM Messenger</span>
+        <span id="aimOnlineCountBadge" class="pixel-badge text-xs">...</span>
+      </button>
+
+      <!-- Floating AIM Window -->
+      <div id="aimMessengerWindow" class="aim-window hidden">
+        <!-- Titlebar -->
+        <div class="aim-window__header">
+          <div class="flex items-center gap-1.5 overflow-hidden">
+            <span>🏃</span>
+            <span class="truncate">AIM 97 // NEOGRAM MESSENGER</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button type="button" id="aimMinimizeBtn" class="aim-window__btn-sm" title="Minimize">_</button>
+          </div>
+        </div>
+
+        <!-- Window Body -->
+        <div class="aim-window__body">
+          <!-- VIEW 1: BUDDY LIST -->
+          <div id="aimBuddiesView" class="flex-1 flex flex-col overflow-hidden gap-2">
+            <!-- User Status Bar -->
+            <div class="aim-window__user-bar">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-prompt">@{{ currentUser.handle }}</span>
+                <select id="aimUserStatusSelect" class="border border-main text-xs font-mono bg-window cursor-pointer p-0.5">
+                  <option value="online">🟢 Online</option>
+                  <option value="away">🟡 Away</option>
+                </select>
+              </div>
+              <input type="text" id="aimUserAwayMsg" placeholder="Status / Away message..." class="text-xs p-1 border border-main bg-window font-mono" maxlength="100" />
+            </div>
+
+            <!-- Scrollable Buddies List -->
+            <div class="aim-window__buddies-container">
+              <div class="aim-window__buddy-section-title">Online Buddies (🟢)</div>
+              <div id="aimBuddiesList" class="flex flex-col gap-1">
+                <div class="text-xs text-muted p-1">Connecting to AIM network...</div>
+              </div>
+
+              <div class="aim-window__buddy-section-title">Offline Buddies (⚪)</div>
+              <div id="aimOfflineBuddiesList" class="flex flex-col gap-1">
+                <div class="text-xs text-muted p-1">...</div>
+              </div>
+            </div>
+
+            <!-- Bottom Utilities -->
+            <div class="flex items-center justify-between border-t border-main pt-1.5 text-xs font-mono">
+              <button type="button" id="aimExportLogsBtn" class="pixel-btn text-xs py-0.5 px-2" title="Export all chat logs as JSON file">
+                <span>💾 Export Logs</span>
+              </button>
+              <button type="button" id="aimClearLogsBtn" class="text-muted hover:text-crimson text-xs underline" title="Clear local browser logs">
+                [Clear Local]
+              </button>
+            </div>
+          </div>
+
+          <!-- VIEW 2: DIRECT MESSAGE CHAT -->
+          <div id="aimImView" class="aim-window__im-view hidden">
+            <!-- Header with Back to Buddies Button -->
+            <div class="flex items-center justify-between border-b border-main pb-1">
+              <button type="button" id="aimBackToBuddiesBtn" class="aim-window__btn-sm">
+                &lt; Buddies
+              </button>
+              <div class="flex items-center gap-1 font-bold text-xs truncate max-w-40">
+                <span id="aimImStatusDot">🟢</span>
+                <span id="aimImTitle" class="truncate">@user</span>
+              </div>
+            </div>
+
+            <!-- Buddy's Away Message -->
+            <div id="aimImAwayBanner" class="aim-window__away-note hidden"></div>
+
+            <!-- Chat Transcript (Rendered from LocalStorage) -->
+            <div id="aimImTranscript" class="aim-window__transcript crt-scanlines">
+              <!-- Messages stream here -->
+            </div>
+
+            <!-- Typing indicator -->
+            <div id="aimImTyping" class="aim-window__typing"></div>
+
+            <!-- Input Form -->
+            <form id="aimImForm" class="aim-window__input-row">
+              <input type="text" id="aimImInput" placeholder="Type message..." maxlength="1000" autocomplete="off" />
+              <button type="submit" class="pixel-btn pixel-btn--yellow font-bold text-xs py-1 px-3">
+                <span>Send</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- AIM Messenger Client Engine -->
+      <script src="/js/aimMessenger.js"></script>
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          if (window.AimClient) {
+            window.AimClient.init('{{ currentUser.handle }}');
+          }
+        });
+      </script>
+    {% endif %}
+
     {% block scripts %}{% endblock %}
   </body>
 </html>

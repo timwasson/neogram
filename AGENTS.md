@@ -186,6 +186,12 @@ When building the production backend and views, extract and reuse the following 
    - Public JSON feeds (`/api/users/:handle/feed.json` and `/feed/:handle.json`) compliant with JSONFeed 1.1 for headless static sites.
    - Public guestbook ledger (`/api/guestbook/:handle`) with standalone iframe embed (`/embed/guestbook/:handle`) and moderation dashboard.
    - Standalone photo feed embed card (`/embed/feed/:handle`) and creator cyberspace network with follow/unfollow toggle (`/api/network/users`).
-8. **[ ] Step 8 (Milestone 5): Retro Chat Browser Extension**
-   - Manifest V3 browser extension for AIM/ICQ-style instant messaging.
+8. **[x] Step 8 (Milestone 5A): In-Site AIM/ICQ Retro Chat Engine**
+   - WebSockets router at `/ws/chat` for in-memory live presence tracking and real-time message routing.
+   - Ephemeral store-and-forward queue (`ephemeral_chat_queue`) for offline delivery with immediate hard-deletion upon transmission.
+   - 100% client-side `localStorage` message persistence (`neogram_im_<handle>`), eliminating long-term database storage liability.
+   - Classic 90s AIM sound synthesis: door open chime, door slam thump, message received sparkle, send click.
+   - Retro floating window UI with buddy list, status/away message selector, typing indicator, live CRT transcript, and chat logs JSON export/clear.
+9. **[ ] Step 9 (Milestone 5B): Retro Chat Browser Extension**
+   - Manifest V3 browser extension (Chrome/Firefox) with buddy list popup/sidebar connecting to the Neogram chat router.
 

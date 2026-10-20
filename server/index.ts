@@ -33,10 +33,13 @@ async function bootstrap() {
 
   const app = createApp();
 
-  const server = app.listen(config.port, () => {
+  const server = app.listen(config.port, async () => {
     console.log(`[:> SERVER] Running at http://localhost:${config.port}`);
     console.log(`[:> HEALTH] Probe ready at http://localhost:${config.port}/api/health`);
     console.log(`[:> STATS]  Database check at http://localhost:${config.port}/api/stats`);
+
+    const { initChatWebSocketServer } = await import('./services/chatSocket');
+    initChatWebSocketServer(server);
   });
 
   // Graceful shutdown

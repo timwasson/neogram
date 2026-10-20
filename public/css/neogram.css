@@ -1603,3 +1603,201 @@ dialog.pixel-dialog[open] {
   color: #39ff14;
   text-shadow: 0 0 6px rgba(57, 255, 20, 0.5);
 }
+
+.aim-dock-btn {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 9990;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: bold;
+  padding: 6px 14px;
+  box-shadow: 3px 3px 0px 0px rgba(0, 0, 0, 0.9);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+.aim-dock-btn:hover {
+  transform: translate(-1px, -1px);
+}
+.aim-dock-btn--alert {
+  animation: aimBlink 1s infinite alternate;
+}
+
+@keyframes aimBlink {
+  0% {
+    background-color: var(--accent-amber);
+    color: #000000;
+  }
+  100% {
+    background-color: #ff3300;
+    color: #ffffff;
+  }
+}
+.aim-window {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 330px;
+  max-width: calc(100vw - 32px);
+  height: 480px;
+  max-height: calc(100vh - 80px);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--surface-window);
+  border: 3px solid var(--border-main);
+  box-shadow: 5px 5px 0px 0px rgba(0, 0, 0, 0.9);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-main);
+}
+.aim-window.hidden {
+  display: none !important;
+}
+.aim-window__header {
+  background: linear-gradient(90deg, #000080, #1084d0);
+  color: #ffffff;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: bold;
+  user-select: none;
+  border-bottom: 2px solid var(--border-main);
+}
+.aim-window__btn-sm {
+  background: #dcd8d0;
+  color: #000000;
+  border: 1px solid #000000;
+  box-shadow: 1px 1px 0px 0px #000000;
+  font-size: 10px;
+  font-weight: bold;
+  line-height: 1;
+  padding: 2px 5px;
+  cursor: pointer;
+}
+.aim-window__btn-sm:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+.aim-window__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 8px;
+  gap: 8px;
+}
+.aim-window {
+  /* User Status Header */
+}
+.aim-window__user-bar {
+  background-color: var(--code-bg);
+  border: 1px solid var(--border-main);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.aim-window {
+  /* Buddy List Area */
+}
+.aim-window__buddies-container {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 2px;
+}
+.aim-window__buddy-section-title {
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-main);
+  padding-bottom: 2px;
+  margin-top: 4px;
+}
+.aim-window__buddy-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.aim-window__buddy-item:hover {
+  background-color: rgba(0, 0, 128, 0.15);
+  border-color: var(--border-main);
+}
+.aim-window {
+  /* Direct Message Chat View */
+}
+.aim-window__im-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  gap: 6px;
+}
+.aim-window__transcript {
+  flex: 1;
+  overflow-y: auto;
+  background-color: #000000;
+  color: #ffffff;
+  border: 2px inset var(--border-main);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.dark .aim-window__transcript {
+  background-color: #080c10;
+}
+.aim-window__msg-line {
+  word-break: break-word;
+}
+.aim-window__msg-line--me {
+  color: #39ff14;
+}
+.aim-window__msg-line--them {
+  color: #00ffff;
+}
+.aim-window__msg-line--sys {
+  color: #ffff00;
+  font-style: italic;
+  font-size: 10px;
+}
+.aim-window__away-note {
+  background-color: #ffffcc;
+  color: #333300;
+  border: 1px dashed #999900;
+  padding: 4px 6px;
+  font-size: 10px;
+}
+.aim-window__typing {
+  font-size: 10px;
+  font-style: italic;
+  color: var(--text-muted);
+  min-height: 14px;
+}
+.aim-window__input-row {
+  display: flex;
+  gap: 4px;
+}
+.aim-window__input-row input {
+  flex: 1;
+  padding: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  border: 2px solid var(--border-main);
+  background-color: var(--surface-window);
+  color: var(--text-main);
+}
