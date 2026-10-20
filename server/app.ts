@@ -6,6 +6,7 @@ import path from 'path';
 import { requestLogger } from './middleware/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { apiRouter } from './routes/api';
+import { embedsRouter } from './routes/embeds';
 import { COOKIE_NAME, verifySessionToken, clearSessionCookie } from './auth/jwt';
 import { getUserById } from './auth/service';
 
@@ -50,8 +51,9 @@ export function createApp(): Express {
   app.use('/preview', express.static(staticGalleryPath));
   app.use('/photos', express.static(path.join(staticGalleryPath, 'photos')));
 
-  // 4. API Endpoints
+  // 4. API Endpoints & Dynamic Embeds
   app.use('/api', apiRouter);
+  app.use(embedsRouter);
 
   // Attach session user to res.locals for templates
   app.use(async (req: Request, res: Response, next: NextFunction) => {

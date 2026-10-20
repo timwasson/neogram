@@ -24,7 +24,7 @@ function requireSession(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-settingsRouter.use(requireSession);
+settingsRouter.use(['/settings', '/deploy'], requireSession);
 
 /**
  * 1. GET /api/settings - Retrieve authenticated user's hosting & deployment configuration

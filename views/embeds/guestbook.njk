@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/neogram.css">
+    <link rel="stylesheet" href="/embed/neogram-embed.css">
+    <script src="/js/retroAudio.js"></script>
+  </head>
+  <body class="p-4 bg-desktop">
+    <div class="neogram-guestbook max-w-2xl mx-auto">
+      <div class="neogram-guestbook__header flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span>✍️</span>
+          <span>guestbook_daemon.cgi — @{{ handle }}'s VISITOR LEDGER</span>
+        </div>
+        <span class="text-xs font-mono font-normal">[{{ entries.length }} Signatures]</span>
+      </div>
+
+      <p class="text-xs font-mono text-muted mb-4">
+        :&gt; Leave a note on this retro station! Signatures are logged directly to the visitor ledger.
+      </p>
+
+      <!-- Signature Form -->
+      <form id="guestbookForm" class="retro-card p-3 mb-6 flex flex-col gap-3 font-mono text-xs">
+        <div class="flex flex-col sm:flex-row gap-3">
+          <div class="flex-1 flex flex-col gap-1">
+            <label for="gbName" class="font-bold">YOUR ALIAS / HANDLE: *</label>
+            <input type="text" id="gbName" name="visitorName" required placeholder="AcidBurn_01" class="p-2 border-2 border-main font-mono text-xs" />
+          </div>
+          <div class="flex-1 flex flex-col gap-1">
+            <label for="gbWebsite" class="font-bold">HOMEPAGE URL:</label>
+            <input type="text" id="gbWebsite" name="visitorWebsite" placeholder="https://..." class="p-2 border-2 border-main font-mono text-xs" />
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+          <div class="flex-1 flex flex-col gap-1">
+            <label for="gbLocation" class="font-bold">LOCATION / BBS NODE:</label>
+            <input type="text" id="gbLocation" name="visitorLocation" placeholder="Node #313 // Cyberspace" class="p-2 border-2 border-main font-mono text-xs" />
+          </div>
+          <div class="w-full sm:w-40 flex flex-col gap-1">
+            <label for="gbMood" class="font-bold">MOOD:</label>
+            <select id="gbMood" name="moodIcon" class="p-2 border-2 border-main font-mono text-xs cursor-pointer">
+              <option value="😎">😎 Radical</option>
+              <option value="💾">💾 Techie</option>
+              <option value="🕹️">🕹️ Gamer</option>
+              <option value="✨">✨ Surfer</option>
+              <option value="👾">👾 Cyber</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="gbMessage" class="font-bold">MESSAGE / GREETS: *</label>
+          <textarea id="gbMessage" name="message" rows="3" required placeholder="Great photos and aesthetic! Greetings from the dial-up web..." class="p-2 border-2 border-main font-mono text-xs"></textarea>
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <span class="text-xs text-muted">* Written to public database</span>
+          <button type="submit" id="gbSubmitBtn" class="pixel-btn pixel-btn--blue font-bold px-4 py-2">
+            <span>✍️ Sign Guestbook</span>
+          </button>
+        </div>
+
+        <div id="gbStatusMsg" class="hidden text-xs font-mono font-bold p-2 retro-alert retro-alert--success"></div>
+      </form>
+
+      <!-- Ledger of Signatures -->
+      <div class="flex flex-col gap-3 font-mono">
+        <div class="flex items-center justify-between border-b-2 border-main pb-1 font-bold text-xs">
+          <span>PUBLIC SIGNATURE ARCHIVE</span>
+          <span class="text-xs font-normal text-muted">Latest signatures first</span>
+        </div>
+
+        <div id="signaturesList" class="flex flex-col gap-3">
+          {% for entry in entries %}
+            <div class="retro-card p-3 flex flex-col gap-2 text-xs">
+              <div class="flex items-center justify-between border-b border-main pb-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">{{ entry.moodIcon }}</span>
+                  <span class="font-bold">{{ entry.visitorName }}</span>
+                  <span class="text-muted text-xs">from {{ entry.visitorLocation }}</span>
+                </div>
+                <span class="text-xs text-muted">{{ entry.createdAt | formatDate }}</span>
+              </div>
+
+              {% if entry.visitorWebsite %}
+                <div class="text-xs">
+                  <a href="{{ entry.visitorWebsite }}" target="_blank" rel="noopener noreferrer" class="text-mac underline">
+                    🌐 {{ entry.visitorWebsite }}
+                  </a>
+                </div>
+              {% endif %}
+
+              <p class="whitespace-pre-wrap p-2 border border-main text-xs font-mono bg-window">
+                "{{ entry.message }}"
+              </p>
+            </div>
+          {% else %}
+            <div id="noEntriesMsg" class="text-center py-6 text-xs text-muted font-mono">
+              :&gt; No entries logged yet. Be the first visitor to sign this guestbook!
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function() {
+        var form = document.getElementById('guestbookForm');
+        var submitBtn = document.getElementById('gbSubmitBtn');
+        var statusMsg = document.getElementById('gbStatusMsg');
+        var list = document.getElementById('signaturesList');
+        var noEntries = document.getElementById('noEntriesMsg');
+
+        form.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          if (window.retroAudio) retroAudio.playClick();
+
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span>⏳ Signing...</span>';
+          statusMsg.classList.add('hidden');
+
+          var payload = {
+            visitorName: document.getElementById('gbName').value,
+            visitorWebsite: document.getElementById('gbWebsite').value,
+            visitorLocation: document.getElementById('gbLocation').value,
+            moodIcon: document.getElementById('gbMood').value,
+            message: document.getElementById('gbMessage').value,
+          };
+
+          try {
+            var res = await fetch('/api/guestbook/{{ handle }}', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+
+            var data = await res.json();
+            if (!res.ok || !data.ok) {
+              throw new Error(data.error || 'Failed to submit signature');
+            }
+
+            if (window.retroAudio) retroAudio.playSuccess();
+
+            statusMsg.textContent = '✓ Signature committed to disk! Thanks for signing.';
+            statusMsg.className = 'text-xs font-mono font-bold p-2 retro-alert retro-alert--success';
+            statusMsg.classList.remove('hidden');
+
+            document.getElementById('gbMessage').value = '';
+
+            // Prepend new signature to list
+            if (noEntries) noEntries.remove();
+            var card = document.createElement('div');
+            card.className = 'retro-card p-3 flex flex-col gap-2 text-xs';
+            var siteHtml = payload.visitorWebsite ? '<div class="text-xs"><a href="' + payload.visitorWebsite + '" target="_blank" class="text-mac underline">🌐 ' + payload.visitorWebsite + '</a></div>' : '';
+            card.innerHTML = 
+              '<div class="flex items-center justify-between border-b border-main pb-1">' +
+                '<div class="flex items-center gap-2">' +
+                  '<span class="text-base">' + (payload.moodIcon || '😎') + '</span>' +
+                  '<span class="font-bold">' + payload.visitorName + '</span>' +
+                  '<span class="text-muted text-xs">from ' + (payload.visitorLocation || 'Cyberspace') + '</span>' +
+                '</div>' +
+                '<span class="text-xs text-muted">Just now</span>' +
+              '</div>' + siteHtml +
+              '<p class="whitespace-pre-wrap p-2 border border-main text-xs font-mono bg-window">"' + payload.message + '"</p>';
+            list.insertBefore(card, list.firstChild);
+
+          } catch (err) {
+            if (window.retroAudio) retroAudio.playError();
+            statusMsg.textContent = 'ERROR: ' + err.message;
+            statusMsg.className = 'text-xs font-mono font-bold p-2 retro-alert retro-alert--error';
+            statusMsg.classList.remove('hidden');
+          } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>✍️ Sign Guestbook</span>';
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

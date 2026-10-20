@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/neogram.css">
+    <link rel="stylesheet" href="/embed/neogram-embed.css">
+    <script src="/js/retroAudio.js"></script>
+  </head>
+  <body class="p-3 bg-desktop">
+    <div class="neogram-feed max-w-xl mx-auto">
+      <!-- Header -->
+      <div class="window-header flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span>📸</span>
+          <span class="font-bold">@{{ handle }}'s PHOTO DISK</span>
+        </div>
+        <a href="/preview/" target="_blank" class="text-xs text-prompt underline font-mono">
+          [:> Open Full Gallery]
+        </a>
+      </div>
+
+      <!-- Feed Grid / List -->
+      <div class="flex flex-col gap-4">
+        {% for post in posts %}
+          <div class="neogram-post">
+            <div class="neogram-post__header">
+              <span class="neogram-post__avatar">💾</span>
+              <span class="neogram-post__handle">@{{ handle }}</span>
+              <span class="text-xs text-muted font-normal ml-auto">{{ post.createdAt | formatDate }}</span>
+            </div>
+
+            <div class="neogram-post__media">
+              <a href="/photos/{{ post.id }}/" target="_blank">
+                <img src="{{ post.imagePath }}" alt="{{ post.caption or 'Neogram photo' }}" loading="lazy" />
+              </a>
+            </div>
+
+            {% if post.caption %}
+              <div class="neogram-post__caption">
+                {{ post.caption }}
+              </div>
+            {% endif %}
+
+            <div class="neogram-post__tags">
+              {% if post.mood %}<span>{{ post.mood }}</span>{% endif %}
+              {% if post.filterApplied and post.filterApplied != 'none' %}<span>[filter: {{ post.filterApplied }}]</span>{% endif %}
+            </div>
+
+            <div class="neogram-post__actions flex items-center justify-between">
+              <div class="flex items-center gap-3 text-xs font-mono">
+                <span>❤️ {{ post.likes }} likes</span>
+                <span>💬 {{ post.commentCount }} comments</span>
+              </div>
+              <a href="/photos/{{ post.id }}/" target="_blank" class="neogram-button">
+                💬 View & Comment :&gt;
+              </a>
+            </div>
+          </div>
+        {% else %}
+          <div class="text-center py-8 text-xs text-muted font-mono">
+            :&gt; No photos published yet.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </body>
+</html>

@@ -62,6 +62,14 @@
           >
             <span>⚙️ Neocities &amp; Host Settings</span>
           </button>
+          <button
+            type="button"
+            id="tabEmbedsBtn"
+            class="pixel-btn font-bold text-xs"
+            onclick="switchDashboardTab('embeds')"
+          >
+            <span>📟 Embeds &amp; Social Studio</span>
+          </button>
           <a
             href="/preview/"
             target="_blank"
@@ -696,6 +704,243 @@
           </div>
         </div>
 
+        <!-- TAB 4: EMBEDS & SOCIAL STUDIO SECTION -->
+        <div id="embedsSection" class="hidden">
+          <div class="grid-2-col items-start gap-4">
+
+            <!-- LEFT COLUMN: Dynamic SVG Counter + Public JSON Feed -->
+            <div class="flex-1 flex flex-col gap-4">
+
+              <!-- DIGITAL WEB HIT COUNTER BOX -->
+              <div class="retro-card p-4 m-0">
+                <div class="window-header mb-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span>🔢</span>
+                    <span class="font-bold">[:&gt; hit_counter_daemon.out — DYNAMIC SVG COUNTER]</span>
+                  </div>
+                  <span id="counterHitsBadge" class="text-xs font-mono font-bold text-prompt">HITS: --</span>
+                </div>
+
+                <p class="text-xs text-muted mb-3 font-mono">
+                  :&gt; High-contrast dynamic SVG hit counter for your Neocities or static site. Increments automatically when rendered by visitors.
+                </p>
+
+                <!-- Live SVG Counter Display Preview -->
+                <div class="p-3 bg-black border-2 border-main flex flex-col items-center justify-center gap-2 mb-3">
+                  <span class="text-xs font-mono text-muted uppercase">*** LIVE SVG PREVIEW ***</span>
+                  <div id="counterSvgPreviewContainer" class="p-2 border-2 border-main">
+                    <img
+                      id="counterLiveSvg"
+                      src="/counter/{{ currentUser.handle }}.svg?style=green_led"
+                      alt="Live Hit Counter"
+                      class="block"
+                    />
+                  </div>
+                  <span id="counterLiveUrlLabel" class="text-xs font-mono text-muted text-center break-all">/counter/{{ currentUser.handle }}.svg?style=green_led</span>
+                </div>
+
+                <!-- Hardware Palette Selector -->
+                <div class="mb-3 font-mono">
+                  <label class="block text-xs font-bold mb-1">HARDWARE PALETTE:</label>
+                  <div class="grid grid-cols-2 gap-2 text-xs">
+                    <button
+                      type="button"
+                      id="btnStyleGreenLed"
+                      onclick="selectCounterStyle('green_led')"
+                      class="pixel-btn pixel-btn--yellow text-xs py-1"
+                    >
+                      🟢 Green Phosphor
+                    </button>
+                    <button
+                      type="button"
+                      id="btnStyleRedNixie"
+                      onclick="selectCounterStyle('red_nixie')"
+                      class="pixel-btn text-xs py-1"
+                    >
+                      🔴 Red Nixie Tube
+                    </button>
+                    <button
+                      type="button"
+                      id="btnStyleOdometer"
+                      onclick="selectCounterStyle('odometer')"
+                      class="pixel-btn text-xs py-1"
+                    >
+                      ⚪ B&amp;W Mechanical
+                    </button>
+                    <button
+                      type="button"
+                      id="btnStyleBlueVfd"
+                      onclick="selectCounterStyle('blue_vfd')"
+                      class="pixel-btn text-xs py-1"
+                    >
+                      🔵 Cyan VFD Tube
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Simulation & Control Buttons -->
+                <div class="flex items-center gap-2 mb-3 border-t border-main pt-2 flex-wrap">
+                  <button
+                    type="button"
+                    onclick="simulateHit(1)"
+                    class="pixel-btn pixel-btn--yellow font-bold text-xs flex items-center gap-1"
+                  >
+                    <span>➕ Simulate Visit (+1)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onclick="simulateHit(10)"
+                    class="pixel-btn font-bold text-xs flex items-center gap-1"
+                  >
+                    <span>🕸️ Crawl (+10)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onclick="resetCounter()"
+                    class="pixel-btn font-bold text-xs text-muted"
+                  >
+                    <span>↺ Reset to 1</span>
+                  </button>
+                </div>
+
+                <!-- Embed Snippet Box -->
+                <div class="font-mono text-xs">
+                  <label class="block font-bold mb-1">HTML EMBED SNIPPET:</label>
+                  <pre id="counterCodeSnippet" class="p-2 bg-window border border-main text-xs font-mono overflow-x-auto select-all mb-2">&lt;div class="neogram-counter"&gt;
+  &lt;img src="{{ currentUser.siteUrl or 'http://localhost:4000' }}/counter/{{ currentUser.handle }}.svg?style=green_led" alt="Visitor Counter" /&gt;
+&lt;/div&gt;</pre>
+                  <button
+                    type="button"
+                    id="btnCopyCounterTag"
+                    onclick="copyCounterTag()"
+                    class="pixel-btn pixel-btn--blue font-bold text-xs"
+                  >
+                    <span>📋 Copy HTML Tag</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- PUBLIC JSON FEED BOX -->
+              <div class="retro-card p-4 m-0">
+                <div class="window-header mb-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span>📡</span>
+                    <span class="font-bold">[:&gt; json_feed_engine.cgi — PUBLIC FEED]</span>
+                  </div>
+                  <span class="text-xs font-mono text-prompt">JSONFEED 1.1</span>
+                </div>
+
+                <p class="text-xs text-muted mb-3 font-mono">
+                  :&gt; Headless JSON feed of your photo gallery. Fetch it from any static site, Neocities page, or client script to display your latest photos.
+                </p>
+
+                <div class="p-2 border border-main bg-window font-mono text-xs mb-3 flex items-center justify-between">
+                  <code id="feedUrlDisplay" class="text-prompt break-all">/api/users/{{ currentUser.handle }}/feed.json</code>
+                  <a id="feedUrlLink" href="/api/users/{{ currentUser.handle }}/feed.json" target="_blank" class="pixel-btn text-xs ml-2">
+                    <span>🌐 Open</span>
+                  </a>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    id="btnCopyFeedUrl"
+                    onclick="copyFeedUrl()"
+                    class="pixel-btn pixel-btn--yellow font-bold text-xs"
+                  >
+                    <span>📋 Copy Feed URL</span>
+                  </button>
+                  <button
+                    type="button"
+                    id="btnCopyFeedIframe"
+                    onclick="copyFeedIframe()"
+                    class="pixel-btn font-bold text-xs"
+                  >
+                    <span>🖼️ Copy Iframe Code</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: Guestbook Moderation & Social Follow Network -->
+            <div class="flex-1 flex flex-col gap-4">
+
+              <!-- PUBLIC VISITOR GUESTBOOK LEDGER BOX -->
+              <div class="retro-card p-4 m-0 flex flex-col">
+                <div class="window-header mb-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span>✍️</span>
+                    <span class="font-bold">[:&gt; guestbook_daemon.cgi — VISITOR LEDGER]</span>
+                  </div>
+                  <span id="gbCountBadge" class="text-xs font-mono font-bold text-prompt">-- SIGNATURES</span>
+                </div>
+
+                <p class="text-xs text-muted mb-3 font-mono">
+                  :&gt; Drop your public guestbook onto your Neocities page with an iframe or link. Manage and moderate signatures below.
+                </p>
+
+                <div class="flex items-center gap-2 mb-3 flex-wrap">
+                  <a
+                    href="/embed/guestbook/{{ currentUser.handle }}"
+                    target="_blank"
+                    class="pixel-btn pixel-btn--yellow font-bold text-xs"
+                  >
+                    <span>🌐 Open Live Guestbook :&gt;</span>
+                  </a>
+                  <button
+                    type="button"
+                    id="btnCopyGuestbookIframe"
+                    onclick="copyGuestbookIframe()"
+                    class="pixel-btn font-bold text-xs"
+                  >
+                    <span>📋 Copy Iframe Code</span>
+                  </button>
+                </div>
+
+                <!-- Signatures Moderation List -->
+                <div class="border-t border-main pt-2 flex flex-col gap-2 font-mono text-xs">
+                  <div class="flex items-center justify-between font-bold">
+                    <span>SIGNATURES ARCHIVE</span>
+                    <button type="button" onclick="loadGuestbookEntries()" class="text-prompt underline text-xs">
+                      [↻ Refresh]
+                    </button>
+                  </div>
+
+                  <div id="gbSignaturesList" class="ledger-list flex flex-col gap-2 pr-1">
+                    <div class="text-center py-4 text-xs text-muted">
+                      ⏳ Loading visitor signatures...
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- CYBERSPACE NETWORK & SOCIAL FOLLOWING BOX -->
+              <div class="retro-card p-4 m-0 flex flex-col">
+                <div class="window-header mb-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span>🌐</span>
+                    <span class="font-bold">[:&gt; bbs_network.net — CYBERSPACE NETWORK]</span>
+                  </div>
+                  <span class="text-xs font-mono text-prompt">NEOGRAM USERS</span>
+                </div>
+
+                <p class="text-xs text-muted mb-3 font-mono">
+                  :&gt; Discover other creators on the Neogram network. Follow their stations to build your webring.
+                </p>
+
+                <div id="networkUsersList" class="ledger-list flex flex-col gap-2 font-mono text-xs pr-1">
+                  <div class="text-center py-4 text-xs text-muted">
+                    ⏳ Connecting to network BBS...
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -939,17 +1184,21 @@
     var uploadSec = document.getElementById('uploadStudioSection');
     var manageSec = document.getElementById('manageGallerySection');
     var settingsSec = document.getElementById('settingsSection');
+    var embedsSec = document.getElementById('embedsSection');
     var uploadBtn = document.getElementById('tabUploadBtn');
     var manageBtn = document.getElementById('tabManageBtn');
     var settingsBtn = document.getElementById('tabSettingsBtn');
+    var embedsBtn = document.getElementById('tabEmbedsBtn');
 
     uploadSec.classList.add('hidden');
     manageSec.classList.add('hidden');
     if (settingsSec) settingsSec.classList.add('hidden');
+    if (embedsSec) embedsSec.classList.add('hidden');
 
     uploadBtn.classList.remove('pixel-btn--yellow');
     manageBtn.classList.remove('pixel-btn--yellow');
     if (settingsBtn) settingsBtn.classList.remove('pixel-btn--yellow');
+    if (embedsBtn) embedsBtn.classList.remove('pixel-btn--yellow');
 
     if (tab === 'upload') {
       uploadSec.classList.remove('hidden');
@@ -961,6 +1210,298 @@
       if (settingsSec) settingsSec.classList.remove('hidden');
       if (settingsBtn) settingsBtn.classList.add('pixel-btn--yellow');
       loadSettings();
+    } else if (tab === 'embeds') {
+      if (embedsSec) embedsSec.classList.remove('hidden');
+      if (embedsBtn) embedsBtn.classList.add('pixel-btn--yellow');
+      loadEmbedsStudio();
+    }
+  }
+
+  // -------------------------------------------------------------
+  // EMBEDS & RETRO STUDIO CONTROLLERS
+  // -------------------------------------------------------------
+  var currentCounterStyle = 'green_led';
+  var userHandle = '{{ currentUser.handle }}';
+
+  async function loadEmbedsStudio() {
+    loadCounterSettings();
+    loadGuestbookEntries();
+    loadNetworkUsers();
+  }
+
+  async function loadCounterSettings() {
+    try {
+      var res = await fetch('/api/counter');
+      if (!res.ok) return;
+      var data = await res.json();
+      if (data.ok && data.counter) {
+        currentCounterStyle = data.counter.style || 'green_led';
+        var badge = document.getElementById('counterHitsBadge');
+        if (badge) badge.textContent = 'HITS: ' + data.counter.hits;
+        highlightActiveCounterStyle(currentCounterStyle);
+        updateCounterPreview(data.counter.hits, currentCounterStyle);
+      }
+    } catch (e) {
+      console.error('Failed to load counter:', e);
+    }
+  }
+
+  function highlightActiveCounterStyle(style) {
+    var btnMap = {
+      'green_led': 'btnStyleGreenLed',
+      'red_nixie': 'btnStyleRedNixie',
+      'odometer': 'btnStyleOdometer',
+      'blue_vfd': 'btnStyleBlueVfd'
+    };
+    Object.keys(btnMap).forEach(function(s) {
+      var btn = document.getElementById(btnMap[s]);
+      if (btn) {
+        if (s === style) {
+          btn.classList.add('pixel-btn--yellow');
+        } else {
+          btn.classList.remove('pixel-btn--yellow');
+        }
+      }
+    });
+  }
+
+  function updateCounterPreview(hits, style) {
+    var img = document.getElementById('counterLiveSvg');
+    var label = document.getElementById('counterLiveUrlLabel');
+    var snippet = document.getElementById('counterCodeSnippet');
+    var url = '/counter/' + userHandle + '.svg?style=' + style + '&t=' + Date.now();
+    var fullUrl = window.location.origin + '/counter/' + userHandle + '.svg?style=' + style;
+    if (img) img.src = url;
+    if (label) label.textContent = '/counter/' + userHandle + '.svg?style=' + style;
+    if (snippet) {
+      snippet.textContent = '<div class="neogram-counter">\n  <img src="' + fullUrl + '" alt="Visitor Counter" />\n</div>';
+    }
+  }
+
+  async function selectCounterStyle(style) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    currentCounterStyle = style;
+    highlightActiveCounterStyle(style);
+    updateCounterPreview(null, style);
+    try {
+      await fetch('/api/counter', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ style: style })
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function simulateHit(amount) {
+    if (window.retroAudio) {
+      if (amount > 1) window.retroAudio.playDialupBeep();
+      else window.retroAudio.playCounterTick();
+    }
+    try {
+      var res = await fetch('/api/counter', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'increment', amount: amount, style: currentCounterStyle })
+      });
+      var data = await res.json();
+      if (data.ok) {
+        var badge = document.getElementById('counterHitsBadge');
+        if (badge) badge.textContent = 'HITS: ' + data.hits;
+        updateCounterPreview(data.hits, currentCounterStyle);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function resetCounter() {
+    if (!confirm('Reset hit counter back to 000001?')) return;
+    if (window.retroAudio) window.retroAudio.playClick();
+    try {
+      var res = await fetch('/api/counter', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset', style: currentCounterStyle })
+      });
+      var data = await res.json();
+      if (data.ok) {
+        var badge = document.getElementById('counterHitsBadge');
+        if (badge) badge.textContent = 'HITS: 1';
+        updateCounterPreview(1, currentCounterStyle);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function copyCounterTag() {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var snippet = document.getElementById('counterCodeSnippet');
+    if (snippet) {
+      navigator.clipboard?.writeText(snippet.textContent);
+      var btn = document.getElementById('btnCopyCounterTag');
+      if (btn) {
+        var old = btn.innerHTML;
+        btn.innerHTML = '<span>✓ Copied HTML Tag!</span>';
+        setTimeout(function() { btn.innerHTML = old; }, 2000);
+      }
+    }
+  }
+
+  function copyFeedUrl() {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var fullUrl = window.location.origin + '/api/users/' + userHandle + '/feed.json';
+    navigator.clipboard?.writeText(fullUrl);
+    var btn = document.getElementById('btnCopyFeedUrl');
+    if (btn) {
+      var old = btn.innerHTML;
+      btn.innerHTML = '<span>✓ Copied Feed URL!</span>';
+      setTimeout(function() { btn.innerHTML = old; }, 2000);
+    }
+  }
+
+  function copyFeedIframe() {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var iframe = '<iframe src="' + window.location.origin + '/embed/feed/' + userHandle + '" width="100%" height="600" frameborder="0"></iframe>';
+    navigator.clipboard?.writeText(iframe);
+    var btn = document.getElementById('btnCopyFeedIframe');
+    if (btn) {
+      var old = btn.innerHTML;
+      btn.innerHTML = '<span>✓ Copied Iframe Code!</span>';
+      setTimeout(function() { btn.innerHTML = old; }, 2000);
+    }
+  }
+
+  function copyGuestbookIframe() {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var iframe = '<iframe src="' + window.location.origin + '/embed/guestbook/' + userHandle + '" width="100%" height="500" frameborder="0"></iframe>';
+    navigator.clipboard?.writeText(iframe);
+    var btn = document.getElementById('btnCopyGuestbookIframe');
+    if (btn) {
+      var old = btn.innerHTML;
+      btn.innerHTML = '<span>✓ Copied Guestbook Iframe!</span>';
+      setTimeout(function() { btn.innerHTML = old; }, 2000);
+    }
+  }
+
+  async function loadGuestbookEntries() {
+    var container = document.getElementById('gbSignaturesList');
+    var badge = document.getElementById('gbCountBadge');
+    if (!container) return;
+
+    try {
+      var res = await fetch('/api/guestbook/' + userHandle);
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to fetch');
+
+      if (badge) badge.textContent = data.entries.length + ' SIGNATURES';
+
+      if (data.entries.length === 0) {
+        container.innerHTML = '<div class="text-center py-4 text-xs text-muted">:&gt; No signatures recorded yet. Share your guestbook link!</div>';
+        return;
+      }
+
+      var html = '';
+      data.entries.forEach(function(entry) {
+        var site = entry.visitorWebsite ? '<div class="text-xs"><a href="' + entry.visitorWebsite + '" target="_blank" class="text-mac underline">🌐 ' + entry.visitorWebsite + '</a></div>' : '';
+        html += '<div class="retro-card p-2 flex flex-col gap-1 text-xs border border-main">' +
+          '<div class="flex items-center justify-between border-b border-main pb-1">' +
+            '<div class="flex items-center gap-1.5">' +
+              '<span>' + (entry.moodIcon || '😎') + '</span>' +
+              '<span class="font-bold">' + entry.visitorName + '</span>' +
+              '<span class="text-muted text-xs">(' + (entry.visitorLocation || 'Cyberspace') + ')</span>' +
+            '</div>' +
+            '<button type="button" onclick="deleteGuestbookEntry(\'' + entry.id + '\')" class="text-crimson font-bold text-xs hover:underline" title="Delete signature">[Delete]</button>' +
+          '</div>' + site +
+          '<div class="whitespace-pre-wrap p-1 text-xs font-mono bg-window">"' + entry.message + '"</div>' +
+        '</div>';
+      });
+
+      container.innerHTML = html;
+    } catch (e) {
+      container.innerHTML = '<div class="text-center py-4 text-xs text-crimson">Failed to load signatures: ' + e.message + '</div>';
+    }
+  }
+
+  async function deleteGuestbookEntry(id) {
+    if (!confirm('Delete this visitor signature from your ledger?')) return;
+    if (window.retroAudio) window.retroAudio.playClick();
+
+    try {
+      var res = await fetch('/api/guestbook/' + id, { method: 'DELETE' });
+      var data = await res.json();
+      if (data.ok) {
+        if (window.retroAudio) window.retroAudio.playSuccess();
+        loadGuestbookEntries();
+      } else {
+        alert(data.error || 'Failed to delete');
+      }
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  async function loadNetworkUsers() {
+    var container = document.getElementById('networkUsersList');
+    if (!container) return;
+
+    try {
+      var res = await fetch('/api/network/users');
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to fetch');
+
+      if (data.users.length === 0) {
+        container.innerHTML = '<div class="text-center py-4 text-xs text-muted">No other creators detected on BBS.</div>';
+        return;
+      }
+
+      var html = '';
+      data.users.forEach(function(u) {
+        var actionBtn = '';
+        if (u.isSelf) {
+          actionBtn = '<span class="text-xs text-muted font-bold">[YOU]</span>';
+        } else if (u.isFollowing) {
+          actionBtn = '<button type="button" onclick="toggleFollowUser(\'' + u.handle + '\', true)" class="pixel-btn pixel-btn--yellow text-xs py-0.5 px-2">✓ Following</button>';
+        } else {
+          actionBtn = '<button type="button" onclick="toggleFollowUser(\'' + u.handle + '\', false)" class="pixel-btn text-xs py-0.5 px-2">+ Follow</button>';
+        }
+
+        var site = u.siteUrl ? '<a href="' + u.siteUrl + '" target="_blank" class="text-mac underline text-xs">🌐 Site</a>' : '';
+
+        html += '<div class="retro-card p-2 flex items-center justify-between gap-2 border border-main text-xs">' +
+          '<div class="flex items-center gap-2">' +
+            '<span class="text-base">👾</span>' +
+            '<div>' +
+              '<div class="font-bold text-prompt">@' + u.handle + '</div>' +
+              '<div class="text-muted text-xs">' + u.postCount + ' photos • ' + u.followersCount + ' followers ' + (site ? '• ' + site : '') + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div>' + actionBtn + '</div>' +
+        '</div>';
+      });
+
+      container.innerHTML = html;
+    } catch (e) {
+      container.innerHTML = '<div class="text-center py-4 text-xs text-crimson">Failed to load network: ' + e.message + '</div>';
+    }
+  }
+
+  async function toggleFollowUser(handle, isFollowing) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    try {
+      var method = isFollowing ? 'DELETE' : 'POST';
+      var res = await fetch('/api/users/' + handle + '/follow', { method: method });
+      var data = await res.json();
+      if (data.ok) {
+        if (window.retroAudio) window.retroAudio.playSuccess();
+        loadNetworkUsers();
+      } else {
+        alert(data.error || 'Failed to update follow state');
+      }
+    } catch (e) {
+      alert(e.message);
     }
   }
 

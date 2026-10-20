@@ -60,6 +60,10 @@
   overflow-y: auto;
   font-family: var(--font-mono);
 }
+.ledger-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
 .select-none { user-select: none; }
 
 /* Visibility, Opacity & Cursors */

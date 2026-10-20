@@ -181,8 +181,11 @@ When building the production backend and views, extract and reuse the following 
    - Live Neocities connection probe (`https://neocities.org/api/info`) displaying remote views, hits, and last updated time.
    - Per-user 11ty static compilation (`server/services/staticBuilder.ts`) compiling isolated personal galleries to `dist/static-galleries/<userId>/`.
    - REST API deployment pipeline pushing multipart bundle to `POST https://neocities.org/api/upload` with optional auto-deploy on photo changes.
-7. **[ ] Step 7 (Milestone 4): Embeds Studio (Counter, Guestbook, Comments) & JSON Feeds**
-   - Dynamic SVG web hit counters (`/counter/:handle.svg`), public JSON feeds (`/api/users/:handle/feed.json`), and embed codes.
+7. **[x] Step 7 (Milestone 4): Embeds Studio (Counter, Guestbook, Comments) & JSON Feeds**
+   - Dynamic SVG web hit counters (`/counter/:handle.svg` with green phosphor, red nixie, mechanical odometer, and blue VFD styles).
+   - Public JSON feeds (`/api/users/:handle/feed.json` and `/feed/:handle.json`) compliant with JSONFeed 1.1 for headless static sites.
+   - Public guestbook ledger (`/api/guestbook/:handle`) with standalone iframe embed (`/embed/guestbook/:handle`) and moderation dashboard.
+   - Standalone photo feed embed card (`/embed/feed/:handle`) and creator cyberspace network with follow/unfollow toggle (`/api/network/users`).
 8. **[ ] Step 8 (Milestone 5): Retro Chat Browser Extension**
    - Manifest V3 browser extension for AIM/ICQ-style instant messaging.
 
