@@ -1,16 +1,66 @@
 {
-  "short_name": "Neogram",
+  "id": "/",
   "name": "Neogram - 90s Retro Social Publishing Engine",
+  "short_name": "Neogram",
+  "description": "Mobile-to-static photo publishing engine and retro social workstation.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "theme_color": "#000000",
+  "background_color": "#080c10",
+  "categories": ["social", "photo", "utilities"],
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
-  "start_url": "/",
-  "background_color": "#285577",
-  "theme_color": "#000000",
-  "display": "standalone",
-  "orientation": "portrait"
+  "shortcuts": [
+    {
+      "name": "Upload Studio",
+      "short_name": "Upload",
+      "description": "Snap or upload a photo to static web",
+      "url": "/#upload",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Static Gallery",
+      "short_name": "Gallery",
+      "description": "View compiled 11ty static photo gallery",
+      "url": "/preview/",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "AIM Messenger",
+      "short_name": "AIM",
+      "description": "Open retro instant messenger",
+      "url": "/extension/popup/popup.html",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "caption",
+      "files": [
+        {
+          "name": "imageFile",
+          "accept": ["image/*"]
+        }
+      ]
+    }
+  }
 }

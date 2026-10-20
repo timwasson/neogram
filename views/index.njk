@@ -128,7 +128,17 @@
 
               <!-- Upload Dropzone & File Input -->
               <div>
-                <span class="text-xs text-muted block mb-1 font-bold">Select Photo From Device:</span>
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs text-muted font-bold">Select Photo From Device:</span>
+                  <button
+                    type="button"
+                    class="pixel-btn pixel-btn--yellow pixel-btn--sm font-bold"
+                    onclick="if(window.retroAudio) retroAudio.playClick(); document.getElementById('cameraCaptureInput').click()"
+                    title="Open mobile device camera hardware"
+                  >
+                    <span>📸 SNAP CAMERA PHOTO</span>
+                  </button>
+                </div>
                 <div
                   id="dropzone"
                   class="dropzone-well"
@@ -140,11 +150,21 @@
                   <span class="dropzone-well__icon">📷</span>
                   <div class="font-bold text-xs">CLICK TO BROWSE OR DRAG &amp; DROP PHOTO</div>
                   <div class="text-muted text-xs mt-1">Supports JPEG, PNG, WebP, BMP (Processed via Sharp)</div>
+                  <!-- Standard File Browser Input -->
                   <input
                     type="file"
                     id="imageFileInput"
                     name="imageFile"
                     accept="image/*"
+                    class="hidden"
+                    onchange="handleFileInputChange(event)"
+                  />
+                  <!-- Direct Mobile Camera Capture Input -->
+                  <input
+                    type="file"
+                    id="cameraCaptureInput"
+                    accept="image/*"
+                    capture="environment"
                     class="hidden"
                     onchange="handleFileInputChange(event)"
                   />
@@ -1127,6 +1147,33 @@
       });
     }
 
+    // Check if device is offline (PWA offline buffering)
+    if (!navigator.onLine && window.NeogramPWA) {
+      window.NeogramPWA.bufferOfflinePost({
+        caption: caption,
+        filterApplied: currentFilter,
+        mood: mood,
+        webring: webring,
+        location: location,
+        imageBase64: previewImg.src
+      }, function(err, id) {
+        publishBtn.disabled = false;
+        publishBtn.style.opacity = '1';
+        logBox.classList.add('hidden');
+        if (err) {
+          showAlert('error', '[:> OFFLINE BUFFER FAULT]:', err.message);
+        } else {
+          showAlert(
+            'success',
+            '[✓] OFFLINE SNAPSHOT BUFFERED:',
+            'Carrier offline. Photo saved to device IndexedDB ledger. Will auto-sync when carrier re-connects!'
+          );
+          if (window.retroAudio) window.retroAudio.playSuccess();
+        }
+      });
+      return;
+    }
+
     try {
       await logStep('[:> init_ppp_link /dev/ttyS0 --baud 28800]', 400);
       await logStep('[:> carrier detected: V.34 protocol handshake... [OK]]', 600);
@@ -1168,8 +1215,20 @@
       );
 
     } catch (err) {
-      if (window.retroAudio) window.retroAudio.playError();
-      showAlert('error', '[:> TRANSMISSION ERROR]:', err.message);
+      if (!navigator.onLine && window.NeogramPWA) {
+        window.NeogramPWA.bufferOfflinePost({
+          caption: caption,
+          filterApplied: currentFilter,
+          mood: mood,
+          webring: webring,
+          location: location,
+          imageBase64: previewImg.src
+        });
+        showAlert('info', '[:> CARRIER DROPPED]:', 'Connection dropped during upload. Post saved to offline ledger.');
+      } else {
+        if (window.retroAudio) window.retroAudio.playError();
+        showAlert('error', '[:> TRANSMISSION ERROR]:', err.message);
+      }
     } finally {
       publishBtn.disabled = false;
       publishBtn.style.opacity = '1';

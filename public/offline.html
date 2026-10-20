@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neogram - Carrier Lost (Offline Mode)</title>
+    <link rel="stylesheet" href="/css/neogram.css">
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--bg-desktop);
+        color: var(--text-main);
+        font-family: var(--font-mono);
+      }
+      .offline-box {
+        width: 440px;
+        max-width: calc(100vw - 32px);
+        background-color: var(--surface-window);
+        border: 4px solid var(--border-main);
+        box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 0.9);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="offline-box crt-scanlines">
+      <!-- Titlebar -->
+      <div class="window-header flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span>📡</span>
+          <span class="font-bold text-xs uppercase tracking-wider">MODEM: NO_CARRIER // 300 BAUD</span>
+        </div>
+        <span class="text-xs text-crimson font-bold">● DISCONNECTED</span>
+      </div>
+
+      <div class="p-4 flex flex-col gap-3">
+        <!-- Retro Alert -->
+        <div class="retro-alert retro-alert--error is-visible">
+          <span class="retro-alert__tag">[!] NO CARRIER:</span>
+          <span>Internet connection dropped or node server unreachable.</span>
+        </div>
+
+        <div class="text-xs leading-relaxed text-muted">
+          Neogram PWA is running in <strong>Offline Standalone Mode</strong>. 
+          Your cached workstation shell, static assets, and local chat ledgers remain safe on this device.
+        </div>
+
+        <div class="border border-main p-2 bg-window text-xs font-mono">
+          <div class="text-mac font-bold mb-1">OFFLINE PROTOCOL ACTIVE:</div>
+          <div>• Snapped photos and captions will be buffered locally.</div>
+          <div>• Carrier sync will automatically resume when network re-establishes.</div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <button type="button" class="pixel-btn pixel-btn--yellow font-bold text-xs py-2 px-3" onclick="window.location.reload();">
+            <span>🔄</span> <span>RETRY CARRIER HANDSHAKE</span>
+          </button>
+          <a href="/" class="pixel-btn text-xs py-2 px-3">
+            <span>🏠 Return to App</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

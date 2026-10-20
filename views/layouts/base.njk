@@ -7,6 +7,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Neogram">
+    <meta name="mobile-web-app-capable" content="yes">
     <link rel="stylesheet" href="/css/neogram.css">
     <link rel="stylesheet" href="/embed/neogram-embed.css">
     <script src="/js/retroAudio.js"></script>
@@ -71,6 +77,11 @@
       </nav>
 
       <div class="flex items-center gap-1">
+        <!-- PWA Install Prompt Button -->
+        <button type="button" id="pwaInstallBtn" class="pixel-btn pixel-btn--green pixel-btn--sm hidden" title="Install Neogram Workstation PWA to your device">
+          <span>💾 INSTALL APP :&gt;</span>
+        </button>
+
         <!-- Theme Toggle -->
         <button id="themeToggleBtn" class="pixel-btn pixel-btn--sm" title="Toggle Dark/Light Mode">
           <span id="themeLabel">🌙</span>
@@ -129,7 +140,7 @@
           <span>AUTH: AWAITING_CARRIER</span>
         {% endif %}
         <span class="text-muted">|</span>
-        <span>COM2: 28.8k V.34</span>
+        <span id="taskbarCom2Panel">COM2: 28.8k V.34</span>
       </div>
     </footer>
 
@@ -263,6 +274,9 @@
         });
       </script>
     {% endif %}
+
+    <!-- PWA Service Worker & Carrier Telemetry Engine -->
+    <script src="/js/pwa.js"></script>
 
     {% block scripts %}{% endblock %}
   </body>
