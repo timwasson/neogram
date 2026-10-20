@@ -32,6 +32,11 @@ export function createApp(): Express {
   app.use(express.static(path.resolve(process.cwd(), 'public')));
   app.use('/embed', express.static(path.resolve(process.cwd(), 'embed')));
 
+  // 3b. 11ty Static Gallery Preview
+  const staticGalleryPath = path.resolve(process.cwd(), 'dist/static-gallery');
+  app.use('/preview', express.static(staticGalleryPath));
+  app.use('/photos', express.static(path.join(staticGalleryPath, 'photos')));
+
   // 4. API Endpoints
   app.use('/api', apiRouter);
 

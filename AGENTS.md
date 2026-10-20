@@ -22,12 +22,13 @@ It provides:
 
 | Component | Technology | Rationale / Purpose |
 |---|---|---|
-| **Backend Runtime** | **Node.js (Express)** | API-first architecture, async queue handling, pipeline integration |
-| **Database** | **PostgreSQL** (Docker / Managed) | Relational integrity for users, posts, comments, follows, guestbook, counters |
-| **Image Processing** | **Sharp** | High-performance image resizing, compression, thumbnailing, WebP conversion |
-| **Server Templating** | **Nunjucks** (or Twig for Node) | Fast, secure server-rendered dashboard & embed markup templates |
-| **Styling & Design System** | **Custom Vanilla CSS (NO TAILWIND)** | Custom retro CSS framework (`public/css/neogram.css`), CSS variables, BEM components (`pixel-box`, `pixel-btn`, `retro-alert`, `baud-progress-bar`), and custom utility classes. **Tailwind CSS is strictly prohibited.** |
-| **Static Deploy Pipeline** | **Neocities API / GitHub API / SFTP** | Automated pushes of generated HTML/media to the user's static host |
+| **Backend & Workstation Runtime** | **Node.js (Express)** on Port 4000 | Single-server decoupled monolith serving authenticated workstation, API, and static previews |
+| **Database** | **PostgreSQL** (Docker / Native) | Relational integrity for users, posts, comments, follows, guestbook, counters |
+| **Image Processing** | **Sharp** | High-performance image resizing (1200px), WebP compression, square thumbnailing (400px) |
+| **Static Site Generator** | **Eleventy (11ty v3)** | Compiles static photo gallery (`dist/static-gallery`) using Nunjucks templates with live preview at `/preview/` |
+| **Server Templating** | **Nunjucks** | Fast, secure server-rendered dashboard & embed markup templates |
+| **Styling & Design System** | **Dart Sass + Vanilla CSS (NO TAILWIND)** | Modular SCSS (`src/styles/`), CSS variables, BEM components (`pixel-box`, `pixel-btn`, `retro-alert`, `baud-progress-bar`), CRT phosphor glow, and utility classes. **Tailwind CSS is strictly prohibited.** |
+| **Static Deploy Pipeline** | **Neocities API / GitHub API / SFTP** | Automated pushes of generated 11ty HTML & media to the user's static host |
 | **Client Embeds** | **Vanilla JS + BEM Hooks** | Zero-dependency async embed scripts with strict BEM CSS hooks for user customization |
 | **Audio Synthesis** | **Web Audio API (`retroAudio`)** | Synthesized 8-bit beeps, shutter sounds, dial-up handshakes, click SFX |
 | **Chat Extension** | **WebExtension (Manifest V3)** | AIM/ICQ-style popup/sidebar chat client |
@@ -129,15 +130,19 @@ All embeddable widgets must render standard HTML markup with consistent BEM clas
 - Never return sensitive deployment credentials in client-facing API responses.
 - Authentication must use passwordless magic link / 6-digit OTP codes with HTTP-only, SameSite cookies for JWT session management.
 
-### 4.3 Static Publishing Pipeline
-1. PWA uploads image payload and post metadata.
-2. Server validates session and processes image via `sharp` (scale to max 1200px, create 400px thumbnail, optimize to WebP/JPEG).
-3. Server generates or updates the static feed bundle (e.g., `feed.json` or `feed.html`).
-4. Server uses the configured deployment adapter:
-   - **NeocitiesAdapter:** Uploads file buffers via `POST https://neocities.org/api/upload`.
-   - **GitHubAdapter:** Commits files via GitHub Octokit / Contents API.
-   - **SftpAdapter:** Connects via `ssh2-sftp-client` and puts files in the designated directory.
-5. Server records post in PostgreSQL for the central social layer (comments, likes).
+### 4.3 Static Publishing Pipeline (11ty + Neocities)
+1. User uploads photo payload and post metadata in Neogram Creator Studio (`POST /api/posts`).
+2. Server validates session and processes image via `sharp` (scale to max 1200px, create 400px thumbnail, optimize to WebP).
+3. Server commits record to PostgreSQL `posts` table.
+4. **11ty Static Site Generation (`server/services/staticBuilder.ts`):**
+   - Reads all posts and comments from PostgreSQL into `eleventy/src/_data/posts.json`.
+   - Compiles static photo gallery grid (`index.html`) and paginated dedicated photo pages (`photos/<id>/index.html`) into `dist/static-gallery/`.
+   - Passes through pure Sass stylesheets (`css/neogram.css`), uploads, and embed scripts.
+   - Serves immediate live preview at `/preview/` and `/photos/<id>/` on Port 4000.
+5. **Deployment Adapter:**
+   - **NeocitiesAdapter:** Pushes compiled `dist/static-gallery/` bundle directly to Neocities via `POST https://neocities.org/api/upload`.
+   - **GitHubAdapter / SftpAdapter:** Fallback deployment targets.
+6. Centralized social layer: Visitors to the static site react (like) and submit comments, which post back to `POST /api/posts/:id/comments` and trigger an automated background 11ty rebuild.
 
 ### 4.4 Styling Architecture: Pure Custom Utilities & BEM (Strictly NO Tailwind)
 - **Tailwind CSS is prohibited:** Do not introduce Tailwind CLI, Tailwind directives, or Tailwind dependencies for views or embeds.
@@ -152,27 +157,28 @@ All embeddable widgets must render standard HTML markup with consistent BEM clas
 ## 5. Prototype Assets to Preserve & Port
 
 When building the production backend and views, extract and reuse the following tested prototype assets:
-- **Audio Synthesis Engine:** [src/utils/audio.ts](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/src/utils/audio.ts) (Web Audio API sound generator for clicks, shutters, success chimes, and dial-up tones).
-- **CSS Tokens & Design System:** [src/index.css](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/src/index.css) (`.pixel-box`, `.pixel-btn`, `.mac-pinstripes`, CRT scanline shaders, color tokens).
+- **Audio Synthesis Engine:** [src/utils/audio.ts](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/src/utils/audio.ts) / [public/js/retroAudio.js](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/public/js/retroAudio.js) (Web Audio API sound generator for clicks, shutters, success chimes, and dial-up tones).
+- **CSS Tokens & Design System:** [src/styles/](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/src/styles/) (`.pixel-box`, `.pixel-btn`, `.mac-pinstripes`, CRT scanline shaders, color tokens).
 - **SVG Graphics & 88x31 Badges:** [src/utils/sampleData.ts](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/src/utils/sampleData.ts) (Retro workstation SVGs, pixel art icons, badge definitions).
-- **Embed Code Formats:** [src/components/EmbedModal.tsx](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/src/components/EmbedModal.tsx) (HTML snippets, iframe fallbacks, and CSS inclusion patterns).
+- **Embed Code Formats:** [embed/](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/embed/) (HTML snippets, iframe fallbacks, and CSS inclusion patterns).
 
 ---
 
 ## 6. Migration Roadmap
 
-1. **Step 1: Project Structuring & Backend Foundation**
-   - Establish server directory (`server/` or root workspace restructuring) with Express, TypeScript/ESM, environment configuration, and Docker Compose for PostgreSQL.
-   - Set up database migrations and connection pool.
-2. **Step 2: Authentication & User Accounts**
-   - Passwordless magic link / OTP flow, JWT cookies, session validation middleware.
-3. **Step 3: Asset Storage & Sharp Processing Pipeline**
-   - Multer upload handling, Sharp processing (resizing, WebP compression, thumbnails), local/cloud storage adapter.
-4. **Step 4: Deployment Adapters (Static Publishing)**
-   - Neocities API client, GitHub API client, and SFTP connector with encrypted credential storage.
-5. **Step 5: Embeddable Widgets & Public API**
-   - Vanilla JS embed script (`embed.js`), public REST endpoints for fetching post feeds, posting comments, signing guestbooks, and serving counter SVGs/images.
-6. **Step 6: PWA Dashboard & Template Porting**
-   - Server-rendered Nunjucks views and mobile-friendly PWA client leveraging the prototype's retro UI tokens and audio.
-7. **Step 7: Retro Chat Browser Extension**
+1. **[x] Step 1: Project Structuring & Backend Foundation**
+   - Established server directory (`server/`) with Express, TypeScript/ESM, environment configuration, PostgreSQL database connection, and automated schema migrations.
+2. **[x] Step 2: Authentication & User Accounts**
+   - Passwordless magic link / OTP flow, JWT cookies, session validation middleware, high-contrast baud-rate telemetry UI.
+3. **[x] Step 3: Asset Storage & Sharp Processing Pipeline**
+   - Multer upload handling, Sharp processing (1200px max, 400px thumbnails, WebP compression), preset sprites, database auto-seeding.
+4. **[x] Step 4: 11ty Static Gallery Generator & In-App Preview**
+   - `@11ty/eleventy` integration, Nunjucks templates in `eleventy/`, automated compilation to `dist/static-gallery`, live preview at `/preview/` and `/photos/<id>/`, real-time comment synchronization.
+5. **[ ] Step 5: Gallery Management (Edit & Delete Uploads)**
+   - Dashboard interface for browsing uploaded photos, editing captions/tags/filters, deleting posts, and rebuilding the static gallery.
+6. **[ ] Step 6: Neocities Settings & Deployment Adapter**
+   - Dashboard settings for Neocities API key (encrypted at rest), site name, and automated file push via Neocities REST API (`POST https://neocities.org/api/upload`).
+7. **[ ] Step 7: Embeds Studio (Counter, Guestbook, Comments) & JSON Feeds**
+   - Dynamic SVG web hit counters (`/counter/:handle.svg`), public JSON feeds (`/api/users/:handle/feed.json`), and embed codes.
+8. **[ ] Step 8: Retro Chat Browser Extension**
    - Manifest V3 browser extension for AIM/ICQ-style instant messaging.

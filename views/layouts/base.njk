@@ -38,14 +38,11 @@
       <nav class="retro-navlinks">
         {% if currentUser %}
           <!-- Authenticated Options -->
-          <a href="http://localhost:3000" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>📷</span> <span>Capture &amp; Upload</span>
+          <a href="/" class="pixel-btn {% if activeView == 'dashboard' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>📸</span> <span>Upload Studio</span>
           </a>
-          <a href="http://localhost:3000" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>📰</span> <span>Personal Feed</span>
-          </a>
-          <a href="http://localhost:3000" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>🕹️</span> <span>Widgets &amp; Counter</span>
+          <a href="/preview/" target="_blank" class="pixel-btn pixel-btn--yellow" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>🕹️</span> <span>11ty Static Gallery</span>
           </a>
           <a href="/api/stats" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
             <span>📊</span> <span>Node Stats</span>
@@ -55,8 +52,8 @@
           <a href="/" class="pixel-btn {% if activeView == 'dashboard' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
             <span>💾</span> <span>About Neogram</span>
           </a>
-          <a href="http://localhost:3000" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>🕹️</span> <span>Widgets Showcase</span>
+          <a href="/preview/" target="_blank" class="pixel-btn pixel-btn--yellow" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>🕹️</span> <span>11ty Static Gallery</span>
           </a>
           <a href="/embed/embed.js" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
             <span>💻</span> <span>Embed Specs</span>

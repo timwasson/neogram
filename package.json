@@ -4,18 +4,18 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n \"SERVER,CLIENT,SASS\" -c \"blue,green,magenta\" \"npm run dev:server\" \"npm run dev:client\" \"npm run sass:watch\"",
+    "dev": "concurrently -n \"SERVER,SASS\" -c \"blue,magenta\" \"npm run dev:server\" \"npm run sass:watch\"",
     "dev:server": "tsx watch server/index.ts",
-    "dev:client": "vite --port=3000 --host=0.0.0.0",
     "sass:build": "sass src/styles/main.scss public/css/neogram.css --no-source-map",
     "sass:watch": "sass src/styles/main.scss public/css/neogram.css --watch --no-source-map",
+    "build:static": "tsx -e \"import { buildStaticGallery } from './server/services/staticBuilder'; buildStaticGallery();\"",
+    "build:11ty": "npx @11ty/eleventy --config=eleventy/eleventy.config.js",
     "start:server": "tsx server/index.ts",
-    "build": "vite build && npm run sass:build",
-    "preview": "vite preview",
-    "clean": "rm -rf dist server.js",
+    "build": "npm run sass:build && npm run build:static",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@11ty/eleventy": "^3.1.7",
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/multer": "^2.3.0",

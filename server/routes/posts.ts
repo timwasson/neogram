@@ -193,6 +193,11 @@ postsRouter.post('/posts', upload.single('imageFile'), async (req: Request, res:
 
     const newPost = insertResult.rows[0];
 
+    // Trigger 11ty static compilation in background
+    import('../services/staticBuilder')
+      .then((m) => m.buildStaticGallery())
+      .catch((err) => console.error('[:> 11ty] Background build error:', err));
+
     res.status(201).json({
       ok: true,
       message: 'Photo published successfully via Neogram pipeline.',
@@ -238,6 +243,11 @@ postsRouter.post('/posts/:id/like', async (req: Request, res: Response, next) =>
       return;
     }
 
+    // Trigger 11ty static update in background
+    import('../services/staticBuilder')
+      .then((m) => m.buildStaticGallery())
+      .catch(() => {});
+
     res.json({ ok: true, likes: result.rows[0].likes });
   } catch (err) {
     next(err);
@@ -250,7 +260,8 @@ postsRouter.post('/posts/:id/like', async (req: Request, res: Response, next) =>
 postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next) => {
   try {
     const { id } = req.params;
-    const { authorName, text } = req.body;
+    const { authorName, author, text } = req.body;
+    const finalAuthor = (authorName || author || 'guest_surfer').trim();
 
     if (!text || !text.trim()) {
       res.status(400).json({ ok: false, error: 'Comment body cannot be empty.' });
@@ -263,8 +274,13 @@ postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next
       VALUES ($1, $2, $3)
       RETURNING id, author_name as "author", author_avatar as "avatar", body as "text", created_at as "timestamp"
     `,
-      [id, authorName?.trim() || 'guest_surfer', text.trim()]
+      [id, finalAuthor, text.trim()]
     );
+
+    // Trigger 11ty static update in background
+    import('../services/staticBuilder')
+      .then((m) => m.buildStaticGallery())
+      .catch(() => {});
 
     res.status(201).json({
       ok: true,

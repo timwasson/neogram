@@ -16,6 +16,10 @@ let isMemoryFallback = false;
 let isConnected = false;
 
 export async function initDatabase(): Promise<{ isMemory: boolean; connected: boolean }> {
+  if (activePool) {
+    return { isMemory: isMemoryFallback, connected: isConnected };
+  }
+
   // If memory DB fallback explicitly enabled and no external DB configured
   const tryExternal = !!process.env.DATABASE_URL;
 

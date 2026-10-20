@@ -29,3 +29,14 @@ apiRouter.get('/stats', async (_req: Request, res: Response, next) => {
     next(err);
   }
 });
+
+// Trigger Eleventy static site rebuild
+apiRouter.post('/build-static', async (_req: Request, res: Response, next) => {
+  try {
+    const { buildStaticGallery } = await import('../services/staticBuilder');
+    const result = await buildStaticGallery();
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});

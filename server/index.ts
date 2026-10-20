@@ -23,6 +23,9 @@ async function bootstrap() {
 
     const { seedInitialPostsIfEmpty } = await import('./db/seed');
     await seedInitialPostsIfEmpty();
+
+    const { buildStaticGallery } = await import('./services/staticBuilder');
+    await buildStaticGallery();
   } catch (err: any) {
     console.error('[:> FATAL] Failed to initialize database:', err);
     process.exit(1);

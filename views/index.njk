@@ -15,8 +15,8 @@
         </div>
         <div class="flex items-center gap-2">
           <span class="text-xs text-prompt">CARRIER: ACTIVE</span>
-          <a href="http://localhost:3000" target="_blank" class="pixel-btn pixel-btn--yellow pixel-btn--sm">
-            <span>🕹️ View Gallery (Port 3000) :&gt;</span>
+          <a href="/preview/" target="_blank" class="pixel-btn pixel-btn--yellow pixel-btn--sm">
+            <span>🕹️ View 11ty Static Gallery :&gt;</span>
           </a>
         </div>
       </div>
@@ -214,10 +214,10 @@
                 </button>
               </div>
 
-              <!-- Quick Link to Port 3000 Gallery -->
+              <!-- Quick Link to 11ty Static Gallery -->
               <div class="mt-3 text-center">
-                <a href="http://localhost:3000" target="_blank" class="pixel-btn pixel-btn--yellow text-xs font-bold py-1.5 px-3">
-                  <span>🕹️ Open Static Photo Gallery (Port 3000) :&gt;</span>
+                <a href="/preview/" target="_blank" class="pixel-btn pixel-btn--yellow text-xs font-bold py-1.5 px-3">
+                  <span>🕹️ Open 11ty Static Gallery :&gt;</span>
                 </a>
               </div>
             </div>
@@ -264,8 +264,9 @@
             [SYSTEM ARCHITECTURE]
           </div>
           <ul class="m-0 pl-5 leading-relaxed text-sm">
-            <li><strong>Port 4000:</strong> Authenticated Creator Studio, OTP Security, Photo Uploading &amp; Sharp Processing</li>
-            <li><strong>Port 3000:</strong> Public Retro Photo Gallery, Dedicated Photo Views &amp; Centralized Comments Ledger</li>
+            <li><strong>Creator Studio:</strong> Authenticated Workstation, OTP Security, Photo Uploading &amp; Sharp Processing</li>
+            <li><strong>Static Builder:</strong> 11ty (Eleventy) Static Site Generator pushing to Neocities</li>
+            <li><strong>Live Preview:</strong> View compiled static site directly at <a href="/preview/" target="_blank" class="text-prompt underline">/preview/</a></li>
             <li><strong>Database:</strong> PostgreSQL (Live cluster: <code>neogram_db</code>)</li>
             <li><strong>Asset Pipeline:</strong> Sharp WebP Compression (1200px main + 400px thumb)</li>
           </ul>
@@ -276,8 +277,8 @@
           <a href="/login" class="pixel-btn pixel-btn--yellow font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">
             <span>🔑</span> <span>Log In to Publish Photos</span>
           </a>
-          <a href="http://localhost:3000" target="_blank" class="pixel-btn pixel-btn--cyan font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>🕹️</span> <span>Open Static Photo Gallery (Port 3000)</span>
+          <a href="/preview/" target="_blank" class="pixel-btn pixel-btn--cyan font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>🕹️</span> <span>Open 11ty Static Gallery</span>
           </a>
           <a href="/api/stats" class="pixel-btn pixel-btn--green" onclick="if(window.retroAudio) retroAudio.playClick();">
             <span>📊</span> <span>Database Node Stats</span>
