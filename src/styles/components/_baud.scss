@@ -1,0 +1,113 @@
+/**
+ * _baud.scss: Modem Baud Rate Progress Bar & Hardware LEDs
+ * Features realistic LED indicators, connecting states, and 8-stage negotiation.
+ */
+
+.baud-progress-bar {
+  background: #000000;
+  border: 3px solid var(--border-main);
+  padding: 8px 10px;
+  margin-bottom: 18px;
+  user-select: none;
+  box-shadow: inset 2px 2px 0px 0px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.5);
+
+  .dark & {
+    border-color: #384252;
+  }
+}
+
+.baud-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 6px !important;
+  font-family: var(--font-led) !important;
+  font-size: 13px !important;
+  letter-spacing: 0.5px !important;
+
+  &__title {
+    color: var(--accent-prompt) !important;
+    font-weight: bold !important;
+    text-shadow: 0 0 6px rgba(57, 255, 20, 0.5);
+  }
+
+  &__status {
+    color: var(--accent-yellow) !important;
+    text-shadow: 0 0 6px rgba(255, 255, 0, 0.5);
+  }
+}
+
+.baud-steps {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  position: relative !important;
+  width: 100% !important;
+  margin-top: 6px !important;
+  padding: 0 !important;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 5px;
+    left: 8px;
+    right: 8px;
+    height: 2px;
+    background: #282828;
+    z-index: 1;
+  }
+}
+
+.baud-step {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 4px !important;
+  position: relative !important;
+  z-index: 2 !important;
+  font-family: var(--font-led) !important;
+  font-size: 13px !important;
+  color: #555555;
+  flex: 1 1 0% !important;
+  text-align: center !important;
+  transition: all 0.2s ease;
+
+  &__led {
+    width: 10px !important;
+    height: 10px !important;
+    border-radius: 50% !important;
+    background: #181818;
+    border: 1px solid #333333;
+    display: block !important;
+    transition: all 0.2s ease;
+  }
+
+  &.is-negotiating {
+    color: var(--accent-amber) !important;
+    text-shadow: 0 0 6px var(--accent-amber), 0 0 12px rgba(255, 176, 0, 0.6) !important;
+
+    .baud-step__led {
+      background: var(--accent-amber) !important;
+      border-color: var(--accent-yellow) !important;
+      box-shadow: 0 0 8px var(--accent-amber), 0 0 16px rgba(255, 176, 0, 0.8) !important;
+      animation: led-flicker 0.3s infinite;
+    }
+  }
+
+  &.is-locked {
+    color: var(--accent-prompt) !important;
+    text-shadow: 0 0 6px var(--accent-prompt), 0 0 14px rgba(57, 255, 20, 0.65) !important;
+
+    .baud-step__led {
+      background: var(--accent-prompt) !important;
+      border-color: #ffffff !important;
+      box-shadow: 0 0 8px var(--accent-prompt), 0 0 16px rgba(57, 255, 20, 0.85) !important;
+    }
+  }
+}
+
+@keyframes led-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title | default('Neogram - 90s Retro Social Publishing Engine') }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/neogram.css">
+    <link rel="stylesheet" href="/embed/neogram-embed.css">
+    <script src="/js/retroAudio.js"></script>
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <!-- Vintage Terminal Marquee Banner with System Prompt :> -->
+    <div class="terminal-marquee-bar">
+      <div class="animate-marquee">
+        :&gt; NEOGRAM UNIX WORKSTATION // HYBRID MAC-SYSTEM7 + BSD-X11 + STATIC RETRO WEB ARCHITECTURE // BLOCKY 8-BIT SPRITES // NO SAAS SLOP // 28.8K V.34 DIAL-UP OK // SYSTEM PROMPT READY_
+      </div>
+    </div>
+
+    <!-- Classic Mac OS Pinstripes Title Accent -->
+    <div class="mac-pinstripes"></div>
+
+    <!-- 3-Zone Retro Top Navigation Bar -->
+    <header class="retro-topnav">
+      <div class="flex items-center gap-2">
+        <a href="/" class="retro-brand" onclick="if(window.retroAudio) retroAudio.playClick();">
+          <div class="retro-brand__icon">:&gt;</div>
+          <span class="tracking-wider text-base font-bold">
+            NEOGRAM <span class="text-xs text-mac">:&gt; v2.0_unix</span>
+          </span>
+        </a>
+      </div>
+
+      <!-- Dynamic Nav Links (Logged In vs Logged Out) -->
+      <nav class="retro-navlinks">
+        {% if currentUser %}
+          <!-- Authenticated Options -->
+          <a href="http://localhost:3000" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>📷</span> <span>Capture &amp; Upload</span>
+          </a>
+          <a href="http://localhost:3000" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>📰</span> <span>Personal Feed</span>
+          </a>
+          <a href="http://localhost:3000" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>🕹️</span> <span>Widgets &amp; Counter</span>
+          </a>
+          <a href="/api/stats" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>📊</span> <span>Node Stats</span>
+          </a>
+        {% else %}
+          <!-- Public Informational Options (When Logged Out) -->
+          <a href="/" class="pixel-btn {% if activeView == 'dashboard' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>💾</span> <span>About Neogram</span>
+          </a>
+          <a href="http://localhost:3000" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>🕹️</span> <span>Widgets Showcase</span>
+          </a>
+          <a href="/embed/embed.js" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>💻</span> <span>Embed Specs</span>
+          </a>
+          <a href="/api/health" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>📡</span> <span>Network Status</span>
+          </a>
+        {% endif %}
+      </nav>
+
+      <div class="flex items-center gap-1">
+        <!-- Theme Toggle -->
+        <button id="themeToggleBtn" class="pixel-btn pixel-btn--sm" title="Toggle Dark/Light Mode">
+          <span id="themeLabel">🌙</span>
+        </button>
+
+        <!-- Sound Toggle -->
+        <button id="soundToggleBtn" class="pixel-btn pixel-btn--sm" title="Toggle 8-Bit Audio">
+          <span id="soundLabel">🔊</span>
+        </button>
+
+        {% if currentUser %}
+          <div class="retro-taskbar__panel text-xs font-bold px-2 py-1">
+            <span class="text-prompt">●</span>
+            <span>@{{ currentUser.handle }}</span>
+          </div>
+          <a href="/logout" class="pixel-btn pixel-btn--danger pixel-btn--sm" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>✕ LOGOUT</span>
+          </a>
+        {% else %}
+          <a href="/login" class="pixel-btn pixel-btn--yellow font-bold {% if activeView == 'login' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>🔑 LOGIN :&gt;</span>
+          </a>
+        {% endif %}
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Retro Unix / Workstation Taskbar -->
+    <footer class="retro-taskbar">
+      <div class="flex items-center gap-2">
+        <a href="/login" class="pixel-btn pixel-btn--sm bg-black text-prompt" onclick="if(window.retroAudio) retroAudio.playClick();">
+          <span>:&gt; EXEC</span>
+        </a>
+        <div class="retro-taskbar__panel text-xs">
+          <span>VIEW:</span>
+          <span class="font-bold text-mac uppercase">
+            {{ activeView | default('LOGIN') }}
+          </span>
+        </div>
+        <div class="retro-taskbar__panel text-xs">
+          <span>PORT:</span>
+          <span class="font-bold">4000 (SECURE)</span>
+        </div>
+      </div>
+
+      <div class="retro-taskbar__panel text-xs font-mono">
+        <span class="text-prompt font-bold">● BSD/X11</span>
+        <span class="text-muted">|</span>
+        {% if currentUser %}
+          <span class="text-prompt font-bold">AUTH: @{{ currentUser.handle }}</span>
+        {% else %}
+          <span>AUTH: AWAITING_CARRIER</span>
+        {% endif %}
+        <span class="text-muted">|</span>
+        <span>COM2: 28.8k V.34</span>
+      </div>
+    </footer>
+
+    <!-- Client-side Audio & Theme Helper -->
+    <script>
+      (function() {
+        var soundBtn = document.getElementById('soundToggleBtn');
+        var soundLabel = document.getElementById('soundLabel');
+        var themeBtn = document.getElementById('themeToggleBtn');
+        var themeLabel = document.getElementById('themeLabel');
+
+        var soundOn = true;
+        soundBtn.addEventListener('click', function() {
+          soundOn = !soundOn;
+          if (window.retroAudio) window.retroAudio.enabled = soundOn;
+          soundLabel.textContent = soundOn ? '🔊' : '🔇';
+          if (soundOn && window.retroAudio) window.retroAudio.playClick();
+        });
+
+        themeBtn.addEventListener('click', function() {
+          if (window.retroAudio) window.retroAudio.playClick();
+          var isDark = document.documentElement.classList.toggle('dark');
+          themeLabel.textContent = isDark ? '🌙' : '☀️';
+        });
+      })();
+    </script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

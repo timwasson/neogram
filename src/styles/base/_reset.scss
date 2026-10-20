@@ -1,0 +1,41 @@
+/**
+ * _reset.scss: Base Document Reset & Typography Defaults
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-desktop);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  image-rendering: pixelated;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 38px; /* Offset for retro taskbar */
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Custom retro scrollbar */
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+  background: #c8c4bc;
+}
+.dark ::-webkit-scrollbar {
+  background: #0d1117;
+}
+::-webkit-scrollbar-thumb {
+  background: #a8a49c;
+  border: 2px solid #000000;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border: 2px solid #58a6ff;
+}

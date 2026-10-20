@@ -1,0 +1,29 @@
+/**
+ * _taskbar.scss: Fixed Desktop OS Workstation Taskbar
+ */
+
+.retro-taskbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  background-color: var(--surface-window);
+  border-top: 4px solid var(--border-main);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 11px;
+  z-index: 999;
+  user-select: none;
+
+  &__panel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface-card);
+    border: 2px solid var(--border-main);
+    padding: 2px 8px;
+  }
+}

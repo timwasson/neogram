@@ -1,0 +1,1519 @@
+/**
+ * main.scss: Neogram Custom Retro Design System
+ * Pure Modular Sass Architecture. Zero Tailwind.
+ */
+/**
+ * _variables.scss: Design Tokens & CSS Custom Properties
+ * Defines color palettes, typography, surfaces, and theme rules for Neogram.
+ */
+:root {
+  --bg-desktop: #285577; /* Deep 90s Unix/Mac workstation teal-slate */
+  --surface-window: #dcd8d0; /* Classic Platinum grey */
+  --surface-title: #2a2c30; /* Classic dark titlebar */
+  --surface-card: #ffffff; /* Content block surface */
+  --surface-sunken: #f0ece1; /* Inset well surface */
+  --border-main: #000000;
+  --border-muted: #808080;
+  --border-highlight: #ffffff;
+  --text-main: #000000;
+  --text-muted: #555555;
+  --text-inverse: #ffffff;
+  --text-code: #000080;
+  --accent-prompt: #00ff66;
+  --accent-mac: #000080;
+  --accent-amber: #ffb000;
+  --accent-crimson: #cc0033;
+  --accent-cyan: #00ffff;
+  --accent-yellow: #ffff00;
+  --font-mono: 'Space Mono', 'Courier New', monospace;
+  --font-pixel: 'Silkscreen', monospace;
+  --font-led: 'VT323', monospace;
+}
+
+.dark {
+  --bg-desktop: #0a0e14; /* Midnight Unix workstation */
+  --surface-window: #161b22; /* Dark terminal surface */
+  --surface-title: #05070a; /* Deep midnight title */
+  --surface-card: #0d1117; /* Dark card well */
+  --surface-sunken: #05080c; /* Sunken black terminal */
+  --border-main: #384252;
+  --border-muted: #21262d;
+  --border-highlight: #58a6ff;
+  --text-main: #e6edf3;
+  --text-muted: #8b949e;
+  --text-inverse: #ffffff;
+  --text-code: #39ff14;
+  --accent-prompt: #39ff14;
+  --accent-mac: #58a6ff;
+  --accent-amber: #ffcc00;
+  --accent-crimson: #ff3366;
+  --accent-cyan: #00ffff;
+  --accent-yellow: #ffff00;
+}
+
+/**
+ * _reset.scss: Base Document Reset & Typography Defaults
+ */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-desktop);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  image-rendering: pixelated;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 38px; /* Offset for retro taskbar */
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Custom retro scrollbar */
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+  background: #c8c4bc;
+}
+
+.dark ::-webkit-scrollbar {
+  background: #0d1117;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #a8a49c;
+  border: 2px solid #000000;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border: 2px solid #58a6ff;
+}
+
+/**
+ * _utilities.scss: Modular Utility Classes
+ * Zero-dependency layout, spacing, typography, and color utilities.
+ */
+/* Display & Flexbox */
+.flex {
+  display: flex;
+}
+
+.inline-flex {
+  display: inline-flex;
+}
+
+.block {
+  display: block;
+}
+
+.inline-block {
+  display: inline-block;
+}
+
+.hidden {
+  display: none;
+}
+
+.flex-row {
+  flex-direction: row;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.flex-1 {
+  flex: 1 1 0%;
+}
+
+.shrink-0 {
+  flex-shrink: 0;
+}
+
+.grow {
+  flex-grow: 1;
+}
+
+.items-start {
+  align-items: flex-start;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.items-end {
+  align-items: flex-end;
+}
+
+.items-stretch {
+  align-items: stretch;
+}
+
+.justify-start {
+  justify-content: flex-start;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-end {
+  justify-content: flex-end;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.justify-around {
+  justify-content: space-around;
+}
+
+/* Positioning */
+.relative {
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.fixed {
+  position: fixed;
+}
+
+.sticky {
+  position: sticky;
+}
+
+.overflow-hidden {
+  overflow: hidden;
+}
+
+.select-none {
+  user-select: none;
+}
+
+/* Visibility, Opacity & Cursors */
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.opacity-70 {
+  opacity: 0.7;
+}
+
+.opacity-100 {
+  opacity: 1;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.border-0 {
+  border: 0 !important;
+}
+
+.bg-transparent {
+  background: transparent !important;
+}
+
+.bg-black {
+  background-color: #000000 !important;
+}
+
+.bg-white {
+  background-color: #ffffff !important;
+}
+
+.bg-window {
+  background-color: var(--surface-window) !important;
+}
+
+.bg-title {
+  background-color: var(--surface-title) !important;
+}
+
+.underline {
+  text-decoration: underline;
+}
+
+.no-underline {
+  text-decoration: none;
+}
+
+/* Spacing: Gaps */
+.gap-1 {
+  gap: 4px;
+}
+
+.gap-2 {
+  gap: 8px;
+}
+
+.gap-3 {
+  gap: 12px;
+}
+
+.gap-4 {
+  gap: 16px;
+}
+
+.gap-6 {
+  gap: 24px;
+}
+
+/* Spacing: Padding */
+.p-0 {
+  padding: 0;
+}
+
+.p-1 {
+  padding: 4px;
+}
+
+.p-2 {
+  padding: 8px;
+}
+
+.p-3 {
+  padding: 12px;
+}
+
+.p-4 {
+  padding: 16px;
+}
+
+.p-5 {
+  padding: 20px;
+}
+
+.p-6 {
+  padding: 24px;
+}
+
+.px-1 {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.px-2 {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.px-3 {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.px-4 {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.px-6 {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.py-1 {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.py-2 {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.py-3 {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.py-4 {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+/* Spacing: Margins */
+.m-0 {
+  margin: 0;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.my-auto {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.mb-1 {
+  margin-bottom: 4px;
+}
+
+.mb-2 {
+  margin-bottom: 8px;
+}
+
+.mb-3 {
+  margin-bottom: 12px;
+}
+
+.mb-4 {
+  margin-bottom: 16px;
+}
+
+.mb-5 {
+  margin-bottom: 20px;
+}
+
+.mb-6 {
+  margin-bottom: 24px;
+}
+
+.mt-1 {
+  margin-top: 4px;
+}
+
+.mt-2 {
+  margin-top: 8px;
+}
+
+.mt-3 {
+  margin-top: 12px;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.ml-2 {
+  margin-left: 8px;
+}
+
+.mr-2 {
+  margin-right: 8px;
+}
+
+/* Sizing & Widths */
+.w-full {
+  width: 100%;
+}
+
+.w-auto {
+  width: auto;
+}
+
+.h-full {
+  height: 100%;
+}
+
+.max-w-xs {
+  max-width: 320px;
+}
+
+.max-w-sm {
+  max-width: 384px;
+}
+
+.max-w-md {
+  max-width: 480px;
+}
+
+.max-w-lg {
+  max-width: 600px;
+}
+
+.max-w-xl {
+  max-width: 768px;
+}
+
+.max-w-2xl {
+  max-width: 900px;
+}
+
+/* Typography */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.font-pixel {
+  font-family: var(--font-pixel);
+}
+
+.font-led {
+  font-family: var(--font-led);
+}
+
+.text-xs {
+  font-size: 11px;
+}
+
+.text-sm {
+  font-size: 12px;
+}
+
+.text-base {
+  font-size: 13px;
+}
+
+.text-md {
+  font-size: 15px;
+}
+
+.text-lg {
+  font-size: 18px;
+}
+
+.text-xl {
+  font-size: 20px;
+}
+
+.text-2xl {
+  font-size: 24px;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.font-normal {
+  font-weight: 400;
+}
+
+.uppercase {
+  text-transform: uppercase;
+}
+
+.tracking-wide {
+  letter-spacing: 0.5px;
+}
+
+.tracking-wider {
+  letter-spacing: 1px;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-main {
+  color: var(--text-main);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-prompt {
+  color: var(--accent-prompt);
+}
+.dark .text-prompt {
+  text-shadow: 0 0 6px rgba(57, 255, 20, 0.5);
+}
+
+.text-mac {
+  color: var(--accent-mac);
+}
+.dark .text-mac {
+  text-shadow: 0 0 6px rgba(88, 166, 255, 0.45);
+}
+
+.text-amber {
+  color: var(--accent-amber);
+}
+.dark .text-amber {
+  text-shadow: 0 0 6px rgba(255, 176, 0, 0.5);
+}
+
+.text-crimson {
+  color: var(--accent-crimson);
+}
+
+.text-white {
+  color: #ffffff;
+}
+
+.text-black {
+  color: #000000;
+}
+
+.leading-normal {
+  line-height: 1.5;
+}
+
+.leading-relaxed {
+  line-height: 1.7;
+}
+
+/* CRT Scanlines Overlay */
+.crt-scanlines {
+  position: relative;
+  overflow: hidden;
+}
+.crt-scanlines::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  background-size: 100% 3px, 6px 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Blinking Terminal Cursor */
+@keyframes blink {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+.blinking-cursor {
+  animation: blink 0.8s infinite;
+}
+
+/**
+ * _buttons.scss: Chunky Retro Pixel Push Buttons
+ * Provides uncompromising contrast across both light and dark themes.
+ */
+.pixel-btn {
+  border: 3px solid #000000;
+  background-color: #dcd8d0;
+  color: #000000;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  padding: 5px 12px;
+  box-shadow: 3px 3px 0px 0px #000000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  user-select: none;
+  transition: transform 0.05s ease, filter 0.05s ease;
+}
+.pixel-btn:hover {
+  filter: brightness(1.08);
+}
+.pixel-btn:active {
+  box-shadow: 1px 1px 0px 0px #000000;
+  transform: translate(2px, 2px);
+}
+.pixel-btn {
+  /* Default uncolored button in Dark Mode */
+}
+.dark .pixel-btn {
+  background-color: #21262d;
+  color: #e6edf3;
+  border-color: #8b949e;
+  box-shadow: 3px 3px 0px 0px #000000;
+}
+.dark .pixel-btn:active {
+  box-shadow: 1px 1px 0px 0px #000000;
+}
+.pixel-btn {
+  /* -------------------------------------------------------------
+     Color Modifiers - Explicitly enforce high contrast on both themes
+     ------------------------------------------------------------- */
+  /* Yellow Accent Button (e.g. Login, Submit, Auto-Fill) -> ALWAYS Black text */
+}
+.pixel-btn--yellow, .dark .pixel-btn--yellow {
+  background-color: var(--accent-yellow) !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+  text-shadow: none !important;
+}
+.pixel-btn--yellow:hover, .dark .pixel-btn--yellow:hover {
+  filter: brightness(1.12);
+}
+.pixel-btn {
+  /* Neon Prompt Green Button (e.g. Authenticate, Confirm) -> ALWAYS Black text */
+}
+.pixel-btn--green, .dark .pixel-btn--green {
+  background-color: var(--accent-prompt) !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+  text-shadow: none !important;
+}
+.pixel-btn--green:hover, .dark .pixel-btn--green:hover {
+  filter: brightness(1.12);
+}
+.pixel-btn {
+  /* Cyan Accent Button -> ALWAYS Black text */
+}
+.pixel-btn--cyan, .dark .pixel-btn--cyan {
+  background-color: var(--accent-cyan) !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+  text-shadow: none !important;
+}
+.pixel-btn--cyan:hover, .dark .pixel-btn--cyan:hover {
+  filter: brightness(1.12);
+}
+.pixel-btn {
+  /* Crimson Danger Button -> ALWAYS White text */
+}
+.pixel-btn--danger, .dark .pixel-btn--danger {
+  background-color: var(--accent-crimson) !important;
+  color: #ffffff !important;
+  border-color: #000000 !important;
+  text-shadow: none !important;
+}
+.pixel-btn--danger:hover, .dark .pixel-btn--danger:hover {
+  filter: brightness(1.12);
+}
+.pixel-btn {
+  /* Active / Selected Tab Button */
+}
+.pixel-btn--active {
+  background-color: #000000 !important;
+  color: var(--accent-prompt) !important;
+  border-color: #000000 !important;
+}
+.dark .pixel-btn--active {
+  background-color: var(--accent-mac) !important;
+  color: #000000 !important;
+  border-color: #ffffff !important;
+  text-shadow: none !important;
+}
+.pixel-btn {
+  /* Size Modifiers */
+}
+.pixel-btn--sm {
+  padding: 2px 8px;
+  font-size: 10px;
+}
+
+/**
+ * _boxes.scss: Window Chrome, Pinstripes, and Retro Content Cards
+ */
+/* Chunky Pixel Box */
+.pixel-box {
+  background-color: var(--surface-window);
+  border: 4px solid var(--border-main);
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.9);
+}
+.dark .pixel-box {
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+/* Retro Window Header */
+.window-header {
+  background: var(--surface-title);
+  color: #ffffff;
+  padding: 6px 12px;
+  font-weight: bold;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 3px solid var(--border-main);
+  user-select: none;
+}
+
+/* Classic Mac OS Pinstripes Accent */
+.mac-pinstripes {
+  background: repeating-linear-gradient(to bottom, #000000 0px, #000000 1px, transparent 1px, transparent 3px);
+  height: 6px;
+  width: 100%;
+  border-bottom: 1px solid #000000;
+}
+.dark .mac-pinstripes {
+  background: repeating-linear-gradient(to bottom, #58a6ff 0px, #58a6ff 1px, transparent 1px, transparent 3px);
+  border-bottom: 1px solid #384252;
+}
+
+/* Content Architecture Card */
+.retro-card {
+  background-color: var(--surface-card);
+  color: var(--text-main);
+  border: 3px solid var(--border-main);
+  padding: 16px;
+  margin: 18px 0;
+  font-size: 12px;
+  box-shadow: 3px 3px 0px 0px rgba(0, 0, 0, 0.2);
+  transition: all 0.15s ease;
+}
+.dark .retro-card {
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.8), 3px 3px 0px 0px #000000;
+}
+.retro-card__title {
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: var(--accent-mac);
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+.dark .retro-card__title {
+  text-shadow: 0 0 6px rgba(88, 166, 255, 0.4);
+}
+.retro-card a {
+  color: var(--text-code);
+  font-weight: bold;
+}
+
+/* Authenticated Node Box */
+.auth-node-box {
+  background: #000000;
+  color: var(--accent-prompt);
+  border: 3px solid #000000;
+  padding: 14px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.5);
+}
+.dark .auth-node-box {
+  background: #090e15;
+  border-color: #384252;
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+/* Guest Mode Status Banner */
+.guest-node-box {
+  background: #fffde6;
+  border: 3px solid #000000;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  font-size: 12px;
+  color: #000000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dark .guest-node-box {
+  background: #121820;
+  border-color: #384252;
+  color: #e6edf3;
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+/**
+ * _alerts.scss: Universal Retro Terminal Alert Banners
+ * Error, success, and informational message callouts.
+ */
+.retro-alert {
+  display: none;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 3px solid #000000;
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.9);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  margin-top: 14px;
+  margin-bottom: 14px;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+.dark .retro-alert {
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+.retro-alert.is-visible {
+  display: flex !important;
+}
+.retro-alert--error {
+  background-color: #ffe5e8;
+  border-color: var(--accent-crimson);
+  color: #990022;
+}
+.dark .retro-alert--error {
+  background-color: #25070a;
+  border-color: #ff3366;
+  color: #ff6b8b;
+  text-shadow: 0 0 6px rgba(255, 51, 102, 0.5);
+  box-shadow: 4px 4px 0px 0px #000000, 0 0 14px rgba(255, 51, 102, 0.25);
+}
+.retro-alert--success {
+  background-color: #eafaf1;
+  border-color: #00883a;
+  color: #005a26;
+}
+.dark .retro-alert--success {
+  background-color: #051a0b;
+  border-color: #39ff14;
+  color: #39ff14;
+  text-shadow: 0 0 6px rgba(57, 255, 20, 0.6);
+  box-shadow: 4px 4px 0px 0px #000000, 0 0 14px rgba(57, 255, 20, 0.25);
+}
+.retro-alert--info {
+  background-color: #e8f4fd;
+  border-color: var(--accent-mac);
+  color: var(--accent-mac);
+}
+.dark .retro-alert--info {
+  background-color: #081628;
+  border-color: #58a6ff;
+  color: #58a6ff;
+  text-shadow: 0 0 6px rgba(88, 166, 255, 0.6);
+  box-shadow: 4px 4px 0px 0px #000000, 0 0 14px rgba(88, 166, 255, 0.25);
+}
+.retro-alert__tag {
+  font-family: var(--font-led);
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/**
+ * _baud.scss: Modem Baud Rate Progress Bar & Hardware LEDs
+ * Features realistic LED indicators, connecting states, and 8-stage negotiation.
+ */
+.baud-progress-bar {
+  background: #000000;
+  border: 3px solid var(--border-main);
+  padding: 8px 10px;
+  margin-bottom: 18px;
+  user-select: none;
+  box-shadow: inset 2px 2px 0px 0px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.5);
+}
+.dark .baud-progress-bar {
+  border-color: #384252;
+}
+
+.baud-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 6px !important;
+  font-family: var(--font-led) !important;
+  font-size: 13px !important;
+  letter-spacing: 0.5px !important;
+}
+.baud-header__title {
+  color: var(--accent-prompt) !important;
+  font-weight: bold !important;
+  text-shadow: 0 0 6px rgba(57, 255, 20, 0.5);
+}
+.baud-header__status {
+  color: var(--accent-yellow) !important;
+  text-shadow: 0 0 6px rgba(255, 255, 0, 0.5);
+}
+
+.baud-steps {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  position: relative !important;
+  width: 100% !important;
+  margin-top: 6px !important;
+  padding: 0 !important;
+}
+.baud-steps::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: #282828;
+  z-index: 1;
+}
+
+.baud-step {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 4px !important;
+  position: relative !important;
+  z-index: 2 !important;
+  font-family: var(--font-led) !important;
+  font-size: 13px !important;
+  color: #555555;
+  flex: 1 1 0% !important;
+  text-align: center !important;
+  transition: all 0.2s ease;
+}
+.baud-step__led {
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+  background: #181818;
+  border: 1px solid #333333;
+  display: block !important;
+  transition: all 0.2s ease;
+}
+.baud-step.is-negotiating {
+  color: var(--accent-amber) !important;
+  text-shadow: 0 0 6px var(--accent-amber), 0 0 12px rgba(255, 176, 0, 0.6) !important;
+}
+.baud-step.is-negotiating .baud-step__led {
+  background: var(--accent-amber) !important;
+  border-color: var(--accent-yellow) !important;
+  box-shadow: 0 0 8px var(--accent-amber), 0 0 16px rgba(255, 176, 0, 0.8) !important;
+  animation: led-flicker 0.3s infinite;
+}
+.baud-step.is-locked {
+  color: var(--accent-prompt) !important;
+  text-shadow: 0 0 6px var(--accent-prompt), 0 0 14px rgba(57, 255, 20, 0.65) !important;
+}
+.baud-step.is-locked .baud-step__led {
+  background: var(--accent-prompt) !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 8px var(--accent-prompt), 0 0 16px rgba(57, 255, 20, 0.85) !important;
+}
+
+@keyframes led-flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+/**
+ * _inputs.scss: Chunky Retro Form Inputs & Cathode Digital Glows
+ * Incorporates phosphor CRT green displays, digital LED readouts, and developer wells.
+ */
+.retro-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface-card);
+  color: var(--text-main);
+  border: 3px solid var(--border-main);
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  outline: none;
+  box-shadow: inset 2px 2px 0px 0px rgba(0, 0, 0, 0.4);
+  transition: all 0.15s ease;
+}
+.retro-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.retro-input:focus {
+  border-color: var(--accent-mac);
+  background: var(--surface-sunken);
+}
+.retro-input {
+  /* Authentic Dark Mode Cathode Terminal Styling */
+}
+.dark .retro-input {
+  background: #05080c;
+  color: #39ff14;
+  border-color: #384252;
+  text-shadow: 0 0 4px rgba(57, 255, 20, 0.35);
+  caret-color: #39ff14;
+  box-shadow: inset 2px 2px 4px 0px rgba(0, 0, 0, 0.9);
+}
+.dark .retro-input::placeholder {
+  color: #3c4b5c;
+  text-shadow: none;
+}
+.dark .retro-input:focus {
+  border-color: #58a6ff;
+  background: #070d16;
+  box-shadow: inset 2px 2px 4px 0px rgba(0, 0, 0, 0.9), 0 0 10px rgba(88, 166, 255, 0.45);
+}
+.retro-input {
+  /* -------------------------------------------------------------
+     OTP 6-Digit Digital Ledger Display (Vivid Glowing Phosphor)
+     ------------------------------------------------------------- */
+}
+.retro-input--otp, .retro-input.font-led {
+  font-family: var(--font-led) !important;
+  font-size: 26px !important;
+  font-weight: bold !important;
+  letter-spacing: 6px !important;
+  text-align: center !important;
+  background: #000000 !important;
+  color: #008822;
+  text-shadow: 0 0 4px rgba(0, 136, 34, 0.4);
+  caret-color: #008822;
+  border: 3px solid #000000;
+  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.85);
+}
+.retro-input--otp::placeholder, .retro-input.font-led::placeholder {
+  color: #333333;
+  letter-spacing: 6px;
+  text-shadow: none;
+}
+.dark .retro-input--otp, .dark .retro-input.font-led {
+  background: #020509 !important;
+  color: #39ff14 !important;
+  border-color: #384252 !important;
+  caret-color: #39ff14;
+  text-shadow: 0 0 8px #39ff14, 0 0 16px rgba(57, 255, 20, 0.65) !important;
+  box-shadow: inset 2px 2px 8px rgba(0, 0, 0, 0.95);
+}
+.dark .retro-input--otp::placeholder, .dark .retro-input.font-led::placeholder {
+  color: #1a2a1f;
+  text-shadow: none;
+}
+.retro-input--otp:focus, .retro-input.font-led:focus {
+  border-color: var(--accent-prompt) !important;
+  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.95), 0 0 12px rgba(57, 255, 20, 0.5) !important;
+}
+.dark .retro-input--otp:focus, .dark .retro-input.font-led:focus {
+  border-color: #39ff14 !important;
+  box-shadow: inset 2px 2px 8px rgba(0, 0, 0, 0.95), 0 0 16px rgba(57, 255, 20, 0.6) !important;
+}
+
+/* Developer Carrier Key Callout Well */
+.retro-helper-box {
+  background-color: #fffde6;
+  border: 2px dashed var(--accent-mac);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: 11px;
+  color: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dark .retro-helper-box {
+  background-color: #060c14;
+  border-color: #58a6ff;
+  color: var(--text-main);
+  box-shadow: inset 0 0 12px rgba(88, 166, 255, 0.12), 0 0 6px rgba(0, 0, 0, 0.5);
+}
+.retro-helper-box__key {
+  font-family: var(--font-led);
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: var(--accent-mac);
+}
+.dark .retro-helper-box__key {
+  color: #58a6ff;
+  text-shadow: 0 0 6px rgba(88, 166, 255, 0.5);
+}
+.retro-helper-box__code {
+  font-family: var(--font-led);
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  color: var(--accent-crimson);
+  text-shadow: 0 0 3px rgba(204, 0, 51, 0.3);
+}
+.dark .retro-helper-box__code {
+  color: #39ff14;
+  text-shadow: 0 0 8px #39ff14, 0 0 18px rgba(57, 255, 20, 0.75);
+}
+
+/**
+ * _navigation.scss: Top Navigation, Terminal Marquee Ticker, & Branding
+ */
+/* Terminal Marquee Header Ticker */
+.terminal-marquee-bar {
+  background: #000000;
+  color: var(--accent-prompt);
+  border-bottom: 2px solid #000000;
+  padding: 4px 12px;
+  font-size: 11px;
+  overflow: hidden;
+  white-space: nowrap;
+  user-select: none;
+}
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+.animate-marquee {
+  display: inline-block;
+  animation: marquee-scroll 25s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Top Navigation Bar */
+.retro-topnav {
+  background-color: var(--surface-window);
+  border-bottom: 4px solid var(--border-main);
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  user-select: none;
+}
+
+.retro-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+  text-decoration: none;
+  color: inherit;
+}
+.retro-brand__icon {
+  width: 24px;
+  height: 24px;
+  background: #000000;
+  color: var(--accent-prompt);
+  border: 2px solid #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+}
+.dark .retro-brand__icon {
+  background: var(--accent-mac);
+  color: #000000;
+  border-color: #ffffff;
+}
+
+.retro-navlinks {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+/**
+ * _taskbar.scss: Fixed Desktop OS Workstation Taskbar
+ */
+.retro-taskbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  background-color: var(--surface-window);
+  border-top: 4px solid var(--border-main);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 11px;
+  z-index: 999;
+  user-select: none;
+}
+.retro-taskbar__panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-card);
+  border: 2px solid var(--border-main);
+  padding: 2px 8px;
+}
+
+/**
+ * _login-modal.scss: Retro OS Dialog Box & Login Viewport
+ */
+.login-viewport {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.25) 15%, transparent 16%), radial-gradient(rgba(0, 0, 0, 0.25) 15%, transparent 16%);
+  background-size: 6px 6px;
+  background-position: 0 0, 3px 3px;
+}
+.dark .login-viewport {
+  background-image: radial-gradient(rgba(88, 166, 255, 0.12) 15%, transparent 16%), radial-gradient(rgba(88, 166, 255, 0.12) 15%, transparent 16%);
+}
+
+.login-modal {
+  width: 100%;
+  max-width: 500px;
+  background: var(--surface-window);
+  border: 4px solid var(--border-main);
+  box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 0.9);
+  position: relative;
+  overflow: hidden;
+}
+.dark .login-modal {
+  border-color: #384252;
+  box-shadow: 8px 8px 0px 0px #000000, 0 0 30px rgba(0, 0, 0, 0.8);
+}
+.login-modal__titlebar {
+  background: linear-gradient(90deg, #000080 0%, #1084d0 100%);
+  color: #ffffff;
+  padding: 6px 8px 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  border-bottom: 3px solid var(--border-main);
+  user-select: none;
+}
+.dark .login-modal__titlebar {
+  background: linear-gradient(90deg, #161b22 0%, #21262d 100%);
+  border-bottom-color: #384252;
+}
+.login-modal__controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.login-modal__btn {
+  width: 18px;
+  height: 18px;
+  background: #dcd8d0;
+  border: 2px solid #000000;
+  color: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 1;
+  box-shadow: 1px 1px 0px 0px #000000;
+  user-select: none;
+  transition: background-color 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+}
+.login-modal__btn:hover {
+  background-color: #ffffff;
+}
+.login-modal__btn:active {
+  box-shadow: none;
+  transform: translate(1px, 1px);
+}
+.dark .login-modal__btn {
+  background: #21262d;
+  color: #e6edf3;
+  border-color: #485466;
+  box-shadow: 1px 1px 0px 0px #000000;
+}
+.dark .login-modal__btn:hover {
+  background: #30363d;
+  color: #58a6ff;
+  border-color: #58a6ff;
+}
+.login-modal__btn--close:hover, .dark .login-modal__btn--close:hover {
+  background-color: var(--accent-crimson) !important;
+  color: #ffffff !important;
+  border-color: var(--accent-crimson) !important;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-6px);
+  }
+  40%, 80% {
+    transform: translateX(6px);
+  }
+}
+.shake-anim {
+  animation: shake 0.35s ease;
+}
+
+/**
+ * _uploader.scss: Neogram Creator Studio & Retro Photo Publishing Engine
+ */
+.uploader-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Chunky Retro File Dropzone */
+.dropzone-well {
+  background: var(--surface-card);
+  border: 3px dashed var(--border-main);
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  position: relative;
+}
+.dropzone-well:hover, .dropzone-well.is-dragover {
+  border-color: var(--accent-mac);
+  background: var(--surface-sunken);
+}
+.dark .dropzone-well {
+  background: #080d14;
+  border-color: #384252;
+}
+.dark .dropzone-well:hover, .dark .dropzone-well.is-dragover {
+  border-color: #58a6ff;
+  background: #0d1520;
+  box-shadow: inset 0 0 16px rgba(88, 166, 255, 0.15);
+}
+.dropzone-well__icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* Image Preview Viewport */
+.preview-viewport {
+  width: 100%;
+  height: 320px;
+  background: #000000;
+  border: 3px solid var(--border-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 2px 2px 8px rgba(0, 0, 0, 0.9);
+}
+.dark .preview-viewport {
+  border-color: #384252;
+}
+.preview-viewport__img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  transition: filter 0.2s ease;
+}
+
+/* -------------------------------------------------------------
+   Retro Shaders & Filter Presets
+   ------------------------------------------------------------- */
+.filter-none {
+  filter: none;
+}
+
+.filter-crt {
+  filter: contrast(1.15) brightness(1.05) saturate(1.2);
+  position: relative;
+}
+.filter-crt::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%), linear-gradient(90deg, rgba(0, 255, 0, 0.05), rgba(0, 0, 0, 0), rgba(0, 255, 0, 0.05));
+  background-size: 100% 3px, 6px 100%;
+  pointer-events: none;
+}
+
+.filter-vga {
+  filter: contrast(1.5) saturate(1.4) brightness(1.1);
+}
+
+.filter-gameboy {
+  filter: grayscale(1) sepia(1) hue-rotate(60deg) saturate(3.5) contrast(1.4);
+}
+
+.filter-cyberpunk {
+  filter: hue-rotate(280deg) saturate(2) contrast(1.25);
+}
+
+.filter-sepia {
+  filter: sepia(0.85) contrast(1.15) brightness(0.95);
+}
+
+/* Filter Selector Grid */
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.filter-btn {
+  background: var(--surface-window);
+  border: 2px solid var(--border-main);
+  padding: 8px 6px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 2px 2px 0px 0px #000000;
+  transition: all 0.1s ease;
+}
+.dark .filter-btn {
+  background: #161b22;
+  color: #e6edf3;
+  border-color: #384252;
+}
+.filter-btn:hover {
+  filter: brightness(1.1);
+}
+.filter-btn.is-active {
+  background: #000000 !important;
+  color: var(--accent-prompt) !important;
+  border-color: #000000 !important;
+  box-shadow: 1px 1px 0px 0px #000000;
+  transform: translate(1px, 1px);
+}
+.dark .filter-btn.is-active {
+  background: var(--accent-mac) !important;
+  color: #000000 !important;
+  border-color: #ffffff !important;
+}
+
+/* Preset Sprites Selector */
+.preset-sprites-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0;
+}
+
+/* Dial-Up Carrier Transmission Terminal */
+.transmission-terminal {
+  background: #000000;
+  border: 3px solid var(--border-main);
+  padding: 12px 14px;
+  font-family: var(--font-led);
+  font-size: 14px;
+  color: var(--accent-prompt);
+  min-height: 60px;
+  line-height: 1.4;
+  user-select: none;
+  margin: 14px 0;
+  box-shadow: inset 2px 2px 8px rgba(0, 0, 0, 0.9);
+}
+.dark .transmission-terminal {
+  border-color: #384252;
+  color: #39ff14;
+  text-shadow: 0 0 6px rgba(57, 255, 20, 0.5);
+}

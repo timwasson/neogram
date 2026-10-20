@@ -1,0 +1,56 @@
+/**
+ * _variables.scss: Design Tokens & CSS Custom Properties
+ * Defines color palettes, typography, surfaces, and theme rules for Neogram.
+ */
+
+:root {
+  --bg-desktop: #285577;       /* Deep 90s Unix/Mac workstation teal-slate */
+  --surface-window: #dcd8d0;   /* Classic Platinum grey */
+  --surface-title: #2a2c30;    /* Classic dark titlebar */
+  --surface-card: #ffffff;     /* Content block surface */
+  --surface-sunken: #f0ece1;   /* Inset well surface */
+  
+  --border-main: #000000;
+  --border-muted: #808080;
+  --border-highlight: #ffffff;
+  
+  --text-main: #000000;
+  --text-muted: #555555;
+  --text-inverse: #ffffff;
+  --text-code: #000080;
+  
+  --accent-prompt: #00ff66;
+  --accent-mac: #000080;
+  --accent-amber: #ffb000;
+  --accent-crimson: #cc0033;
+  --accent-cyan: #00ffff;
+  --accent-yellow: #ffff00;
+  
+  --font-mono: 'Space Mono', 'Courier New', monospace;
+  --font-pixel: 'Silkscreen', monospace;
+  --font-led: 'VT323', monospace;
+}
+
+.dark {
+  --bg-desktop: #0a0e14;       /* Midnight Unix workstation */
+  --surface-window: #161b22;   /* Dark terminal surface */
+  --surface-title: #05070a;    /* Deep midnight title */
+  --surface-card: #0d1117;     /* Dark card well */
+  --surface-sunken: #05080c;   /* Sunken black terminal */
+  
+  --border-main: #384252;
+  --border-muted: #21262d;
+  --border-highlight: #58a6ff;
+  
+  --text-main: #e6edf3;
+  --text-muted: #8b949e;
+  --text-inverse: #ffffff;
+  --text-code: #39ff14;
+  
+  --accent-prompt: #39ff14;
+  --accent-mac: #58a6ff;
+  --accent-amber: #ffcc00;
+  --accent-crimson: #ff3366;
+  --accent-cyan: #00ffff;
+  --accent-yellow: #ffff00;
+}

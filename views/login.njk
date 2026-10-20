@@ -1,0 +1,379 @@
+{% extends "layouts/base.njk" %}
+
+{% block content %}
+<div class="login-viewport">
+  <div id="loginModalBox" class="login-modal">
+
+    <!-- Modal Titlebar -->
+    <div class="login-modal__titlebar">
+      <div class="flex items-center gap-2">
+        <span class="text-base">💾</span>
+        <span>[:&gt; LOGIN_TERMINAL.EXE - Dial-Up Security Auth]</span>
+      </div>
+      <div class="login-modal__controls">
+        <button type="button" class="login-modal__btn" onclick="handleWindowControlClick('minimize')" title="Minimize">_</button>
+        <button type="button" class="login-modal__btn" onclick="handleWindowControlClick('maximize')" title="Maximize">□</button>
+        <button type="button" class="login-modal__btn login-modal__btn--close" onclick="handleWindowControlClick('close')" title="Close">✕</button>
+      </div>
+    </div>
+
+    <!-- Modal Body Content -->
+    <div class="p-5">
+
+      <!-- Baud Rate Telemetry Progress Indicator -->
+      <div class="baud-progress-bar crt-scanlines">
+        <div class="baud-header">
+          <span class="baud-header__title">CARRIER BAUD TELEMETRY</span>
+          <span id="baudStatusLabel" class="baud-header__status">STANDBY // 300 BAUD</span>
+        </div>
+        <div class="baud-steps">
+          <div id="step-0" class="baud-step is-locked">
+            <div class="baud-step__led"></div>
+            <span>300</span>
+          </div>
+          <div id="step-1" class="baud-step">
+            <div class="baud-step__led"></div>
+            <span>1200</span>
+          </div>
+          <div id="step-2" class="baud-step">
+            <div class="baud-step__led"></div>
+            <span>9600</span>
+          </div>
+          <div id="step-3" class="baud-step">
+            <div class="baud-step__led"></div>
+            <span>14.4k</span>
+          </div>
+          <div id="step-4" class="baud-step">
+            <div class="baud-step__led"></div>
+            <span>28.8k</span>
+          </div>
+          <div id="step-5" class="baud-step">
+            <div class="baud-step__led"></div>
+            <span>56.6k</span>
+          </div>
+          <div id="step-6" class="baud-step">
+            <div class="baud-step__led"></div>
+            <span>ISDN</span>
+          </div>
+          <div id="step-7" class="baud-step">
+            <div class="baud-step__led"></div>
+            <span>WWW</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subtitle -->
+      <div class="mb-4 text-left">
+        <div class="font-pixel text-sm text-mac mb-1">
+          NEOGRAM NETWORK TERMINAL
+        </div>
+        <div class="text-xs text-muted leading-normal">
+          Passwordless social publishing engine. Enter your credential below to transmit a 6-digit carrier authorization key.
+        </div>
+      </div>
+
+      <!-- STEP 1: Single Field Request Form -->
+      <form id="step1Form" onsubmit="handleRequestOtp(event)">
+        <div class="mb-4">
+          <label for="identifierInput" class="block text-xs font-bold mb-2 tracking-wide">
+            Email address or phone number:
+          </label>
+          <input
+            type="text"
+            id="identifierInput"
+            name="identifier"
+            required
+            autocomplete="username"
+            placeholder="e.g. root@neogram.retro or (555) 019-1996"
+            class="retro-input"
+            autofocus
+          />
+        </div>
+
+        <button
+          type="submit"
+          id="requestBtn"
+          class="pixel-btn pixel-btn--yellow w-full text-sm py-2 font-bold"
+        >
+          <span>📡</span>
+          <span>CONNECT &amp; TRANSMIT OTP :&gt;</span>
+        </button>
+      </form>
+
+      <!-- STEP 2: 6-Digit OTP Verification Form (Hidden Initially) -->
+      <form id="step2Form" class="hidden" onsubmit="handleVerifyOtp(event)">
+        <div class="mb-3">
+          <div class="flex justify-between items-center mb-2">
+            <label for="otpCodeInput" class="text-xs font-bold">
+              Enter 6-Digit Authorization Key:
+            </label>
+            <button
+              type="button"
+              onclick="resetToStep1()"
+              class="text-xs text-mac underline cursor-pointer p-0 bg-transparent border-0 font-bold"
+            >
+              [Change Address]
+            </button>
+          </div>
+          <input
+            type="text"
+            id="otpCodeInput"
+            name="code"
+            maxlength="6"
+            pattern="[0-9]{6}"
+            placeholder="123456"
+            class="retro-input retro-input--otp"
+          />
+        </div>
+
+        <!-- Quick Demo Code Paste Helper -->
+        <div id="demoHelperBox" class="retro-helper-box hidden">
+          <div class="flex items-center gap-2">
+            <span class="retro-helper-box__key">[:&gt; DEV_CARRIER_KEY]:</span>
+            <span id="demoCodeText" class="retro-helper-box__code"></span>
+          </div>
+          <button
+            type="button"
+            onclick="quickFillDemoCode()"
+            class="pixel-btn pixel-btn--yellow pixel-btn--sm font-bold"
+            title="Auto-fill 6-digit key"
+          >
+            <span>⚡ Auto-Fill</span>
+          </button>
+        </div>
+
+        <button
+          type="submit"
+          id="verifyBtn"
+          class="pixel-btn pixel-btn--green w-full text-sm py-2 font-bold"
+        >
+          <span>🔐</span>
+          <span>AUTHENTICATE TERMINAL SESSION :&gt;</span>
+        </button>
+      </form>
+
+      <!-- Reusable Retro Alert Box -->
+      <div id="retroAlertBox" class="retro-alert">
+        <span id="retroAlertTag" class="retro-alert__tag"></span>
+        <span id="retroAlertMsg"></span>
+      </div>
+
+    </div>
+
+    <!-- Window Footer Bar -->
+    <div class="window-header font-mono text-xs text-muted">
+      <span>DAEMON: SECURE_AUTH_V2</span>
+      <span class="text-prompt font-bold">PROTOCOL: OTP-PASSWORDLESS</span>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var currentIdentifier = '';
+  var receivedDemoCode = '';
+  var currentBaudIndex = 0;
+
+  // Universal Alert System: Types: 'error', 'success', 'info'
+  function showAlert(type, message, tag) {
+    var box = document.getElementById('retroAlertBox');
+    var tagEl = document.getElementById('retroAlertTag');
+    var msgEl = document.getElementById('retroAlertMsg');
+
+    box.className = 'retro-alert is-visible';
+
+    if (type === 'error') {
+      box.classList.add('retro-alert--error');
+      tagEl.textContent = tag || '[!] ERROR:';
+      if (window.retroAudio) retroAudio.playError();
+      triggerShake();
+    } else if (type === 'success') {
+      box.classList.add('retro-alert--success');
+      tagEl.textContent = tag || '[✓] SUCCESS:';
+      if (window.retroAudio) retroAudio.playSuccess();
+    } else {
+      box.classList.add('retro-alert--info');
+      tagEl.textContent = tag || '[:>] INFO:';
+      if (window.retroAudio) retroAudio.playClick();
+    }
+
+    msgEl.textContent = message;
+  }
+
+  function hideAlert() {
+    var box = document.getElementById('retroAlertBox');
+    box.className = 'retro-alert';
+  }
+
+  function triggerShake() {
+    var modal = document.getElementById('loginModalBox');
+    modal.classList.remove('shake-anim');
+    void modal.offsetWidth; // trigger reflow
+    modal.classList.add('shake-anim');
+  }
+
+  function handleWindowControlClick(action) {
+    showAlert('error', 'SECURITY LOCK ACTIVE: Cannot ' + action + ' authentication daemon during protocol handshake.', '[!] SYSTEM LOCK:');
+  }
+
+  // Baud Rate Step Controller (0 to 7)
+  var BAUD_LABELS = ['300 BAUD', '1200 BAUD', '9600 BAUD', '14.4k V.32bis', '28.8k V.34', '56.6k V.90', 'ISDN DIGITAL', 'WWW ONLINE'];
+
+  function setBaudProgress(targetIndex, labelOverride) {
+    currentBaudIndex = targetIndex;
+    var statusLabel = document.getElementById('baudStatusLabel');
+    statusLabel.textContent = labelOverride || (BAUD_LABELS[targetIndex] + ' [LOCKED]');
+
+    for (var i = 0; i <= 7; i++) {
+      var step = document.getElementById('step-' + i);
+      if (!step) continue;
+      step.classList.remove('is-locked', 'is-negotiating');
+      if (i <= targetIndex) {
+        step.classList.add('is-locked');
+      }
+    }
+  }
+
+  function animateBaudProgression(startIndex, endIndex, onComplete) {
+    var idx = startIndex;
+    var interval = setInterval(function () {
+      idx++;
+      if (idx <= endIndex) {
+        setBaudProgress(idx, 'NEGOTIATING: ' + BAUD_LABELS[idx]);
+        if (window.retroAudio) retroAudio.playCounterTick();
+      } else {
+        clearInterval(interval);
+        if (onComplete) onComplete();
+      }
+    }, 180);
+  }
+
+  // STEP 1: Request OTP
+  async function handleRequestOtp(e) {
+    e.preventDefault();
+    hideAlert();
+
+    var input = document.getElementById('identifierInput');
+    var btn = document.getElementById('requestBtn');
+    var val = input.value.trim();
+    if (!val) return;
+
+    currentIdentifier = val;
+    btn.disabled = true;
+    btn.classList.add('opacity-50');
+
+    if (window.retroAudio) retroAudio.playDialupBeep();
+    showAlert('info', 'Establishing carrier handshake with node registry for ' + val + '...', '[:>] CONNECTING:');
+
+    // Animate baud speed progression up to 28.8k
+    animateBaudProgression(0, 4);
+
+    try {
+      var res = await fetch('/api/auth/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: val })
+      });
+
+      var data = await res.json();
+      btn.disabled = false;
+      btn.classList.remove('opacity-50');
+
+      if (!res.ok || !data.ok) {
+        setBaudProgress(0, 'CARRIER LOST // 300 BAUD');
+        showAlert('error', data.error || 'Server rejected carrier transmission.', '[!] AUTH FAULT:');
+        return;
+      }
+
+      // Success: Advance to 56.6k
+      setBaudProgress(5, 'CARRIER LOCKED // 56.6k V.90');
+      showAlert('success', 'Carrier locked at 56.6k! 6-digit authorization key transmitted.', '[✓] OTP DISPATCHED:');
+
+      // Transition to Step 2
+      document.getElementById('step1Form').classList.add('hidden');
+      document.getElementById('step2Form').classList.remove('hidden');
+
+      if (data.demoCode) {
+        receivedDemoCode = data.demoCode;
+        document.getElementById('demoCodeText').textContent = data.demoCode;
+        document.getElementById('demoHelperBox').classList.remove('hidden');
+      }
+
+      var otpInput = document.getElementById('otpCodeInput');
+      otpInput.focus();
+    } catch (err) {
+      btn.disabled = false;
+      btn.classList.remove('opacity-50');
+      setBaudProgress(0, 'CARRIER FAULT');
+      showAlert('error', 'Network failure: ' + err.message, '[!] COMMS ERROR:');
+    }
+  }
+
+  function quickFillDemoCode() {
+    if (window.retroAudio) retroAudio.playClick();
+    var otpInput = document.getElementById('otpCodeInput');
+    otpInput.value = receivedDemoCode;
+    otpInput.focus();
+    showAlert('info', 'Auto-filled 6-digit authorization key from local carrier log.', '[:>] AUTO-FILL:');
+  }
+
+  function resetToStep1() {
+    if (window.retroAudio) retroAudio.playClick();
+    hideAlert();
+    setBaudProgress(0, 'STANDBY // 300 BAUD');
+    document.getElementById('step2Form').classList.add('hidden');
+    document.getElementById('step1Form').classList.remove('hidden');
+    document.getElementById('identifierInput').focus();
+  }
+
+  // STEP 2: Verify OTP
+  async function handleVerifyOtp(e) {
+    e.preventDefault();
+    hideAlert();
+
+    var codeInput = document.getElementById('otpCodeInput');
+    var code = codeInput.value.trim();
+    var btn = document.getElementById('verifyBtn');
+
+    if (!code) return;
+
+    btn.disabled = true;
+    btn.classList.add('opacity-50');
+
+    showAlert('info', 'Verifying authorization key across secure carrier session...', '[:>] VERIFYING:');
+    setBaudProgress(6, 'ISDN PROTOCOL COMPRESSION');
+
+    try {
+      var res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: currentIdentifier, code: code })
+      });
+
+      var data = await res.json();
+      btn.disabled = false;
+      btn.classList.remove('opacity-50');
+
+      if (!res.ok || !data.ok) {
+        setBaudProgress(5, '56.6k // KEY REJECTED');
+        showAlert('error', data.error || 'Invalid 6-digit authorization key.', '[!] ACCESS DENIED:');
+        return;
+      }
+
+      // Max out progress bar to WWW
+      setBaudProgress(7, 'WWW // ONLINE & AUTHENTICATED');
+      showAlert('success', 'Access granted! Welcome @' + data.user.handle + '. Booting workstation...', '[✓] TERMINAL UNLOCKED:');
+
+      setTimeout(function () {
+        window.location.href = '/';
+      }, 1100);
+    } catch (err) {
+      btn.disabled = false;
+      btn.classList.remove('opacity-50');
+      showAlert('error', 'Authentication exception: ' + err.message, '[!] SYSTEM FAULT:');
+    }
+  }
+</script>
+{% endblock %}

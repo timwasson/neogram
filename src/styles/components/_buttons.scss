@@ -1,0 +1,120 @@
+/**
+ * _buttons.scss: Chunky Retro Pixel Push Buttons
+ * Provides uncompromising contrast across both light and dark themes.
+ */
+
+.pixel-btn {
+  border: 3px solid #000000;
+  background-color: #dcd8d0;
+  color: #000000;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  padding: 5px 12px;
+  box-shadow: 3px 3px 0px 0px #000000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  user-select: none;
+  transition: transform 0.05s ease, filter 0.05s ease;
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+
+  &:active {
+    box-shadow: 1px 1px 0px 0px #000000;
+    transform: translate(2px, 2px);
+  }
+
+  /* Default uncolored button in Dark Mode */
+  .dark & {
+    background-color: #21262d;
+    color: #e6edf3;
+    border-color: #8b949e;
+    box-shadow: 3px 3px 0px 0px #000000;
+
+    &:active {
+      box-shadow: 1px 1px 0px 0px #000000;
+    }
+  }
+
+  /* -------------------------------------------------------------
+     Color Modifiers - Explicitly enforce high contrast on both themes
+     ------------------------------------------------------------- */
+
+  /* Yellow Accent Button (e.g. Login, Submit, Auto-Fill) -> ALWAYS Black text */
+  &--yellow,
+  .dark &--yellow {
+    background-color: var(--accent-yellow) !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
+    text-shadow: none !important;
+
+    &:hover {
+      filter: brightness(1.12);
+    }
+  }
+
+  /* Neon Prompt Green Button (e.g. Authenticate, Confirm) -> ALWAYS Black text */
+  &--green,
+  .dark &--green {
+    background-color: var(--accent-prompt) !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
+    text-shadow: none !important;
+
+    &:hover {
+      filter: brightness(1.12);
+    }
+  }
+
+  /* Cyan Accent Button -> ALWAYS Black text */
+  &--cyan,
+  .dark &--cyan {
+    background-color: var(--accent-cyan) !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
+    text-shadow: none !important;
+
+    &:hover {
+      filter: brightness(1.12);
+    }
+  }
+
+  /* Crimson Danger Button -> ALWAYS White text */
+  &--danger,
+  .dark &--danger {
+    background-color: var(--accent-crimson) !important;
+    color: #ffffff !important;
+    border-color: #000000 !important;
+    text-shadow: none !important;
+
+    &:hover {
+      filter: brightness(1.12);
+    }
+  }
+
+  /* Active / Selected Tab Button */
+  &--active {
+    background-color: #000000 !important;
+    color: var(--accent-prompt) !important;
+    border-color: #000000 !important;
+
+    .dark & {
+      background-color: var(--accent-mac) !important;
+      color: #000000 !important;
+      border-color: #ffffff !important;
+      text-shadow: none !important;
+    }
+  }
+
+  /* Size Modifiers */
+  &--sm {
+    padding: 2px 8px;
+    font-size: 10px;
+  }
+}

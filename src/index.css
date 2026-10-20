@@ -1,0 +1,359 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-desktop: #285577; /* Deep 90s Unix/Mac workstation teal-slate */
+    --surface-window: #dcd8d0; /* Classic Platinum / CDE grey */
+    --surface-title: #2a2c30;
+    --text-main: #000000;
+    --border-main: #000000;
+    --accent-prompt: #00ff66;
+    --accent-mac: #000080;
+    --accent-amber: #ffb000;
+    --code-bg: #ffffff;
+  }
+
+  .dark {
+    --bg-desktop: #0a0e14; /* Midnight Unix workstation */
+    --surface-window: #161b22; /* Dark terminal surface */
+    --surface-title: #05070a;
+    --text-main: #e6edf3;
+    --border-main: #384252;
+    --accent-prompt: #39ff14;
+    --accent-mac: #58a6ff;
+    --accent-amber: #ffcc00;
+    --code-bg: #0d1117;
+  }
+
+  body {
+    background-color: var(--bg-desktop);
+    font-family: 'Space Mono', 'Courier New', monospace;
+    image-rendering: pixelated;
+    shape-rendering: crispEdges;
+  }
+
+  /* Custom retro scrollbar */
+  ::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+    background: #c8c4bc;
+  }
+  .dark ::-webkit-scrollbar {
+    background: #0d1117;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #a8a49c;
+    border: 2px solid #000000;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border: 2px solid #58a6ff;
+  }
+}
+
+/* Classic Mac OS Pinstripes Title Bar */
+.mac-pinstripes {
+  background: repeating-linear-gradient(
+    to bottom,
+    #000000 0px,
+    #000000 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.dark .mac-pinstripes {
+  background: repeating-linear-gradient(
+    to bottom,
+    #58a6ff 0px,
+    #58a6ff 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* Chunky Pixel Art Box & Borders */
+.pixel-box {
+  border: 4px solid var(--border-main);
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.9);
+}
+
+.dark .pixel-box {
+  border: 4px solid #30363d;
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+/* Chunky Pixel Button */
+.pixel-btn {
+  border: 3px solid #000000;
+  background-color: #dcd8d0;
+  color: #000000;
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  padding: 6px 12px;
+  box-shadow: 3px 3px 0px 0px #000000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.05s ease;
+}
+
+.pixel-btn:hover {
+  filter: brightness(1.05);
+}
+
+.pixel-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px #000000;
+}
+
+.dark .pixel-btn {
+  background-color: #21262d;
+  color: #e6edf3;
+  border-color: #8b949e;
+  box-shadow: 3px 3px 0px 0px #000000;
+}
+
+.dark .pixel-btn:active {
+  box-shadow: 1px 1px 0px 0px #000000;
+}
+
+/* System Prompt Styling */
+.system-prompt {
+  font-family: 'VT323', monospace;
+  font-size: 1.15rem;
+  color: var(--accent-prompt);
+  text-shadow: 0 0 5px rgba(0, 255, 102, 0.4);
+}
+
+/* Blinking Cursor */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.blinking-cursor {
+  animation: blink 0.8s infinite;
+}
+
+/* CRT Scanlines Overlay */
+.crt-scanlines {
+  position: relative;
+}
+.crt-scanlines::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.45) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+  z-index: 20;
+  background-size: 100% 3px, 6px 100%;
+  pointer-events: none;
+}
+
+/* Dithering Checkerboard */
+.retro-dither {
+  background-image: radial-gradient(#000000 15%, transparent 16%), radial-gradient(#000000 15%, transparent 16%);
+  background-size: 4px 4px;
+  background-position: 0 0, 2px 2px;
+}
+
+/* Marquee Scroll */
+@keyframes marquee-scroll {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+.animate-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee-scroll 18s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* BEM Embed Hooks */
+.neogram-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.neogram-post {
+  background-color: var(--surface-window);
+  border: 3px solid var(--border-main);
+  padding: 0.85rem;
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+.neogram-post__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--border-main);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.neogram-post__user {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.neogram-post__avatar {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #000000;
+  image-rendering: pixelated;
+}
+
+.neogram-post__timestamp {
+  font-size: 0.75rem;
+  color: #4b5563;
+}
+.dark .neogram-post__timestamp {
+  color: #8b949e;
+}
+
+.neogram-post__media {
+  border: 2px solid #000000;
+  background: #000000;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.neogram-post__caption {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  margin-bottom: 0.75rem;
+}
+
+.neogram-post__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.neogram-post__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-top: 2px dashed #8b949e;
+  padding-top: 0.5rem;
+}
+
+.neogram-button {
+  background-color: #dcd8d0;
+  color: #000000;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  user-select: none;
+}
+.neogram-button:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px 0px #000000;
+}
+.neogram-button--primary {
+  background-color: #000080;
+  color: #ffffff;
+}
+.dark .neogram-button {
+  background-color: #21262d;
+  color: #e6edf3;
+  border-color: #8b949e;
+}
+.dark .neogram-button--primary {
+  background-color: #1f6feb;
+  color: #ffffff;
+}
+
+.neogram-guestbook {
+  background-color: var(--surface-window);
+  border: 3px solid var(--border-main);
+  padding: 1rem;
+}
+
+.neogram-counter {
+  display: inline-flex;
+  background: #000000;
+  border: 3px solid #58a6ff;
+  padding: 3px 6px;
+}
+
+.neogram-counter__digit {
+  font-family: 'VT323', monospace;
+  font-size: 2.2rem;
+  line-height: 1;
+  color: #00ff66;
+  text-shadow: 0 0 6px #00ff66;
+  padding: 0 4px;
+  background: #071907;
+  border-right: 1px solid #143314;
+}
+
+.neogram-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 31px;
+  border: 2px solid #000000;
+  box-sizing: border-box;
+  font-size: 9px;
+  font-weight: bold;
+  text-transform: uppercase;
+  image-rendering: pixelated;
+  user-select: none;
+}
+
+/* Custom skins */
+.theme-cyberpunk {
+  --surface-window: #0f0728;
+  color: #00ffff;
+}
+.theme-cyberpunk .neogram-post {
+  background: #0f0728;
+  border-color: #00ffff;
+  box-shadow: 4px 4px 0px #ff007f;
+  color: #e0faff;
+}
+.theme-cyberpunk .neogram-button {
+  background: #1b103f;
+  color: #00ffff;
+  border-color: #00ffff;
+}
+
+.theme-geocities {
+  --surface-window: #fffaf0;
+  color: #000000;
+}
+.theme-geocities .neogram-post {
+  background: #ffffff;
+  border: 3px solid #800080;
+  box-shadow: 4px 4px 0px #ffcc00;
+}
+
+.theme-matrix {
+  --surface-window: #041206;
+  color: #00ff66;
+}
+.theme-matrix .neogram-post {
+  background: #041206;
+  border: 3px solid #00ff66;
+  box-shadow: 4px 4px 0px #004411;
+  color: #55ff88;
+}

@@ -1,0 +1,140 @@
+/**
+ * Neogram Embed Stylesheet (v2.0)
+ * Strict BEM hooks for customizable embeds on Neocities, GitHub Pages, and self-hosted static sites.
+ */
+
+:root {
+  --neogram-font-mono: 'Space Mono', 'Courier New', monospace;
+  --neogram-font-pixel: 'Silkscreen', monospace;
+  --neogram-bg-window: #dcd8d0;
+  --neogram-border-black: #000000;
+  --neogram-accent-blue: #000080;
+  --neogram-accent-green: #39ff14;
+}
+
+/* Feed Wrapper */
+.neogram-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+  font-family: var(--neogram-font-mono);
+}
+
+/* Individual Post Card */
+.neogram-post {
+  background: var(--neogram-bg-window);
+  border: 4px solid var(--neogram-border-black);
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.9);
+  padding: 12px;
+  color: #000000;
+}
+
+.neogram-post__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+  border-bottom: 2px solid var(--neogram-border-black);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.neogram-post__avatar {
+  font-size: 16px;
+}
+
+.neogram-post__handle {
+  color: var(--neogram-accent-blue);
+}
+
+.neogram-post__media {
+  border: 2px solid var(--neogram-border-black);
+  background: #000000;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.neogram-post__media img {
+  width: 100%;
+  height: auto;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.neogram-post__caption {
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.neogram-post__tags {
+  font-size: 10px;
+  color: #555555;
+  display: flex;
+  gap: 6px;
+}
+
+.neogram-post__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  border-top: 2px solid var(--neogram-border-black);
+  padding-top: 6px;
+}
+
+/* Push Button */
+.neogram-button {
+  background: #dcd8d0;
+  border: 2px solid #000000;
+  font-family: var(--neogram-font-mono);
+  font-weight: bold;
+  font-size: 11px;
+  padding: 4px 8px;
+  box-shadow: 2px 2px 0px 0px #000000;
+  cursor: pointer;
+}
+
+.neogram-button:active {
+  box-shadow: 0px 0px 0px 0px #000000;
+  transform: translate(2px, 2px);
+}
+
+/* Counter Widget */
+.neogram-counter {
+  display: inline-block;
+  background: #000000;
+  border: 3px solid #808080;
+  padding: 4px 10px;
+  font-family: 'VT323', monospace;
+  font-size: 24px;
+  letter-spacing: 2px;
+}
+
+.neogram-counter--green_led {
+  color: var(--neogram-accent-green);
+  text-shadow: 0 0 6px rgba(57, 255, 20, 0.7);
+}
+
+.neogram-counter--red_nixie {
+  color: #ff3300;
+  text-shadow: 0 0 6px rgba(255, 51, 0, 0.7);
+}
+
+/* Guestbook Widget */
+.neogram-guestbook {
+  background: var(--neogram-bg-window);
+  border: 4px solid var(--neogram-border-black);
+  padding: 16px;
+  font-family: var(--neogram-font-mono);
+}
+
+.neogram-guestbook__header {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid #000000;
+  padding-bottom: 6px;
+}

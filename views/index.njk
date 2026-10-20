@@ -1,0 +1,463 @@
+{% extends "layouts/base.njk" %}
+
+{% block content %}
+<div class="max-w-4xl w-full mx-auto p-4 flex-1">
+
+  {% if currentUser %}
+    <!-- ==============================================================
+         AUTHENTICATED CREATOR STUDIO & DIRECT PHOTO PUBLISHING ENGINE
+         ============================================================== -->
+    <div class="pixel-box mb-6">
+      <div class="window-header">
+        <div class="flex items-center gap-2">
+          <span>💾</span>
+          <span>[:&gt; NEOGRAM_STUDIO.EXE - Direct Mobile/Static Photo Publisher]</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-prompt">CARRIER: ACTIVE</span>
+          <a href="http://localhost:3000" target="_blank" class="pixel-btn pixel-btn--yellow pixel-btn--sm">
+            <span>🕹️ View Gallery (Port 3000) :&gt;</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="p-5">
+        <!-- Station Identity Row -->
+        <div class="auth-node-box p-3 mb-4">
+          <div class="flex justify-between items-center flex-wrap gap-2">
+            <div>
+              <span class="font-bold text-prompt">[:&gt; LOGGED-IN CREATOR]:</span>
+              <span class="font-bold text-white">@{{ currentUser.handle }}</span>
+              <span class="text-muted text-xs ml-2">({{ currentUser.email }})</span>
+            </div>
+            <div class="text-xs text-muted">
+              Static Host: <code class="text-prompt">{{ currentUser.siteUrl or 'http://' + currentUser.handle + '.neocities.org' }}</code>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2-Column Publishing Grid -->
+        <form id="publishForm" onsubmit="handlePublishPost(event)">
+          <div class="flex flex-col md:flex-row gap-5">
+            
+            <!-- LEFT COLUMN: Image Source & Filter Shader -->
+            <div class="flex-1 flex flex-col gap-3">
+              <label class="block text-xs font-bold uppercase tracking-wider text-mac">
+                1. Viewport Preview &amp; Retro Filter Shader:
+              </label>
+
+              <!-- Live Preview Viewport -->
+              <div id="previewContainer" class="preview-viewport crt-scanlines">
+                <img
+                  id="previewImg"
+                  src="/uploads/images/1792466641865-lnbnznn.webp"
+                  alt="Neogram Snapshot Preview"
+                  class="preview-viewport__img filter-crt"
+                />
+              </div>
+
+              <!-- Filter Selector Grid -->
+              <div>
+                <span class="text-xs text-muted block mb-1 font-bold">Applied Filter Shader:</span>
+                <div class="filter-grid" id="filterGrid">
+                  <button type="button" class="filter-btn is-active" data-filter="crt" onclick="setFilter('crt')">
+                    📺 CRT Phosphor
+                  </button>
+                  <button type="button" class="filter-btn" data-filter="vga" onclick="setFilter('vga')">
+                    🎮 16-Color VGA
+                  </button>
+                  <button type="button" class="filter-btn" data-filter="gameboy" onclick="setFilter('gameboy')">
+                    👾 GameBoy 1-Bit
+                  </button>
+                  <button type="button" class="filter-btn" data-filter="cyberpunk" onclick="setFilter('cyberpunk')">
+                    🌆 Neon Cyber
+                  </button>
+                  <button type="button" class="filter-btn" data-filter="sepia" onclick="setFilter('sepia')">
+                    📼 1996 Polaroid
+                  </button>
+                  <button type="button" class="filter-btn" data-filter="none" onclick="setFilter('none')">
+                    📷 Raw 24-Bit
+                  </button>
+                </div>
+              </div>
+
+              <!-- Upload Dropzone & File Input -->
+              <div>
+                <span class="text-xs text-muted block mb-1 font-bold">Select Photo From Device:</span>
+                <div
+                  id="dropzone"
+                  class="dropzone-well"
+                  onclick="document.getElementById('imageFileInput').click()"
+                  ondragover="handleDragOver(event)"
+                  ondragleave="handleDragLeave(event)"
+                  ondrop="handleFileDrop(event)"
+                >
+                  <span class="dropzone-well__icon">📷</span>
+                  <div class="font-bold text-xs">CLICK TO BROWSE OR DRAG &amp; DROP PHOTO</div>
+                  <div class="text-muted text-xs mt-1">Supports JPEG, PNG, WebP, BMP (Processed via Sharp)</div>
+                  <input
+                    type="file"
+                    id="imageFileInput"
+                    name="imageFile"
+                    accept="image/*"
+                    class="hidden"
+                    onchange="handleFileInputChange(event)"
+                  />
+                </div>
+              </div>
+
+              <!-- Preset Sprites Quick-Select -->
+              <div>
+                <span class="text-xs text-muted block mb-1 font-bold">Or Quick-Select Retro Sprite:</span>
+                <div class="preset-sprites-row">
+                  <button type="button" class="pixel-btn pixel-btn--sm" onclick="selectPreset('workstation')">
+                    🖥️ Workstation
+                  </button>
+                  <button type="button" class="pixel-btn pixel-btn--sm" onclick="selectPreset('akiba')">
+                    🌆 Akiba 8-Bit
+                  </button>
+                  <button type="button" class="pixel-btn pixel-btn--sm" onclick="selectPreset('cassette')">
+                    📼 Tape
+                  </button>
+                  <button type="button" class="pixel-btn pixel-btn--sm" onclick="selectPreset('arcade')">
+                    🕹️ 1UP Arcade
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Post Metadata & Publishing Engine -->
+            <div class="flex-1 flex flex-col gap-3">
+              <label class="block text-xs font-bold uppercase tracking-wider text-mac">
+                2. Caption &amp; Webring Metadata:
+              </label>
+
+              <!-- Caption Textarea -->
+              <div>
+                <label for="captionInput" class="block text-xs font-bold mb-1">
+                  Post Caption &amp; Log Entry:
+                </label>
+                <textarea
+                  id="captionInput"
+                  name="caption"
+                  rows="4"
+                  required
+                  placeholder=":> Enter your thoughts, hardware specs, or retro web thoughts..."
+                  class="retro-input leading-normal"
+                >:&gt; Booted X11 on my workstation. Snapped a fresh photo to broadcast across the retro static webring.</textarea>
+              </div>
+
+              <!-- Mood Tag Selector -->
+              <div>
+                <label for="moodSelect" class="block text-xs font-bold mb-1">
+                  Current System Mood:
+                </label>
+                <select id="moodSelect" name="mood" class="retro-input">
+                  <option value="[:> CODING IN THE DARK]">[:&gt; CODING IN THE DARK]</option>
+                  <option value="[:> COMPILING KERNEL]">[:&gt; COMPILING KERNEL]</option>
+                  <option value="[:> DOWNLOADING MIDI]">[:&gt; DOWNLOADING MIDI]</option>
+                  <option value="[:> VIBING TO CITY POP]">[:&gt; VIBING TO CITY POP]</option>
+                  <option value="[:> SURFING WEBRINGS]">[:&gt; SURFING WEBRINGS]</option>
+                  <option value="[:> DIAL-UP CONNECTED]">[:&gt; DIAL-UP CONNECTED]</option>
+                  <option value="[:> EATING PIZZA]">[:&gt; EATING PIZZA]</option>
+                </select>
+              </div>
+
+              <!-- Webring & Location Inputs -->
+              <div class="flex gap-2">
+                <div class="flex-1">
+                  <label for="webringInput" class="block text-xs font-bold mb-1">
+                    Webring Tag:
+                  </label>
+                  <input
+                    type="text"
+                    id="webringInput"
+                    name="webring"
+                    value="unix.hackers.retro"
+                    class="retro-input"
+                  />
+                </div>
+                <div class="flex-1">
+                  <label for="locationInput" class="block text-xs font-bold mb-1">
+                    Station Location:
+                  </label>
+                  <input
+                    type="text"
+                    id="locationInput"
+                    name="location"
+                    value="Sparcstation // Node #4"
+                    class="retro-input"
+                  />
+                </div>
+              </div>
+
+              <!-- Terminal Telemetry Log (During Upload) -->
+              <div id="transmissionLog" class="transmission-terminal hidden">
+                <div id="transmissionText">[:&gt; CARRIER LINK READY]</div>
+              </div>
+
+              <!-- Reusable Alert Box -->
+              <div id="publishAlert" class="retro-alert">
+                <span id="publishAlertTag" class="retro-alert__tag"></span>
+                <span id="publishAlertMsg"></span>
+              </div>
+
+              <!-- Action Submit Button -->
+              <div class="mt-2">
+                <button
+                  type="submit"
+                  id="publishBtn"
+                  class="pixel-btn pixel-btn--green w-full py-2.5 font-bold text-sm"
+                >
+                  <span>📡</span>
+                  <span>TRANSMIT &amp; PUBLISH TO STATIC HOST :&gt;</span>
+                </button>
+              </div>
+
+              <!-- Quick Link to Port 3000 Gallery -->
+              <div class="mt-3 text-center">
+                <a href="http://localhost:3000" target="_blank" class="pixel-btn pixel-btn--yellow text-xs font-bold py-1.5 px-3">
+                  <span>🕹️ Open Static Photo Gallery (Port 3000) :&gt;</span>
+                </a>
+              </div>
+            </div>
+
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+  {% else %}
+    <!-- ==============================================================
+         GUEST / PUBLIC WORKSTATION WELCOME (When Logged Out)
+         ============================================================== -->
+    <div class="pixel-box mb-6">
+      <div class="window-header">
+        <span>:&gt; neogram_system_status.exe</span>
+        <span class="text-prompt font-bold">ONLINE</span>
+      </div>
+      
+      <div class="p-5">
+        <h1 class="system-title text-xl font-pixel mb-3 text-mac">
+          {{ systemPrompt }}
+        </h1>
+
+        <!-- Guest Mode Status Banner -->
+        <div class="guest-node-box p-3 mb-4">
+          <div class="flex items-center gap-2">
+            <span>🔐</span>
+            <span>Authentication required to publish photos. You are currently in guest mode.</span>
+          </div>
+          <a href="/login" class="pixel-btn pixel-btn--yellow font-bold text-xs">
+            <span>🔑 Authenticate at /login :&gt;</span>
+          </a>
+        </div>
+
+        <p class="text-base leading-relaxed mb-4">
+          Welcome to the <strong>Neogram Creator Studio &amp; Backend Engine</strong>. This decoupled service powers mobile-to-static publishing, Sharp image pipelines, centralized comment ledgers, visitor hit counters, and public guestbooks for retro static sites (Neocities, GitHub Pages, SFTP).
+        </p>
+
+        <!-- SYSTEM ARCHITECTURE CARD -->
+        <div class="retro-card p-4 my-4">
+          <div class="retro-card__title font-bold text-sm tracking-wide mb-2">
+            [SYSTEM ARCHITECTURE]
+          </div>
+          <ul class="m-0 pl-5 leading-relaxed text-sm">
+            <li><strong>Port 4000:</strong> Authenticated Creator Studio, OTP Security, Photo Uploading &amp; Sharp Processing</li>
+            <li><strong>Port 3000:</strong> Public Retro Photo Gallery, Dedicated Photo Views &amp; Centralized Comments Ledger</li>
+            <li><strong>Database:</strong> PostgreSQL (Live cluster: <code>neogram_db</code>)</li>
+            <li><strong>Asset Pipeline:</strong> Sharp WebP Compression (1200px main + 400px thumb)</li>
+          </ul>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-3 flex-wrap mt-5">
+          <a href="/login" class="pixel-btn pixel-btn--yellow font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>🔑</span> <span>Log In to Publish Photos</span>
+          </a>
+          <a href="http://localhost:3000" target="_blank" class="pixel-btn pixel-btn--cyan font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>🕹️</span> <span>Open Static Photo Gallery (Port 3000)</span>
+          </a>
+          <a href="/api/stats" class="pixel-btn pixel-btn--green" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>📊</span> <span>Database Node Stats</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if currentUser %}
+<script>
+  var currentFilter = 'crt';
+  var selectedFile = null;
+  var previewImg = document.getElementById('previewImg');
+  var previewContainer = document.getElementById('previewContainer');
+  var dropzone = document.getElementById('dropzone');
+
+  function setFilter(filter) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    currentFilter = filter;
+
+    // Update button states
+    var buttons = document.querySelectorAll('#filterGrid .filter-btn');
+    buttons.forEach(function(btn) {
+      if (btn.getAttribute('data-filter') === filter) {
+        btn.classList.add('is-active');
+      } else {
+        btn.classList.remove('is-active');
+      }
+    });
+
+    // Update preview class
+    previewImg.className = 'preview-viewport__img filter-' + filter;
+  }
+
+  function handleFileInputChange(e) {
+    var file = e.target.files[0];
+    if (file) loadFile(file);
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    dropzone.classList.add('is-dragover');
+  }
+
+  function handleDragLeave(e) {
+    dropzone.classList.remove('is-dragover');
+  }
+
+  function handleFileDrop(e) {
+    e.preventDefault();
+    dropzone.classList.remove('is-dragover');
+    var file = e.dataTransfer.files[0];
+    if (file) loadFile(file);
+  }
+
+  function loadFile(file) {
+    selectedFile = file;
+    if (window.retroAudio) window.retroAudio.playShutter();
+    var reader = new FileReader();
+    reader.onload = function(event) {
+      previewImg.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function selectPreset(preset) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var presetUrls = {
+      workstation: '/uploads/images/1792466641865-lnbnznn.webp',
+      akiba: '/uploads/images/1792466641865-lnbnznn.webp',
+      cassette: '/uploads/images/1792466641865-lnbnznn.webp',
+      arcade: '/uploads/images/1792466641865-lnbnznn.webp'
+    };
+    selectedFile = null;
+    // Fetch live sample images from api
+    fetch('/api/posts')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.posts && data.posts.length > 0) {
+          var post = data.posts[Math.floor(Math.random() * data.posts.length)];
+          previewImg.src = post.imagePath;
+          setFilter(post.filterApplied || 'crt');
+        }
+      });
+  }
+
+  function showAlert(type, tag, msg) {
+    var box = document.getElementById('publishAlert');
+    var tagEl = document.getElementById('publishAlertTag');
+    var msgEl = document.getElementById('publishAlertMsg');
+    box.className = 'retro-alert is-visible retro-alert--' + type;
+    tagEl.textContent = tag;
+    msgEl.textContent = msg;
+  }
+
+  function hideAlert() {
+    var box = document.getElementById('publishAlert');
+    box.className = 'retro-alert';
+  }
+
+  async function handlePublishPost(e) {
+    e.preventDefault();
+    hideAlert();
+
+    var publishBtn = document.getElementById('publishBtn');
+    var logBox = document.getElementById('transmissionLog');
+    var logText = document.getElementById('transmissionText');
+    var caption = document.getElementById('captionInput').value;
+    var mood = document.getElementById('moodSelect').value;
+    var webring = document.getElementById('webringInput').value;
+    var location = document.getElementById('locationInput').value;
+
+    publishBtn.disabled = true;
+    publishBtn.style.opacity = '0.5';
+    logBox.classList.remove('hidden');
+
+    if (window.retroAudio) window.retroAudio.playDialupBeep();
+
+    function logStep(text, delay) {
+      return new Promise(function(resolve) {
+        setTimeout(function() {
+          logText.textContent = text;
+          resolve();
+        }, delay);
+      });
+    }
+
+    try {
+      await logStep('[:> init_ppp_link /dev/ttyS0 --baud 28800]', 400);
+      await logStep('[:> carrier detected: V.34 protocol handshake... [OK]]', 600);
+      await logStep('[:> sharp_compress_image: creating 1200px webp & 400px thumbnail]', 500);
+
+      var formData = new FormData();
+      formData.append('caption', caption);
+      formData.append('filterApplied', currentFilter);
+      formData.append('mood', mood);
+      formData.append('webring', webring);
+      formData.append('location', location);
+
+      if (selectedFile) {
+        formData.append('imageFile', selectedFile);
+      } else {
+        // If no file selected, pass the current preview image source
+        formData.append('imageBase64', previewImg.src);
+      }
+
+      var res = await fetch('/api/posts', {
+        method: 'POST',
+        body: formData
+      });
+
+      var data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Carrier transmission failed.');
+      }
+
+      await logStep('[:> commit_post: written to PostgreSQL node // status 201 [CONFIRMED]]', 500);
+
+      if (window.retroAudio) window.retroAudio.playSuccess();
+
+      showAlert(
+        'success',
+        '[✓] CARRIER DISPATCH CONFIRMED:',
+        'Photo processed by Sharp and committed to PostgreSQL feed! Available live in the static gallery.'
+      );
+
+    } catch (err) {
+      if (window.retroAudio) window.retroAudio.playError();
+      showAlert('error', '[:> TRANSMISSION ERROR]:', err.message);
+    } finally {
+      publishBtn.disabled = false;
+      publishBtn.style.opacity = '1';
+    }
+  }
+</script>
+{% endif %}
+{% endblock %}

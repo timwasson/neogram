@@ -1,0 +1,79 @@
+/**
+ * _alerts.scss: Universal Retro Terminal Alert Banners
+ * Error, success, and informational message callouts.
+ */
+
+.retro-alert {
+  display: none;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 3px solid #000000;
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.9);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  margin-top: 14px;
+  margin-bottom: 14px;
+  user-select: none;
+  transition: all 0.2s ease;
+
+  .dark & {
+    box-shadow: 4px 4px 0px 0px #000000;
+  }
+
+  &.is-visible {
+    display: flex !important;
+  }
+
+  &--error {
+    background-color: #ffe5e8;
+    border-color: var(--accent-crimson);
+    color: #990022;
+
+    .dark & {
+      background-color: #25070a;
+      border-color: #ff3366;
+      color: #ff6b8b;
+      text-shadow: 0 0 6px rgba(255, 51, 102, 0.5);
+      box-shadow: 4px 4px 0px 0px #000000, 0 0 14px rgba(255, 51, 102, 0.25);
+    }
+  }
+
+  &--success {
+    background-color: #eafaf1;
+    border-color: #00883a;
+    color: #005a26;
+
+    .dark & {
+      background-color: #051a0b;
+      border-color: #39ff14;
+      color: #39ff14;
+      text-shadow: 0 0 6px rgba(57, 255, 20, 0.6);
+      box-shadow: 4px 4px 0px 0px #000000, 0 0 14px rgba(57, 255, 20, 0.25);
+    }
+  }
+
+  &--info {
+    background-color: #e8f4fd;
+    border-color: var(--accent-mac);
+    color: var(--accent-mac);
+
+    .dark & {
+      background-color: #081628;
+      border-color: #58a6ff;
+      color: #58a6ff;
+      text-shadow: 0 0 6px rgba(88, 166, 255, 0.6);
+      box-shadow: 4px 4px 0px 0px #000000, 0 0 14px rgba(88, 166, 255, 0.25);
+    }
+  }
+
+  &__tag {
+    font-family: var(--font-led);
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
