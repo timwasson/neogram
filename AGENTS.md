@@ -42,12 +42,17 @@ It provides:
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
+    handle VARCHAR(50) UNIQUE,
     auth_token VARCHAR(255),
     auth_token_expires_at TIMESTAMPTZ,
     site_url VARCHAR(500),
-    deployment_type VARCHAR(50) CHECK (deployment_type IN ('neocities', 'github', 'sftp', 'none')),
+    deployment_type VARCHAR(50) DEFAULT 'none' CHECK (deployment_type IN ('neocities', 'github', 'sftp', 'none')),
     deployment_credentials BYTEA, -- Encrypted credentials (AES-256-GCM)
     custom_css_url VARCHAR(500),
+    auto_deploy BOOLEAN DEFAULT FALSE,
+    last_deployed_at TIMESTAMPTZ,
+    status_message VARCHAR(150) DEFAULT 'Surfing cyberspace',
+    is_away BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -105,6 +110,20 @@ CREATE TABLE web_counters (
     style VARCHAR(50) DEFAULT 'green_led',
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Ephemeral Chat Store-and-Forward Queue (Offline Delivery ONLY)
+-- INVARIANT: Hard-deleted immediately upon transmission to recipient
+CREATE TABLE ephemeral_chat_queue (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    receiver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMPTZ DEFAULT (CURRENT_TIMESTAMP + INTERVAL '24 hours')
+);
+
+CREATE INDEX idx_chat_queue_receiver ON ephemeral_chat_queue(receiver_id);
+CREATE INDEX idx_chat_queue_expires ON ephemeral_chat_queue(expires_at);
 ```
 
 ---
@@ -125,32 +144,57 @@ All embeddable widgets must render standard HTML markup with consistent BEM clas
 - `.neogram-counter`: Hit counter widget
 - `.neogram-button`: Brutalist retro push button
 
-### 4.2 Credential Security
-- Static hosting credentials (GitHub PATs, Neocities API keys, SFTP passwords) must be **encrypted at rest** using AES-256-GCM.
-- Never return sensitive deployment credentials in client-facing API responses.
-- Authentication must use passwordless magic link / 6-digit OTP codes with HTTP-only, SameSite cookies for JWT session management.
+### 4.2 Credential Security & Dual-Channel Authentication
+- **Encryption at Rest:** Static hosting credentials (GitHub PATs, Neocities API keys, SFTP passwords) must be **encrypted at rest** using AES-256-GCM (`users.deployment_credentials`). Never return sensitive credentials in API responses.
+- **Dual-Channel Authentication Standard (`extractToken(req)`):**
+  - Web workstation dashboard uses HTTP-only, SameSite cookies (`neogram_session`).
+  - Browser extensions (`chrome-extension://`) and headless API clients use `Authorization: Bearer <token>` headers.
+  - Real-time WebSockets (`/ws/chat`) inspect cookies first, falling back to the `?token=<jwt>` URL query parameter.
+  - Authentication endpoints (`/api/auth/verify-otp`, `/api/auth/magic-login`) return both `Set-Cookie` and JSON responses `{ success: true, token, user }` to support programmatic consumers.
 
 ### 4.3 Static Publishing Pipeline (11ty + Neocities)
 1. User uploads photo payload and post metadata in Neogram Creator Studio (`POST /api/posts`).
 2. Server validates session and processes image via `sharp` (scale to max 1200px, create 400px thumbnail, optimize to WebP).
 3. Server commits record to PostgreSQL `posts` table.
 4. **11ty Static Site Generation (`server/services/staticBuilder.ts`):**
-   - Reads all posts and comments from PostgreSQL into `eleventy/src/_data/posts.json`.
-   - Compiles static photo gallery grid (`index.html`) and paginated dedicated photo pages (`photos/<id>/index.html`) into `dist/static-gallery/`.
-   - Passes through pure Sass stylesheets (`css/neogram.css`), uploads, and embed scripts.
+   - Multi-tenant isolated builds: compiles personal static photo galleries to `dist/static-galleries/<userId>/` (as well as global preview `dist/static-gallery/`).
+   - Generates responsive gallery grid (`index.html`) and paginated photo pages (`photos/<id>/index.html`).
+   - Copies stylesheets (`css/neogram.css`), uploads, and embed scripts into the static output bundle.
    - Serves immediate live preview at `/preview/` and `/photos/<id>/` on Port 4000.
-5. **Deployment Adapter:**
-   - **NeocitiesAdapter:** Pushes compiled `dist/static-gallery/` bundle directly to Neocities via `POST https://neocities.org/api/upload`.
-   - **GitHubAdapter / SftpAdapter:** Fallback deployment targets.
-6. Centralized social layer: Visitors to the static site react (like) and submit comments, which post back to `POST /api/posts/:id/comments` and trigger an automated background 11ty rebuild.
+5. **Deployment Adapter (`server/services/neocitiesPublisher.ts`):**
+   - Reads decrypted Neocities API key and pushes multipart archive directly to `POST https://neocities.org/api/upload`.
+   - Probes remote site views and hits via `https://neocities.org/api/info`.
+   - Optional automatic deployment on post creation, edit, or deletion (`users.auto_deploy`).
+6. Centralized social layer: Visitors to static sites react and comment; comments post back to `/api/posts/:id/comments` and trigger an automated background 11ty rebuild.
 
 ### 4.4 Styling Architecture: Pure Custom Utilities & BEM (Strictly NO Tailwind)
 - **Tailwind CSS is prohibited:** Do not introduce Tailwind CLI, Tailwind directives, or Tailwind dependencies for views or embeds.
-- **Custom Utility Library:** Styling is powered by a zero-dependency Vanilla CSS framework ([public/css/neogram.css](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/public/css/neogram.css)).
+- **Custom Utility Library:** Styling is powered by a zero-dependency Vanilla CSS framework ([public/css/neogram.css](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/public/css/neogram.css)) compiled from Dart Sass ([src/styles/main.scss](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/src/styles/main.scss)).
 - **CSS Variables First:** Colors, surfaces, borders, and typography must resolve through `--bg-desktop`, `--surface-window`, `--surface-title`, `--text-main`, `--border-main`, `--accent-prompt`, `--accent-mac`, `--accent-amber`, and `--code-bg`.
 - **Reusable Component Classes:** Buttons (`.pixel-btn`, `.pixel-btn--yellow`, `.pixel-btn--green`, etc.), boxes (`.pixel-box`, `.window-header`), alerts (`.retro-alert`, `.retro-alert--error`, `.retro-alert--success`, `.retro-alert--info`), and telemetry (`.baud-progress-bar`).
 - **Standardized Utility Classes:** Layout (`flex`, `flex-col`, `flex-row`, `items-center`, `justify-between`, `gap-1` through `gap-4`), spacing (`p-*`, `m-*`), text (`text-xs`, `text-sm`, `font-mono`, `text-bold`, `text-center`), and widths (`w-full`, `max-w-*`).
 - **No Inline Styles:** Template markup must avoid inline `style="..."` attributes; all layout, spacing, and colors must be composed using the utility library and component classes.
+
+### 4.5 Chat Engine Architecture & Privacy Invariant (Zero Server Retention)
+- **Zero Permanent Archival:** The Neogram server **never** stores chat transcripts permanently in PostgreSQL. 
+- **In-Memory WebSockets Router:** Real-time messages route strictly in-memory between active WebSocket connections on `/ws/chat`. Presence and away status are tracked in-memory.
+- **Store-and-Forward Ephemeral Queue:** If a recipient is offline, the message is staged in `ephemeral_chat_queue`.
+- **Immediate Hard-Deletion Contract:** The instant the recipient establishes a WebSocket connection, queued messages are transmitted and **immediately hard-deleted** (`DELETE FROM ephemeral_chat_queue WHERE id = ANY(...)`). Queue size returns to `0`.
+- **Client-Side Message Retention:** 100% of chat history persists in browser client storage (`localStorage.getItem('neogram_im_' + handle)` in the web workstation, or `chrome.storage.local` in the browser extension). Users can clear their logs or export them as JSON at any time.
+
+### 4.6 Browser Extension Architecture & Shared Asset Pipeline
+- **WebExtension MV3 Architecture:** Manifest V3 extension in `extension/` connecting to `/ws/chat` with buddy list, instant messaging window, status selectors, and sound chimes.
+- **Shared Asset Tooling:**
+  - `npm run extension:sync`: Copies compiled stylesheets (`public/css/neogram.css` $\rightarrow$ `extension/shared/neogram.css`) and audio engine (`public/js/retroAudio.js` $\rightarrow$ `extension/shared/retroAudio.js`), preventing code divergence.
+  - `npm run extension:package`: Syncs shared assets and packages the extension into `neogram-aim-extension.zip` ready for Chrome Web Store submission.
+- **MV3 Stateless Worker Constraint:** Chrome MV3 background service workers terminate on idle. No long-lived in-memory state or WebSocket connections can exist in `background/service-worker.js`. Unread badge counters and notification tracking must be stored in `chrome.storage.local`.
+
+### 4.7 Mobile-to-Static PWA Publishing & Offline Resilience
+- **App Shell & Manifest:** Web App Manifest (`public/manifest.json`) supports standalone display mode, orientation, app shortcuts, and mobile Web Share Target (`share_target`).
+- **Service Worker Caching (`public/sw.js`):** Cache-first strategy for static retro assets/fonts, network-first for HTML pages, with automated fallback to `public/offline.html` during disconnects.
+- **Offline Post Buffering (IndexedDB):** If a user transmits a post while disconnected, `public/js/pwa.js` intercepts submission and buffers the photo Blob, caption, and metadata in IndexedDB (`neogram_pwa_db`, store `pending_posts`).
+- **Carrier Telemetry & Auto-Drain:** Real-time COM2 carrier monitor in the desktop taskbar (`#taskbarCom2Panel`) switches between `NO CARRIER // 300 BAUD` and `CARRIER 33600 V.90`. When connectivity is restored, the client automatically drains the IndexedDB queue to `POST /api/posts`.
+- **Native Hardware Camera Capture:** Uses standard `<input type="file" capture="environment">` for mobile camera snaps without WebRTC canvas overhead.
 
 ---
 
@@ -201,11 +245,54 @@ When building the production backend and views, extract and reuse the following 
    - Built automated sync and package scripts (`npm run extension:sync`, `npm run extension:package`) producing `neogram-aim-extension.zip`.
    - Complete store metadata and permissions justification in `CHROMEWEBSTORE.md`.
 10. **[x] Step 10 (Milestone 6): Mobile-to-Static Publishing Engine (PWA)**
-   - Web App Manifest (`public/manifest.json`) supporting standalone display mode, orientation, app shortcuts, and mobile Web Share Target (`share_target`).
-   - PWA Service Worker (`public/sw.js`) with cache-first static asset caching, network-first page navigation, and offline fallback.
-   - Retro 90s offline fallback interface (`public/offline.html`) with "MODEM: NO_CARRIER // 300 BAUD" CRT telemetry and retry handshake.
-   - Client-side PWA controller (`public/js/pwa.js`) managing `beforeinstallprompt` installation banners and real-time COM2 carrier detection.
-   - Hardware camera integration (`capture="environment"`) with "📸 SNAP CAMERA PHOTO" button for mobile device cameras.
-   - Offline post resilience: IndexedDB buffering (`neogram_pwa_db`) for photos captured while disconnected, with auto-sync upon carrier restoration.
+    - Web App Manifest (`public/manifest.json`) supporting standalone display mode, orientation, app shortcuts, and mobile Web Share Target (`share_target`).
+    - PWA Service Worker (`public/sw.js`) with cache-first static asset caching, network-first page navigation, and offline fallback.
+    - Retro 90s offline fallback interface (`public/offline.html`) with "MODEM: NO_CARRIER // 300 BAUD" CRT telemetry and retry handshake.
+    - Client-side PWA controller (`public/js/pwa.js`) managing `beforeinstallprompt` installation banners and real-time COM2 carrier detection.
+    - Hardware camera integration (`capture="environment"`) with "📸 SNAP CAMERA PHOTO" button for mobile device cameras.
+    - Offline post resilience: IndexedDB buffering (`neogram_pwa_db`) for photos captured while disconnected, with auto-sync upon carrier restoration.
+
+---
+
+## 7. Developer & Operational Runbook
+
+### 7.1 Development Daemons
+Neogram requires two long-running processes during development:
+```bash
+# 1. Start Express API, Workstation UI & WebSockets server (Port 4000)
+npm run dev:server
+
+# 2. Start Dart Sass compiler watching src/styles/
+npm run sass:watch
+
+# Alternatively, run both concurrently:
+npm run dev
+```
+
+### 7.2 Extension Tooling & Packaging
+```bash
+# Sync latest compiled CSS and audio engine into extension/shared/
+npm run extension:sync
+
+# Sync assets and bundle extension into zip file for Chrome Web Store:
+npm run extension:package
+# Output: neogram-aim-extension.zip
+```
+
+### 7.3 Database Migrations & Seeding
+Migrations run automatically on server start via `server/db/migrate.ts`.
+Database connection resolves via `DATABASE_URL` in `.env`:
+```bash
+# Default development database:
+DATABASE_URL=postgres://timwasson@localhost:5432/neogram
+```
+
+### 7.4 Required Environment Variables (`.env`)
+```env
+PORT=4000
+DATABASE_URL=postgres://localhost:5432/neogram
+SESSION_SECRET=neogram_retro_super_secret_session_jwt_2026
+NEOCITIES_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+```
 
 
