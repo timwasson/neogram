@@ -19,15 +19,32 @@
   cursor: pointer;
   text-decoration: none;
   user-select: none;
-  transition: transform 0.05s ease, filter 0.05s ease;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 
   &:hover {
     filter: brightness(1.08);
   }
 
+  &:focus,
+  &:active {
+    outline: none !important;
+  }
+
+  &:focus:not(:focus-visible) {
+    outline: none !important;
+  }
+
+  &:focus-visible {
+    outline: 2px dashed var(--accent-prompt) !important;
+    outline-offset: 2px;
+  }
+
   &:active {
     box-shadow: 1px 1px 0px 0px #000000;
     transform: translate(2px, 2px);
+    transition: none;
+    outline: none !important;
   }
 
   /* Default uncolored button in Dark Mode */
@@ -39,6 +56,7 @@
 
     &:active {
       box-shadow: 1px 1px 0px 0px #000000;
+      outline: none !important;
     }
   }
 

@@ -681,14 +681,27 @@ body {
   cursor: pointer;
   text-decoration: none;
   user-select: none;
-  transition: transform 0.05s ease, filter 0.05s ease;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .pixel-btn:hover {
   filter: brightness(1.08);
 }
+.pixel-btn:focus, .pixel-btn:active {
+  outline: none !important;
+}
+.pixel-btn:focus:not(:focus-visible) {
+  outline: none !important;
+}
+.pixel-btn:focus-visible {
+  outline: 2px dashed var(--accent-prompt) !important;
+  outline-offset: 2px;
+}
 .pixel-btn:active {
   box-shadow: 1px 1px 0px 0px #000000;
   transform: translate(2px, 2px);
+  transition: none;
+  outline: none !important;
 }
 .pixel-btn {
   /* Default uncolored button in Dark Mode */
@@ -701,6 +714,7 @@ body {
 }
 .dark .pixel-btn:active {
   box-shadow: 1px 1px 0px 0px #000000;
+  outline: none !important;
 }
 .pixel-btn {
   /* -------------------------------------------------------------
@@ -1291,6 +1305,11 @@ body {
   align-items: center;
   justify-content: center;
   line-height: 1;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.retro-topnav .pixel-btn:focus, .retro-topnav .pixel-btn:active {
+  outline: none !important;
 }
 
 /**

@@ -100,4 +100,11 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+
+  &:focus,
+  &:active {
+    outline: none !important;
+  }
 }

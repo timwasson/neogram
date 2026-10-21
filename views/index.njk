@@ -980,54 +980,142 @@
     <!-- ==============================================================
          GUEST / PUBLIC WORKSTATION WELCOME (When Logged Out)
          ============================================================== -->
-    <div class="pixel-box mb-6">
-      <div class="window-header">
-        <span>:&gt; neogram_system_status.exe</span>
-        <span class="text-prompt font-bold">ONLINE</span>
+    <div class="pixel-box mb-12">
+      <div class="window-header flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span>:&gt;</span>
+          <span class="font-bold">welcome_to_cyberspace.exe — THE FUN, PERSONAL WEB</span>
+        </div>
+        <span class="text-prompt font-bold text-xs">CYBERSPACE: ACTIVE</span>
       </div>
       
       <div class="p-5">
-        <h1 class="system-title text-xl font-pixel mb-3 text-mac">
-          {{ systemPrompt }}
-        </h1>
+        <!-- Hero Section -->
+        <div class="mb-6">
+          <div class="inline-block px-2 py-0.5 mb-2 border border-main text-xs font-mono text-prompt bg-black">
+            [:&gt; BRIDGING MOBILE CREATION WITH 90s WEB NOSTALGIA]
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-pixel mb-3 text-mac tracking-wide leading-tight">
+            Remember when the web was fun? We do too.
+          </h1>
+          <p class="text-sm sm:text-base leading-relaxed mb-3 text-main font-mono">
+            <strong>Neogram</strong> is a cozy, indie toolkit that lets you take photos on your phone and publish them straight to your personal retro website—complete with vintage shaders, live hit counters, cozy guestbooks, and 90s-style instant messaging.
+          </p>
+          <p class="text-xs sm:text-sm leading-relaxed mb-4 text-muted font-mono">
+            Modern social media trapped our photos inside algorithmic feeds. Neogram puts them back where they belong: <strong class="text-main">on your own creative corner of the web.</strong>
+          </p>
 
-        <!-- Guest Mode Status Banner -->
-        <div class="guest-node-box p-3 mb-4">
+          <!-- Hero Action Buttons -->
+          <div class="flex items-center gap-3 flex-wrap">
+            <a href="/login" class="pixel-btn pixel-btn--yellow font-bold text-sm py-2 px-4" onclick="if(window.retroAudio) retroAudio.playClick();">
+              <span>🚀</span> <span>Jump In / Log In :&gt;</span>
+            </a>
+            <a href="/embed/embed.js" target="_blank" class="pixel-btn text-xs font-bold py-2 px-3" onclick="if(window.retroAudio) retroAudio.playClick();">
+              <span>💾</span> <span>Explore Live Embed Specs</span>
+            </a>
+            <span class="text-xs text-muted font-mono">
+              (Free &amp; open for indie web explorers. No password needed—just a quick email code.)
+            </span>
+          </div>
+        </div>
+
+        <!-- 4-Card Feature Showcase Grid -->
+        <div class="grid-2-col gap-4 mb-6">
+          
+          <!-- Card 1: Mobile to Static -->
+          <div class="pixel-box p-4 bg-window flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-xl">📱</span>
+                <span class="font-bold text-sm text-prompt uppercase font-mono">Phone to Static Site</span>
+              </div>
+              <p class="text-xs font-mono leading-relaxed text-main">
+                Snap a picture on your mobile camera, pick an authentic CRT scanline or 90s halftone shader, and publish straight to your Neocities page in seconds. No terminal or laptop required.
+              </p>
+            </div>
+            <div class="mt-3 pt-2 border-t border-main text-xs text-muted font-mono flex items-center justify-between">
+              <span>FORMAT: 1200px WebP + 400px thumb</span>
+              <span class="text-prompt">[ONLINE]</span>
+            </div>
+          </div>
+
+          <!-- Card 2: Glowing Hit Counters -->
+          <div class="pixel-box p-4 bg-window flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-xl">🔢</span>
+                <span class="font-bold text-sm text-prompt uppercase font-mono">Glowing Hit Counters</span>
+              </div>
+              <p class="text-xs font-mono leading-relaxed text-main">
+                Bring back the simple joy of watching your page visits climb with glowing green phosphor LED, red Nixie tube, and mechanical odometer badges that tick up live. Zero tracking scripts.
+              </p>
+            </div>
+            <div class="mt-3 pt-2 border-t border-main text-xs text-muted font-mono flex items-center justify-between">
+              <span>TECH: Dynamic Vector SVG</span>
+              <span class="text-prompt">[ONLINE]</span>
+            </div>
+          </div>
+
+          <!-- Card 3: Visitor Guestbooks -->
+          <div class="pixel-box p-4 bg-window flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-xl">📖</span>
+                <span class="font-bold text-sm text-prompt uppercase font-mono">Visitor Guestbooks</span>
+              </div>
+              <p class="text-xs font-mono leading-relaxed text-main">
+                Give your friends and visitors a cozy ledger to leave notes and comment on your snapshots. Drops seamlessly into any static HTML page with one simple copy-paste snippet.
+              </p>
+            </div>
+            <div class="mt-3 pt-2 border-t border-main text-xs text-muted font-mono flex items-center justify-between">
+              <span>INTEGRATION: Zero-dep Embed</span>
+              <span class="text-prompt">[ONLINE]</span>
+            </div>
+          </div>
+
+          <!-- Card 4: 90s Instant Messaging -->
+          <div class="pixel-box p-4 bg-window flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-xl">💬</span>
+                <span class="font-bold text-sm text-prompt uppercase font-mono">Instant Messaging (NIM)</span>
+              </div>
+              <p class="text-xs font-mono leading-relaxed text-main">
+                Chat with fellow cyberspace surfers using classic door chimes, away messages, and buddy lists right in your browser workstation or Chrome extension.
+              </p>
+            </div>
+            <div class="mt-3 pt-2 border-t border-main text-xs text-muted font-mono flex items-center justify-between">
+              <span>ENGINE: WebSockets + MV3 Ext</span>
+              <span class="text-prompt">[ONLINE]</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- The Indie Web Handshake / Trust Promise -->
+        <div class="retro-alert is-visible retro-alert--info p-4 flex flex-col gap-2">
           <div class="flex items-center gap-2">
-            <span>🔐</span>
-            <span>Authentication required to publish photos. You are currently in guest mode.</span>
+            <span class="retro-alert__tag font-bold">[:&gt; 🔒 THE INDIE WEB HANDSHAKE]:</span>
+            <span class="font-bold text-xs uppercase tracking-wide">No Ads. No Trackers. No Corporate Algorithms.</span>
           </div>
-          <a href="/login" class="pixel-btn pixel-btn--yellow font-bold text-xs">
-            <span>🔑 Authenticate at /login :&gt;</span>
-          </a>
+          <p class="text-xs font-mono leading-relaxed m-0 text-main">
+            <strong>Your website is your canvas.</strong> Neogram never sells your data, your static files always belong to you, and instant messages are 100% ephemeral (never permanently retained on our servers). We're just here to give you fun, reliable tools for the personal web.
+          </p>
         </div>
 
-        <p class="text-base leading-relaxed mb-4">
-          Welcome to the <strong>Neogram Creator Studio &amp; Backend Engine</strong>. This decoupled service powers mobile-to-static publishing, Sharp image pipelines, centralized comment ledgers, visitor hit counters, and public guestbooks for retro static sites (Neocities, GitHub Pages, SFTP).
-        </p>
-
-        <!-- SYSTEM ARCHITECTURE CARD -->
-        <div class="retro-card p-4 my-4">
-          <div class="retro-card__title font-bold text-sm tracking-wide mb-2">
-            [SYSTEM ARCHITECTURE]
+        <!-- Bottom Quick-Start Call to Action -->
+        <div class="mt-5 p-3 bg-desktop border border-main flex items-center justify-between flex-wrap gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-base">✨</span>
+            <span class="text-xs font-mono">
+              Ready to take your static site to cyberspace?
+            </span>
           </div>
-          <ul class="m-0 pl-5 leading-relaxed text-sm">
-            <li><strong>Creator Studio:</strong> Authenticated Workstation, OTP Security, Photo Uploading &amp; Sharp Processing</li>
-            <li><strong>Static Builder:</strong> 11ty (Eleventy) Static Site Generator pushing to Neocities</li>
-            <li><strong>Database:</strong> PostgreSQL (Live cluster: <code>neogram_db</code>)</li>
-            <li><strong>Asset Pipeline:</strong> Sharp WebP Compression (1200px main + 400px thumb)</li>
-          </ul>
+          <a href="/login" class="pixel-btn pixel-btn--yellow font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>🔑 Authenticate with Email / SMS :&gt;</span>
+          </a>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex gap-3 flex-wrap mt-5">
-          <a href="/login" class="pixel-btn pixel-btn--yellow font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>🔑</span> <span>Log In to Publish Photos</span>
-          </a>
-          <a href="/api/stats" class="pixel-btn pixel-btn--green" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>📊</span> <span>Database Node Stats</span>
-          </a>
-        </div>
       </div>
     </div>
   {% endif %}
@@ -1377,6 +1465,9 @@
     if (tab === 'edit') tab = 'manage';
     if (window.retroAudio) window.retroAudio.playClick();
     if (e && e.preventDefault) e.preventDefault();
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
 
     var targetHash = tab === 'manage' ? 'edit' : tab;
     if (window.location.hash !== '#' + targetHash) {
