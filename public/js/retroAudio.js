@@ -46,6 +46,32 @@
     } catch (e) {}
   };
 
+  // Camera Shutter Snap
+  RetroAudioEngine.prototype.playShutter = function () {
+    if (!this.enabled) return;
+    try {
+      this.initCtx();
+      if (!this.ctx) return;
+      var now = this.ctx.currentTime;
+      var osc = this.ctx.createOscillator();
+      var gain = this.ctx.createGain();
+
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(120, now);
+      osc.frequency.setValueAtTime(320, now + 0.03);
+      osc.frequency.setValueAtTime(80, now + 0.06);
+
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.1);
+    } catch (e) {}
+  };
+
   // Dial-up Handshake Beep sequence
   RetroAudioEngine.prototype.playDialupBeep = function () {
     if (!this.enabled) return;

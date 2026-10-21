@@ -15,7 +15,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="stylesheet" href="/css/neogram.css">
     <link rel="stylesheet" href="/embed/neogram-embed.css">
-    <script src="/js/retroAudio.js"></script>
+    <script src="/js/retroAudio.js?v=2.2.0"></script>
     {% block head %}{% endblock %}
   </head>
   <body>
@@ -43,40 +43,39 @@
       <!-- Dynamic Nav Links (Logged In vs Logged Out) -->
       <nav class="retro-navlinks">
         {% if currentUser %}
-          <!-- Authenticated Primary Workstation Tabs -->
-          <button
-            type="button"
+          <!-- Authenticated Primary Workstation Tabs with Static Hash Links -->
+          <a
+            href="/#upload"
             id="tabUploadBtn"
             class="pixel-btn pixel-btn--yellow font-bold text-xs"
-            onclick="switchDashboardTab('upload')"
+            onclick="switchDashboardTab('upload', event)"
           >
             <span>↑</span> <span>Upload</span>
-          </button>
-          <button
-            type="button"
+          </a>
+          <a
+            href="/#edit"
             id="tabManageBtn"
             class="pixel-btn font-bold text-xs"
-            onclick="switchDashboardTab('manage')"
+            onclick="switchDashboardTab('manage', event)"
           >
             <span>✎&#xFE0E;</span> <span>Edit</span>
-            <span id="manageCountBadge" class="hidden">{{ posts.length or 0 }}</span>
-          </button>
-          <button
-            type="button"
+          </a>
+          <a
+            href="/#settings"
             id="tabSettingsBtn"
             class="pixel-btn font-bold text-xs"
-            onclick="switchDashboardTab('settings')"
+            onclick="switchDashboardTab('settings', event)"
           >
             <span>⚙&#xFE0E;</span> <span>Settings</span>
-          </button>
-          <button
-            type="button"
+          </a>
+          <a
+            href="/#embeds"
             id="tabEmbedsBtn"
             class="pixel-btn font-bold text-xs"
-            onclick="switchDashboardTab('embeds')"
+            onclick="switchDashboardTab('embeds', event)"
           >
             <span>⎘</span> <span>Embeds</span>
-          </button>
+          </a>
         {% else %}
           <!-- Public Informational Options (When Logged Out) -->
           <a href="/" class="pixel-btn {% if activeView == 'dashboard' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">

@@ -43,106 +43,137 @@
             <!-- LEFT COLUMN: Image Source & Filter Shader -->
             <div class="flex-1 flex flex-col gap-3">
               <label class="block text-xs font-bold uppercase tracking-wider text-mac">
-                1. Viewport Preview &amp; Retro Filter Shader:
+                1. Select or Snap Photo:
               </label>
 
-              <!-- Live Preview Viewport -->
-              <div id="previewContainer" class="preview-viewport crt-scanlines">
-                <img
-                  id="previewImg"
-                  src="/uploads/images/1792466641865-lnbnznn.webp"
-                  alt="Neogram Snapshot Preview"
-                  class="preview-viewport__img filter-crt"
-                />
-              </div>
-
-              <!-- Filter Selector Grid -->
-              <div>
-                <span class="text-xs text-muted block mb-1 font-bold">Applied Filter Shader:</span>
-                <div class="filter-grid" id="filterGrid">
-                  <button type="button" class="filter-btn is-active" data-filter="crt" onclick="setFilter('crt')">
-                    📺 CRT Phosphor
-                  </button>
-                  <button type="button" class="filter-btn" data-filter="vga" onclick="setFilter('vga')">
-                    🎮 16-Color VGA
-                  </button>
-                  <button type="button" class="filter-btn" data-filter="gameboy" onclick="setFilter('gameboy')">
-                    👾 GameBoy 1-Bit
-                  </button>
-                  <button type="button" class="filter-btn" data-filter="cyberpunk" onclick="setFilter('cyberpunk')">
-                    🌆 Neon Cyber
-                  </button>
-                  <button type="button" class="filter-btn" data-filter="sepia" onclick="setFilter('sepia')">
-                    📼 1996 Polaroid
-                  </button>
-                  <button type="button" class="filter-btn" data-filter="none" onclick="setFilter('none')">
-                    📷 Raw 24-Bit
-                  </button>
-                </div>
-              </div>
-
-              <!-- Upload Dropzone & File Input -->
-              <div>
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-xs text-muted font-bold">Select Photo From Device:</span>
-                  <button
-                    type="button"
-                    class="pixel-btn pixel-btn--yellow pixel-btn--sm font-bold"
-                    onclick="if(window.retroAudio) retroAudio.playClick(); document.getElementById('cameraCaptureInput').click()"
-                    title="Open mobile device camera hardware"
-                  >
-                    <span>📸 SNAP CAMERA PHOTO</span>
-                  </button>
-                </div>
+              <!-- Photo Upload & Dynamic Preview Area (Swaps between Dropzone and Live Preview) -->
+              <div id="photoStage" class="flex flex-col gap-3">
+                <!-- State 1: Dropzone Well (Visible initially, no sample image) -->
                 <div
-                  id="dropzone"
+                  id="uploadDropzone"
                   class="dropzone-well"
-                  onclick="document.getElementById('imageFileInput').click()"
+                  onclick="triggerFileInput(event)"
+                  ondragenter="handleDragEnter(event)"
                   ondragover="handleDragOver(event)"
                   ondragleave="handleDragLeave(event)"
                   ondrop="handleFileDrop(event)"
                 >
-                  <span class="dropzone-well__icon">📷</span>
-                  <div class="font-bold text-xs">CLICK TO BROWSE OR DRAG &amp; DROP PHOTO</div>
-                  <div class="text-muted text-xs mt-1">Supports JPEG, PNG, WebP, BMP (Processed via Sharp)</div>
-                  <!-- Standard File Browser Input -->
-                  <input
-                    type="file"
-                    id="imageFileInput"
-                    name="imageFile"
-                    accept="image/*"
-                    class="hidden"
-                    onchange="handleFileInputChange(event)"
-                  />
-                  <!-- Direct Mobile Camera Capture Input -->
-                  <input
-                    type="file"
-                    id="cameraCaptureInput"
-                    accept="image/*"
-                    capture="environment"
-                    class="hidden"
-                    onchange="handleFileInputChange(event)"
-                  />
+                  <span class="dropzone-well__icon text-4xl mb-2">📷</span>
+                  <div class="font-bold text-sm tracking-wider uppercase mb-1">
+                    CLICK TO BROWSE OR DRAG &amp; DROP PHOTO
+                  </div>
+                  <div class="text-xs text-muted mb-4">
+                    Supports JPEG, PNG, WebP, GIF, BMP (Processed via Sharp)
+                  </div>
+                  
+                  <div class="flex items-center justify-center gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      id="selectPhotoBtn"
+                      class="pixel-btn pixel-btn--yellow font-bold text-xs"
+                      onclick="triggerFileInput(event)"
+                    >
+                      <span>📁</span> <span>SELECT PHOTO FILE</span>
+                    </button>
+                    <button
+                      type="button"
+                      id="snapCameraBtn"
+                      class="pixel-btn font-bold text-xs"
+                      onclick="triggerCameraInput(event)"
+                      title="Open mobile device camera hardware"
+                    >
+                      <span>📸</span> <span>SNAP CAMERA PHOTO</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <!-- Preset Sprites Quick-Select -->
-              <div>
-                <span class="text-xs text-muted block mb-1 font-bold">Or Quick-Select Retro Sprite:</span>
-                <div class="preset-sprites-row">
-                  <button type="button" class="pixel-btn pixel-btn--sm" onclick="selectPreset('workstation')">
-                    🖥️ Workstation
-                  </button>
-                  <button type="button" class="pixel-btn pixel-btn--sm" onclick="selectPreset('akiba')">
-                    🌆 Akiba 8-Bit
-                  </button>
-                  <button type="button" class="pixel-btn pixel-btn--sm" onclick="selectPreset('cassette')">
-                    📼 Tape
-                  </button>
-                  <button type="button" class="pixel-btn pixel-btn--sm" onclick="selectPreset('arcade')">
-                    🕹️ 1UP Arcade
-                  </button>
+                <!-- State 2: Live Preview Viewport & Shader Controls (Visible once photo is uploaded/selected) -->
+                <div
+                  id="previewContainer"
+                  class="hidden flex flex-col gap-3"
+                  ondragover="handleDragOver(event)"
+                  ondrop="handleFileDrop(event)"
+                >
+                  <!-- Live Preview Viewport (Exact 320px frame) -->
+                  <div class="preview-viewport crt-scanlines">
+                    <img
+                      id="previewImg"
+                      src=""
+                      alt="Neogram Snapshot Preview"
+                      class="preview-viewport__img filter-crt"
+                    />
+                  </div>
+
+                  <!-- Selected File Status Bar with Change / Clear Actions -->
+                  <div class="pixel-box p-2 bg-desktop flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2 truncate">
+                      <span>📷</span>
+                      <span id="selectedFileName" class="font-bold text-prompt truncate">photo.jpg</span>
+                      <span id="selectedFileSize" class="text-muted text-xs">(0 KB)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button
+                        type="button"
+                        class="pixel-btn pixel-btn--sm"
+                        onclick="triggerFileInput(event)"
+                        title="Select a different photo file"
+                      >
+                        <span>🔄 Change</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="pixel-btn pixel-btn--danger pixel-btn--sm"
+                        onclick="clearSelectedPhoto()"
+                        title="Remove selected photo"
+                      >
+                        <span>✕ Clear</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Filter Selector Grid -->
+                  <div id="filterGridSection">
+                    <span class="text-xs text-muted block mb-1 font-bold">Applied Retro Filter Shader:</span>
+                    <div class="filter-grid" id="filterGrid">
+                      <button type="button" class="filter-btn is-active" data-filter="crt" onclick="setFilter('crt')">
+                        📺 CRT Phosphor
+                      </button>
+                      <button type="button" class="filter-btn" data-filter="vga" onclick="setFilter('vga')">
+                        🎮 16-Color VGA
+                      </button>
+                      <button type="button" class="filter-btn" data-filter="gameboy" onclick="setFilter('gameboy')">
+                        👾 GameBoy 1-Bit
+                      </button>
+                      <button type="button" class="filter-btn" data-filter="cyberpunk" onclick="setFilter('cyberpunk')">
+                        🌆 Neon Cyber
+                      </button>
+                      <button type="button" class="filter-btn" data-filter="sepia" onclick="setFilter('sepia')">
+                        📼 1996 Polaroid
+                      </button>
+                      <button type="button" class="filter-btn" data-filter="none" onclick="setFilter('none')">
+                        📷 Raw 24-Bit
+                      </button>
+                    </div>
+                  </div>
                 </div>
+
+                <!-- Clean Hidden File Inputs (Outside containers to prevent bubbling conflicts) -->
+                <input
+                  type="file"
+                  id="imageFileInput"
+                  name="imageFile"
+                  accept="image/*"
+                  style="display:none;"
+                  onchange="handleFileInputChange(event)"
+                />
+                <input
+                  type="file"
+                  id="cameraCaptureInput"
+                  accept="image/*"
+                  capture="environment"
+                  style="display:none;"
+                  onchange="handleFileInputChange(event)"
+                />
               </div>
             </div>
 
@@ -162,9 +193,9 @@
                   name="caption"
                   rows="4"
                   required
-                  placeholder=":> Enter your thoughts, hardware specs, or retro web thoughts..."
+                  placeholder=":> Enter your thoughts, hardware specs, or retro web commentary..."
                   class="retro-input leading-normal"
-                >:&gt; Booted X11 on my workstation. Snapped a fresh photo to broadcast across the retro static webring.</textarea>
+                ></textarea>
               </div>
 
               <!-- Mood Tag Selector -->
@@ -973,15 +1004,28 @@
 <script>
   var currentFilter = 'crt';
   var selectedFile = null;
-  var previewImg = document.getElementById('previewImg');
-  var previewContainer = document.getElementById('previewContainer');
-  var dropzone = document.getElementById('dropzone');
+
+  function triggerFileInput(e) {
+    if (e) {
+      if (e.target && e.target.id === 'snapCameraBtn') return;
+      e.stopPropagation();
+    }
+    if (window.retroAudio) window.retroAudio.playClick();
+    var input = document.getElementById('imageFileInput');
+    if (input) input.click();
+  }
+
+  function triggerCameraInput(e) {
+    if (e) e.stopPropagation();
+    if (window.retroAudio) window.retroAudio.playClick();
+    var input = document.getElementById('cameraCaptureInput');
+    if (input) input.click();
+  }
 
   function setFilter(filter) {
     if (window.retroAudio) window.retroAudio.playClick();
     currentFilter = filter;
 
-    // Update button states
     var buttons = document.querySelectorAll('#filterGrid .filter-btn');
     buttons.forEach(function(btn) {
       if (btn.getAttribute('data-filter') === filter) {
@@ -991,61 +1035,137 @@
       }
     });
 
-    // Update preview class
-    previewImg.className = 'preview-viewport__img filter-' + filter;
+    var previewImg = document.getElementById('previewImg');
+    if (previewImg) {
+      previewImg.className = 'preview-viewport__img filter-' + filter;
+    }
   }
 
-  function handleFileInputChange(e) {
-    var file = e.target.files[0];
-    if (file) loadFile(file);
-  }
-
-  function handleDragOver(e) {
-    e.preventDefault();
-    dropzone.classList.add('is-dragover');
-  }
-
-  function handleDragLeave(e) {
-    dropzone.classList.remove('is-dragover');
-  }
-
-  function handleFileDrop(e) {
-    e.preventDefault();
-    dropzone.classList.remove('is-dragover');
-    var file = e.dataTransfer.files[0];
-    if (file) loadFile(file);
+  function isImageFile(file) {
+    if (!file) return false;
+    if (file.type && file.type.startsWith('image/')) return true;
+    var ext = (file.name || '').split('.').pop().toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'avif', 'svg'].indexOf(ext) !== -1;
   }
 
   function loadFile(file) {
+    if (!file) return;
+    if (!isImageFile(file)) {
+      try {
+        if (window.retroAudio && typeof window.retroAudio.playError === 'function') {
+          window.retroAudio.playError();
+        }
+      } catch(e) {}
+      showAlert('error', '[:> INVALID FILE]:', 'Selected file must be an image format (JPEG, PNG, WebP, GIF, BMP).');
+      return;
+    }
     selectedFile = file;
-    if (window.retroAudio) window.retroAudio.playShutter();
+    try {
+      if (window.retroAudio && typeof window.retroAudio.playShutter === 'function') {
+        window.retroAudio.playShutter();
+      }
+    } catch(e) {}
+
     var reader = new FileReader();
     reader.onload = function(event) {
-      previewImg.src = event.target.result;
+      var previewImg = document.getElementById('previewImg');
+      var uploadDropzone = document.getElementById('uploadDropzone');
+      var previewContainer = document.getElementById('previewContainer');
+      var nameSpan = document.getElementById('selectedFileName');
+      var sizeSpan = document.getElementById('selectedFileSize');
+
+      if (previewImg) previewImg.src = event.target.result;
+      if (nameSpan) nameSpan.textContent = file.name;
+      if (sizeSpan) sizeSpan.textContent = '(' + (file.size / 1024).toFixed(1) + ' KB)';
+
+      // In-place swap: Hide upload dropzone, show live preview
+      if (uploadDropzone) uploadDropzone.classList.add('hidden');
+      if (previewContainer) previewContainer.classList.remove('hidden');
+    };
+    reader.onerror = function(err) {
+      console.error('FileReader error:', err);
+      showAlert('error', '[:> READ ERROR]:', 'Could not read image file from local device.');
     };
     reader.readAsDataURL(file);
   }
 
-  function selectPreset(preset) {
-    if (window.retroAudio) window.retroAudio.playClick();
-    var presetUrls = {
-      workstation: '/uploads/images/1792466641865-lnbnznn.webp',
-      akiba: '/uploads/images/1792466641865-lnbnznn.webp',
-      cassette: '/uploads/images/1792466641865-lnbnznn.webp',
-      arcade: '/uploads/images/1792466641865-lnbnznn.webp'
-    };
+  function clearSelectedPhoto() {
     selectedFile = null;
-    // Fetch live sample images from api
-    fetch('/api/posts')
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.posts && data.posts.length > 0) {
-          var post = data.posts[Math.floor(Math.random() * data.posts.length)];
-          previewImg.src = post.imagePath;
-          setFilter(post.filterApplied || 'crt');
+    var previewImg = document.getElementById('previewImg');
+    var uploadDropzone = document.getElementById('uploadDropzone');
+    var previewContainer = document.getElementById('previewContainer');
+    var imageFileInput = document.getElementById('imageFileInput');
+    var cameraCaptureInput = document.getElementById('cameraCaptureInput');
+
+    if (previewImg) previewImg.src = '';
+    if (imageFileInput) imageFileInput.value = '';
+    if (cameraCaptureInput) cameraCaptureInput.value = '';
+
+    // In-place swap: Hide live preview, restore upload dropzone
+    if (previewContainer) previewContainer.classList.add('hidden');
+    if (uploadDropzone) uploadDropzone.classList.remove('hidden');
+
+    try {
+      if (window.retroAudio && typeof window.retroAudio.playClick === 'function') {
+        window.retroAudio.playClick();
+      }
+    } catch(e) {}
+  }
+
+  // Setup input change listeners and drag-and-drop
+  window.addEventListener('DOMContentLoaded', function() {
+    var fileInput = document.getElementById('imageFileInput');
+    if (fileInput) {
+      fileInput.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+          loadFile(e.target.files[0]);
         }
       });
-  }
+    }
+
+    var cameraInput = document.getElementById('cameraCaptureInput');
+    if (cameraInput) {
+      cameraInput.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+          loadFile(e.target.files[0]);
+        }
+      });
+    }
+
+    // Attach drag & drop listeners
+    ['uploadDropzone', 'previewContainer'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+
+      el.addEventListener('dragenter', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        el.classList.add('is-dragover');
+      });
+
+      el.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'copy';
+        el.classList.add('is-dragover');
+      });
+
+      el.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        el.classList.remove('is-dragover');
+      });
+
+      el.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        el.classList.remove('is-dragover');
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          loadFile(e.dataTransfer.files[0]);
+        }
+      });
+    });
+  });
 
   function showAlert(type, tag, msg) {
     var box = document.getElementById('publishAlert');
@@ -1064,6 +1184,14 @@
   async function handlePublishPost(e) {
     e.preventDefault();
     hideAlert();
+    var previewImg = document.getElementById('previewImg');
+    var hasImg = Boolean(selectedFile || (previewImg && previewImg.src && previewImg.src.length > 50));
+
+    if (!hasImg) {
+      if (window.retroAudio) window.retroAudio.playError();
+      showAlert('error', '[:> NO PHOTO SELECTED]:', 'Please select or snap a photo from your device before transmitting.');
+      return;
+    }
 
     var publishBtn = document.getElementById('publishBtn');
     var logBox = document.getElementById('transmissionLog');
@@ -1155,6 +1283,9 @@
         'Photo processed by Sharp and committed to PostgreSQL feed! Available live in the static gallery.'
       );
 
+      clearSelectedPhoto();
+      document.getElementById('captionInput').value = '';
+
     } catch (err) {
       if (!navigator.onLine && window.NeogramPWA) {
         window.NeogramPWA.bufferOfflinePost({
@@ -1179,9 +1310,20 @@
   // -------------------------------------------------------------
   // GALLERY MANAGEMENT & ARCHIVE CONTROLLERS
   // -------------------------------------------------------------
-  function switchDashboardTab(tab) {
+  function switchDashboardTab(tab, e) {
     if (tab === 'edit') tab = 'manage';
     if (window.retroAudio) window.retroAudio.playClick();
+    if (e && e.preventDefault) e.preventDefault();
+
+    var targetHash = tab === 'manage' ? 'edit' : tab;
+    if (window.location.hash !== '#' + targetHash) {
+      if (history.pushState) {
+        history.pushState(null, '', '#' + targetHash);
+      } else {
+        window.location.hash = '#' + targetHash;
+      }
+    }
+
     var uploadSec = document.getElementById('uploadStudioSection');
     var manageSec = document.getElementById('manageGallerySection');
     var settingsSec = document.getElementById('settingsSection');
@@ -1218,8 +1360,8 @@
     }
   }
 
-  // Handle URL hash on page load
-  window.addEventListener('DOMContentLoaded', function() {
+  // Handle URL hash on load & hash change
+  function syncDashboardTabFromHash() {
     var hash = window.location.hash ? window.location.hash.replace('#', '') : '';
     if (hash === 'edit' || hash === 'manage') {
       switchDashboardTab('manage');
@@ -1227,9 +1369,13 @@
       switchDashboardTab('settings');
     } else if (hash === 'embeds') {
       switchDashboardTab('embeds');
+    } else if (hash === 'upload') {
+      switchDashboardTab('upload');
     }
-  });
+  }
 
+  window.addEventListener('DOMContentLoaded', syncDashboardTabFromHash);
+  window.addEventListener('hashchange', syncDashboardTabFromHash);
   window.switchDashboardTab = switchDashboardTab;
 
   // -------------------------------------------------------------
@@ -1694,7 +1840,11 @@
   }
 
   async function triggerNeocitiesDeployment() {
-    if (window.retroAudio) window.retroAudio.playShutter();
+    try {
+      if (window.retroAudio && typeof window.retroAudio.playShutter === 'function') {
+        window.retroAudio.playShutter();
+      }
+    } catch(e) {}
     var deployBtn = document.getElementById('deployNowBtn');
     var durationLabel = document.getElementById('deployDurationLabel');
 
