@@ -1,6 +1,7 @@
 {
   "title": "@WASSON'S STATIC PHOTO STREAM",
   "author": "wasson",
+  "avatarUrl": "/icons/default-avatar.svg",
   "description": "Personal 90s retro static photo stream published via Neogram",
   "neocitiesUrl": "https://wasson.neocities.org",
   "apiUrl": "http://localhost:4000",

@@ -109,7 +109,7 @@
         {% if currentUser %}
           <div class="retro-taskbar__panel text-xs font-bold px-2 py-1">
             <span class="text-prompt">●</span>
-            <span>@{{ currentUser.handle }}</span>
+            <span id="navUserHandle">@{{ currentUser.handle }}</span>
           </div>
           <a href="/logout" class="pixel-btn pixel-btn--danger pixel-btn--sm" onclick="if(window.retroAudio) retroAudio.playClick();">
             <span>✕ LOGOUT</span>

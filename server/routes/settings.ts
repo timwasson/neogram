@@ -1,8 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 import { query } from '../db';
-import { COOKIE_NAME, verifySessionToken, extractToken } from '../auth/jwt';
+import { COOKIE_NAME, verifySessionToken, extractToken, signSessionToken, setSessionCookie } from '../auth/jwt';
 import { encryptCredentials, decryptCredentials, maskApiKey, NeocitiesCredentials } from '../utils/crypto';
 import { testNeocitiesConnection, deployToNeocities } from '../services/neocitiesPublisher';
+import { processAvatarBuffer } from '../services/imageProcessor';
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 export const settingsRouter = Router();
 
@@ -34,7 +38,7 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
     const userId = (req as any).user.userId;
 
     const userRes = await query(
-      `SELECT id, email, handle, site_url, deployment_type, deployment_credentials, auto_deploy, last_deployed_at
+      `SELECT id, email, handle, site_url, deployment_type, deployment_credentials, auto_deploy, last_deployed_at, avatar_path
        FROM users
        WHERE id = $1`,
       [userId]
@@ -55,6 +59,10 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
     res.json({
       ok: true,
       settings: {
+        handle: user.handle,
+        email: user.email,
+        avatarPath: user.avatar_path || '/icons/default-avatar.svg',
+        hasCustomAvatar: !!user.avatar_path,
         siteUrl: user.site_url || `https://${user.handle || 'user'}.neocities.org`,
         siteName: siteName,
         deploymentType: user.deployment_type || 'neocities',
@@ -62,6 +70,82 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
         maskedApiKey: maskedKey,
         autoDeploy: !!user.auto_deploy,
         lastDeployedAt: user.last_deployed_at,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * 2. POST /api/settings/profile - Update user handle and avatar image
+ */
+settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.userId;
+    const { handle, removeAvatar } = req.body;
+
+    const userRes = await query('SELECT id, email, handle, avatar_path FROM users WHERE id = $1', [userId]);
+    if (userRes.rows.length === 0) {
+      res.status(404).json({ ok: false, error: 'User not found.' });
+      return;
+    }
+    const user = userRes.rows[0];
+    let newHandle = user.handle;
+
+    // 1. Handle validation & update if provided
+    if (handle && typeof handle === 'string') {
+      const cleanHandle = handle.trim().toLowerCase().replace(/^@+/, '');
+      if (!/^[a-z0-9_-]{3,30}$/.test(cleanHandle)) {
+        res.status(400).json({
+          ok: false,
+          error: 'Handle must be between 3 and 30 characters and only contain lowercase letters, numbers, underscores, and hyphens.',
+        });
+        return;
+      }
+
+      // Check handle uniqueness across other users
+      const dupRes = await query('SELECT id FROM users WHERE handle = $1 AND id != $2', [cleanHandle, userId]);
+      if (dupRes.rows.length > 0) {
+        res.status(400).json({
+          ok: false,
+          error: `Call-sign "@${cleanHandle}" is already registered by another station. Please choose another handle.`,
+        });
+        return;
+      }
+
+      newHandle = cleanHandle;
+      await query('UPDATE users SET handle = $1, updated_at = NOW() WHERE id = $2', [newHandle, userId]);
+
+      // Re-issue updated session cookie with new handle
+      const newToken = signSessionToken({ userId: user.id, email: user.email, handle: newHandle });
+      setSessionCookie(res, newToken);
+    }
+
+    // 2. Avatar processing / removal
+    let newAvatarPath = user.avatar_path;
+    if (removeAvatar === 'true' || removeAvatar === true) {
+      newAvatarPath = null;
+      await query('UPDATE users SET avatar_path = NULL, updated_at = NOW() WHERE id = $1', [userId]);
+    } else if (req.file) {
+      const processed = await processAvatarBuffer(req.file.buffer, userId);
+      newAvatarPath = processed.avatarPath;
+      await query('UPDATE users SET avatar_path = $1, updated_at = NOW() WHERE id = $2', [newAvatarPath, userId]);
+    }
+
+    // Background 11ty static rebuild
+    import('../services/staticBuilder')
+      .then((m) => m.buildStaticGallery({ userId }))
+      .catch((err) => console.error('[:> 11ty] Profile rebuild error:', err));
+
+    res.json({
+      ok: true,
+      message: 'Cyber identity and avatar updated successfully.',
+      user: {
+        id: userId,
+        handle: newHandle,
+        avatarPath: newAvatarPath || '/icons/default-avatar.svg',
+        hasCustomAvatar: !!newAvatarPath,
       },
     });
   } catch (err) {

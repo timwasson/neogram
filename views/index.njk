@@ -24,11 +24,11 @@
           <div class="flex justify-between items-center flex-wrap gap-2">
             <div>
               <span class="font-bold text-prompt">[:&gt; LOGGED-IN CREATOR]:</span>
-              <span class="font-bold text-white">@{{ currentUser.handle }}</span>
+              <span id="headerUserHandle" class="font-bold text-white">@{{ currentUser.handle }}</span>
               <span class="text-muted text-xs ml-2">({{ currentUser.email }})</span>
             </div>
             <div class="text-xs text-muted">
-              Static Host: <code class="text-prompt">{{ currentUser.siteUrl or 'http://' + currentUser.handle + '.neocities.org' }}</code>
+              Static Host: <code id="headerSiteUrl" class="text-prompt">{{ currentUser.siteUrl or 'http://' + currentUser.handle + '.neocities.org' }}</code>
             </div>
           </div>
         </div>
@@ -408,6 +408,111 @@
 
             <!-- LEFT COLUMN: Credentials & Config -->
             <div class="flex-1 flex flex-col gap-4">
+              <!-- Profile & Cyber Identity Card -->
+              <div class="retro-card p-4 m-0">
+                <div class="window-header mb-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span>👾</span>
+                    <span class="font-bold">[:&gt; CYBER_IDENTITY.SYS - Profile &amp; Call-Sign]</span>
+                  </div>
+                  <span class="text-xs font-mono text-prompt font-bold">[ONLINE]</span>
+                </div>
+
+                <div id="profileAlert" class="retro-alert hidden mb-3">
+                  <span id="profileAlertTag" class="retro-alert__tag"></span>
+                  <span id="profileAlertMsg"></span>
+                </div>
+
+                <form id="profileForm" onsubmit="handleSaveProfile(event)" class="space-y-4">
+                  <!-- Avatar Management Section -->
+                  <div>
+                    <label class="block text-xs font-bold mb-2">
+                      Profile Avatar / Icon:
+                    </label>
+                    <div class="flex items-center gap-4">
+                      <!-- Avatar Thumbnail Preview -->
+                      <div class="relative flex flex-col items-center">
+                        <img
+                          id="settingsAvatarPreview"
+                          src="{{ currentUser.avatarPath or '/icons/default-avatar.svg' }}"
+                          alt="Avatar Preview"
+                          class="w-16 h-16 border-2 border-main object-cover bg-black"
+                        />
+                        <div id="avatarStatusBadge" class="text-3xs font-mono text-center text-muted mt-1">
+                          {% if currentUser.avatarPath %}CUSTOM{% else %}DEFAULT{% endif %}
+                        </div>
+                      </div>
+
+                      <!-- Avatar Action Buttons -->
+                      <div class="flex-1 flex flex-col gap-2">
+                        <div class="flex items-center flex-wrap gap-2">
+                          <button
+                            type="button"
+                            class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs"
+                            onclick="document.getElementById('avatarFileInput').click()"
+                          >
+                            <span>📷 Change Image...</span>
+                          </button>
+                          <button
+                            type="button"
+                            id="resetAvatarBtn"
+                            class="pixel-btn pixel-btn--sm pixel-btn--crimson text-xs"
+                            onclick="handleResetAvatar()"
+                          >
+                            <span>✕ Reset to Default</span>
+                          </button>
+                        </div>
+                        <input
+                          type="file"
+                          id="avatarFileInput"
+                          accept="image/*"
+                          class="hidden"
+                          onchange="handleAvatarFileChange(event)"
+                        />
+                        <span class="text-xs text-muted">
+                          Upload PNG, JPEG, GIF or WebP. Auto-scaled &amp; cropped to 128×128 square.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Call-Sign / Handle Input -->
+                  <div>
+                    <label for="settingsHandleInput" class="block text-xs font-bold mb-1">
+                      Cyber Call-Sign / Username:
+                    </label>
+                    <div class="flex items-center gap-1.5">
+                      <span class="font-bold text-prompt font-mono text-sm">@</span>
+                      <input
+                        type="text"
+                        id="settingsHandleInput"
+                        name="handle"
+                        value="{{ currentUser.handle }}"
+                        required
+                        pattern="[a-z0-9_-]{3,30}"
+                        placeholder="e.g. wasson"
+                        class="retro-input text-xs flex-1"
+                      />
+                    </div>
+                    <span class="text-xs text-muted block mt-1">
+                      3–30 chars (lowercase letters, numbers, hyphens, and underscores). Updates your chat presence, feed URLs, and station identifier.
+                    </span>
+                  </div>
+
+                  <!-- Save Profile Button -->
+                  <div class="pt-1">
+                    <button
+                      type="submit"
+                      id="saveProfileBtn"
+                      class="pixel-btn pixel-btn--green font-bold text-xs w-full py-2"
+                    >
+                      <span>💾 UPDATE PROFILE &amp; CALL-SIGN :&gt;</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Neocities Hosting Vault Card -->
               <div class="retro-card p-4 m-0">
                 <div class="window-header mb-3 flex items-center justify-between">
                   <div class="flex items-center gap-2">
@@ -1620,6 +1725,148 @@
     if (window.retroAudio) window.retroAudio.playClick();
   }
 
+  var selectedAvatarFile = null;
+  var isAvatarRemoved = false;
+
+  function handleAvatarFileChange(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (!file.type || !file.type.startsWith('image/')) {
+      alert('Selected file must be an image format (PNG, JPEG, GIF, WebP).');
+      return;
+    }
+
+    selectedAvatarFile = file;
+    isAvatarRemoved = false;
+
+    var reader = new FileReader();
+    reader.onload = function(evt) {
+      var preview = document.getElementById('settingsAvatarPreview');
+      if (preview) preview.src = evt.target.result;
+      var badge = document.getElementById('avatarStatusBadge');
+      if (badge) badge.textContent = 'NEW (UNSAVED)';
+    };
+    reader.readAsDataURL(file);
+
+    try {
+      if (window.retroAudio && typeof window.retroAudio.playShutter === 'function') {
+        window.retroAudio.playShutter();
+      }
+    } catch(e) {}
+  }
+
+  function handleResetAvatar() {
+    selectedAvatarFile = null;
+    isAvatarRemoved = true;
+    var preview = document.getElementById('settingsAvatarPreview');
+    if (preview) preview.src = '/icons/default-avatar.svg';
+    var badge = document.getElementById('avatarStatusBadge');
+    if (badge) badge.textContent = 'RESET (UNSAVED)';
+    var fileInput = document.getElementById('avatarFileInput');
+    if (fileInput) fileInput.value = '';
+
+    try {
+      if (window.retroAudio && typeof window.retroAudio.playClick === 'function') {
+        window.retroAudio.playClick();
+      }
+    } catch(e) {}
+  }
+
+  async function handleSaveProfile(e) {
+    e.preventDefault();
+    try {
+      if (window.retroAudio && typeof window.retroAudio.playClick === 'function') {
+        window.retroAudio.playClick();
+      }
+    } catch(e) {}
+
+    var handleInput = document.getElementById('settingsHandleInput');
+    var rawHandle = handleInput ? handleInput.value.trim().toLowerCase().replace(/^@+/, '') : '';
+    var saveBtn = document.getElementById('saveProfileBtn');
+    var alertBox = document.getElementById('profileAlert');
+    var alertTag = document.getElementById('profileAlertTag');
+    var alertMsg = document.getElementById('profileAlertMsg');
+
+    if (!rawHandle) {
+      alertBox.className = 'retro-alert retro-alert--error mb-3';
+      alertTag.textContent = '[:> ERROR]:';
+      alertMsg.textContent = 'Please specify a call-sign / handle.';
+      alertBox.classList.remove('hidden');
+      return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'UPDATING CYBER IDENTITY...';
+    alertBox.classList.add('hidden');
+
+    try {
+      var formData = new FormData();
+      formData.append('handle', rawHandle);
+
+      if (selectedAvatarFile) {
+        formData.append('avatarFile', selectedAvatarFile);
+      } else if (isAvatarRemoved) {
+        formData.append('removeAvatar', 'true');
+      }
+
+      var res = await fetch('/api/settings/profile', {
+        method: 'POST',
+        body: formData
+      });
+
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to update cyber identity.');
+
+      alertBox.className = 'retro-alert retro-alert--success mb-3';
+      alertTag.textContent = '[✓] IDENTITY UPDATED:';
+      alertMsg.textContent = 'Call-sign @' + data.user.handle + ' and avatar image updated across the station!';
+      alertBox.classList.remove('hidden');
+
+      // Update UI elements across dashboard live
+      var navHandle = document.getElementById('navUserHandle');
+      if (navHandle) navHandle.textContent = '@' + data.user.handle;
+
+      var headerHandle = document.getElementById('headerUserHandle');
+      if (headerHandle) headerHandle.textContent = '@' + data.user.handle;
+
+      var avatarPreview = document.getElementById('settingsAvatarPreview');
+      if (avatarPreview) avatarPreview.src = data.user.avatarPath;
+
+      var badge = document.getElementById('avatarStatusBadge');
+      if (badge) badge.textContent = data.user.hasCustomAvatar ? 'CUSTOM' : 'DEFAULT';
+
+      var headerSiteUrl = document.getElementById('headerSiteUrl');
+      if (headerSiteUrl) headerSiteUrl.textContent = 'https://' + data.user.handle + '.neocities.org';
+
+      var fileInput = document.getElementById('avatarFileInput');
+      if (fileInput) fileInput.value = '';
+      selectedAvatarFile = null;
+      isAvatarRemoved = false;
+
+      appendTelemetryLog('[✓ PROFILE] Cyber identity updated to @' + data.user.handle);
+      try {
+        if (window.retroAudio && typeof window.retroAudio.playSuccess === 'function') {
+          window.retroAudio.playSuccess();
+        }
+      } catch(e) {}
+
+    } catch (err) {
+      try {
+        if (window.retroAudio && typeof window.retroAudio.playError === 'function') {
+          window.retroAudio.playError();
+        }
+      } catch(e) {}
+      alertBox.className = 'retro-alert retro-alert--error mb-3';
+      alertTag.textContent = '[:> ERROR]:';
+      alertMsg.textContent = err.message;
+      alertBox.classList.remove('hidden');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '💾 UPDATE PROFILE & CALL-SIGN :>';
+    }
+  }
+
   async function loadSettings() {
     try {
       var res = await fetch('/api/settings');
@@ -1627,6 +1874,16 @@
       if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to load settings.');
 
       var s = data.settings;
+      if (s.handle) {
+        var handleInput = document.getElementById('settingsHandleInput');
+        if (handleInput) handleInput.value = s.handle;
+      }
+      if (s.avatarPath) {
+        var avatarPreview = document.getElementById('settingsAvatarPreview');
+        if (avatarPreview) avatarPreview.src = s.avatarPath;
+        var badge = document.getElementById('avatarStatusBadge');
+        if (badge) badge.textContent = s.hasCustomAvatar ? 'CUSTOM' : 'DEFAULT';
+      }
       if (s.siteName) document.getElementById('settingsSiteName').value = s.siteName;
       if (s.siteUrl) document.getElementById('settingsSiteUrl').value = s.siteUrl;
       if (s.deploymentType) document.getElementById('settingsDeployType').value = s.deploymentType;

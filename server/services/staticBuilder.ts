@@ -154,13 +154,14 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
 
     // 3. Update site.json metadata for this specific user's compilation
     if (userId) {
-      const userRes = await query('SELECT id, email, handle, site_url FROM users WHERE id = $1', [userId]);
+      const userRes = await query('SELECT id, email, handle, site_url, avatar_path FROM users WHERE id = $1', [userId]);
       if (userRes.rows.length > 0) {
         const u = userRes.rows[0];
         const author = u.handle || u.email.split('@')[0];
         const siteData = {
           title: `@${author.toUpperCase()}'S STATIC PHOTO STREAM`,
           author: author,
+          avatarUrl: u.avatar_path || '/icons/default-avatar.svg',
           description: `Personal 90s retro static photo stream published via Neogram`,
           neocitiesUrl: u.site_url || `https://${author}.neocities.org`,
           apiUrl: 'http://localhost:4000',

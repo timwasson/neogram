@@ -5,12 +5,14 @@ import path from 'path';
 const UPLOADS_DIR = path.resolve(process.cwd(), 'public', 'uploads');
 const IMAGES_DIR = path.join(UPLOADS_DIR, 'images');
 const THUMBS_DIR = path.join(UPLOADS_DIR, 'thumbs');
+const AVATARS_DIR = path.join(UPLOADS_DIR, 'avatars');
 
 // Ensure upload directories exist
 export function ensureUploadDirs() {
   if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
   if (!fs.existsSync(IMAGES_DIR)) fs.mkdirSync(IMAGES_DIR, { recursive: true });
   if (!fs.existsSync(THUMBS_DIR)) fs.mkdirSync(THUMBS_DIR, { recursive: true });
+  if (!fs.existsSync(AVATARS_DIR)) fs.mkdirSync(AVATARS_DIR, { recursive: true });
 }
 
 export interface ProcessedImageResult {
@@ -106,4 +108,38 @@ export async function processBase64Image(
   }
 
   return processImageBuffer(buffer, filterName);
+}
+
+/**
+ * Process and optimize user avatar.
+ * Creates a 128x128 square cover WebP image and cleans up older avatars for the user.
+ */
+export async function processAvatarBuffer(
+  inputBuffer: Buffer,
+  userId: string
+): Promise<{ avatarPath: string }> {
+  ensureUploadDirs();
+  const fileId = `${userId}-${Date.now()}`;
+  const avatarFileName = `${fileId}.webp`;
+  const avatarDiskPath = path.join(AVATARS_DIR, avatarFileName);
+
+  // Resize and square crop 128x128 WebP
+  await sharp(inputBuffer)
+    .resize(128, 128, { fit: 'cover' })
+    .webp({ quality: 90 })
+    .toFile(avatarDiskPath);
+
+  // Clean up any older avatar files for this user
+  try {
+    const files = await fs.promises.readdir(AVATARS_DIR);
+    for (const file of files) {
+      if (file.startsWith(`${userId}-`) && file !== avatarFileName) {
+        await fs.promises.unlink(path.join(AVATARS_DIR, file)).catch(() => {});
+      }
+    }
+  } catch (e) {}
+
+  return {
+    avatarPath: `/uploads/avatars/${avatarFileName}`,
+  };
 }

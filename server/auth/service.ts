@@ -6,6 +6,7 @@ export interface AuthUser {
   handle: string;
   siteUrl?: string;
   deploymentType?: string;
+  avatarPath?: string;
 }
 
 export function normalizeIdentifier(input: string): string {
@@ -121,10 +122,11 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
     handle: user.handle,
     siteUrl: user.site_url,
     deploymentType: user.deployment_type,
+    avatarPath: user.avatar_path,
   };
 }
 
 export async function getUserById(id: string): Promise<AuthUser | null> {
-  const res = await query('SELECT id, email, handle, site_url, deployment_type FROM users WHERE id = $1', [id]);
+  const res = await query('SELECT id, email, handle, site_url, deployment_type, avatar_path as "avatarPath" FROM users WHERE id = $1', [id]);
   return res.rows[0] || null;
 }

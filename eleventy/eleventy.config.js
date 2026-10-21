@@ -2,6 +2,7 @@ export default function (eleventyConfig) {
   // Passthrough static assets so the generated static site is completely self-contained
   eleventyConfig.addPassthroughCopy({ 'public/css': 'css' });
   eleventyConfig.addPassthroughCopy({ 'public/uploads': 'uploads' });
+  eleventyConfig.addPassthroughCopy({ 'public/icons': 'icons' });
   eleventyConfig.addPassthroughCopy({ 'public/js': 'js' });
   eleventyConfig.addPassthroughCopy({ 'embed/embed.js': 'embed.js' });
   eleventyConfig.addPassthroughCopy({ 'embed/neogram-embed.css': 'neogram-embed.css' });
