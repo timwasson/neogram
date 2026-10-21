@@ -33,41 +33,6 @@
           </div>
         </div>
 
-        <!-- Workstation Sub-Tabs -->
-        <div class="flex items-center gap-2 mb-4 border-b-2 border-main pb-2 flex-wrap">
-          <button
-            type="button"
-            id="tabUploadBtn"
-            class="pixel-btn pixel-btn--yellow font-bold text-xs"
-            onclick="switchDashboardTab('upload')"
-          >
-            <span>📸 Upload Studio</span>
-          </button>
-          <button
-            type="button"
-            id="tabManageBtn"
-            class="pixel-btn font-bold text-xs"
-            onclick="switchDashboardTab('manage')"
-          >
-            <span>📁 Manage Archive (<span id="manageCountBadge">{{ posts.length or 0 }}</span>)</span>
-          </button>
-          <button
-            type="button"
-            id="tabSettingsBtn"
-            class="pixel-btn font-bold text-xs"
-            onclick="switchDashboardTab('settings')"
-          >
-            <span>⚙️ Neocities &amp; Host Settings</span>
-          </button>
-          <button
-            type="button"
-            id="tabEmbedsBtn"
-            class="pixel-btn font-bold text-xs"
-            onclick="switchDashboardTab('embeds')"
-          >
-            <span>📟 Embeds &amp; Social Studio</span>
-          </button>
-        </div>
 
         <!-- TAB 1: UPLOAD STUDIO SECTION -->
         <div id="uploadStudioSection">
@@ -1215,6 +1180,7 @@
   // GALLERY MANAGEMENT & ARCHIVE CONTROLLERS
   // -------------------------------------------------------------
   function switchDashboardTab(tab) {
+    if (tab === 'edit') tab = 'manage';
     if (window.retroAudio) window.retroAudio.playClick();
     var uploadSec = document.getElementById('uploadStudioSection');
     var manageSec = document.getElementById('manageGallerySection');
@@ -1225,32 +1191,46 @@
     var settingsBtn = document.getElementById('tabSettingsBtn');
     var embedsBtn = document.getElementById('tabEmbedsBtn');
 
-    uploadSec.classList.add('hidden');
-    manageSec.classList.add('hidden');
+    if (uploadSec) uploadSec.classList.add('hidden');
+    if (manageSec) manageSec.classList.add('hidden');
     if (settingsSec) settingsSec.classList.add('hidden');
     if (embedsSec) embedsSec.classList.add('hidden');
 
-    uploadBtn.classList.remove('pixel-btn--yellow');
-    manageBtn.classList.remove('pixel-btn--yellow');
+    if (uploadBtn) uploadBtn.classList.remove('pixel-btn--yellow');
+    if (manageBtn) manageBtn.classList.remove('pixel-btn--yellow');
     if (settingsBtn) settingsBtn.classList.remove('pixel-btn--yellow');
     if (embedsBtn) embedsBtn.classList.remove('pixel-btn--yellow');
 
     if (tab === 'upload') {
-      uploadSec.classList.remove('hidden');
-      uploadBtn.classList.add('pixel-btn--yellow');
+      if (uploadSec) uploadSec.classList.remove('hidden');
+      if (uploadBtn) uploadBtn.classList.add('pixel-btn--yellow');
     } else if (tab === 'manage') {
-      manageSec.classList.remove('hidden');
-      manageBtn.classList.add('pixel-btn--yellow');
+      if (manageSec) manageSec.classList.remove('hidden');
+      if (manageBtn) manageBtn.classList.add('pixel-btn--yellow');
     } else if (tab === 'settings') {
       if (settingsSec) settingsSec.classList.remove('hidden');
       if (settingsBtn) settingsBtn.classList.add('pixel-btn--yellow');
-      loadSettings();
+      if (typeof loadSettings === 'function') loadSettings();
     } else if (tab === 'embeds') {
       if (embedsSec) embedsSec.classList.remove('hidden');
       if (embedsBtn) embedsBtn.classList.add('pixel-btn--yellow');
-      loadEmbedsStudio();
+      if (typeof loadEmbedsStudio === 'function') loadEmbedsStudio();
     }
   }
+
+  // Handle URL hash on page load
+  window.addEventListener('DOMContentLoaded', function() {
+    var hash = window.location.hash ? window.location.hash.replace('#', '') : '';
+    if (hash === 'edit' || hash === 'manage') {
+      switchDashboardTab('manage');
+    } else if (hash === 'settings') {
+      switchDashboardTab('settings');
+    } else if (hash === 'embeds') {
+      switchDashboardTab('embeds');
+    }
+  });
+
+  window.switchDashboardTab = switchDashboardTab;
 
   // -------------------------------------------------------------
   // EMBEDS & RETRO STUDIO CONTROLLERS
