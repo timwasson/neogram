@@ -39,8 +39,8 @@ export async function processImageBuffer(
   const imageDiskPath = path.join(IMAGES_DIR, imageFileName);
   const thumbDiskPath = path.join(THUMBS_DIR, thumbFileName);
 
-  // Initialize Sharp pipeline
-  let pipeline = sharp(inputBuffer);
+  // Initialize Sharp pipeline with auto-rotation based on EXIF orientation tags
+  let pipeline = sharp(inputBuffer).rotate();
 
   // Get image metadata
   const metadata = await pipeline.metadata();
@@ -123,8 +123,9 @@ export async function processAvatarBuffer(
   const avatarFileName = `${fileId}.webp`;
   const avatarDiskPath = path.join(AVATARS_DIR, avatarFileName);
 
-  // Resize and square crop 128x128 WebP
+  // Rotate according to EXIF, resize and square crop 128x128 WebP
   await sharp(inputBuffer)
+    .rotate()
     .resize(128, 128, { fit: 'cover' })
     .webp({ quality: 90 })
     .toFile(avatarDiskPath);

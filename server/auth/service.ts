@@ -7,6 +7,7 @@ export interface AuthUser {
   siteUrl?: string;
   deploymentType?: string;
   avatarPath?: string;
+  hasApiKey?: boolean;
 }
 
 export function normalizeIdentifier(input: string): string {
@@ -127,6 +128,29 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
 }
 
 export async function getUserById(id: string): Promise<AuthUser | null> {
-  const res = await query('SELECT id, email, handle, site_url, deployment_type, avatar_path as "avatarPath" FROM users WHERE id = $1', [id]);
-  return res.rows[0] || null;
+  const res = await query(
+    'SELECT id, email, handle, site_url as "siteUrl", deployment_type as "deploymentType", deployment_credentials, avatar_path as "avatarPath" FROM users WHERE id = $1',
+    [id]
+  );
+  if (!res.rows[0]) return null;
+  const user = res.rows[0];
+  let hasApiKey = false;
+  if (user.deployment_credentials) {
+    try {
+      const { decryptCredentials } = await import('../utils/crypto');
+      const creds = decryptCredentials<{ apiKey?: string }>(user.deployment_credentials);
+      hasApiKey = !!(creds && creds.apiKey);
+    } catch {
+      hasApiKey = false;
+    }
+  }
+  return {
+    id: user.id,
+    email: user.email,
+    handle: user.handle,
+    siteUrl: user.siteUrl || (user.handle ? `https://${user.handle}.neocities.org` : undefined),
+    deploymentType: user.deploymentType,
+    avatarPath: user.avatarPath,
+    hasApiKey,
+  };
 }

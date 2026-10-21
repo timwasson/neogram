@@ -7,11 +7,28 @@ import { processImageBuffer, processBase64Image } from '../services/imageProcess
 
 export const postsRouter = Router();
 
-// In-memory multer storage to stream directly to Sharp
+// In-memory multer storage to stream directly to Sharp (25MB limit for high-res camera snaps)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 25 * 1024 * 1024 },
 });
+
+function handleUploadMiddleware(req: Request, res: Response, next: any) {
+  upload.single('imageFile')(req, res, (err: any) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        res.status(400).json({ ok: false, error: 'Photo exceeds maximum allowed size (25MB limit).' });
+        return;
+      }
+      res.status(400).json({ ok: false, error: `Upload error: ${err.message}` });
+      return;
+    } else if (err) {
+      res.status(400).json({ ok: false, error: err.message });
+      return;
+    }
+    next();
+  });
+}
 
 /**
  * Helper to get the authenticated user from the session cookie or Bearer header
@@ -142,7 +159,7 @@ postsRouter.get('/posts/:id', async (req: Request, res: Response, next) => {
 /**
  * 3. POST /api/posts - Authenticated Direct Photo Upload & Publishing
  */
-postsRouter.post('/posts', upload.single('imageFile'), async (req: Request, res: Response, next) => {
+postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Response, next) => {
   try {
     let user = await getSessionUser(req);
 

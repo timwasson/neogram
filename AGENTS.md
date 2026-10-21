@@ -49,6 +49,7 @@ CREATE TABLE users (
     deployment_type VARCHAR(50) DEFAULT 'none' CHECK (deployment_type IN ('neocities', 'github', 'sftp', 'none')),
     deployment_credentials BYTEA, -- Encrypted credentials (AES-256-GCM)
     custom_css_url VARCHAR(500),
+    avatar_path VARCHAR(500), -- 128x128 WebP profile avatar
     auto_deploy BOOLEAN DEFAULT FALSE,
     last_deployed_at TIMESTAMPTZ,
     status_message VARCHAR(150) DEFAULT 'Surfing cyberspace',
@@ -65,9 +66,9 @@ CREATE TABLE posts (
     thumbnail_path VARCHAR(500) NOT NULL,
     caption TEXT,
     filter_applied VARCHAR(50) DEFAULT 'none',
-    mood VARCHAR(100),
-    webring VARCHAR(100),
-    location VARCHAR(200),
+    mood VARCHAR(100), -- Optional legacy field (default NULL)
+    webring VARCHAR(100), -- Optional legacy field (default NULL)
+    location VARCHAR(200), -- Optional legacy field (default NULL)
     likes_count INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -197,6 +198,25 @@ All embeddable widgets must render standard HTML markup with consistent BEM clas
 - **Carrier Telemetry & Auto-Drain:** Real-time COM2 carrier monitor in the desktop taskbar (`#taskbarCom2Panel`) switches between `NO CARRIER // 300 BAUD` and `CARRIER 33600 V.90`. When connectivity is restored, the client automatically drains the IndexedDB queue to `POST /api/posts`.
 - **Native Hardware Camera Capture:** Uses standard `<input type="file" capture="environment">` for mobile camera snaps without WebRTC canvas overhead.
 
+### 4.8 User Identity & Profile System (Handle & Avatar)
+- **Profile Configuration (`PUT /api/settings/profile`):** Users can edit their cyberspace handle and upload custom profile avatars.
+- **Sharp Avatar Pipeline:** Avatars are auto-rotated via EXIF tags (`.rotate()`), resized and cropped to a square 128x128 WebP image, and persisted to `public/uploads/avatars/`.
+- **Default Avatar Asset:** When no custom avatar has been uploaded, the system resolves to `/icons/default-avatar.svg` (a stylized retro green phosphor CRT computer monitor).
+- **Design Scoping Constraint:** User avatars are strictly displayed in the Settings tab (`CYBER_IDENTITY.SYS`), and intentionally omitted from the top workstation header and navigation bar to maintain a clean, distraction-free retro OS aesthetic.
+
+### 4.9 Camera EXIF Auto-Orientation, 25MB Upload Pipeline & In-Place Stage
+- **EXIF Auto-Orientation:** All incoming image uploads and avatar buffers pass through `.rotate()` in Sharp, ensuring mobile phone camera snaps (iOS & Android) preserve proper vertical orientation without sideways rendering.
+- **25MB Upload Allowance & Graceful Error Trapping:** Multer file ingestion limit is expanded to 25MB (`handleUploadMiddleware`), with friendly JSON error handling (`Photo exceeds maximum allowed size (25MB limit)`).
+- **In-Place Stage Swap:** Dropzone box is immediately hidden upon image selection or camera snap, seamlessly replaced by a dedicated 320px CRT preview viewport, file metadata bar, and quick swap/clear actions.
+- **Post-Publish Closure:** Upon successful transmission, the success alert displays actionable navigation buttons (`📂 View in Archive →` and `🌐 View on Neocities ↗`).
+- **First-Run Neocities Onboarding:** A non-intrusive notification banner in the Upload Studio alerts creators if they haven't yet linked their Neocities API key in Settings.
+- **Fixed 48px Top Navigation Bar:** High-contrast layout with `scrollbar-gutter: stable both-edges` preventing page jitter when switching between dashboard tabs.
+
+### 4.10 Neogram Instant Messenger (NIM) & Floating Window UX
+- **Branding & Presence:** Renamed from generic chat to **NIM (Neogram Instant Messenger)** with a 💬 retro chat bubble icon.
+- **Elevated Taskbar Safe Zone:** NIM window is positioned at `bottom: 54px`, preventing any overlap with the bottom CRT status bar.
+- **Header Popout Launcher:** Top navigation bar features a quick popout toggle to summon NIM from anywhere in the workstation.
+
 ---
 
 ## 5. Prototype Assets to Preserve & Port
@@ -254,6 +274,13 @@ When building the production backend and views, extract and reuse the following 
     - Client-side PWA controller (`public/js/pwa.js`) managing `beforeinstallprompt` installation banners and real-time COM2 carrier detection.
     - Hardware camera integration (`capture="environment"`) with "📸 SNAP CAMERA PHOTO" button for mobile device cameras.
     - Offline post resilience: IndexedDB buffering (`neogram_pwa_db`) for photos captured while disconnected, with auto-sync upon carrier restoration.
+11. **[x] Step 11: Production Polish, EXIF Orientation, 25MB Ingestion & Settings Identity**
+    - Streamlined mobile and desktop uploader workflow focusing on photo + caption.
+    - Sharp `.rotate()` integration for mobile camera EXIF orientation preservation.
+    - Multer 25MB upload allowance with graceful error trapping.
+    - In-place dropzone swap, post-publish closure links (`View in Archive`, `View on Neocities`), and first-run Neocities onboarding banner.
+    - User profile handle editing, Sharp avatar processing (128x128 WebP), default CRT avatar graphic, and scoped identity display.
+    - Navigation stability with fixed 48px top bar, stable scrollbar gutter, and NIM chat header launcher.
 
 ---
 

@@ -36,6 +36,16 @@
 
         <!-- TAB 1: UPLOAD STUDIO SECTION -->
         <div id="uploadStudioSection">
+          <!-- First-Run Neocities Setup Hint Banner (Shown if no API key configured) -->
+          {% if not currentUser.hasApiKey %}
+            <div id="firstRunNotice" class="retro-alert retro-alert--info mb-4 flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2">
+                <span class="retro-alert__tag">[:&gt; FIRST RUN HINT]:</span>
+                <span>You are publishing locally. To push live to your personal static site automatically, connect your Neocities API key in <a href="#settings" onclick="if(window.switchDashboardTab) switchDashboardTab('settings')" class="text-bold underline text-amber">SETTINGS :&gt;</a></span>
+              </div>
+            </div>
+          {% endif %}
+
           <!-- 2-Column Publishing Grid -->
           <form id="publishForm" onsubmit="handlePublishPost(event)">
             <div class="flex-responsive">
@@ -204,9 +214,12 @@
               </div>
 
               <!-- Reusable Alert Box -->
-              <div id="publishAlert" class="retro-alert">
-                <span id="publishAlertTag" class="retro-alert__tag"></span>
-                <span id="publishAlertMsg"></span>
+              <div id="publishAlert" class="retro-alert flex-col items-start gap-2">
+                <div>
+                  <span id="publishAlertTag" class="retro-alert__tag"></span>
+                  <span id="publishAlertMsg"></span>
+                </div>
+                <div id="publishAlertActions" class="hidden mt-1 flex items-center gap-2 flex-wrap"></div>
               </div>
 
               <!-- Action Submit Button -->
@@ -1190,18 +1203,33 @@
     });
   });
 
-  function showAlert(type, tag, msg) {
+  function showAlert(type, tag, msg, actionHtml) {
     var box = document.getElementById('publishAlert');
     var tagEl = document.getElementById('publishAlertTag');
     var msgEl = document.getElementById('publishAlertMsg');
     box.className = 'retro-alert is-visible retro-alert--' + type;
     tagEl.textContent = tag;
     msgEl.textContent = msg;
+    var actionsEl = document.getElementById('publishAlertActions');
+    if (actionsEl) {
+      if (actionHtml) {
+        actionsEl.innerHTML = actionHtml;
+        actionsEl.classList.remove('hidden');
+      } else {
+        actionsEl.innerHTML = '';
+        actionsEl.classList.add('hidden');
+      }
+    }
   }
 
   function hideAlert() {
     var box = document.getElementById('publishAlert');
     box.className = 'retro-alert';
+    var actionsEl = document.getElementById('publishAlertActions');
+    if (actionsEl) {
+      actionsEl.innerHTML = '';
+      actionsEl.classList.add('hidden');
+    }
   }
 
   async function handlePublishPost(e) {
@@ -1304,10 +1332,17 @@
         }
       } catch(e) {}
 
+      var liveSiteUrl = '{{ currentUser.siteUrl or "" }}';
+      var actions = '<a href="/#edit" onclick="window.location.href=\'/#edit\'; window.location.reload();" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs">📂 View in Archive →</a>';
+      if (liveSiteUrl && liveSiteUrl.startsWith('http')) {
+        actions += ' <a href="' + liveSiteUrl + '" target="_blank" rel="noopener" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs">🌐 View on Neocities ↗</a>';
+      }
+
       showAlert(
         'success',
         '[✓] CARRIER DISPATCH CONFIRMED:',
-        'Photo processed by Sharp and committed to PostgreSQL feed! Available live in the static gallery.'
+        'Photo processed by Sharp and committed to PostgreSQL feed! Available live in the static gallery.',
+        actions
       );
 
       clearSelectedPhoto();
