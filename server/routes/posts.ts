@@ -185,9 +185,9 @@ postsRouter.post('/posts', upload.single('imageFile'), async (req: Request, res:
         processed.thumbnailPath,
         caption || ':> Snapshot transmitted via Neogram workstation.',
         filterApplied || 'none',
-        mood || '[:> VIBING IN 90s CYBERSPACE]',
-        webring || 'unix.hackers.retro',
-        location || 'Neogram Node // 1996',
+        mood || null,
+        webring || null,
+        location || null,
       ]
     );
 

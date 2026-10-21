@@ -180,7 +180,7 @@
             <!-- RIGHT COLUMN: Post Metadata & Publishing Engine -->
             <div class="flex-1 flex flex-col gap-3">
               <label class="block text-xs font-bold uppercase tracking-wider text-mac">
-                2. Caption &amp; Webring Metadata:
+                2. Caption &amp; Log Entry:
               </label>
 
               <!-- Caption Textarea -->
@@ -191,55 +191,11 @@
                 <textarea
                   id="captionInput"
                   name="caption"
-                  rows="4"
+                  rows="6"
                   required
                   placeholder=":> Enter your thoughts, hardware specs, or retro web commentary..."
                   class="retro-input leading-normal"
                 ></textarea>
-              </div>
-
-              <!-- Mood Tag Selector -->
-              <div>
-                <label for="moodSelect" class="block text-xs font-bold mb-1">
-                  Current System Mood:
-                </label>
-                <select id="moodSelect" name="mood" class="retro-input">
-                  <option value="[:> CODING IN THE DARK]">[:&gt; CODING IN THE DARK]</option>
-                  <option value="[:> COMPILING KERNEL]">[:&gt; COMPILING KERNEL]</option>
-                  <option value="[:> DOWNLOADING MIDI]">[:&gt; DOWNLOADING MIDI]</option>
-                  <option value="[:> VIBING TO CITY POP]">[:&gt; VIBING TO CITY POP]</option>
-                  <option value="[:> SURFING WEBRINGS]">[:&gt; SURFING WEBRINGS]</option>
-                  <option value="[:> DIAL-UP CONNECTED]">[:&gt; DIAL-UP CONNECTED]</option>
-                  <option value="[:> EATING PIZZA]">[:&gt; EATING PIZZA]</option>
-                </select>
-              </div>
-
-              <!-- Webring & Location Inputs -->
-              <div class="flex gap-2">
-                <div class="flex-1">
-                  <label for="webringInput" class="block text-xs font-bold mb-1">
-                    Webring Tag:
-                  </label>
-                  <input
-                    type="text"
-                    id="webringInput"
-                    name="webring"
-                    value="unix.hackers.retro"
-                    class="retro-input"
-                  />
-                </div>
-                <div class="flex-1">
-                  <label for="locationInput" class="block text-xs font-bold mb-1">
-                    Station Location:
-                  </label>
-                  <input
-                    type="text"
-                    id="locationInput"
-                    name="location"
-                    value="Sparcstation // Node #4"
-                    class="retro-input"
-                  />
-                </div>
               </div>
 
               <!-- Terminal Telemetry Log (During Upload) -->
@@ -332,12 +288,16 @@
                         </p>
 
                         <div class="flex flex-wrap gap-1 mb-2 text-xs">
+                          {% if post.mood %}
                           <span class="pixel-badge pixel-badge--cyan font-bold" id="manage-mood-{{ post.id }}">
-                            {{ post.mood or '[:> UNSET]' }}
+                            {{ post.mood }}
                           </span>
+                          {% endif %}
+                          {% if post.webring %}
                           <span class="pixel-badge pixel-badge--magenta font-bold" id="manage-webring-{{ post.id }}">
-                            ring: {{ post.webring or 'retro' }}
+                            ring: {{ post.webring }}
                           </span>
+                          {% endif %}
                           <span class="pixel-badge pixel-badge--amber font-bold" id="manage-filter-{{ post.id }}">
                             shader: {{ post.filterApplied or 'none' }}
                           </span>
@@ -427,48 +387,6 @@
                   <option value="sepia">📼 1996 Polaroid</option>
                   <option value="none">📷 Raw 24-Bit</option>
                 </select>
-              </div>
-
-              <!-- System Mood Tag -->
-              <div>
-                <label for="editMoodSelect" class="block text-xs font-bold mb-1">
-                  System Mood:
-                </label>
-                <select id="editMoodSelect" name="mood" class="retro-input text-xs">
-                  <option value="[:> CODING IN THE DARK]">[:&gt; CODING IN THE DARK]</option>
-                  <option value="[:> COMPILING KERNEL]">[:&gt; COMPILING KERNEL]</option>
-                  <option value="[:> DOWNLOADING MIDI]">[:&gt; DOWNLOADING MIDI]</option>
-                  <option value="[:> VIBING TO CITY POP]">[:&gt; VIBING TO CITY POP]</option>
-                  <option value="[:> SURFING WEBRINGS]">[:&gt; SURFING WEBRINGS]</option>
-                  <option value="[:> DIAL-UP CONNECTED]">[:&gt; DIAL-UP CONNECTED]</option>
-                  <option value="[:> EATING PIZZA]">[:&gt; EATING PIZZA]</option>
-                </select>
-              </div>
-
-              <!-- Webring & Location -->
-              <div class="flex gap-2">
-                <div class="flex-1">
-                  <label for="editWebringInput" class="block text-xs font-bold mb-1">
-                    Webring Tag:
-                  </label>
-                  <input
-                    type="text"
-                    id="editWebringInput"
-                    name="webring"
-                    class="retro-input text-xs"
-                  />
-                </div>
-                <div class="flex-1">
-                  <label for="editLocationInput" class="block text-xs font-bold mb-1">
-                    Station Location:
-                  </label>
-                  <input
-                    type="text"
-                    id="editLocationInput"
-                    name="location"
-                    class="retro-input text-xs"
-                  />
-                </div>
               </div>
 
               <!-- Action Buttons -->
@@ -1196,16 +1114,18 @@
     var publishBtn = document.getElementById('publishBtn');
     var logBox = document.getElementById('transmissionLog');
     var logText = document.getElementById('transmissionText');
-    var caption = document.getElementById('captionInput').value;
-    var mood = document.getElementById('moodSelect').value;
-    var webring = document.getElementById('webringInput').value;
-    var location = document.getElementById('locationInput').value;
+    var captionInput = document.getElementById('captionInput');
+    var caption = captionInput ? captionInput.value : '';
 
     publishBtn.disabled = true;
     publishBtn.style.opacity = '0.5';
     logBox.classList.remove('hidden');
 
-    if (window.retroAudio) window.retroAudio.playDialupBeep();
+    try {
+      if (window.retroAudio && typeof window.retroAudio.playDialupBeep === 'function') {
+        window.retroAudio.playDialupBeep();
+      }
+    } catch(e) {}
 
     function logStep(text, delay) {
       return new Promise(function(resolve) {
@@ -1221,9 +1141,6 @@
       window.NeogramPWA.bufferOfflinePost({
         caption: caption,
         filterApplied: currentFilter,
-        mood: mood,
-        webring: webring,
-        location: location,
         imageBase64: previewImg.src
       }, function(err, id) {
         publishBtn.disabled = false;
@@ -1237,7 +1154,11 @@
             '[✓] OFFLINE SNAPSHOT BUFFERED:',
             'Carrier offline. Photo saved to device IndexedDB ledger. Will auto-sync when carrier re-connects!'
           );
-          if (window.retroAudio) window.retroAudio.playSuccess();
+          try {
+            if (window.retroAudio && typeof window.retroAudio.playSuccess === 'function') {
+              window.retroAudio.playSuccess();
+            }
+          } catch(e) {}
         }
       });
       return;
@@ -1251,9 +1172,6 @@
       var formData = new FormData();
       formData.append('caption', caption);
       formData.append('filterApplied', currentFilter);
-      formData.append('mood', mood);
-      formData.append('webring', webring);
-      formData.append('location', location);
 
       if (selectedFile) {
         formData.append('imageFile', selectedFile);
@@ -1275,7 +1193,11 @@
 
       await logStep('[:> commit_post: written to PostgreSQL node // status 201 [CONFIRMED]]', 500);
 
-      if (window.retroAudio) window.retroAudio.playSuccess();
+      try {
+        if (window.retroAudio && typeof window.retroAudio.playSuccess === 'function') {
+          window.retroAudio.playSuccess();
+        }
+      } catch(e) {}
 
       showAlert(
         'success',
@@ -1284,21 +1206,22 @@
       );
 
       clearSelectedPhoto();
-      document.getElementById('captionInput').value = '';
+      if (captionInput) captionInput.value = '';
 
     } catch (err) {
       if (!navigator.onLine && window.NeogramPWA) {
         window.NeogramPWA.bufferOfflinePost({
           caption: caption,
           filterApplied: currentFilter,
-          mood: mood,
-          webring: webring,
-          location: location,
           imageBase64: previewImg.src
         });
         showAlert('info', '[:> CARRIER DROPPED]:', 'Connection dropped during upload. Post saved to offline ledger.');
       } else {
-        if (window.retroAudio) window.retroAudio.playError();
+        try {
+          if (window.retroAudio && typeof window.retroAudio.playError === 'function') {
+            window.retroAudio.playError();
+          }
+        } catch(e) {}
         showAlert('error', '[:> TRANSMISSION ERROR]:', err.message);
       }
     } finally {
@@ -1895,9 +1818,6 @@
       document.getElementById('editPostId').value = post.id;
       document.getElementById('editCaptionInput').value = post.caption || '';
       document.getElementById('editFilterSelect').value = post.filterApplied || 'none';
-      document.getElementById('editMoodSelect').value = post.mood || '[:> SURFING WEBRINGS]';
-      document.getElementById('editWebringInput').value = post.webring || '';
-      document.getElementById('editLocationInput').value = post.location || '';
 
       var alertBox = document.getElementById('editModalAlert');
       alertBox.classList.add('hidden');
@@ -1907,13 +1827,21 @@
         dialog.showModal();
       }
     } catch (err) {
-      if (window.retroAudio) window.retroAudio.playError();
+      try {
+        if (window.retroAudio && typeof window.retroAudio.playError === 'function') {
+          window.retroAudio.playError();
+        }
+      } catch(e) {}
       alert('Error opening edit dialog: ' + err.message);
     }
   }
 
   function closeEditModal() {
-    if (window.retroAudio) window.retroAudio.playClick();
+    try {
+      if (window.retroAudio && typeof window.retroAudio.playClick === 'function') {
+        window.retroAudio.playClick();
+      }
+    } catch(e) {}
     var dialog = document.getElementById('editModalDialog');
     if (dialog && dialog.open) {
       dialog.close();
@@ -1925,14 +1853,15 @@
     var id = document.getElementById('editPostId').value;
     var caption = document.getElementById('editCaptionInput').value.trim();
     var filterApplied = document.getElementById('editFilterSelect').value;
-    var mood = document.getElementById('editMoodSelect').value;
-    var webring = document.getElementById('editWebringInput').value.trim();
-    var location = document.getElementById('editLocationInput').value.trim();
     var saveBtn = document.getElementById('editSaveBtn');
 
     saveBtn.disabled = true;
     saveBtn.textContent = 'SAVING...';
-    if (window.retroAudio) window.retroAudio.playClick();
+    try {
+      if (window.retroAudio && typeof window.retroAudio.playClick === 'function') {
+        window.retroAudio.playClick();
+      }
+    } catch(e) {}
 
     try {
       var res = await fetch('/api/posts/' + id, {
@@ -1940,10 +1869,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           caption: caption,
-          filterApplied: filterApplied,
-          mood: mood,
-          webring: webring,
-          location: location
+          filterApplied: filterApplied
         })
       });
 
@@ -1956,12 +1882,6 @@
       var captionEl = document.getElementById('manage-caption-' + id);
       if (captionEl) captionEl.textContent = caption;
 
-      var moodEl = document.getElementById('manage-mood-' + id);
-      if (moodEl) moodEl.textContent = mood;
-
-      var ringEl = document.getElementById('manage-webring-' + id);
-      if (ringEl) ringEl.textContent = 'ring: ' + webring;
-
       var filterEl = document.getElementById('manage-filter-' + id);
       if (filterEl) filterEl.textContent = 'shader: ' + filterApplied;
 
@@ -1970,11 +1890,19 @@
         imgEl.className = 'max-h-full max-w-full object-contain filter-' + filterApplied;
       }
 
-      if (window.retroAudio) window.retroAudio.playSuccess();
+      try {
+        if (window.retroAudio && typeof window.retroAudio.playSuccess === 'function') {
+          window.retroAudio.playSuccess();
+        }
+      } catch(e) {}
       closeEditModal();
 
     } catch (err) {
-      if (window.retroAudio) window.retroAudio.playError();
+      try {
+        if (window.retroAudio && typeof window.retroAudio.playError === 'function') {
+          window.retroAudio.playError();
+        }
+      } catch(e) {}
       var alertBox = document.getElementById('editModalAlert');
       var tag = document.getElementById('editModalAlertTag');
       var msg = document.getElementById('editModalAlertMsg');
