@@ -47,11 +47,6 @@ export function createApp(): Express {
   app.use('/embed', express.static(path.resolve(process.cwd(), 'embed')));
   app.use('/extension', express.static(path.resolve(process.cwd(), 'extension')));
 
-  // 3b. 11ty Static Gallery Preview
-  const staticGalleryPath = path.resolve(process.cwd(), 'dist/static-gallery');
-  app.use('/preview', express.static(staticGalleryPath));
-  app.use('/photos', express.static(path.join(staticGalleryPath, 'photos')));
-
   // 4. API Endpoints & Dynamic Embeds
   app.use('/api', apiRouter);
   app.use(embedsRouter);

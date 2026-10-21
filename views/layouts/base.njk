@@ -47,25 +47,10 @@
           <a href="/" class="pixel-btn {% if activeView == 'dashboard' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
             <span>📸</span> <span>Upload Studio</span>
           </a>
-          <a href="/preview/" target="_blank" class="pixel-btn pixel-btn--yellow" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>🕹️</span> <span>11ty Static Gallery</span>
-          </a>
-          <a href="/extension/popup/popup.html" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>🏃</span> <span>AIM Extension</span>
-          </a>
-          <a href="/api/stats" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>📊</span> <span>Node Stats</span>
-          </a>
         {% else %}
           <!-- Public Informational Options (When Logged Out) -->
           <a href="/" class="pixel-btn {% if activeView == 'dashboard' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
             <span>💾</span> <span>About Neogram</span>
-          </a>
-          <a href="/preview/" target="_blank" class="pixel-btn pixel-btn--yellow" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>🕹️</span> <span>11ty Static Gallery</span>
-          </a>
-          <a href="/extension/popup/popup.html" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>🏃</span> <span>AIM Extension</span>
           </a>
           <a href="/embed/embed.js" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
             <span>💻</span> <span>Embed Specs</span>
@@ -84,12 +69,12 @@
 
         <!-- Theme Toggle -->
         <button id="themeToggleBtn" class="pixel-btn pixel-btn--sm" title="Toggle Dark/Light Mode">
-          <span id="themeLabel">🌙</span>
+          <span id="themeLabel" class="text-sm">☾</span>
         </button>
 
         <!-- Sound Toggle -->
         <button id="soundToggleBtn" class="pixel-btn pixel-btn--sm" title="Toggle 8-Bit Audio">
-          <span id="soundLabel">🔊</span>
+          <span id="soundLabel" class="text-sm">♫</span>
         </button>
 
         {% if currentUser %}
@@ -152,39 +137,60 @@
         var themeBtn = document.getElementById('themeToggleBtn');
         var themeLabel = document.getElementById('themeLabel');
 
-        var soundOn = true;
-        soundBtn.addEventListener('click', function() {
-          soundOn = !soundOn;
-          if (window.retroAudio) window.retroAudio.enabled = soundOn;
-          soundLabel.textContent = soundOn ? '🔊' : '🔇';
-          if (soundOn && window.retroAudio) window.retroAudio.playClick();
-        });
+        // Restore sound setting if previously saved
+        var soundOn = localStorage.getItem('neogram_sound') !== 'muted';
+        if (window.retroAudio) window.retroAudio.enabled = soundOn;
+        if (soundLabel) soundLabel.textContent = soundOn ? '♫' : '⊘';
 
-        themeBtn.addEventListener('click', function() {
-          if (window.retroAudio) window.retroAudio.playClick();
-          var isDark = document.documentElement.classList.toggle('dark');
-          themeLabel.textContent = isDark ? '🌙' : '☀️';
-        });
+        // Restore theme setting if previously saved
+        var savedTheme = localStorage.getItem('neogram_theme');
+        if (savedTheme === 'light') {
+          document.documentElement.classList.remove('dark');
+          if (themeLabel) themeLabel.textContent = '☼';
+        } else if (savedTheme === 'dark') {
+          document.documentElement.classList.add('dark');
+          if (themeLabel) themeLabel.textContent = '☾';
+        }
+
+        if (soundBtn) {
+          soundBtn.addEventListener('click', function() {
+            soundOn = !soundOn;
+            if (window.retroAudio) window.retroAudio.enabled = soundOn;
+            localStorage.setItem('neogram_sound', soundOn ? 'enabled' : 'muted');
+            if (soundLabel) soundLabel.textContent = soundOn ? '♫' : '⊘';
+            if (soundOn && window.retroAudio) window.retroAudio.playClick();
+          });
+        }
+
+        if (themeBtn) {
+          themeBtn.addEventListener('click', function() {
+            if (window.retroAudio) window.retroAudio.playClick();
+            var isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('neogram_theme', isDark ? 'dark' : 'light');
+            if (themeLabel) themeLabel.textContent = isDark ? '☾' : '☼';
+          });
+        }
       })();
     </script>
 
     {% if currentUser %}
-      <!-- Floating AIM Dock Trigger Button -->
-      <button type="button" id="aimDockBtn" class="pixel-btn pixel-btn--yellow aim-dock-btn" title="Open Neogram Instant Messenger">
-        <span>🏃</span>
-        <span>AIM Messenger</span>
+      <!-- Floating NIM Dock Trigger Button -->
+      <button type="button" id="aimDockBtn" class="pixel-btn pixel-btn--yellow aim-dock-btn" title="Open Neogram Instant Messenger (NIM)">
+        <span>🗨</span>
+        <span>NIM Messenger</span>
         <span id="aimOnlineCountBadge" class="pixel-badge text-xs">...</span>
       </button>
 
-      <!-- Floating AIM Window -->
+      <!-- Floating NIM Window -->
       <div id="aimMessengerWindow" class="aim-window hidden">
         <!-- Titlebar -->
         <div class="aim-window__header">
           <div class="flex items-center gap-1.5 overflow-hidden">
-            <span>🏃</span>
-            <span class="truncate">AIM 97 // NEOGRAM MESSENGER</span>
+            <span>🗨</span>
+            <span class="truncate">NIM 97 // NEOGRAM MESSENGER</span>
           </div>
           <div class="flex items-center gap-1">
+            <button type="button" id="aimPopoutBtn" class="aim-window__btn-sm" title="Pop out in separate window">↗</button>
             <button type="button" id="aimMinimizeBtn" class="aim-window__btn-sm" title="Minimize">_</button>
           </div>
         </div>
@@ -209,7 +215,7 @@
             <div class="aim-window__buddies-container">
               <div class="aim-window__buddy-section-title">Online Buddies (🟢)</div>
               <div id="aimBuddiesList" class="flex flex-col gap-1">
-                <div class="text-xs text-muted p-1">Connecting to AIM network...</div>
+                <div class="text-xs text-muted p-1">Connecting to NIM network...</div>
               </div>
 
               <div class="aim-window__buddy-section-title">Offline Buddies (⚪)</div>

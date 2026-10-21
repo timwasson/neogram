@@ -2,7 +2,7 @@
 
 .aim-dock-btn {
   position: fixed;
-  bottom: 16px;
+  bottom: 44px;
   right: 16px;
   z-index: 9990;
   display: flex;
@@ -38,12 +38,12 @@
 
 .aim-window {
   position: fixed;
-  bottom: 16px;
+  bottom: 44px;
   right: 16px;
   width: 330px;
   max-width: calc(100vw - 32px);
   height: 480px;
-  max-height: calc(100vh - 80px);
+  max-height: calc(100vh - 90px);
   z-index: 9999;
   display: flex;
   flex-direction: column;

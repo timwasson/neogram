@@ -22,10 +22,10 @@ It provides:
 
 | Component | Technology | Rationale / Purpose |
 |---|---|---|
-| **Backend & Workstation Runtime** | **Node.js (Express)** on Port 4000 | Single-server decoupled monolith serving authenticated workstation, API, and static previews |
+| **Backend & Workstation Runtime** | **Node.js (Express)** on Port 4000 | Single-server decoupled monolith serving authenticated workstation, API, and static publishing pipeline |
 | **Database** | **PostgreSQL** (Docker / Native) | Relational integrity for users, posts, comments, follows, guestbook, counters |
 | **Image Processing** | **Sharp** | High-performance image resizing (1200px), WebP compression, square thumbnailing (400px) |
-| **Static Site Generator** | **Eleventy (11ty v3)** | Compiles static photo gallery (`dist/static-gallery`) using Nunjucks templates with live preview at `/preview/` |
+| **Static Site Generator** | **Eleventy (11ty v3)** | Compiles multi-tenant static photo galleries (`dist/static-galleries/<userId>`) via FIFO BuildQueue |
 | **Server Templating** | **Nunjucks** | Fast, secure server-rendered dashboard & embed markup templates |
 | **Styling & Design System** | **Dart Sass + Vanilla CSS (NO TAILWIND)** | Modular SCSS (`src/styles/`), CSS variables, BEM components (`pixel-box`, `pixel-btn`, `retro-alert`, `baud-progress-bar`), CRT phosphor glow, and utility classes. **Tailwind CSS is strictly prohibited.** |
 | **Static Deploy Pipeline** | **Neocities API / GitHub API / SFTP** | Automated pushes of generated 11ty HTML & media to the user's static host |
@@ -157,15 +157,16 @@ All embeddable widgets must render standard HTML markup with consistent BEM clas
 2. Server validates session and processes image via `sharp` (scale to max 1200px, create 400px thumbnail, optimize to WebP).
 3. Server commits record to PostgreSQL `posts` table.
 4. **11ty Static Site Generation (`server/services/staticBuilder.ts`):**
-   - Multi-tenant isolated builds: compiles personal static photo galleries to `dist/static-galleries/<userId>/` (as well as global preview `dist/static-gallery/`).
+   - **Multi-Tenant Isolated Builds:** Compiles personal static photo galleries strictly into isolated user folders (`dist/static-galleries/<userId>/`).
+   - **FIFO BuildQueue Serialization:** All static build and compile requests are queued through an in-memory sequential FIFO queue (`buildQueue.enqueue(...)`). This guarantees that concurrent user operations (uploads, comments, edits, or deploys) run one at a time, completely eliminating race conditions on shared template data files (`posts.json` and `site.json`).
+   - **Direct Static Focus (No `/preview/` Bloat):** The redundant `/preview/` and `/photos/<id>/` preview routes have been removed in favor of clean static deployments directly to Neocities and embeddable widgets.
    - Generates responsive gallery grid (`index.html`) and paginated photo pages (`photos/<id>/index.html`).
-   - Copies stylesheets (`css/neogram.css`), uploads, and embed scripts into the static output bundle.
-   - Serves immediate live preview at `/preview/` and `/photos/<id>/` on Port 4000.
+   - Copies stylesheets (`css/neogram.css`), uploads, and embed scripts into the user's static bundle.
 5. **Deployment Adapter (`server/services/neocitiesPublisher.ts`):**
-   - Reads decrypted Neocities API key and pushes multipart archive directly to `POST https://neocities.org/api/upload`.
+   - Reads decrypted Neocities API key and pushes multipart archive directly to `POST https://neocities.org/api/upload` from the user's isolated directory (`dist/static-galleries/<userId>/`).
    - Probes remote site views and hits via `https://neocities.org/api/info`.
    - Optional automatic deployment on post creation, edit, or deletion (`users.auto_deploy`).
-6. Centralized social layer: Visitors to static sites react and comment; comments post back to `/api/posts/:id/comments` and trigger an automated background 11ty rebuild.
+6. Centralized social layer: Visitors to static sites react and comment; comments post back to `/api/posts/:id/comments` and trigger an automated background 11ty rebuild in the queue.
 
 ### 4.4 Styling Architecture: Pure Custom Utilities & BEM (Strictly NO Tailwind)
 - **Tailwind CSS is prohibited:** Do not introduce Tailwind CLI, Tailwind directives, or Tailwind dependencies for views or embeds.
@@ -216,8 +217,10 @@ When building the production backend and views, extract and reuse the following 
    - Passwordless magic link / OTP flow, JWT cookies, session validation middleware, high-contrast baud-rate telemetry UI.
 3. **[x] Step 3: Asset Storage & Sharp Processing Pipeline**
    - Multer upload handling, Sharp processing (1200px max, 400px thumbnails, WebP compression), preset sprites, database auto-seeding.
-4. **[x] Step 4: 11ty Static Gallery Generator & In-App Preview**
-   - `@11ty/eleventy` integration, Nunjucks templates in `eleventy/`, automated compilation to `dist/static-gallery`, live preview at `/preview/` and `/photos/<id>/`, real-time comment synchronization.
+4. **[x] Step 4: 11ty Static Gallery Generator & Concurrency-Safe BuildQueue**
+   - `@11ty/eleventy` integration, Nunjucks templates in `eleventy/`, multi-tenant isolated per-user compilation to `dist/static-galleries/<userId>/`.
+   - Serialized via an in-memory FIFO `BuildQueue` to prevent race conditions during concurrent builds and deployments.
+   - Removed redundant `/preview/` routes in favor of direct Neocities deployment and live embed widgets.
 5. **[x] Step 5: Gallery Management (Edit & Delete Uploads)**
    - Dashboard interface for browsing uploaded photos, editing captions/tags/filters, deleting posts, and rebuilding the static gallery.
 6. **[x] Step 6 (Milestone 3): Neocities Settings & Deployment Adapter**

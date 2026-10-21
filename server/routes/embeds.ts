@@ -358,11 +358,11 @@ embedsRouter.get(['/api/users/:identifier/feed.json', '/feed/:identifier.json'],
     res.json({
       version: 'https://jsonfeed.org/version/1.1',
       title: `${handle}'s Neogram Photo Feed`,
-      home_page_url: user.site_url || `${baseUrl}/preview/`,
+      home_page_url: user.site_url || `${baseUrl}/embed/feed/${handle}`,
       feed_url: `${baseUrl}/api/users/${handle}/feed.json`,
       author: {
         name: `@${handle}`,
-        url: user.site_url || `${baseUrl}/preview/`,
+        url: user.site_url || `${baseUrl}/embed/feed/${handle}`,
       },
       items: posts,
     });

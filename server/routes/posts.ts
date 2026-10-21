@@ -193,15 +193,17 @@ postsRouter.post('/posts', upload.single('imageFile'), async (req: Request, res:
 
     const newPost = insertResult.rows[0];
 
-    // Trigger 11ty static compilation in background
-    import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery())
-      .catch((err) => console.error('[:> 11ty] Background build error:', err));
-
-    // Trigger auto-deploy to Neocities if enabled for user
-    import('../services/neocitiesPublisher')
-      .then((m) => m.triggerAutoDeployIfEnabled(user.id))
-      .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
+    // Trigger auto-deploy if enabled, otherwise rebuild static gallery in background
+    const userRes = await query('SELECT auto_deploy FROM users WHERE id = $1', [user.id]);
+    if (userRes.rows.length > 0 && userRes.rows[0].auto_deploy) {
+      import('../services/neocitiesPublisher')
+        .then((m) => m.triggerAutoDeployIfEnabled(user.id))
+        .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
+    } else {
+      import('../services/staticBuilder')
+        .then((m) => m.buildStaticGallery({ userId: user.id }))
+        .catch((err) => console.error('[:> 11ty] Background build error:', err));
+    }
 
     res.status(201).json({
       ok: true,
@@ -238,7 +240,7 @@ postsRouter.post('/posts/:id/like', async (req: Request, res: Response, next) =>
       UPDATE posts 
       SET likes_count = likes_count + 1 
       WHERE id = $1 
-      RETURNING likes_count as "likes"
+      RETURNING likes_count as "likes", user_id as "userId"
     `,
       [id]
     );
@@ -248,9 +250,11 @@ postsRouter.post('/posts/:id/like', async (req: Request, res: Response, next) =>
       return;
     }
 
-    // Trigger 11ty static update in background
+    const postOwnerId = result.rows[0].userId;
+
+    // Trigger 11ty static update in background for post owner
     import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery())
+      .then((m) => m.buildStaticGallery({ userId: postOwnerId }))
       .catch(() => {});
 
     res.json({ ok: true, likes: result.rows[0].likes });
@@ -282,10 +286,15 @@ postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next
       [id, finalAuthor, text.trim()]
     );
 
-    // Trigger 11ty static update in background
-    import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery())
-      .catch(() => {});
+    // Trigger 11ty static update in background for post owner
+    query('SELECT user_id FROM posts WHERE id = $1', [id]).then((pRes) => {
+      const ownerId = pRes.rows[0]?.user_id;
+      if (ownerId) {
+        import('../services/staticBuilder')
+          .then((m) => m.buildStaticGallery({ userId: ownerId }))
+          .catch(() => {});
+      }
+    });
 
     res.status(201).json({
       ok: true,
@@ -329,7 +338,7 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
 
     // Trigger 11ty static rebuild so static gallery immediately reflects edits
     import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery())
+      .then((m) => m.buildStaticGallery({ userId: updated.user_id }))
       .catch((err) => console.error('[:> 11ty] Rebuild error after edit:', err));
 
     // Trigger auto-deploy if enabled
@@ -391,9 +400,11 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     }
 
     // 4. Trigger 11ty static rebuild so the static gallery no longer contains the deleted post
-    import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery())
-      .catch((err) => console.error('[:> 11ty] Rebuild error after delete:', err));
+    if (user_id) {
+      import('../services/staticBuilder')
+        .then((m) => m.buildStaticGallery({ userId: user_id }))
+        .catch((err) => console.error('[:> 11ty] Rebuild error after delete:', err));
+    }
 
     // Trigger auto-deploy if enabled
     if (user_id) {

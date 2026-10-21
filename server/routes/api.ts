@@ -33,10 +33,14 @@ apiRouter.get('/stats', async (_req: Request, res: Response, next) => {
 });
 
 // Trigger Eleventy static site rebuild
-apiRouter.post('/build-static', async (_req: Request, res: Response, next) => {
+apiRouter.post('/build-static', async (req: Request, res: Response, next) => {
   try {
     const { buildStaticGallery } = await import('../services/staticBuilder');
-    const result = await buildStaticGallery();
+    const { extractToken, verifySessionToken } = await import('../auth/jwt');
+    const token = extractToken(req);
+    const payload = token ? verifySessionToken(token) : null;
+    const userId = payload?.userId;
+    const result = await buildStaticGallery({ userId });
     res.json(result);
   } catch (err) {
     next(err);

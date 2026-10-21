@@ -49,6 +49,20 @@
         });
       }
 
+      var popoutBtn = document.getElementById('aimPopoutBtn');
+      if (popoutBtn) {
+        popoutBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (window.retroAudio) window.retroAudio.playClick();
+          // Pop out NIM in dedicated small standalone window
+          window.open(
+            '/extension/popup/popup.html',
+            'NeogramNIM',
+            'width=380,height=580,menubar=no,toolbar=no,location=no,status=no,resizable=yes'
+          );
+        });
+      }
+
       var minimizeBtn = document.getElementById('aimMinimizeBtn');
       if (minimizeBtn) {
         minimizeBtn.addEventListener('click', function () {
@@ -565,7 +579,7 @@
 
       if (history.length === 0) {
         this.imTranscriptEl.innerHTML = '<div class="aim-window__msg-line aim-window__msg-line--sys">' +
-          '[:> AIM SYSTEM] Conversation opened with @' + buddy.handle + '. Messages are stored locally on your device.' +
+          '[:> NIM SYSTEM] Conversation opened with @' + buddy.handle + '. Messages are stored locally on your device.' +
         '</div>';
       } else {
         var self = this;

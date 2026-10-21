@@ -19,9 +19,11 @@
           <span>📸</span>
           <span class="font-bold">@{{ handle }}'s PHOTO DISK</span>
         </div>
-        <a href="/preview/" target="_blank" class="text-xs text-prompt underline font-mono">
-          [:> Open Full Gallery]
+        {% if siteUrl %}
+        <a href="{{ siteUrl }}" target="_blank" class="text-xs text-prompt underline font-mono">
+          [:> Open Creator Site]
         </a>
+        {% endif %}
       </div>
 
       <!-- Feed Grid / List -->
@@ -35,7 +37,7 @@
             </div>
 
             <div class="neogram-post__media">
-              <a href="/photos/{{ post.id }}/" target="_blank">
+              <a href="{{ post.imagePath }}" target="_blank">
                 <img src="{{ post.imagePath }}" alt="{{ post.caption or 'Neogram photo' }}" loading="lazy" />
               </a>
             </div>
@@ -56,9 +58,15 @@
                 <span>❤️ {{ post.likes }} likes</span>
                 <span>💬 {{ post.commentCount }} comments</span>
               </div>
-              <a href="/photos/{{ post.id }}/" target="_blank" class="neogram-button">
-                💬 View & Comment :&gt;
+              {% if siteUrl %}
+              <a href="{{ siteUrl }}" target="_blank" class="neogram-button">
+                💬 View on Site :&gt;
               </a>
+              {% else %}
+              <a href="{{ post.imagePath }}" target="_blank" class="neogram-button">
+                👁️ View Photo :&gt;
+              </a>
+              {% endif %}
             </div>
           </div>
         {% else %}

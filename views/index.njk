@@ -15,9 +15,6 @@
         </div>
         <div class="flex items-center gap-2">
           <span class="text-xs text-prompt">CARRIER: ACTIVE</span>
-          <a href="/preview/" target="_blank" class="pixel-btn pixel-btn--yellow pixel-btn--sm">
-            <span>🕹️ View 11ty Static Gallery :&gt;</span>
-          </a>
         </div>
       </div>
 
@@ -70,13 +67,6 @@
           >
             <span>📟 Embeds &amp; Social Studio</span>
           </button>
-          <a
-            href="/preview/"
-            target="_blank"
-            class="pixel-btn pixel-btn--cyan font-bold text-xs sm:ml-auto"
-          >
-            <span>🕹️ View 11ty Site :&gt;</span>
-          </a>
         </div>
 
         <!-- TAB 1: UPLOAD STUDIO SECTION -->
@@ -278,13 +268,6 @@
                   <span>TRANSMIT &amp; PUBLISH TO STATIC HOST :&gt;</span>
                 </button>
               </div>
-
-              <!-- Quick Link to 11ty Static Gallery -->
-              <div class="mt-3 text-center">
-                <a href="/preview/" target="_blank" class="pixel-btn pixel-btn--yellow text-xs font-bold py-1.5 px-3">
-                  <span>🕹️ Open 11ty Static Gallery :&gt;</span>
-                </a>
-              </div>
             </div>
 
           </div>
@@ -373,9 +356,6 @@
                         </div>
 
                         <div class="flex items-center gap-2">
-                          <a href="/preview/photos/{{ post.id }}/" target="_blank" class="pixel-btn pixel-btn--sm">
-                            <span>👁️ Preview</span>
-                          </a>
                           <button
                             type="button"
                             class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold"
@@ -1002,7 +982,6 @@
           <ul class="m-0 pl-5 leading-relaxed text-sm">
             <li><strong>Creator Studio:</strong> Authenticated Workstation, OTP Security, Photo Uploading &amp; Sharp Processing</li>
             <li><strong>Static Builder:</strong> 11ty (Eleventy) Static Site Generator pushing to Neocities</li>
-            <li><strong>Live Preview:</strong> View compiled static site directly at <a href="/preview/" target="_blank" class="text-prompt underline">/preview/</a></li>
             <li><strong>Database:</strong> PostgreSQL (Live cluster: <code>neogram_db</code>)</li>
             <li><strong>Asset Pipeline:</strong> Sharp WebP Compression (1200px main + 400px thumb)</li>
           </ul>
@@ -1012,9 +991,6 @@
         <div class="flex gap-3 flex-wrap mt-5">
           <a href="/login" class="pixel-btn pixel-btn--yellow font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">
             <span>🔑</span> <span>Log In to Publish Photos</span>
-          </a>
-          <a href="/preview/" target="_blank" class="pixel-btn pixel-btn--cyan font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>🕹️</span> <span>Open 11ty Static Gallery</span>
           </a>
           <a href="/api/stats" class="pixel-btn pixel-btn--green" onclick="if(window.retroAudio) retroAudio.playClick();">
             <span>📊</span> <span>Database Node Stats</span>

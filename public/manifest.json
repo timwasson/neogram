@@ -34,15 +34,15 @@
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Static Gallery",
-      "short_name": "Gallery",
-      "description": "View compiled 11ty static photo gallery",
-      "url": "/preview/",
+      "name": "Manage Archive",
+      "short_name": "Archive",
+      "description": "Manage and edit uploaded photo archive",
+      "url": "/#archive",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "AIM Messenger",
-      "short_name": "AIM",
+      "name": "NIM Messenger",
+      "short_name": "NIM",
       "description": "Open retro instant messenger",
       "url": "/extension/popup/popup.html",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]

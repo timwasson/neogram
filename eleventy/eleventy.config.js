@@ -25,10 +25,12 @@ export default function (eleventyConfig) {
     return str ? String(str).toUpperCase() : '';
   });
 
+  const outputDir = process.env.ELEVENTY_OUTPUT_DIR || 'dist/static-galleries/default';
+
   return {
     dir: {
       input: 'eleventy/src',
-      output: 'dist/static-gallery',
+      output: outputDir,
       includes: '_includes',
       data: '_data',
     },
