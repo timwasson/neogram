@@ -53,7 +53,6 @@ jobs:
             docker compose ps
 
             echo "[:> CI/CD] Probing local health endpoint..."
-            sleep 3
-            curl -f -s http://127.0.0.1:4000/api/health > /dev/null || (echo "[:> CI/CD ERROR] Health check failed!" && exit 1)
+            curl --retry 10 --retry-connrefused --retry-delay 2 -f -s http://127.0.0.1:4000/api/health > /dev/null || (echo "[:> CI/CD ERROR] Health check failed!" && exit 1)
 
             echo "[:> CI/CD] Deployment successful! Live at https://neogram.club"
