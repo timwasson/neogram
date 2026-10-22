@@ -34,7 +34,7 @@
 
 ### 1. Clone & Install Dependencies
 ```bash
-git clone https://github.com/your-username/neogram.git
+git clone https://github.com/timwasson/neogram.git
 cd neogram
 npm install
 ```
@@ -77,7 +77,7 @@ Neogram is fully containerized with Docker Compose. You can run it on a **$4–$
 curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
 
 # Clone repository
-git clone https://github.com/your-username/neogram.git
+git clone https://github.com/timwasson/neogram.git
 cd neogram
 ```
 
