@@ -7,6 +7,7 @@ export interface AuthUser {
   handle: string;
   uin?: number;
   siteUrl?: string;
+  deployPath?: string;
   deploymentType?: string;
   avatarPath?: string;
   hasApiKey?: boolean;
@@ -136,7 +137,7 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
   const normalized = normalizeIdentifier(rawIdentifier);
 
   const res = await query(
-    `SELECT id, email, handle, uin, auth_token, auth_token_expires_at, site_url, deployment_type, avatar_path
+    `SELECT id, email, handle, uin, auth_token, auth_token_expires_at, site_url, deploy_path, deployment_type, avatar_path
      FROM users
      WHERE email = $1`,
     [normalized]
@@ -174,6 +175,7 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
     handle: user.handle,
     uin: user.uin ? parseInt(user.uin, 10) : undefined,
     siteUrl: user.site_url,
+    deployPath: user.deploy_path || 'neogram',
     deploymentType: user.deployment_type,
     avatarPath: user.avatar_path,
   };
@@ -181,7 +183,7 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
 
 export async function getUserById(id: string): Promise<AuthUser | null> {
   const res = await query(
-    'SELECT id, email, handle, uin, site_url as "siteUrl", deployment_type as "deploymentType", deployment_credentials, avatar_path as "avatarPath" FROM users WHERE id = $1',
+    'SELECT id, email, handle, uin, site_url as "siteUrl", deploy_path as "deployPath", deployment_type as "deploymentType", deployment_credentials, avatar_path as "avatarPath" FROM users WHERE id = $1',
     [id]
   );
   if (!res.rows[0]) return null;
@@ -196,12 +198,19 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
       hasApiKey = false;
     }
   }
+  const rawDeploy = user.deployPath !== null && user.deployPath !== undefined
+    ? String(user.deployPath).trim().replace(/^\/+|\/+$/g, '')
+    : 'neogram';
+  const baseSite = user.siteUrl || (user.handle ? `https://${user.handle}.neocities.org` : undefined);
+  const fullSiteUrl = baseSite && rawDeploy ? `${baseSite.replace(/\/+$/, '')}/${rawDeploy}/` : (baseSite ? `${baseSite.replace(/\/+$/, '')}/` : undefined);
+
   return {
     id: user.id,
     email: user.email,
     handle: user.handle,
     uin: user.uin ? parseInt(user.uin, 10) : undefined,
-    siteUrl: user.siteUrl || (user.handle ? `https://${user.handle}.neocities.org` : undefined),
+    siteUrl: fullSiteUrl,
+    deployPath: rawDeploy,
     deploymentType: user.deploymentType,
     avatarPath: user.avatarPath,
     hasApiKey,

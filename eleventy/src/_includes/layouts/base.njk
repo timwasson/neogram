@@ -7,8 +7,8 @@
   <meta name="description" content="{{ site.description }}">
   
   <!-- Neogram Retro Framework (Pure Sass, Zero Tailwind) -->
-  <link rel="stylesheet" href="/css/neogram.css">
-  <link rel="stylesheet" href="/embed/neogram-embed.css">
+  <link rel="stylesheet" href="{{ '/css/neogram.css' | url }}">
+  <link rel="stylesheet" href="{{ '/embed/neogram-embed.css' | url }}">
 </head>
 <body class="desktop-bg min-h-screen flex flex-col font-mono text-main antialiased selection-invert">
 
@@ -23,7 +23,7 @@
     </div>
 
     <div class="flex items-center gap-3">
-      <a href="/" class="pixel-btn pixel-btn--sm">
+      <a href="{{ '/' | url }}" class="pixel-btn pixel-btn--sm">
         <span>🏠 Gallery Grid</span>
       </a>
       <a href="{{ site.apiUrl or 'http://localhost:4000' }}" target="_blank" class="pixel-btn pixel-btn--yellow pixel-btn--sm">
@@ -63,7 +63,7 @@
   </footer>
 
   <!-- Retro Audio Engine -->
-  <script src="/js/retroAudio.js"></script>
+  <script src="{{ '/js/retroAudio.js' | url }}"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       // Audio click handler for retro buttons
@@ -89,6 +89,6 @@
   </script>
 
   <!-- Optional Neogram Embed Layer -->
-  <script src="/embed/embed.js" async></script>
+  <script src="{{ '/embed/embed.js' | url }}" async></script>
 </body>
 </html>

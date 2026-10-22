@@ -43,9 +43,11 @@ CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     handle VARCHAR(50) UNIQUE,
+    uin INTEGER UNIQUE NOT NULL, -- ICQ-style immutable numeric ID (sequence starting at 100101)
     auth_token VARCHAR(255),
     auth_token_expires_at TIMESTAMPTZ,
     site_url VARCHAR(500),
+    deploy_path VARCHAR(200) DEFAULT 'neogram', -- Safe target subfolder on static host (default: /neogram/)
     deployment_type VARCHAR(50) DEFAULT 'none' CHECK (deployment_type IN ('neocities', 'github', 'sftp', 'none')),
     deployment_credentials BYTEA, -- Encrypted credentials (AES-256-GCM)
     custom_css_url VARCHAR(500),
@@ -217,6 +219,33 @@ All embeddable widgets must render standard HTML markup with consistent BEM clas
 - **Elevated Taskbar Safe Zone:** NIM window is positioned at `bottom: 54px`, preventing any overlap with the bottom CRT status bar.
 - **Header Popout Launcher:** Top navigation bar features a quick popout toggle to summon NIM from anywhere in the workstation.
 
+### 4.11 ICQ-Style Permanent Node UIN & Handle Mutability
+- **Immutable Embed Anchor (`users.uin`):** Every station is provisioned a permanent, immutable numeric node ID (e.g. `#100109`, generated from a PostgreSQL sequence starting at `100101`).
+- **Handle Mutability Without Broken Embeds:** Users can freely edit their cyber call-sign / handle (`@handle`) in Settings without breaking third-party static site embeds, guestbook ledgers, or dynamic web counters, which resolve permanently against `uin`.
+- **Anti-Impersonation:** Station handles are strictly unique, lowercase alphanumeric (3-30 chars).
+
+### 4.12 Dual-Channel OTP Dispatcher & Sliding Rate Limiting
+- **Dual Providers:** Passwordless authentication dispatches 6-digit numeric OTP tokens via:
+  1. **Resend Email API:** Free tier (3,000 emails/month) delivering cyber-themed verification emails with ASCII art.
+  2. **Twilio Programmable SMS:** Budget-conscious mobile verification ($1.15/mo local number + $0.0079/text) delivering immediate SMS alerts to E.164 phone numbers.
+- **Graceful Dev Fallback:** When API credentials are left unconfigured, codes safely output directly to the local Node development terminal.
+- **In-Memory Rate Limiting:** `POST /api/auth/request-otp` enforces a sliding window rate limit of maximum 4 requests per 15 minutes per IP and per target identifier, eliminating credential spamming and protecting API quotas.
+
+### 4.13 Zero-Retention User Image Pipeline (0 MB Server Storage)
+- **Zero Local Retention Contract:** The Neogram host server **never** acts as a permanent media host or storage bucket for user photos.
+- **Ephemeral Build Staging:** Image uploads stream into memory via Multer and are processed by Sharp directly into the user's isolated static build directory (`dist/static-galleries/<userId>/uploads/`).
+- **Post-Deploy Disk Purge:** The moment `deployToNeocities` completes uploading the multipart bundle to the user's remote Neocities site, the local `uploads/` directory is **immediately wiped from disk** (`fs.rm(uploadsDir, { recursive: true, force: true })`). Local disk retention returns to `0 bytes`.
+
+### 4.14 Safe Subdirectory Publishing & Non-Destructive Invariant
+- **Safe Subfolder (`users.deploy_path`):** Neogram defaults to publishing to `/neogram/` (e.g., `https://<user>.neocities.org/neogram/`). Users can customize the subfolder name in Settings or leave it blank for root.
+- **Root Site Non-Destruction:** Existing Neocities homepages (`index.html`), personal blogs, styling, or custom files are **never overwritten or modified** because all Neogram files compile and upload strictly under the `deploy_path` prefix.
+- **Non-Destructive Deletion Filter:** In `deleteFromNeocities()`, remote deletion requests to Neocities are strictly filtered: only paths located within `uploads/` that match `deploy_path` are permitted to be deleted. Any attempt to delete files outside the upload folder is immediately refused with `[:> NEOCITIES DELETE REFUSED]`.
+- **Eleventy `pathPrefix` Integration:** Compilations pass `process.env.ELEVENTY_PATH_PREFIX`, and all templates wrap stylesheet links, scripts, and internal page routes in Eleventy's built-in `| url` filter.
+
+### 4.15 Production Containerization (Docker & DigitalOcean)
+- **Multi-Stage Dockerfile:** Node 22 Alpine runner with native Sharp/Postgres build dependencies, automated Sass stylesheet compilation (`npm run sass:build`), and non-interactive `tsx` runner.
+- **1-Click Docker Compose:** `docker-compose.yml` orchestrates both the `neogram_app` Node service and `neogram_postgres` database container with automated migration mounting, container healthchecks, and volume persistence for instant deployment on DigitalOcean Droplets or VPS hosts.
+
 ---
 
 ## 5. Prototype Assets to Preserve & Port
@@ -281,6 +310,13 @@ When building the production backend and views, extract and reuse the following 
     - In-place dropzone swap, post-publish closure links (`View in Archive`, `View on Neocities`), and first-run Neocities onboarding banner.
     - User profile handle editing, Sharp avatar processing (128x128 WebP), default CRT avatar graphic, and scoped identity display.
     - Navigation stability with fixed 48px top bar, stable scrollbar gutter, and NIM chat header launcher.
+12. **[x] Step 12: Production Hardening, ICQ UIN, Zero-Retention Pipeline & Safe Subdirectories**
+    - ICQ-style immutable numeric User ID (`uin`) sequence starting at `100101` for permanent embed anchoring.
+    - Dual-channel OTP dispatcher with Resend (email) and Twilio (SMS), plus console fallback.
+    - Sliding window rate limiter on OTP requests (max 4 per 15 min).
+    - Zero-retention media pipeline: ephemeral staging, direct Neocities upload, and immediate disk purge (`0 bytes` local storage).
+    - Safe subdirectory publishing (`deploy_path`, default `'neogram'`) with strict non-destructive deletion safety invariant.
+    - Production Dockerfile and docker-compose.yml for 1-click DigitalOcean deployment.
 
 ---
 
@@ -299,7 +335,16 @@ npm run sass:watch
 npm run dev
 ```
 
-### 7.2 Extension Tooling & Packaging
+### 7.2 Docker Deployment (DigitalOcean / VPS)
+```bash
+# Build and run Neogram app and PostgreSQL container in the background
+docker compose up -d --build
+
+# View real-time logs
+docker compose logs -f app
+```
+
+### 7.3 Extension Tooling & Packaging
 ```bash
 # Sync latest compiled CSS and audio engine into extension/shared/
 npm run extension:sync
@@ -309,7 +354,7 @@ npm run extension:package
 # Output: neogram-aim-extension.zip
 ```
 
-### 7.3 Database Migrations & Seeding
+### 7.4 Database Migrations & Seeding
 Migrations run automatically on server start via `server/db/migrate.ts`.
 Database connection resolves via `DATABASE_URL` in `.env`:
 ```bash
@@ -317,12 +362,28 @@ Database connection resolves via `DATABASE_URL` in `.env`:
 DATABASE_URL=postgres://timwasson@localhost:5432/neogram
 ```
 
-### 7.4 Required Environment Variables (`.env`)
+### 7.5 Required Environment Variables (`.env`)
 ```env
 PORT=4000
-DATABASE_URL=postgres://localhost:5432/neogram
-SESSION_SECRET=neogram_retro_super_secret_session_jwt_2026
-NEOCITIES_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+NODE_ENV=development
+APP_URL=http://localhost:4000
+
+# PostgreSQL Database
+DATABASE_URL=postgres://neogram:neogram_secret@localhost:5432/neogram
+
+# Security Keys
+JWT_SECRET=neogram_retro_super_secret_jwt_key_1996
+ENCRYPTION_SECRET=neogram_retro_aes256_vault_key_1996_master_secret
+
+# Transactional Auth Dispatches (Email & SMS)
+# Resend Email Delivery (Free Tier: 3,000 emails/month at resend.com)
+RESEND_API_KEY=
+EMAIL_FROM="Neogram <auth@yourdomain.com>"
+
+# Twilio SMS Delivery ($1.15/mo phone number + $0.0079/text at twilio.com)
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_PHONE_NUMBER=+15551234567
 ```
 
 

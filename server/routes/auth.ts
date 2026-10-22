@@ -4,11 +4,49 @@ import { signSessionToken, setSessionCookie, clearSessionCookie, verifySessionTo
 
 export const authRouter = Router();
 
+// In-memory rate limiting map for OTP requests: max 4 requests per 15 minutes per IP/target
+interface RateLimitRecord {
+  timestamps: number[];
+}
+const otpRateLimits = new Map<string, RateLimitRecord>();
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_REQUESTS_PER_WINDOW = 4;
+
+function checkOtpRateLimit(key: string): boolean {
+  const now = Date.now();
+  const record = otpRateLimits.get(key) || { timestamps: [] };
+  // Filter out expired timestamps
+  const recent = record.timestamps.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
+  if (recent.length >= MAX_REQUESTS_PER_WINDOW) {
+    return false;
+  }
+  recent.push(now);
+  otpRateLimits.set(key, { timestamps: recent });
+  return true;
+}
+
 // 1. Request OTP Code
 authRouter.post('/request-otp', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { identifier } = req.body;
-    const result = await requestOtp(identifier);
+    if (!identifier || typeof identifier !== 'string') {
+      res.status(400).json({ ok: false, error: 'Identifier (email or mobile phone) is required.' });
+      return;
+    }
+
+    const cleanId = identifier.trim().toLowerCase();
+    const ip = req.ip || req.socket.remoteAddress || 'unknown-ip';
+
+    // Check rate limit on both target identifier and client IP
+    if (!checkOtpRateLimit(`id:${cleanId}`) || !checkOtpRateLimit(`ip:${ip}`)) {
+      res.status(429).json({
+        ok: false,
+        error: 'Carrier busy: Too many OTP dispatch requests. Please wait 15 minutes before requesting another code.',
+      });
+      return;
+    }
+
+    const result = await requestOtp(cleanId);
     res.json({
       ok: true,
       message: result.message,

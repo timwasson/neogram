@@ -169,7 +169,7 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
     }
 
     // 1. Check user static host configuration
-    const userDbRes = await query('SELECT deployment_credentials, site_url, handle, auto_deploy FROM users WHERE id = $1', [user.id]);
+    const userDbRes = await query('SELECT deployment_credentials, site_url, handle, auto_deploy, deploy_path FROM users WHERE id = $1', [user.id]);
     const userRow = userDbRes.rows[0];
     const { decryptCredentials } = await import('../utils/crypto');
     const creds = decryptCredentials<any>(userRow?.deployment_credentials);
@@ -202,17 +202,22 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
       return;
     }
 
-    // 3. Resolve live Neocities image URLs if host connected, or local path for dev
+    // 3. Resolve live Neocities image URLs with deploy_path subdirectory if host connected
     const siteBase = creds?.siteName
       ? `https://${creds.siteName}.neocities.org`
       : (userRow.site_url ? userRow.site_url.replace(/\/+$/, '') : `https://${user.handle || 'user'}.neocities.org`);
 
+    const rawDeployPath = userRow?.deploy_path !== null && userRow?.deploy_path !== undefined
+      ? String(userRow.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+      : 'neogram';
+    const deployPrefix = rawDeployPath ? `/${rawDeployPath}` : '';
+
     const finalImagePath = hasApiKey
-      ? `${siteBase}${processed.imagePath}`
+      ? `${siteBase}${deployPrefix}${processed.imagePath}`
       : processed.imagePath;
 
     const finalThumbPath = hasApiKey
-      ? `${siteBase}${processed.thumbnailPath}`
+      ? `${siteBase}${deployPrefix}${processed.thumbnailPath}`
       : processed.thumbnailPath;
 
     // 4. Commit post record to PostgreSQL
@@ -457,11 +462,14 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     await query('DELETE FROM posts WHERE id = $1', [id]);
 
     // 3. Purge remote files from Neocities if post was hosted on Neocities
-    if (image_path && image_path.includes('.neocities.org/uploads/')) {
+    if (image_path && (image_path.includes('.neocities.org') || image_path.includes('/uploads/'))) {
       const { deleteFromNeocities } = await import('../services/neocitiesPublisher');
-      const imgRel = image_path.substring(image_path.indexOf('/uploads/'));
-      const thumbRel = thumbnail_path && thumbnail_path.includes('/uploads/') ? thumbnail_path.substring(thumbnail_path.indexOf('/uploads/')) : null;
-      const filesToDelete = [imgRel, thumbRel].filter(Boolean) as string[];
+      const cleanRel = (p: string) => p.replace(/^https?:\/\/[^\/]+\//, '').replace(/^\/+/, '');
+      const filesToDelete = [
+        image_path ? cleanRel(image_path) : null,
+        thumbnail_path ? cleanRel(thumbnail_path) : null
+      ].filter(Boolean) as string[];
+
       deleteFromNeocities(user.id, filesToDelete).catch((err) => {
         console.warn('[:> NEOCITIES DELETE] Warning: could not purge remote files:', err);
       });

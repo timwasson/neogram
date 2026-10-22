@@ -26,8 +26,10 @@ export default function (eleventyConfig) {
   });
 
   const outputDir = process.env.ELEVENTY_OUTPUT_DIR || 'dist/static-galleries/default';
+  const pathPrefix = process.env.ELEVENTY_PATH_PREFIX || '/';
 
   return {
+    pathPrefix: pathPrefix,
     dir: {
       input: 'eleventy/src',
       output: outputDir,

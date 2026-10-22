@@ -595,7 +595,37 @@
                       name="siteUrl"
                       placeholder="https://wasson.neocities.org"
                       class="retro-input text-xs"
+                      oninput="updateSiteUrlPreview()"
                     />
+                  </div>
+
+                  <!-- Publish Subdirectory (Safe for Existing Sites) -->
+                  <div>
+                    <div class="flex items-center justify-between mb-1">
+                      <label for="settingsDeployPath" class="text-xs font-bold">
+                        📁 Publish Subdirectory / Folder:
+                      </label>
+                      <span class="text-xs font-mono text-prompt font-bold">SAFE PUBLISHING</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-mono text-muted">/</span>
+                      <input
+                        type="text"
+                        id="settingsDeployPath"
+                        name="deployPath"
+                        placeholder="neogram"
+                        value="neogram"
+                        class="retro-input text-xs flex-1"
+                        oninput="updateSiteUrlPreview()"
+                      />
+                      <span class="text-xs font-mono text-muted">/</span>
+                    </div>
+                    <span class="text-xs text-muted block mt-1">
+                      Target subdirectory on your site (e.g. <code>neogram</code> or <code>photos</code>). Publishes strictly to this folder so your existing homepage, blog, and non-Neogram files are <strong>never overwritten or deleted</strong>. Leave empty for root.
+                    </span>
+                    <div class="mt-1 text-xs font-mono text-mac">
+                      Live Gallery URL: <span id="deployUrlPreview" class="text-prompt font-bold">https://user.neocities.org/neogram/</span>
+                    </div>
                   </div>
 
                   <!-- API Key -->
@@ -1846,8 +1876,17 @@
   function updateSiteUrlPreview() {
     var sitename = document.getElementById('settingsSiteName').value.trim();
     var urlInput = document.getElementById('settingsSiteUrl');
+    var deployPathInput = document.getElementById('settingsDeployPath');
+    var previewEl = document.getElementById('deployUrlPreview');
+
+    var base = 'https://' + (sitename || 'user') + '.neocities.org';
     if (sitename) {
-      urlInput.value = 'https://' + sitename + '.neocities.org';
+      urlInput.value = base;
+    }
+    var folder = deployPathInput ? deployPathInput.value.trim().replace(/^\/+|\/+$/g, '') : 'neogram';
+    if (previewEl) {
+      var finalUrl = folder ? (base + '/' + folder + '/') : (base + '/');
+      previewEl.textContent = finalUrl;
     }
   }
 
@@ -2025,6 +2064,10 @@
       }
       if (s.siteName) document.getElementById('settingsSiteName').value = s.siteName;
       if (s.siteUrl) document.getElementById('settingsSiteUrl').value = s.siteUrl;
+      if (s.deployPath !== undefined && s.deployPath !== null) {
+        document.getElementById('settingsDeployPath').value = s.deployPath;
+      }
+      updateSiteUrlPreview();
       if (s.deploymentType) document.getElementById('settingsDeployType').value = s.deploymentType;
       document.getElementById('settingsAutoDeploy').checked = !!s.autoDeploy;
 
@@ -2061,6 +2104,7 @@
 
     var siteName = document.getElementById('settingsSiteName').value.trim();
     var siteUrl = document.getElementById('settingsSiteUrl').value.trim();
+    var deployPath = document.getElementById('settingsDeployPath').value.trim();
     var apiKey = document.getElementById('settingsApiKey').value.trim();
     var deploymentType = document.getElementById('settingsDeployType').value;
     var autoDeploy = document.getElementById('settingsAutoDeploy').checked;
@@ -2081,6 +2125,7 @@
         body: JSON.stringify({
           siteName: siteName,
           siteUrl: siteUrl,
+          deployPath: deployPath,
           apiKey: apiKey,
           deploymentType: deploymentType,
           autoDeploy: autoDeploy

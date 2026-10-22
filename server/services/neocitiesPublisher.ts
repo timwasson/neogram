@@ -102,7 +102,7 @@ export async function deployToNeocities(userId: string): Promise<DeployResult> {
 
   // 1. Fetch user and encrypted credentials from database
   const userRes = await query(
-    `SELECT id, email, handle, site_url, deployment_type, deployment_credentials, auto_deploy
+    `SELECT id, email, handle, site_url, deployment_type, deployment_credentials, auto_deploy, deploy_path
      FROM users
      WHERE id = $1`,
     [userId]
@@ -123,8 +123,11 @@ export async function deployToNeocities(userId: string): Promise<DeployResult> {
 
   const apiKey = creds.apiKey.trim();
   const userOutputDir = path.join(process.cwd(), 'dist/static-galleries', user.id);
+  const rawDeployPath = user.deploy_path !== null && user.deploy_path !== undefined
+    ? String(user.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+    : 'neogram';
 
-  console.log(`[:> NEOCITIES DEPLOY] Initiating deployment for @${user.handle || user.email}...`);
+  console.log(`[:> NEOCITIES DEPLOY] Initiating deployment for @${user.handle || user.email} (target folder: "${rawDeployPath || 'root'}")...`);
 
   // 2. Compile user's static gallery via 11ty
   const buildResult = await buildStaticGallery({
@@ -144,12 +147,15 @@ export async function deployToNeocities(userId: string): Promise<DeployResult> {
 
   console.log(`[:> NEOCITIES DEPLOY] Uploading ${filesToUpload.length} static assets to Neocities...`);
 
-  // 4. Construct multipart/form-data payload
+  // 4. Construct multipart/form-data payload with deploy_path prefix
   const formData = new FormData();
   for (const file of filesToUpload) {
     const fileBytes = await fs.readFile(file.absolutePath);
     const blob = new Blob([fileBytes]);
-    formData.append(file.relativePath, blob, path.basename(file.relativePath));
+    const remotePath = rawDeployPath
+      ? path.posix.join(rawDeployPath, file.relativePath)
+      : file.relativePath;
+    formData.append(remotePath, blob, path.basename(remotePath));
   }
 
   // 5. POST to https://neocities.org/api/upload
@@ -191,6 +197,9 @@ export async function deployToNeocities(userId: string): Promise<DeployResult> {
     [userId]
   );
 
+  const baseSiteUrl = user.site_url ? user.site_url.replace(/\/+$/, '') : `https://${user.handle || 'user'}.neocities.org`;
+  const deployedSiteUrl = rawDeployPath ? `${baseSiteUrl}/${rawDeployPath}/` : `${baseSiteUrl}/`;
+
   console.log(
     `[:> NEOCITIES DEPLOY SUCCESS] Uploaded ${filesToUpload.length} files in ${durationMs}ms: ${data.message}`
   );
@@ -200,31 +209,57 @@ export async function deployToNeocities(userId: string): Promise<DeployResult> {
     message: data.message || 'Files successfully uploaded to Neocities.',
     filesCount: filesToUpload.length,
     durationMs,
-    siteUrl: user.site_url,
+    siteUrl: deployedSiteUrl,
   };
 }
 
 /**
  * Deletes remote files from the user's Neocities site (e.g. when a post is deleted).
+ * Strictly non-destructive: only permits purging files inside uploads/ and matching deploy_path.
  */
 export async function deleteFromNeocities(userId: string, filenames: string[]): Promise<boolean> {
   if (!filenames || filenames.length === 0) return true;
 
   try {
     const userRes = await query(
-      `SELECT deployment_credentials FROM users WHERE id = $1`,
+      `SELECT deployment_credentials, deploy_path FROM users WHERE id = $1`,
       [userId]
     );
     if (userRes.rows.length === 0) return false;
 
-    const creds = decryptCredentials<NeocitiesCredentials>(userRes.rows[0].deployment_credentials);
+    const user = userRes.rows[0];
+    const creds = decryptCredentials<NeocitiesCredentials>(user.deployment_credentials);
     if (!creds || !creds.apiKey) return false;
 
+    const rawDeployPath = user.deploy_path !== null && user.deploy_path !== undefined
+      ? String(user.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+      : 'neogram';
+
     const formData = new FormData();
+    let validCount = 0;
+
     for (const file of filenames) {
       // Strip any full URL or leading slashes for Neocities relative path
       const cleanPath = file.replace(/^https?:\/\/[^\/]+\//, '').replace(/^\/+/, '');
+
+      // STRICT NON-DESTRUCTIVE SAFETY INVARIANT:
+      // Neogram must NEVER delete non-Neogram user files!
+      if (!cleanPath.includes('uploads/')) {
+        console.warn(`[:> NEOCITIES DELETE REFUSED] Unsafe deletion path rejected (not in uploads/): ${cleanPath}`);
+        continue;
+      }
+      if (rawDeployPath && !cleanPath.startsWith(rawDeployPath + '/')) {
+        console.warn(`[:> NEOCITIES DELETE REFUSED] Unsafe path rejected (outside deploy directory ${rawDeployPath}): ${cleanPath}`);
+        continue;
+      }
+
       formData.append('filenames[]', cleanPath);
+      validCount++;
+    }
+
+    if (validCount === 0) {
+      console.log(`[:> NEOCITIES DELETE] No safe files matching delete criteria.`);
+      return true;
     }
 
     const res = await fetch('https://neocities.org/api/delete', {
@@ -236,7 +271,7 @@ export async function deleteFromNeocities(userId: string, filenames: string[]): 
     });
 
     const data = (await res.json()) as any;
-    console.log(`[:> NEOCITIES DELETE] Remote purge for user ${userId}:`, data.message || data.result);
+    console.log(`[:> NEOCITIES DELETE] Remote purge for user ${userId} (${validCount} files):`, data.message || data.result);
     return data.result === 'success';
   } catch (err: any) {
     console.warn(`[:> NEOCITIES DELETE ERROR] Failed to purge remote files:`, err.message);

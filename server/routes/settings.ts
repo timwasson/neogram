@@ -38,7 +38,7 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
     const userId = (req as any).user.userId;
 
     const userRes = await query(
-      `SELECT id, email, handle, uin, site_url, deployment_type, deployment_credentials, auto_deploy, last_deployed_at, avatar_path
+      `SELECT id, email, handle, uin, site_url, deploy_path, deployment_type, deployment_credentials, auto_deploy, last_deployed_at, avatar_path
        FROM users
        WHERE id = $1`,
       [userId]
@@ -55,6 +55,7 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
     const hasApiKey = !!(creds && creds.apiKey);
     const maskedKey = hasApiKey ? maskApiKey(creds!.apiKey) : '';
     const siteName = creds?.siteName || (user.site_url ? user.site_url.replace(/https?:\/\//, '').replace(/\.neocities\.org.*$/, '') : (user.handle || ''));
+    const deployPath = user.deploy_path !== null && user.deploy_path !== undefined ? user.deploy_path : 'neogram';
 
     res.json({
       ok: true,
@@ -67,6 +68,7 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
         hasCustomAvatar: !!user.avatar_path,
         siteUrl: user.site_url || `https://${user.handle || 'user'}.neocities.org`,
         siteName: siteName,
+        deployPath: deployPath,
         deploymentType: user.deployment_type || 'neocities',
         hasApiKey,
         maskedApiKey: maskedKey,
@@ -162,16 +164,16 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
 });
 
 /**
- * 2. PUT /api/settings - Update authenticated user's hosting & deployment configuration
+ * 3. PUT /api/settings - Update authenticated user's hosting & deployment configuration
  */
 settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).user.userId;
-    const { siteUrl, siteName, apiKey, deploymentType, autoDeploy } = req.body;
+    const { siteUrl, siteName, apiKey, deploymentType, autoDeploy, deployPath } = req.body;
 
     // Fetch existing user to preserve existing apiKey if user didn't change it
     const existingRes = await query(
-      `SELECT id, deployment_credentials, site_url, deployment_type, auto_deploy
+      `SELECT id, deployment_credentials, site_url, deployment_type, auto_deploy, deploy_path
        FROM users
        WHERE id = $1`,
       [userId]
@@ -203,18 +205,24 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
     const finalDeployType = deploymentType || existingUser.deployment_type || 'neocities';
     const finalAutoDeploy = typeof autoDeploy === 'boolean' ? autoDeploy : !!existingUser.auto_deploy;
 
+    // Sanitize deploy_path (strip leading/trailing slashes, allow empty string for root)
+    const finalDeployPath = deployPath !== undefined && deployPath !== null
+      ? String(deployPath).trim().replace(/^\/+|\/+$/g, '')
+      : (existingUser.deploy_path !== null ? existingUser.deploy_path : 'neogram');
+
     await query(
       `UPDATE users
        SET site_url = $1,
            deployment_type = $2,
            deployment_credentials = $3,
            auto_deploy = $4,
+           deploy_path = $5,
            updated_at = NOW()
-       WHERE id = $5`,
-      [finalSiteUrl, finalDeployType, encryptedCreds, finalAutoDeploy, userId]
+       WHERE id = $6`,
+      [finalSiteUrl, finalDeployType, encryptedCreds, finalAutoDeploy, finalDeployPath, userId]
     );
 
-    console.log(`[:> SETTINGS] Updated deployment settings for user ${userId}`);
+    console.log(`[:> SETTINGS] Updated deployment settings for user ${userId} (deployPath: "${finalDeployPath}")`);
 
     res.json({
       ok: true,
@@ -222,6 +230,7 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
       settings: {
         siteUrl: finalSiteUrl,
         siteName: creds.siteName || '',
+        deployPath: finalDeployPath,
         deploymentType: finalDeployType,
         hasApiKey: !!creds.apiKey,
         maskedApiKey: maskApiKey(creds.apiKey),

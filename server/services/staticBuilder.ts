@@ -153,17 +153,26 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
     }));
 
     // 3. Update site.json metadata for this specific user's compilation
+    let pathPrefix = '/';
     if (userId) {
-      const userRes = await query('SELECT id, email, handle, site_url, avatar_path FROM users WHERE id = $1', [userId]);
+      const userRes = await query('SELECT id, email, handle, site_url, deploy_path, avatar_path FROM users WHERE id = $1', [userId]);
       if (userRes.rows.length > 0) {
         const u = userRes.rows[0];
         const author = u.handle || u.email.split('@')[0];
+        const rawDeployPath = u.deploy_path !== null && u.deploy_path !== undefined
+          ? String(u.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+          : 'neogram';
+        pathPrefix = rawDeployPath ? `/${rawDeployPath}/` : '/';
+        const baseSiteUrl = u.site_url ? u.site_url.replace(/\/+$/, '') : `https://${author}.neocities.org`;
+        const fullSiteUrl = rawDeployPath ? `${baseSiteUrl}/${rawDeployPath}` : baseSiteUrl;
+
         const siteData = {
           title: `@${author.toUpperCase()}'S STATIC PHOTO STREAM`,
           author: author,
           avatarUrl: u.avatar_path || '/icons/default-avatar.svg',
           description: `Personal 90s retro static photo stream published via Neogram`,
-          neocitiesUrl: u.site_url || `https://${author}.neocities.org`,
+          neocitiesUrl: fullSiteUrl,
+          pathPrefix: pathPrefix,
           apiUrl: 'http://localhost:4000',
           systemMood: '[:> SURFING THE RETRO STATIC WEBRING]',
         };
@@ -182,6 +191,7 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
 
     await fs.mkdir(targetOutputDir, { recursive: true });
     process.env.ELEVENTY_OUTPUT_DIR = path.relative(process.cwd(), targetOutputDir);
+    process.env.ELEVENTY_PATH_PREFIX = pathPrefix;
 
     const elev = new Eleventy(inputDir, targetOutputDir, {
       configPath: configPath,

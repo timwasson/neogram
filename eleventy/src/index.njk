@@ -61,7 +61,7 @@ title: Static Photo Stream
         </div>
 
         <!-- Thumbnail Viewport with CRT & Filter Shaders -->
-        <a href="photos/{{ post.id }}/" class="block bg-black p-1 h-56 flex items-center justify-center overflow-hidden relative group crt-scanlines">
+        <a href="{{ ('/photos/' + post.id + '/') | url }}" class="block bg-black p-1 h-56 flex items-center justify-center overflow-hidden relative group crt-scanlines">
           <img
             src="{{ post.thumbnailPath or post.imagePath }}"
             alt="{{ post.caption }}"
@@ -103,7 +103,7 @@ title: Static Photo Stream
               <span class="text-xs text-muted">
                 ❤️ <strong class="text-main">{{ post.likes or 0 }}</strong> likes
               </span>
-              <a href="photos/{{ post.id }}/" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold">
+              <a href="{{ ('/photos/' + post.id + '/') | url }}" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold">
                 <span>View Details :&gt;</span>
               </a>
             </div>
