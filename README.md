@@ -126,6 +126,11 @@ sudo systemctl reload caddy
 ```
 Caddy automatically obtains and renews trusted Let's Encrypt certificates with HTTP/2 and auto-redirects HTTP to HTTPS.
 
+### 5. Automated Continuous Deployment (GitHub Actions)
+Deployments are fully automated via GitHub Actions (`.github/workflows/deploy.yml`):
+- Pushing commits to `main` triggers pre-flight type checking (`npm run lint`).
+- Upon success, the workflow connects to the Droplet via SSH, pulls the latest commits, rebuilds the Docker containers, and validates server health.
+
 ---
 
 ## 📦 Browser Extension Packaging (NIM Chat)
