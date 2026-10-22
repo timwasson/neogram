@@ -106,6 +106,10 @@ export function createApp(): Express {
   });
 
   app.get('/login', (_req: Request, res: Response) => {
+    if (res.locals.currentUser) {
+      res.redirect('/');
+      return;
+    }
     res.render('login', {
       title: 'Neogram - Terminal Login',
       activeView: 'login',
