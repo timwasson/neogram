@@ -4,7 +4,7 @@ services:
     container_name: neogram_app
     restart: unless-stopped
     ports:
-      - "${PORT:-4000}:4000"
+      - "127.0.0.1:${PORT:-4000}:4000"
     environment:
       PORT: 4000
       NODE_ENV: production
@@ -30,7 +30,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-neogram_secret}
       POSTGRES_DB: ${POSTGRES_DB:-neogram_db}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./server/db/migrations:/docker-entrypoint-initdb.d:ro
