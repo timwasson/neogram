@@ -12,8 +12,9 @@ This document contains all metadata, descriptions, permissions justifications, a
 | **Short Description** | `Retro 90s AIM/ICQ instant messenger client for Neogram cyber-publishers and static web enthusiasts.` | Max 132 characters |
 | **Category** | `Social & Communication` | Chrome Store Taxonomy |
 | **Default Language** | `English (United States)` | ISO 639-1 |
-| **Primary Website** | `http://localhost:4000/` (or production domain) | Live URL |
-| **Support URL** | `http://localhost:4000/embed/guestbook/root` | Live URL |
+| **Primary Website** | `https://neogram.club` | Live URL |
+| **Privacy Policy URL** | `https://neogram.club/privacy` | Required by Chrome Web Store |
+| **Support URL** | `https://neogram.club/embed/guestbook/root` | Live URL |
 
 ---
 
@@ -48,7 +49,7 @@ The Chrome Web Store review team requires specific, user-benefit justifications 
 | `storage` | `chrome.storage.local` API | Used to save your carrier login token and keep your chat conversations saved safely on your device without server-side tracking. |
 | `alarms` | `chrome.alarms` API | Used to schedule background connection heartbeats so the extension knows when your buddies sign on or off without draining battery. |
 | `notifications` | `chrome.notifications` API | Delivers desktop notification chimes when you receive an instant message from a buddy while the popup is closed. |
-| `host_permissions` (`http://localhost:4000/*`, `https://*.neocities.org/*`) | `fetch()` and `WebSocket` | Allows the extension to authenticate with your personal Neogram carrier node and maintain real-time instant messaging. |
+| `host_permissions` (`https://neogram.club/*`, `https://*.neocities.org/*`) | `fetch()` and `WebSocket` | Allows the extension to authenticate with your personal Neogram carrier node and maintain real-time instant messaging. |
 
 ---
 

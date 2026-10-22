@@ -266,6 +266,20 @@ All embeddable widgets must render standard HTML markup with consistent BEM clas
   - `[ 📋 Copy Link ]`: Copies the photo's live URL to the clipboard with retro click audio and visual `[ ✓ COPIED! ]` feedback.
 - **Visual Filter Swatch Carousel:** The 6 retro shaders (`CRT Phosphor`, `16-Color VGA`, `GameBoy 1-Bit`, `Neon Cyber`, `1996 Polaroid`, `Raw 24-Bit`) are displayed as tactile swatch tiles with mini preview boxes and horizontal touch scrolling on mobile.
 
+### 4.19 Carrier Compliance, Legal Endpoints & Transactional Authentication
+- **Legal Endpoints (`/terms` & `/privacy`):** Fully rendered retro-styled legal compliance documents required for TCPA/CTIA regulations and Twilio A2P 10DLC carrier registration.
+  - `/terms`: Establishes explicit SMS program terms, carrier non-liability clauses, program name ("Neogram Cyber Authentication"), message frequency disclosures ("1 message per login attempt"), and standardized keyword commands (`STOP` to cancel, `HELP` for support).
+  - `/privacy`: Features an explicit, uncompromised Mobile Information Non-Disclosure clause: *"No mobile information will be shared with third parties/affiliates for marketing/promotional purposes. All the above categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties."*
+- **Transactional Auth Delivery:**
+  - **Email OTP (Resend):** Verified for `neogram.club` sending cyber-themed login codes from `Neogram <auth@neogram.club>`.
+  - **SMS OTP (Twilio):** Configured via Twilio REST API to dispatch single-use 6-digit verification codes to E.164 phone numbers with server log fallback during registration vetting.
+
+### 4.20 Production Infrastructure, Reverse Proxy & Automated CI/CD
+- **Production Host:** DigitalOcean Droplet (`104.248.57.128`) running Ubuntu 24.04 LTS, Docker 29, and a 2GB persistent swapfile.
+- **Reverse Proxy (Caddy v2):** Handles HTTP/2 and TLS v1.3 with automatic Let's Encrypt certificates for `neogram.club` and `www.neogram.club`, proxying traffic to internal port `127.0.0.1:4000`.
+- **Continuous Deployment (GitHub Actions):** `.github/workflows/deploy.yml` triggers on any push to `origin/main`. It executes TypeScript lint checks (`npm run lint`), SSHs into the Droplet, executes `git pull`, rebuilds containers via `docker compose up -d --build`, and polls `/api/health` until healthy.
+
+
 ---
 
 ## 5. Prototype Assets to Preserve & Port
@@ -344,6 +358,12 @@ When building the production backend and views, extract and reuse the following 
     - 3-step First-Run Station Setup Wizard (`[:> SETUP_WIZARD.EXE]`) preventing first-time upload roadblocks.
     - Tactile visual filter swatches with horizontal touch scrolling on mobile.
     - One-click `[ 🔗 View Live ↗ ]` and `[ 📋 Copy Link ]` on all archive post cards with instant `[ ✓ COPIED! ]` feedback.
+14. **[x] Step 14: Production Droplet Deployment, SSL, Carrier Compliance & Automated CI/CD**
+    - Provisioned Ubuntu 24.04 LTS DigitalOcean Droplet (`104.248.57.128`) with Docker 29 and a persistent 2GB swapfile.
+    - Configured Caddy v2 reverse proxy with automated Let's Encrypt TLS v1.3 and HTTP/2 for `neogram.club` and `www.neogram.club`.
+    - Integrated transactional auth: verified Resend domain for email OTP (`auth@neogram.club`) and configured Twilio for SMS OTP (`+16416364726`).
+    - Implemented carrier-compliant `/terms` and `/privacy` pages with full CTIA/TCPA SMS program disclosures and mobile information non-disclosure clauses.
+    - Configured automated GitHub Actions CI/CD pipeline (`.github/workflows/deploy.yml`) executing TypeScript lint checks, SSH remote git pull, Docker Compose recreation, and `/api/health` polling.
 
 ---
 

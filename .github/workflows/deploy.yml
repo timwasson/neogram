@@ -52,7 +52,22 @@ jobs:
             echo "[:> CI/CD] Verifying container status..."
             docker compose ps
 
-            echo "[:> CI/CD] Probing local health endpoint..."
-            curl --retry 10 --retry-connrefused --retry-delay 2 -f -s http://127.0.0.1:4000/api/health > /dev/null || (echo "[:> CI/CD ERROR] Health check failed!" && exit 1)
+            echo "[:> CI/CD] Waiting for application to initialize..."
+            HEALTHY=0
+            for i in $(seq 1 15); do
+              if curl -s -f http://127.0.0.1:4000/api/health > /dev/null 2>&1; then
+                echo "[:> CI/CD] Server healthy on probe $i!"
+                HEALTHY=1
+                break
+              fi
+              echo "[:> CI/CD] Waiting for server response... ($i/15)"
+              sleep 2
+            done
+
+            if [ "$HEALTHY" -ne 1 ]; then
+              echo "[:> CI/CD ERROR] Health check failed after 30 seconds!"
+              docker compose logs --tail=50 app
+              exit 1
+            fi
 
             echo "[:> CI/CD] Deployment successful! Live at https://neogram.club"
