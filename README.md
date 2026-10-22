@@ -67,18 +67,33 @@ npm test
 
 ---
 
+---
+
+## 🌐 Live Production Node
+
+Neogram is deployed live and running at **[https://neogram.club](https://neogram.club)**.
+- **Terms of Service & SMS Program Terms:** [https://neogram.club/terms](https://neogram.club/terms)
+- **Privacy Policy & SMS Disclosure:** [https://neogram.club/privacy](https://neogram.club/privacy)
+- **Health Telemetry:** [https://neogram.club/api/health](https://neogram.club/api/health)
+
+---
+
 ## 🌊 1-Click Production Deployment (DigitalOcean / VPS)
 
-Neogram is fully containerized with Docker Compose. You can run it on a **$4–$6/month DigitalOcean Droplet** (Ubuntu 24.04 LTS).
+Neogram is fully containerized with Docker Compose. You can run it on a **$6–$12/month DigitalOcean Droplet** (Ubuntu 24.04 LTS).
 
 ### 1. On your Droplet:
 ```bash
+# Add 2GB swap space (recommended for 1GB/2GB droplets)
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
 # Install Docker & Docker Compose
-curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
+sudo apt update && sudo apt install -y docker.io docker-compose-v2 caddy
 
 # Clone repository
-git clone https://github.com/timwasson/neogram.git
-cd neogram
+git clone https://github.com/timwasson/neogram.git /opt/neogram
+cd /opt/neogram
 ```
 
 ### 2. Configure `.env`:
@@ -87,7 +102,7 @@ cp .env.example .env
 nano .env
 ```
 Fill in your production secrets, domain, and optional transactional auth keys:
-- `APP_URL=https://yourdomain.com`
+- `APP_URL=https://neogram.club`
 - `RESEND_API_KEY=` (Free tier at resend.com for emails)
 - `TWILIO_ACCOUNT_SID=` & `TWILIO_AUTH_TOKEN=` (Optional for SMS)
 
@@ -96,7 +111,20 @@ Fill in your production secrets, domain, and optional transactional auth keys:
 docker compose up -d --build
 ```
 - Starts both `neogram_app` and `neogram_postgres` with automated database migrations and healthchecks.
-- App listens on port `4000`. Set up Nginx or Caddy with SSL (`certbot`) as a reverse proxy.
+- App listens securely on `127.0.0.1:4000`.
+
+### 4. Configure Caddy Reverse Proxy (Automatic SSL)
+In `/etc/caddy/Caddyfile`:
+```caddyfile
+neogram.club, www.neogram.club {
+    reverse_proxy localhost:4000
+}
+```
+Reload Caddy:
+```bash
+sudo systemctl reload caddy
+```
+Caddy automatically obtains and renews trusted Let's Encrypt certificates with HTTP/2 and auto-redirects HTTP to HTTPS.
 
 ---
 
