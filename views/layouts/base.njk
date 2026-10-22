@@ -308,6 +308,55 @@
           }
         });
       </script>
+
+      <!-- Retro Mobile Bottom Navigation Bar (Screens < 768px) -->
+      <nav class="retro-mobile-nav" id="retroMobileNav" aria-label="Mobile Navigation">
+        <a
+          href="/#upload"
+          id="mobileTabUploadBtn"
+          class="retro-mobile-nav__item is-active"
+          onclick="switchDashboardTab('upload', event)"
+        >
+          <span class="retro-mobile-nav__icon">📸</span>
+          <span>Studio</span>
+        </a>
+        <a
+          href="/#edit"
+          id="mobileTabManageBtn"
+          class="retro-mobile-nav__item"
+          onclick="switchDashboardTab('manage', event)"
+        >
+          <span class="retro-mobile-nav__icon">📁</span>
+          <span>Archive</span>
+        </a>
+        <a
+          href="/#settings"
+          id="mobileTabSettingsBtn"
+          class="retro-mobile-nav__item"
+          onclick="switchDashboardTab('settings', event)"
+        >
+          <span class="retro-mobile-nav__icon">⚙️</span>
+          <span>Config</span>
+        </a>
+        <a
+          href="/#embeds"
+          id="mobileTabEmbedsBtn"
+          class="retro-mobile-nav__item"
+          onclick="switchDashboardTab('embeds', event)"
+        >
+          <span class="retro-mobile-nav__icon">⎘</span>
+          <span>Embeds</span>
+        </a>
+        <button
+          type="button"
+          id="mobileTabAimBtn"
+          class="retro-mobile-nav__item"
+          title="Open Neogram Instant Messenger"
+        >
+          <span class="retro-mobile-nav__icon">💬</span>
+          <span>NIM</span>
+        </button>
+      </nav>
     {% endif %}
 
     <!-- PWA Service Worker & Carrier Telemetry Engine -->

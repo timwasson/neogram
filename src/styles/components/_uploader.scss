@@ -122,6 +122,20 @@
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 8px;
   margin-top: 10px;
+
+  @media (max-width: 767px) {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 8px;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+
+    .filter-btn {
+      flex: 0 0 110px;
+      scroll-snap-align: start;
+    }
+  }
 }
 
 .filter-btn {
@@ -135,6 +149,10 @@
   user-select: none;
   box-shadow: 2px 2px 0px 0px #000000;
   transition: all 0.1s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 
   .dark & {
     background: #161b22;
@@ -160,6 +178,22 @@
     }
   }
 }
+
+.filter-swatch {
+  width: 100%;
+  height: 28px;
+  background-color: #000000;
+  border: 1px solid var(--border-main);
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  font-size: 12px;
+  pointer-events: none;
+}
+
 
 /* Preset Sprites Selector */
 .preset-sprites-row {

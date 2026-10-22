@@ -26,4 +26,9 @@
     border: 2px solid var(--border-main);
     padding: 2px 8px;
   }
+
+  @media (max-width: 767px) {
+    display: none !important;
+  }
 }
+

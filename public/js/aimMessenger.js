@@ -49,6 +49,14 @@
         });
       }
 
+      var mobileAimBtn = document.getElementById('mobileTabAimBtn');
+      if (mobileAimBtn) {
+        mobileAimBtn.addEventListener('click', function (e) {
+          if (e) e.preventDefault();
+          self.toggleWindow();
+        });
+      }
+
       var popoutBtn = document.getElementById('aimPopoutBtn');
       if (popoutBtn) {
         popoutBtn.addEventListener('click', function (e) {
@@ -647,11 +655,15 @@
         this.dockBtn.classList.remove('aim-dock-btn--alert');
         this.updateDockBadge();
       }
+      var mobBtn = document.getElementById('mobileTabAimBtn');
+      if (mobBtn) mobBtn.classList.add('is-active');
     },
 
     closeWindow: function () {
       this.isOpen = false;
       if (this.windowEl) this.windowEl.classList.add('hidden');
+      var mobBtn = document.getElementById('mobileTabAimBtn');
+      if (mobBtn) mobBtn.classList.remove('is-active');
     },
   };
 

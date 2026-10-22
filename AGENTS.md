@@ -246,6 +246,26 @@ All embeddable widgets must render standard HTML markup with consistent BEM clas
 - **Multi-Stage Dockerfile:** Node 22 Alpine runner with native Sharp/Postgres build dependencies, automated Sass stylesheet compilation (`npm run sass:build`), and non-interactive `tsx` runner.
 - **1-Click Docker Compose:** `docker-compose.yml` orchestrates both the `neogram_app` Node service and `neogram_postgres` database container with automated migration mounting, container healthchecks, and volume persistence for instant deployment on DigitalOcean Droplets or VPS hosts.
 
+### 4.16 Mobile Ergonomics & Responsive Dual-Mode Navigation
+- **Dual-Mode Ergonomics:**
+  - **Desktop ($\ge$ 768px):** Preserves authentic Unix / Mac-System 7 desktop workstation with 48px top bar, workstation window frames, and fixed bottom BSD/X11 taskbar (`.retro-taskbar`).
+  - **Mobile (< 768px):** Adapts to a high-contrast, thumb-accessible **Retro Mobile Bottom Bar** (`.retro-mobile-nav`) with 5 touch tabs: Studio (`#upload`), Archive (`#edit`), Config (`#settings`), Embeds (`#embeds`), and NIM (`#aimMessengerWindow`).
+- **Screen Space Recovery:** Desktop taskbar and redundant top navigation links are hidden on `< 768px`, recovering over 120px of vertical space. `<main>` enforces `padding-bottom: 74px` on mobile to prevent content clipping.
+- **Mobile NIM Drawer Sheet:** On mobile viewports, the NIM chat window (`.aim-window`) dynamically converts from a floating corner card to a centered slide-up drawer between the top header and bottom tab bar (`bottom: 58px; left: 8px; right: 8px; height: 75dvh`), preventing horizontal overflow.
+
+### 4.17 First-Run Station Onboarding Setup Wizard
+- **Guided Station Initialization (`[:> SETUP_WIZARD.EXE]`):** When a user logs in without a linked Neocities API key (`currentUser.hasApiKey == false`), the Upload Studio displays a 3-step retro checklist:
+  1. `[✓] STEP 1:` Station Identity provisioned (`@handle` and immutable `#UIN`).
+  2. `[●] STEP 2:` Connect remote Neocities API Key in Settings (`[ ⚙️ Connect in Settings :> ]`).
+  3. `[○] STEP 3:` Snap first photo and transmit to static host.
+- **Error Elimination:** Prevents 100% of first-run failed upload errors caused by creators attempting to transmit before linking credentials.
+
+### 4.18 Archive Quick-Share Actions & Visual Filter Swatches
+- **One-Tap Static Sharing:** Every post card in the `#edit` archive ledger includes:
+  - `[ 🔗 View Live ↗ ]`: Opens the published static photo page directly on Neocities in a new tab.
+  - `[ 📋 Copy Link ]`: Copies the photo's live URL to the clipboard with retro click audio and visual `[ ✓ COPIED! ]` feedback.
+- **Visual Filter Swatch Carousel:** The 6 retro shaders (`CRT Phosphor`, `16-Color VGA`, `GameBoy 1-Bit`, `Neon Cyber`, `1996 Polaroid`, `Raw 24-Bit`) are displayed as tactile swatch tiles with mini preview boxes and horizontal touch scrolling on mobile.
+
 ---
 
 ## 5. Prototype Assets to Preserve & Port
@@ -317,6 +337,13 @@ When building the production backend and views, extract and reuse the following 
     - Zero-retention media pipeline: ephemeral staging, direct Neocities upload, and immediate disk purge (`0 bytes` local storage).
     - Safe subdirectory publishing (`deploy_path`, default `'neogram'`) with strict non-destructive deletion safety invariant.
     - Production Dockerfile and docker-compose.yml for 1-click DigitalOcean deployment.
+13. **[x] Step 13 (MVP Complete): Mobile UX Ergonomics, First-Run Wizard, Filter Swatches & Quick Sharing**
+    - Responsive mobile bottom navigation bar (`.retro-mobile-nav`) on screens `< 768px` with 5 touch tabs (Studio, Archive, Config, Embeds, NIM).
+    - Automatic collapse of desktop topnav and bottom BSD/X11 taskbar on mobile to eliminate viewport crowding.
+    - Mobile NIM Instant Messenger drawer centered between header and bottom bar.
+    - 3-step First-Run Station Setup Wizard (`[:> SETUP_WIZARD.EXE]`) preventing first-time upload roadblocks.
+    - Tactile visual filter swatches with horizontal touch scrolling on mobile.
+    - One-click `[ 🔗 View Live ↗ ]` and `[ 📋 Copy Link ]` on all archive post cards with instant `[ ✓ COPIED! ]` feedback.
 
 ---
 

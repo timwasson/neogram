@@ -23,6 +23,10 @@
   &--alert {
     animation: aimBlink 1s infinite alternate;
   }
+
+  @media (max-width: 767px) {
+    display: none !important;
+  }
 }
 
 @keyframes aimBlink {
@@ -54,9 +58,20 @@
   font-size: 11px;
   color: var(--text-main);
 
+  @media (max-width: 767px) {
+    bottom: 58px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-width: none;
+    height: 75dvh;
+    max-height: calc(100dvh - 120px);
+  }
+
   &.hidden {
     display: none !important;
   }
+
 
   &__header {
     background: linear-gradient(90deg, #000080, #1084d0);
