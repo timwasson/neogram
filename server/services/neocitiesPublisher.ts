@@ -169,7 +169,20 @@ export async function deployToNeocities(userId: string): Promise<DeployResult> {
 
   const durationMs = Date.now() - startTime;
 
-  // 6. Record last deployment in database
+  // 6. Zero-Retention Disk Purge:
+  // Purge any uploaded media from the local disk so the Neogram server stores 0 bytes of user media
+  try {
+    const fsSync = await import('fs');
+    const uploadsDir = path.join(userOutputDir, 'uploads');
+    if (fsSync.existsSync(uploadsDir)) {
+      await fs.rm(uploadsDir, { recursive: true, force: true });
+      console.log(`[:> ZERO-RETENTION PURGE] Purged local media directory: ${uploadsDir}`);
+    }
+  } catch (purgeErr) {
+    console.warn('[:> ZERO-RETENTION WARNING] Could not purge local uploads dir:', purgeErr);
+  }
+
+  // 7. Record last deployment in database
   await query(
     `UPDATE users
      SET last_deployed_at = NOW(),
@@ -189,6 +202,46 @@ export async function deployToNeocities(userId: string): Promise<DeployResult> {
     durationMs,
     siteUrl: user.site_url,
   };
+}
+
+/**
+ * Deletes remote files from the user's Neocities site (e.g. when a post is deleted).
+ */
+export async function deleteFromNeocities(userId: string, filenames: string[]): Promise<boolean> {
+  if (!filenames || filenames.length === 0) return true;
+
+  try {
+    const userRes = await query(
+      `SELECT deployment_credentials FROM users WHERE id = $1`,
+      [userId]
+    );
+    if (userRes.rows.length === 0) return false;
+
+    const creds = decryptCredentials<NeocitiesCredentials>(userRes.rows[0].deployment_credentials);
+    if (!creds || !creds.apiKey) return false;
+
+    const formData = new FormData();
+    for (const file of filenames) {
+      // Strip any full URL or leading slashes for Neocities relative path
+      const cleanPath = file.replace(/^https?:\/\/[^\/]+\//, '').replace(/^\/+/, '');
+      formData.append('filenames[]', cleanPath);
+    }
+
+    const res = await fetch('https://neocities.org/api/delete', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${creds.apiKey.trim()}`,
+      },
+      body: formData,
+    });
+
+    const data = (await res.json()) as any;
+    console.log(`[:> NEOCITIES DELETE] Remote purge for user ${userId}:`, data.message || data.result);
+    return data.result === 'success';
+  } catch (err: any) {
+    console.warn(`[:> NEOCITIES DELETE ERROR] Failed to purge remote files:`, err.message);
+    return false;
+  }
 }
 
 /**

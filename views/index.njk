@@ -39,10 +39,10 @@
         <div id="uploadStudioSection">
           <!-- First-Run Neocities Setup Hint Banner (Shown if no API key configured) -->
           {% if not currentUser.hasApiKey %}
-            <div id="firstRunNotice" class="retro-alert retro-alert--info mb-4 flex items-center justify-between flex-wrap gap-2">
+            <div id="firstRunNotice" class="retro-alert retro-alert--error mb-4 flex items-center justify-between flex-wrap gap-2">
               <div class="flex items-center gap-2">
-                <span class="retro-alert__tag">[:&gt; FIRST RUN HINT]:</span>
-                <span>You are publishing locally. To push live to your personal static site automatically, connect your Neocities API key in <a href="#settings" onclick="if(window.switchDashboardTab) switchDashboardTab('settings')" class="text-bold underline text-amber">SETTINGS :&gt;</a></span>
+                <span class="retro-alert__tag">[!] ZERO-RETENTION POLICY:</span>
+                <span>Neogram does not retain user photos on server disk. All media is hosted directly on your personal static site. Please connect your Neocities API key in <a href="#settings" onclick="if(window.switchDashboardTab) switchDashboardTab('settings')" class="text-bold underline text-amber">SETTINGS :&gt;</a> to transmit live photos.</span>
               </div>
             </div>
           {% endif %}
@@ -1442,7 +1442,7 @@
       showAlert(
         'success',
         '[✓] CARRIER DISPATCH CONFIRMED:',
-        'Photo processed by Sharp and committed to PostgreSQL feed! Available live in the static gallery.',
+        data.message || 'Photo processed by Sharp and committed to your static gallery!',
         actions
       );
 

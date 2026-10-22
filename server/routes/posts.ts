@@ -168,20 +168,54 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
       return;
     }
 
+    // 1. Check user static host configuration
+    const userDbRes = await query('SELECT deployment_credentials, site_url, handle, auto_deploy FROM users WHERE id = $1', [user.id]);
+    const userRow = userDbRes.rows[0];
+    const { decryptCredentials } = await import('../utils/crypto');
+    const creds = decryptCredentials<any>(userRow?.deployment_credentials);
+    const hasApiKey = !!(creds && creds.apiKey);
+
+    if (!hasApiKey && process.env.NODE_ENV === 'production') {
+      res.status(400).json({
+        ok: false,
+        error: 'Neocities host not connected. Please connect your Neocities API key in Settings so Neogram can publish your photos directly to your personal site.'
+      });
+      return;
+    }
+
     const { caption, filterApplied, mood, webring, location, imageBase64 } = req.body;
     let processed;
 
+    // 2. Ephemeral staging directly in the user's isolated static build directory
+    const path = await import('path');
+    const userStaticDir = path.join(process.cwd(), 'dist', 'static-galleries', user.id);
+    const targetUploadsDir = hasApiKey ? path.join(userStaticDir, 'uploads') : undefined;
+
     if (req.file) {
       // Multipart file upload from disk or mobile camera
-      processed = await processImageBuffer(req.file.buffer, filterApplied);
+      processed = await processImageBuffer(req.file.buffer, filterApplied, targetUploadsDir);
     } else if (imageBase64) {
       // Base64 data URL from canvas or preset sprites
-      processed = await processBase64Image(imageBase64, filterApplied);
+      processed = await processBase64Image(imageBase64, filterApplied, targetUploadsDir);
     } else {
       res.status(400).json({ ok: false, error: 'No image provided. Please select an image or photo.' });
       return;
     }
 
+    // 3. Resolve live Neocities image URLs if host connected, or local path for dev
+    const siteBase = creds?.siteName
+      ? `https://${creds.siteName}.neocities.org`
+      : (userRow.site_url ? userRow.site_url.replace(/\/+$/, '') : `https://${user.handle || 'user'}.neocities.org`);
+
+    const finalImagePath = hasApiKey
+      ? `${siteBase}${processed.imagePath}`
+      : processed.imagePath;
+
+    const finalThumbPath = hasApiKey
+      ? `${siteBase}${processed.thumbnailPath}`
+      : processed.thumbnailPath;
+
+    // 4. Commit post record to PostgreSQL
     const insertResult = await query(
       `
       INSERT INTO posts (user_id, image_path, thumbnail_path, caption, filter_applied, mood, webring, location)
@@ -190,8 +224,8 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
     `,
       [
         user.id,
-        processed.imagePath,
-        processed.thumbnailPath,
+        finalImagePath,
+        finalThumbPath,
         caption || ':> Snapshot transmitted via Neogram workstation.',
         filterApplied || 'none',
         mood || null,
@@ -202,21 +236,23 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
 
     const newPost = insertResult.rows[0];
 
-    // Trigger auto-deploy if enabled, otherwise rebuild static gallery in background
-    const userRes = await query('SELECT auto_deploy FROM users WHERE id = $1', [user.id]);
-    if (userRes.rows.length > 0 && userRes.rows[0].auto_deploy) {
-      import('../services/neocitiesPublisher')
-        .then((m) => m.triggerAutoDeployIfEnabled(user.id))
-        .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
+    // 5. Build static gallery and deploy immediately to Neocities if connected
+    if (hasApiKey) {
+      const { deployToNeocities } = await import('../services/neocitiesPublisher');
+      // deployToNeocities automatically builds 11ty, uploads all assets (HTML, CSS, WebP images),
+      // and purges the local uploads directory upon confirmation!
+      await deployToNeocities(user.id);
+      console.log(`[:> ZERO-RETENTION PIPELINE] Deployed live to Neocities and purged local disk assets for user ${user.id}`);
     } else {
-      import('../services/staticBuilder')
-        .then((m) => m.buildStaticGallery({ userId: user.id }))
-        .catch((err) => console.error('[:> 11ty] Background build error:', err));
+      const { buildStaticGallery } = await import('../services/staticBuilder');
+      await buildStaticGallery({ userId: user.id });
     }
 
     res.status(201).json({
       ok: true,
-      message: 'Photo published successfully via Neogram pipeline.',
+      message: hasApiKey
+        ? 'Photo published live to your Neocities site!'
+        : 'Photo published successfully via Neogram pipeline.',
       post: {
         id: newPost.id,
         userId: newPost.user_id,
@@ -420,7 +456,18 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     // 2. Delete post row from PostgreSQL (comments cascade delete)
     await query('DELETE FROM posts WHERE id = $1', [id]);
 
-    // 3. Remove files from public/uploads if they exist
+    // 3. Purge remote files from Neocities if post was hosted on Neocities
+    if (image_path && image_path.includes('.neocities.org/uploads/')) {
+      const { deleteFromNeocities } = await import('../services/neocitiesPublisher');
+      const imgRel = image_path.substring(image_path.indexOf('/uploads/'));
+      const thumbRel = thumbnail_path && thumbnail_path.includes('/uploads/') ? thumbnail_path.substring(thumbnail_path.indexOf('/uploads/')) : null;
+      const filesToDelete = [imgRel, thumbRel].filter(Boolean) as string[];
+      deleteFromNeocities(user.id, filesToDelete).catch((err) => {
+        console.warn('[:> NEOCITIES DELETE] Warning: could not purge remote files:', err);
+      });
+    }
+
+    // Remove legacy local files from public/uploads if they exist
     const fs = await import('fs/promises');
     const path = await import('path');
 

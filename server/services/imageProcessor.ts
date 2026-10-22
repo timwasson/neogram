@@ -18,6 +18,8 @@ export function ensureUploadDirs() {
 export interface ProcessedImageResult {
   imagePath: string;
   thumbnailPath: string;
+  imageFileName: string;
+  thumbFileName: string;
   width: number;
   height: number;
 }
@@ -25,19 +27,34 @@ export interface ProcessedImageResult {
 /**
  * High-performance image processing pipeline using Sharp.
  * Converts input buffer or base64 into optimized WebP images (1200px main + 400px thumb).
+ * If targetUploadsDir is provided (e.g. user isolated static directory), writes there.
+ * Otherwise defaults to public/uploads.
  */
 export async function processImageBuffer(
   inputBuffer: Buffer,
-  filterName: string = 'none'
+  filterName: string = 'none',
+  targetUploadsDir?: string
 ): Promise<ProcessedImageResult> {
-  ensureUploadDirs();
-
   const fileId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   const imageFileName = `${fileId}.webp`;
   const thumbFileName = `${fileId}-thumb.webp`;
 
-  const imageDiskPath = path.join(IMAGES_DIR, imageFileName);
-  const thumbDiskPath = path.join(THUMBS_DIR, thumbFileName);
+  let imagesDir: string;
+  let thumbsDir: string;
+
+  if (targetUploadsDir) {
+    imagesDir = path.join(targetUploadsDir, 'images');
+    thumbsDir = path.join(targetUploadsDir, 'thumbs');
+    await fs.promises.mkdir(imagesDir, { recursive: true });
+    await fs.promises.mkdir(thumbsDir, { recursive: true });
+  } else {
+    ensureUploadDirs();
+    imagesDir = IMAGES_DIR;
+    thumbsDir = THUMBS_DIR;
+  }
+
+  const imageDiskPath = path.join(imagesDir, imageFileName);
+  const thumbDiskPath = path.join(thumbsDir, thumbFileName);
 
   // Initialize Sharp pipeline with auto-rotation based on EXIF orientation tags
   let pipeline = sharp(inputBuffer).rotate();
@@ -72,6 +89,8 @@ export async function processImageBuffer(
   return {
     imagePath: `/uploads/images/${imageFileName}`,
     thumbnailPath: `/uploads/thumbs/${thumbFileName}`,
+    imageFileName,
+    thumbFileName,
     width: metadata.width || 800,
     height: metadata.height || 600,
   };
@@ -82,7 +101,8 @@ export async function processImageBuffer(
  */
 export async function processBase64Image(
   source: string,
-  filterName: string = 'none'
+  filterName: string = 'none',
+  targetUploadsDir?: string
 ): Promise<ProcessedImageResult> {
   let buffer: Buffer;
 
@@ -92,7 +112,7 @@ export async function processBase64Image(
     const diskPath = path.join(process.cwd(), 'public', relativePath);
     if (fs.existsSync(diskPath)) {
       buffer = await fs.promises.readFile(diskPath);
-      return processImageBuffer(buffer, filterName);
+      return processImageBuffer(buffer, filterName, targetUploadsDir);
     }
   }
 
@@ -107,7 +127,7 @@ export async function processBase64Image(
     buffer = Buffer.from(source, 'base64');
   }
 
-  return processImageBuffer(buffer, filterName);
+  return processImageBuffer(buffer, filterName, targetUploadsDir);
 }
 
 /**
