@@ -1,0 +1,150 @@
+{% extends "layouts/base.njk" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-4 md:p-6 w-full font-mono">
+
+  <!-- Header Card / Window Frame -->
+  <div class="retro-card p-0 mb-6">
+    <div class="window-header flex items-center justify-between p-2">
+      <div class="flex items-center gap-2">
+        <span>📜</span>
+        <span class="font-bold">[:&gt; TERMS_OF_SERVICE.TXT - Carrier &amp; User Program Agreement]</span>
+      </div>
+      <a href="/" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2 text-white">
+        [ &lt; Return to Station ]
+      </a>
+    </div>
+
+    <div class="p-4 md:p-6 text-xs md:text-sm leading-relaxed space-y-6">
+
+      <!-- Effective Date Bar -->
+      <div class="bg-black border border-main p-3 text-prompt flex items-center justify-between flex-wrap gap-2 text-xs">
+        <div><strong>DOCUMENT ID:</strong> NEOGRAM-TOS-2026.1</div>
+        <div><strong>EFFECTIVE DATE:</strong> October 22, 2026</div>
+        <div><strong>SERVICE URL:</strong> https://neogram.club</div>
+      </div>
+
+      <!-- Section 1 -->
+      <section class="space-y-2">
+        <h2 class="text-prompt text-base font-bold uppercase tracking-wider border-b border-main pb-1">
+          1. Acceptance of Terms
+        </h2>
+        <p>
+          Welcome to <strong>Neogram</strong> ("Service", "we", "us", or "our"), hosted at <a href="https://neogram.club" class="text-mac underline">https://neogram.club</a>. By accessing, establishing a dial-up/terminal session, using our mobile Progressive Web App (PWA), utilizing our embeddable widgets, or requesting one-time authentication codes via email or SMS, you agree to be bound by these Terms of Service ("Terms") and our <a href="/privacy" class="text-mac underline">Privacy Policy</a>. If you do not agree to these Terms, you must discontinue use of the Service immediately.
+        </p>
+      </section>
+
+      <!-- Section 2 -->
+      <section class="space-y-2">
+        <h2 class="text-prompt text-base font-bold uppercase tracking-wider border-b border-main pb-1">
+          2. Description of the Service
+        </h2>
+        <p>
+          Neogram is a lightweight, privacy-first retro web publishing engine and social suite designed for personal static websites (such as Neocities, GitHub Pages, or self-hosted static servers). Core functions include:
+        </p>
+        <ul class="list-disc list-inside space-y-1 pl-2 text-muted">
+          <li><strong>Mobile-to-Static Publishing Engine:</strong> Capturing photos, applying vintage shaders/filters, and compiling static gallery files to user-configured static hosts.</li>
+          <li><strong>Centralized Social Widgets:</strong> Zero-dependency embeddable feeds, reaction ledgers, and visitor guestbooks.</li>
+          <li><strong>Neogram Instant Messenger (NIM):</strong> Ephemeral, client-side retained real-time chat.</li>
+          <li><strong>Dynamic Web Hit Counters:</strong> Retro SVG counter widgets rendered live without user tracking.</li>
+        </ul>
+      </section>
+
+      <!-- Section 3: SMS Terms (Twilio / Carrier Compliance) -->
+      <section class="space-y-3 bg-black border-2 border-prompt p-4">
+        <div class="flex items-center gap-2 text-prompt font-bold text-sm">
+          <span>📡</span>
+          <h3>3. SMS / Text Messaging Program Terms (Authentication &amp; Security)</h3>
+        </div>
+
+        <p>
+          Neogram provides an optional dual-channel passwordless authentication service allowing creators to authenticate their workstation sessions via Short Message Service (SMS) text messages.
+        </p>
+
+        <div class="space-y-2 pl-2">
+          <p>
+            <strong>3.1 Program Name &amp; Purpose:</strong> The program is designated as <em>Neogram Authentication Services</em>. Text messages sent under this program consist exclusively of transactional, single-use, 6-digit numeric one-time password (OTP) authorization codes requested by the user to securely log in to their account. No promotional, advertising, or marketing text messages are ever transmitted.
+          </p>
+          <p>
+            <strong>3.2 Opt-In Mechanism:</strong> Users expressly opt in to receive verification text messages by manually inputting their mobile phone number into the Neogram login or registration prompt at <a href="https://neogram.club/login" class="text-mac underline">https://neogram.club/login</a> and affirmatively clicking the <em>"CONNECT &amp; TRANSMIT OTP"</em> button. Consent to receive authentication text messages is not a condition of purchasing any good or service.
+          </p>
+          <p>
+            <strong>3.3 Message Frequency:</strong> Message frequency is strictly transactional. Exactly <strong>one (1) SMS message</strong> containing a verification code is dispatched per individual login or verification request initiated by the user.
+          </p>
+          <p>
+            <strong>3.4 Cost &amp; Rates:</strong> <strong>Message and data rates may apply</strong> for any messages sent to you from us and to us from you. Depending on your personal mobile phone plan, your wireless carrier may charge you for receiving text messages. Neogram imposes no additional fee.
+          </p>
+          <p>
+            <strong>3.5 Customer Care &amp; HELP:</strong> If you experience issues with our messaging service or require assistance, you may reply with the keyword <strong>HELP</strong> to any message you receive from us, or contact our team directly via email at <a href="mailto:auth@neogram.club" class="text-prompt underline">auth@neogram.club</a> or through our website at <a href="https://neogram.club" class="text-mac underline">https://neogram.club</a>.
+          </p>
+          <p>
+            <strong>3.6 Cancellation &amp; STOP:</strong> You can cancel the SMS service at any time. Simply text <strong>STOP</strong> in response to any message received from our number. Upon receiving your STOP command, we will send an unsubscribe confirmation message and will transmit no further text messages to that number. You may continue to authenticate your station using email-based OTP verification.
+          </p>
+          <p>
+            <strong>3.7 Carrier Liability Disclaimer:</strong> Mobile carriers (including but not limited to AT&amp;T, T-Mobile, Verizon, Sprint, and other wireless service providers) are not liable for delayed or undelivered messages.
+          </p>
+        </div>
+      </section>
+
+      <!-- Section 4 -->
+      <section class="space-y-2">
+        <h2 class="text-prompt text-base font-bold uppercase tracking-wider border-b border-main pb-1">
+          4. Zero Server Retention &amp; User Content Ownership
+        </h2>
+        <p>
+          <strong>Ownership:</strong> You retain full and exclusive copyright and intellectual property rights over all images, photographs, captions, and text you process or transmit through Neogram.
+        </p>
+        <p>
+          <strong>Zero Media Retention Contract:</strong> The Neogram server operates strictly as a transient pipeline compiler. Images uploaded for static publishing are processed in ephemeral memory/temporary staging, dispatched directly to your personal remote static host (such as Neocities or GitHub), and <strong>immediately purged from local server disk</strong>. Neogram maintains 0 MB of permanent media storage.
+        </p>
+      </section>
+
+      <!-- Section 5 -->
+      <section class="space-y-2">
+        <h2 class="text-prompt text-base font-bold uppercase tracking-wider border-b border-main pb-1">
+          5. Acceptable Use
+        </h2>
+        <p>
+          You agree not to use the Service to upload, transmit, or publish any material that is unlawful, defamatory, harassing, sexually explicit, abusive, or that infringes upon third-party intellectual property rights. You agree not to abuse or attempt to circumvent our rate limiting, API security, or reverse engineering protections.
+        </p>
+      </section>
+
+      <!-- Section 6 -->
+      <section class="space-y-2">
+        <h2 class="text-prompt text-base font-bold uppercase tracking-wider border-b border-main pb-1">
+          6. Disclaimer of Warranties &amp; Limitation of Liability
+        </h2>
+        <p>
+          The Service is provided on an <strong>"AS IS"</strong> and <strong>"AS AVAILABLE"</strong> basis without warranties of any kind, whether express or implied. Under no circumstances shall Neogram or its maintainers be liable for any indirect, incidental, special, consequential, or punitive damages arising out of your use or inability to use the Service.
+        </p>
+      </section>
+
+      <!-- Section 7 -->
+      <section class="space-y-2">
+        <h2 class="text-prompt text-base font-bold uppercase tracking-wider border-b border-main pb-1">
+          7. Contact Information
+        </h2>
+        <p>
+          For inquiries regarding these Terms or our messaging practices, contact us at:
+        </p>
+        <div class="bg-black border border-main p-3 text-xs space-y-1">
+          <div><strong>OPERATOR:</strong> Neogram Network Operations</div>
+          <div><strong>EMAIL:</strong> <a href="mailto:auth@neogram.club" class="text-prompt underline">auth@neogram.club</a></div>
+          <div><strong>WEBSITE:</strong> <a href="https://neogram.club" class="text-mac underline">https://neogram.club</a></div>
+        </div>
+      </section>
+
+      <!-- Footer Quick Links -->
+      <div class="pt-4 border-t border-main flex items-center justify-between text-xs text-muted flex-wrap gap-2">
+        <div>&copy; 2026 Neogram. All rights reserved.</div>
+        <div class="flex items-center gap-3">
+          <a href="/privacy" class="text-mac underline hover:text-white">Privacy Policy &gt;&gt;</a>
+          <a href="/login" class="text-prompt underline hover:text-white">Terminal Login &gt;&gt;</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

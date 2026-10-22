@@ -121,6 +121,20 @@ export function createApp(): Express {
     res.redirect('/login');
   });
 
+  app.get('/terms', (_req: Request, res: Response) => {
+    res.render('terms', {
+      title: 'Neogram - Terms of Service & SMS Program Terms',
+      activeView: 'terms',
+    });
+  });
+
+  app.get('/privacy', (_req: Request, res: Response) => {
+    res.render('privacy', {
+      title: 'Neogram - Privacy Policy & Cyberspace Data Protection',
+      activeView: 'privacy',
+    });
+  });
+
   // 6. 404 Handler
   app.use((req: Request, res: Response) => {
     if (req.accepts('html') && !req.path.startsWith('/api')) {
