@@ -173,7 +173,7 @@ All embeddable widgets must render standard HTML markup with consistent BEM clas
 
 ### 4.4 Styling Architecture: Pure Custom Utilities & BEM (Strictly NO Tailwind)
 - **Tailwind CSS is prohibited:** Do not introduce Tailwind CLI, Tailwind directives, or Tailwind dependencies for views or embeds.
-- **Custom Utility Library:** Styling is powered by a zero-dependency Vanilla CSS framework ([public/css/neogram.css](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/public/css/neogram.css)) compiled from Dart Sass ([src/styles/main.scss](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/src/styles/main.scss)).
+- **Custom Utility Library:** Styling is powered by a zero-dependency Vanilla CSS framework (`public/css/neogram.css`) compiled from Dart Sass (`src/styles/main.scss`).
 - **CSS Variables First:** Colors, surfaces, borders, and typography must resolve through `--bg-desktop`, `--surface-window`, `--surface-title`, `--text-main`, `--border-main`, `--accent-prompt`, `--accent-mac`, `--accent-amber`, and `--code-bg`.
 - **Reusable Component Classes:** Buttons (`.pixel-btn`, `.pixel-btn--yellow`, `.pixel-btn--green`, etc.), boxes (`.pixel-box`, `.window-header`), alerts (`.retro-alert`, `.retro-alert--error`, `.retro-alert--success`, `.retro-alert--info`), and telemetry (`.baud-progress-bar`).
 - **Standardized Utility Classes:** Layout (`flex`, `flex-col`, `flex-row`, `items-center`, `justify-between`, `gap-1` through `gap-4`), spacing (`p-*`, `m-*`), text (`text-xs`, `text-sm`, `font-mono`, `text-bold`, `text-center`), and widths (`w-full`, `max-w-*`).
@@ -271,10 +271,10 @@ All embeddable widgets must render standard HTML markup with consistent BEM clas
 ## 5. Prototype Assets to Preserve & Port
 
 When building the production backend and views, extract and reuse the following tested prototype assets:
-- **Audio Synthesis Engine:** [src/utils/audio.ts](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/src/utils/audio.ts) / [public/js/retroAudio.js](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/public/js/retroAudio.js) (Web Audio API sound generator for clicks, shutters, success chimes, and dial-up tones).
-- **CSS Tokens & Design System:** [src/styles/](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/src/styles/) (`.pixel-box`, `.pixel-btn`, `.mac-pinstripes`, CRT scanline shaders, color tokens).
-- **SVG Graphics & 88x31 Badges:** [src/utils/sampleData.ts](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/src/utils/sampleData.ts) (Retro workstation SVGs, pixel art icons, badge definitions).
-- **Embed Code Formats:** [embed/](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/embed/) (HTML snippets, iframe fallbacks, and CSS inclusion patterns).
+- **Audio Synthesis Engine:** `src/utils/audio.ts` / `public/js/retroAudio.js` (Web Audio API sound generator for clicks, shutters, success chimes, and dial-up tones).
+- **CSS Tokens & Design System:** `src/styles/` (`.pixel-box`, `.pixel-btn`, `.mac-pinstripes`, CRT scanline shaders, color tokens).
+- **SVG Graphics & 88x31 Badges:** `src/utils/sampleData.ts` (Retro workstation SVGs, pixel art icons, badge definitions).
+- **Embed Code Formats:** `embed/` (HTML snippets, iframe fallbacks, and CSS inclusion patterns).
 
 ---
 
@@ -394,7 +394,7 @@ Migrations run automatically on server start via `server/db/migrate.ts`.
 Database connection resolves via `DATABASE_URL` in `.env`:
 ```bash
 # Default development database:
-DATABASE_URL=postgres://timwasson@localhost:5432/neogram
+DATABASE_URL=postgres://neogram:neogram_secret@localhost:5432/neogram_db
 ```
 
 ### 7.6 Required Environment Variables (`.env`)

@@ -4,7 +4,22 @@ dist/
 coverage/
 .DS_Store
 *.log
-.env*
+.env
+.env.*
+.env*.local
 !.env.example
+*.pem
+*.key
+*.cert
 .antigravity/
 .vscode/
+
+# User uploads & ephemeral static builds
+public/uploads/images/*
+!public/uploads/images/.gitkeep
+public/uploads/thumbs/*
+!public/uploads/thumbs/.gitkeep
+public/uploads/avatars/*
+!public/uploads/avatars/.gitkeep
+dist/static-galleries/
+
