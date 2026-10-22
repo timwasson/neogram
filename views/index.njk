@@ -19,20 +19,6 @@
       </div>
 
       <div class="p-5">
-        <!-- Station Identity Row -->
-        <div class="auth-node-box p-3 mb-4">
-          <div class="flex justify-between items-center flex-wrap gap-2">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-bold text-prompt">[:&gt; LOGGED-IN CREATOR]:</span>
-              <span id="headerUserHandle" class="font-bold text-white">@{{ currentUser.handle }}</span>
-              <span class="text-xs text-mac font-mono font-bold bg-black px-1.5 py-0.5 border border-main" title="Immutable ICQ-style static node ID">[UIN: #{{ currentUser.uin or '100101' }}]</span>
-              <span class="text-muted text-xs">({{ currentUser.email }})</span>
-            </div>
-            <div class="text-xs text-muted">
-              Static Host: <code id="headerSiteUrl" class="text-prompt">{{ currentUser.siteUrl or 'http://' + currentUser.handle + '.neocities.org' }}</code>
-            </div>
-          </div>
-        </div>
 
 
         <!-- TAB 1: UPLOAD STUDIO SECTION -->
@@ -2095,6 +2081,9 @@
       var headerHandle = document.getElementById('headerUserHandle');
       if (headerHandle) headerHandle.textContent = '@' + data.user.handle;
 
+      var dropdownHandle = document.getElementById('dropdownUserHandle');
+      if (dropdownHandle) dropdownHandle.textContent = '@' + data.user.handle;
+
       var avatarPreview = document.getElementById('settingsAvatarPreview');
       if (avatarPreview) avatarPreview.src = data.user.avatarPath;
 
@@ -2103,6 +2092,14 @@
 
       var headerSiteUrl = document.getElementById('headerSiteUrl');
       if (headerSiteUrl) headerSiteUrl.textContent = 'https://' + data.user.handle + '.neocities.org';
+
+      var dropdownSiteUrl = document.getElementById('dropdownSiteUrl');
+      if (dropdownSiteUrl) {
+        var newSiteUrl = 'https://' + data.user.handle + '.neocities.org';
+        dropdownSiteUrl.href = newSiteUrl;
+        var siteText = dropdownSiteUrl.querySelector('span');
+        if (siteText) siteText.textContent = newSiteUrl;
+      }
 
       var fileInput = document.getElementById('avatarFileInput');
       if (fileInput) fileInput.value = '';

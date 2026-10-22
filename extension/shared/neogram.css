@@ -247,6 +247,10 @@ body {
   user-select: none;
 }
 
+.select-all {
+  user-select: all;
+}
+
 /* Visibility, Opacity & Cursors */
 .opacity-50 {
   opacity: 0.5;
@@ -518,6 +522,10 @@ body {
 
 .font-led {
   font-family: var(--font-led);
+}
+
+.text-xxs {
+  font-size: 10px;
 }
 
 .text-xs {
@@ -892,6 +900,41 @@ body {
   border-color: #384252;
   color: #e6edf3;
   box-shadow: 4px 4px 0px 0px #000000;
+}
+
+/* Pixel Badge Component */
+.pixel-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid var(--border-main);
+  background: #000000;
+  color: #ffffff;
+  line-height: 1.2;
+  user-select: none;
+}
+.pixel-badge--cyan {
+  background-color: #002b36;
+  color: var(--accent-mac);
+  border-color: var(--accent-mac);
+}
+.pixel-badge--magenta {
+  background-color: #2b002b;
+  color: #ff79c6;
+  border-color: #ff79c6;
+}
+.pixel-badge--amber {
+  background-color: #2b1f00;
+  color: var(--accent-amber);
+  border-color: var(--accent-amber);
+}
+.pixel-badge--green {
+  background-color: #002b0f;
+  color: var(--accent-prompt);
+  border-color: var(--accent-prompt);
 }
 
 /**
@@ -1312,6 +1355,49 @@ body {
   outline: none !important;
 }
 
+/* -------------------------------------------------------------
+   Retro User Station Account Dropdown Menu
+   ------------------------------------------------------------- */
+.retro-user-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.retro-user-menu .pixel-btn {
+  height: 30px;
+}
+
+.retro-user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  max-width: calc(100vw - 20px);
+  z-index: 10000;
+  background-color: var(--surface-window);
+  border: 3px solid var(--border-main);
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.9);
+  animation: dropdown-pop 0.12s ease-out;
+}
+.dark .retro-user-dropdown {
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+.retro-user-dropdown__header {
+  background: var(--surface-title);
+  color: #ffffff;
+  user-select: none;
+}
+
+@keyframes dropdown-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 /* Mobile Viewport Adjustments for Top Navigation */
 @media (max-width: 767px) {
   .retro-topnav {
@@ -1419,6 +1505,36 @@ body {
   background: var(--surface-card);
   border: 2px solid var(--border-main);
   padding: 2px 8px;
+}
+.retro-taskbar__tray-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--surface-card);
+  border: 2px solid var(--border-main);
+  padding: 2px 8px;
+  height: 24px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--text-main);
+  cursor: pointer;
+  box-shadow: 2px 2px 0px 0px #000000;
+  user-select: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.retro-taskbar__tray-btn:hover {
+  filter: brightness(1.15);
+  border-color: var(--accent-prompt);
+}
+.retro-taskbar__tray-btn:active {
+  box-shadow: 1px 1px 0px 0px #000000;
+  transform: translate(1px, 1px);
+}
+.retro-taskbar__tray-btn.is-muted {
+  color: var(--accent-crimson);
+  border-color: var(--accent-crimson);
 }
 @media (max-width: 767px) {
   .retro-taskbar {

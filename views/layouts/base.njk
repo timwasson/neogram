@@ -96,25 +96,124 @@
           <span>💾 INSTALL APP :&gt;</span>
         </button>
 
-        <!-- Theme Toggle -->
-        <button id="themeToggleBtn" class="pixel-btn pixel-btn--sm" title="Toggle Dark/Light Mode">
-          <span id="themeLabel" class="text-sm">☾</span>
-        </button>
-
-        <!-- Sound Toggle -->
-        <button id="soundToggleBtn" class="pixel-btn pixel-btn--sm" title="Toggle 8-Bit Audio">
-          <span id="soundLabel" class="text-sm">♫</span>
-        </button>
-
         {% if currentUser %}
-          <div class="retro-taskbar__panel text-xs font-bold px-2 py-1">
-            <span class="text-prompt">●</span>
-            <span id="navUserHandle">@{{ currentUser.handle }}</span>
+          <!-- User Station Account Menu Dropdown -->
+          <div class="retro-user-menu" id="retroUserMenu">
+            <button
+              type="button"
+              id="userMenuBtn"
+              class="pixel-btn pixel-btn--sm flex items-center gap-1.5 font-bold text-xs"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-controls="userDropdownMenu"
+              title="Station Account Menu (@{{ currentUser.handle }})"
+            >
+              <span class="text-prompt">●</span>
+              <span id="navUserHandle" class="truncate max-w-24 sm:max-w-36">@{{ currentUser.handle }}</span>
+              <span class="text-xs" id="userMenuCaret">▾</span>
+            </button>
+
+            <!-- Dropdown Menu Window -->
+            <div
+              id="userDropdownMenu"
+              class="retro-user-dropdown pixel-box hidden"
+              role="region"
+              aria-label="User station details"
+            >
+              <!-- Dropdown Header -->
+              <div class="window-header flex items-center justify-between text-xs py-1 px-2.5">
+                <div class="flex items-center gap-1.5">
+                  <span>👤</span>
+                  <span class="font-bold uppercase tracking-wider text-xs">STATION IDENTITY</span>
+                </div>
+                <span class="text-xs text-prompt font-mono" id="dropdownUserUin" title="Immutable ICQ Static Node ID">
+                  #{{ currentUser.uin or '100101' }}
+                </span>
+              </div>
+
+              <!-- Dropdown Body -->
+              <div class="p-3 flex flex-col gap-2.5 text-xs font-mono">
+                <!-- User Handle & UIN row -->
+                <div class="flex items-center justify-between gap-2 border-b border-main pb-2">
+                  <span class="text-white font-bold text-sm tracking-wide truncate" id="dropdownUserHandle">
+                    @{{ currentUser.handle }}
+                  </span>
+                  <span class="pixel-badge pixel-badge--cyan text-xxs font-bold shrink-0">
+                    UIN: #{{ currentUser.uin or '100101' }}
+                  </span>
+                </div>
+
+                <!-- Email / Phone Identifier -->
+                <div class="flex flex-col gap-0.5">
+                  <span class="text-muted text-xxs uppercase tracking-wider">LOGIN / CONTACT:</span>
+                  <span class="text-prompt font-bold truncate select-all" id="dropdownUserEmail" title="{{ currentUser.email }}">
+                    {{ currentUser.email }}
+                  </span>
+                </div>
+
+                <!-- Static Host -->
+                <div class="flex flex-col gap-0.5">
+                  <span class="text-muted text-xxs uppercase tracking-wider">STATIC HOST:</span>
+                  <a
+                    href="{{ currentUser.siteUrl or 'https://' + currentUser.handle + '.neocities.org' }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-mac hover:underline truncate select-all flex items-center gap-1 font-bold"
+                    id="dropdownSiteUrl"
+                    title="Open host in new window"
+                  >
+                    <span class="truncate">{{ currentUser.siteUrl or 'https://' + currentUser.handle + '.neocities.org' }}</span>
+                    <span class="text-xxs shrink-0">↗</span>
+                  </a>
+                </div>
+
+                <!-- Appearance / Theme Selector Row -->
+                <div class="flex items-center justify-between gap-2 pt-2 border-t border-main">
+                  <span class="text-muted text-xxs uppercase tracking-wider">APPEARANCE:</span>
+                  <button
+                    type="button"
+                    id="themeToggleBtn"
+                    class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2 flex items-center gap-1.5"
+                    title="Toggle Dark / Light Mode"
+                  >
+                    <span id="themeLabel" class="text-xs">☾</span>
+                    <span id="themeTextLabel" class="text-xxs font-mono font-bold uppercase">DARK MODE</span>
+                  </button>
+                </div>
+
+                <!-- Action Buttons: Settings & Logout -->
+                <div class="flex flex-col gap-1.5 pt-2 border-t border-main">
+                  <a
+                    href="/#settings"
+                    id="dropdownSettingsLink"
+                    class="pixel-btn pixel-btn--sm text-xs justify-center w-full"
+                    onclick="if(typeof switchDashboardTab==='function'){switchDashboardTab('settings', event);} if(typeof toggleUserMenu==='function'){toggleUserMenu(false);} if(window.retroAudio) retroAudio.playClick();"
+                  >
+                    <span>⚙&#xFE0E;</span> <span>Station Settings</span>
+                  </a>
+
+                  <a
+                    href="/logout"
+                    id="dropdownLogoutBtn"
+                    class="pixel-btn pixel-btn--danger pixel-btn--sm text-xs justify-center w-full font-bold"
+                    onclick="if(window.retroAudio) retroAudio.playClick();"
+                  >
+                    <span>✕</span> <span>LOGOUT</span>
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
-          <a href="/logout" class="pixel-btn pixel-btn--danger pixel-btn--sm" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>✕ LOGOUT</span>
-          </a>
         {% else %}
+          <!-- Theme Toggle (Guest Mode) -->
+          <button
+            type="button"
+            id="themeToggleBtn"
+            class="pixel-btn pixel-btn--sm"
+            title="Toggle Dark / Light CRT Mode"
+          >
+            <span id="themeLabel" class="text-sm">☾</span>
+          </button>
           <a href="/login" class="pixel-btn pixel-btn--yellow font-bold {% if activeView == 'login' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
             <span>🔑 LOGIN :&gt;</span>
           </a>
@@ -145,16 +244,31 @@
         </div>
       </div>
 
-      <div class="retro-taskbar__panel text-xs font-mono">
-        <span class="text-prompt font-bold">● BSD/X11</span>
-        <span class="text-muted">|</span>
-        {% if currentUser %}
-          <span class="text-prompt font-bold">AUTH: @{{ currentUser.handle }}</span>
-        {% else %}
-          <span>AUTH: AWAITING_CARRIER</span>
-        {% endif %}
-        <span class="text-muted">|</span>
-        <span id="taskbarCom2Panel">COM2: 28.8k V.34</span>
+      <!-- Right: System Tray with BSD/X11, COM2, and PC-Style Volume/Mute Control -->
+      <div class="flex items-center gap-1.5">
+        <div class="retro-taskbar__panel text-xs font-mono">
+          <span class="text-prompt font-bold">● BSD/X11</span>
+          <span class="text-muted">|</span>
+          {% if currentUser %}
+            <span class="text-prompt font-bold">AUTH: @{{ currentUser.handle }}</span>
+          {% else %}
+            <span>AUTH: AWAITING_CARRIER</span>
+          {% endif %}
+          <span class="text-muted">|</span>
+          <span id="taskbarCom2Panel">COM2: 28.8k V.34</span>
+        </div>
+
+        <!-- PC-Style Systray Volume / Audio Control Button -->
+        <button
+          type="button"
+          id="soundToggleBtn"
+          class="retro-taskbar__tray-btn"
+          title="PC Audio System: Click to mute/unmute 8-bit sound"
+          aria-label="Toggle audio volume"
+        >
+          <span id="soundLabel" class="text-xs font-bold">♫</span>
+          <span id="soundTextLabel" class="text-xxs font-mono font-bold uppercase">AUDIO: ON</span>
+        </button>
       </div>
     </footer>
 
@@ -163,44 +277,128 @@
       (function() {
         var soundBtn = document.getElementById('soundToggleBtn');
         var soundLabel = document.getElementById('soundLabel');
+        var soundTextLabel = document.getElementById('soundTextLabel');
         var themeBtn = document.getElementById('themeToggleBtn');
         var themeLabel = document.getElementById('themeLabel');
+        var themeTextLabel = document.getElementById('themeTextLabel');
+
+        // Function to update sound UI elements
+        function updateSoundUI(isOn) {
+          if (window.retroAudio) window.retroAudio.enabled = isOn;
+          if (soundLabel) soundLabel.textContent = isOn ? '♫' : '⊘';
+          if (soundTextLabel) soundTextLabel.textContent = isOn ? 'AUDIO: ON' : 'MUTED';
+          if (soundBtn) {
+            soundBtn.title = isOn ? 'PC Audio: ON (Click to Mute)' : 'PC Audio: MUTED (Click to Unmute)';
+            if (isOn) {
+              soundBtn.classList.remove('is-muted');
+            } else {
+              soundBtn.classList.add('is-muted');
+            }
+          }
+        }
 
         // Restore sound setting if previously saved
         var soundOn = localStorage.getItem('neogram_sound') !== 'muted';
-        if (window.retroAudio) window.retroAudio.enabled = soundOn;
-        if (soundLabel) soundLabel.textContent = soundOn ? '♫' : '⊘';
-
-        // Restore theme setting if previously saved
-        var savedTheme = localStorage.getItem('neogram_theme');
-        if (savedTheme === 'light') {
-          document.documentElement.classList.remove('dark');
-          if (themeLabel) themeLabel.textContent = '☼';
-        } else if (savedTheme === 'dark') {
-          document.documentElement.classList.add('dark');
-          if (themeLabel) themeLabel.textContent = '☾';
-        }
+        updateSoundUI(soundOn);
 
         if (soundBtn) {
-          soundBtn.addEventListener('click', function() {
+          soundBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
             soundOn = !soundOn;
-            if (window.retroAudio) window.retroAudio.enabled = soundOn;
             localStorage.setItem('neogram_sound', soundOn ? 'enabled' : 'muted');
-            if (soundLabel) soundLabel.textContent = soundOn ? '♫' : '⊘';
-            if (soundOn && window.retroAudio) window.retroAudio.playClick();
+            updateSoundUI(soundOn);
+            if (soundOn && window.retroAudio && typeof window.retroAudio.playClick === 'function') {
+              window.retroAudio.playClick();
+            }
           });
         }
 
+        // Function to update theme UI elements
+        function updateThemeUI(isDark) {
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            if (themeLabel) themeLabel.textContent = '☾';
+            if (themeTextLabel) themeTextLabel.textContent = 'DARK MODE';
+          } else {
+            document.documentElement.classList.remove('dark');
+            if (themeLabel) themeLabel.textContent = '☼';
+            if (themeTextLabel) themeTextLabel.textContent = 'LIGHT MODE';
+          }
+        }
+
+        // Restore theme setting
+        var savedTheme = localStorage.getItem('neogram_theme');
+        var isDarkMode = savedTheme !== 'light';
+        updateThemeUI(isDarkMode);
+
         if (themeBtn) {
-          themeBtn.addEventListener('click', function() {
-            if (window.retroAudio) window.retroAudio.playClick();
-            var isDark = document.documentElement.classList.toggle('dark');
-            localStorage.setItem('neogram_theme', isDark ? 'dark' : 'light');
-            if (themeLabel) themeLabel.textContent = isDark ? '☾' : '☼';
+          themeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (window.retroAudio && typeof window.retroAudio.playClick === 'function') {
+              window.retroAudio.playClick();
+            }
+            var currentlyDark = document.documentElement.classList.contains('dark');
+            var nextDark = !currentlyDark;
+            localStorage.setItem('neogram_theme', nextDark ? 'dark' : 'light');
+            updateThemeUI(nextDark);
           });
         }
       })();
     </script>
+
+    <!-- User Account Dropdown Controller -->
+    {% if currentUser %}
+    <script>
+      (function() {
+        var menuBtn = document.getElementById('userMenuBtn');
+        var dropdown = document.getElementById('userDropdownMenu');
+        var caret = document.getElementById('userMenuCaret');
+        if (!menuBtn || !dropdown) return;
+
+        function toggleMenu(force) {
+          var isCurrentlyOpen = !dropdown.classList.contains('hidden');
+          var shouldOpen = typeof force === 'boolean' ? force : !isCurrentlyOpen;
+
+          if (shouldOpen) {
+            dropdown.classList.remove('hidden');
+            menuBtn.setAttribute('aria-expanded', 'true');
+            menuBtn.classList.add('pixel-btn--active');
+            if (caret) caret.textContent = '▴';
+          } else {
+            dropdown.classList.add('hidden');
+            menuBtn.setAttribute('aria-expanded', 'false');
+            menuBtn.classList.remove('pixel-btn--active');
+            if (caret) caret.textContent = '▾';
+          }
+        }
+
+        window.toggleUserMenu = toggleMenu;
+
+        menuBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (window.retroAudio) window.retroAudio.playClick();
+          toggleMenu();
+        });
+
+        // Close when clicking anywhere outside
+        document.addEventListener('click', function(e) {
+          if (!dropdown.classList.contains('hidden')) {
+            if (!dropdown.contains(e.target) && !menuBtn.contains(e.target)) {
+              toggleMenu(false);
+            }
+          }
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) {
+            toggleMenu(false);
+            menuBtn.focus();
+          }
+        });
+      })();
+    </script>
+    {% endif %}
 
     {% if currentUser %}
       <!-- Floating NIM Dock Trigger Button -->

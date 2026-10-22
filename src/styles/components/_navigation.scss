@@ -109,6 +109,53 @@
   }
 }
 
+/* -------------------------------------------------------------
+   Retro User Station Account Dropdown Menu
+   ------------------------------------------------------------- */
+.retro-user-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+
+  .pixel-btn {
+    height: 30px;
+  }
+}
+
+.retro-user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  max-width: calc(100vw - 20px);
+  z-index: 10000;
+  background-color: var(--surface-window);
+  border: 3px solid var(--border-main);
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.9);
+  animation: dropdown-pop 0.12s ease-out;
+
+  .dark & {
+    box-shadow: 4px 4px 0px 0px #000000;
+  }
+
+  &__header {
+    background: var(--surface-title);
+    color: #ffffff;
+    user-select: none;
+  }
+}
+
+@keyframes dropdown-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Mobile Viewport Adjustments for Top Navigation */
 @media (max-width: 767px) {
   .retro-topnav {

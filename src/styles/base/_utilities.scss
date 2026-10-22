@@ -65,6 +65,7 @@
   overflow-y: auto;
 }
 .select-none { user-select: none; }
+.select-all { user-select: all; }
 
 /* Visibility, Opacity & Cursors */
 .opacity-50 { opacity: 0.5; }
@@ -147,6 +148,7 @@
 .font-pixel { font-family: var(--font-pixel); }
 .font-led { font-family: var(--font-led); }
 
+.text-xxs { font-size: 10px; }
 .text-xs { font-size: 11px; }
 .text-sm { font-size: 12px; }
 .text-base { font-size: 13px; }

@@ -123,3 +123,40 @@
     box-shadow: 4px 4px 0px 0px #000000;
   }
 }
+
+/* Pixel Badge Component */
+.pixel-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid var(--border-main);
+  background: #000000;
+  color: #ffffff;
+  line-height: 1.2;
+  user-select: none;
+
+  &--cyan {
+    background-color: #002b36;
+    color: var(--accent-mac);
+    border-color: var(--accent-mac);
+  }
+  &--magenta {
+    background-color: #2b002b;
+    color: #ff79c6;
+    border-color: #ff79c6;
+  }
+  &--amber {
+    background-color: #2b1f00;
+    color: var(--accent-amber);
+    border-color: var(--accent-amber);
+  }
+  &--green {
+    background-color: #002b0f;
+    color: var(--accent-prompt);
+    border-color: var(--accent-prompt);
+  }
+}
+
