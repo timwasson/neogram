@@ -13,6 +13,9 @@ coverage/
 *.cert
 .antigravity/
 .vscode/
+*.local.*
+*.local.md
+
 
 # User uploads & ephemeral static builds
 public/uploads/images/*
