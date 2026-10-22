@@ -14,7 +14,8 @@
     "extension:sync": "node -e \"const fs = require('fs'); fs.mkdirSync('extension/shared', { recursive: true }); fs.copyFileSync('public/css/neogram.css', 'extension/shared/neogram.css'); fs.copyFileSync('public/js/retroAudio.js', 'extension/shared/retroAudio.js'); console.log('[:> EXTENSION] Shared assets synced.');\"",
     "extension:package": "npm run extension:sync && cd extension && zip -r ../neogram-aim-extension.zip . -x '*.DS_Store*'",
     "build": "npm run sass:build && npm run build:static && npm run extension:sync",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "tsx server/tests/smokeTest.ts"
   },
   "dependencies": {
     "@11ty/eleventy": "^3.1.7",

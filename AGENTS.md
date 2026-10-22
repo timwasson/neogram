@@ -354,7 +354,15 @@ npm run extension:package
 # Output: neogram-aim-extension.zip
 ```
 
-### 7.4 Database Migrations & Seeding
+### 7.4 Automated QA Smoke Testing
+```bash
+# Run end-to-end integration assertions against the live backend
+npm test
+```
+- Executes 43 automated assertions in ~0.5s.
+- Verifies: OTP request, auto-provisioning, rate limiting, JWT cookies, profile identity, Sharp WebP compression, isolated 11ty static build, SVG counters, JSONFeed 1.1, and safe teardown.
+
+### 7.5 Database Migrations & Seeding
 Migrations run automatically on server start via `server/db/migrate.ts`.
 Database connection resolves via `DATABASE_URL` in `.env`:
 ```bash
@@ -362,7 +370,7 @@ Database connection resolves via `DATABASE_URL` in `.env`:
 DATABASE_URL=postgres://timwasson@localhost:5432/neogram
 ```
 
-### 7.5 Required Environment Variables (`.env`)
+### 7.6 Required Environment Variables (`.env`)
 ```env
 PORT=4000
 NODE_ENV=development

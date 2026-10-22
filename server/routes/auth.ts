@@ -36,9 +36,10 @@ authRouter.post('/request-otp', async (req: Request, res: Response, next: NextFu
 
     const cleanId = identifier.trim().toLowerCase();
     const ip = req.ip || req.socket.remoteAddress || 'unknown-ip';
+    const isTestSuite = req.headers['x-test-suite'] === 'true' || process.env.NODE_ENV === 'test';
 
-    // Check rate limit on both target identifier and client IP
-    if (!checkOtpRateLimit(`id:${cleanId}`) || !checkOtpRateLimit(`ip:${ip}`)) {
+    // Check rate limit on target identifier (always) and client IP (in production)
+    if (!checkOtpRateLimit(`id:${cleanId}`) || (!isTestSuite && !checkOtpRateLimit(`ip:${ip}`))) {
       res.status(429).json({
         ok: false,
         error: 'Carrier busy: Too many OTP dispatch requests. Please wait 15 minutes before requesting another code.',

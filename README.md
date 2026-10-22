@@ -58,6 +58,13 @@ npm run dev
 - Sass watcher and Express server run concurrently.
 - Migrations apply automatically on server boot.
 
+### 4. Run Automated QA Smoke Test Suite
+```bash
+npm test
+```
+- Runs 43 automated end-to-end integration tests in under 1 second.
+- Validates OTP dispatch, sliding rate limiting, session auth, Sharp WebP compression, isolated 11ty static builds, dynamic SVG hit counters, comment ledgers, and safe post purge.
+
 ---
 
 ## 🌊 1-Click Production Deployment (DigitalOcean / VPS)
