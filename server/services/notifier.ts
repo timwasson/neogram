@@ -165,8 +165,7 @@ async function sendEmailOtp(toEmail: string, code: string, handle: string, uin?:
  */
 async function sendSmsOtp(toPhone: string, code: string, handle: string, uin?: number): Promise<SendOtpResult> {
   const formattedPhone = formatToE164(toPhone);
-  const uinText = uin ? ` (#${uin})` : '';
-  const messageBody = `[:> NEOGRAM AUTH] Your 6-digit authorization code is: ${code}. Terminal key for @${handle}${uinText}. Valid for 10 min.`;
+  const messageBody = `Neogram: Your 6-digit verification code is: ${code}. Valid for 10 min. Msg & data rates may apply. Reply STOP to cancel, HELP for help.`;
 
   if (!config.twilioAccountSid || !config.twilioAuthToken || !config.twilioPhoneNumber) {
     console.log('[:> NOTIFIER INFO] Twilio SMS keys not fully set in .env. Dispatch logged to terminal:');
