@@ -161,18 +161,10 @@ postsRouter.get('/posts/:id', async (req: Request, res: Response, next) => {
  */
 postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Response, next) => {
   try {
-    let user = await getSessionUser(req);
-
-    // Fallback: if not logged in via cookie, find or create the root demo user
-    if (!user) {
-      const existing = await query('SELECT * FROM users ORDER BY created_at ASC LIMIT 1');
-      if (existing.rows.length > 0) {
-        user = existing.rows[0];
-      }
-    }
+    const user = await getSessionUser(req);
 
     if (!user) {
-      res.status(401).json({ ok: false, error: 'Authentication required to publish photos.' });
+      res.status(401).json({ ok: false, error: 'Authentication required. Please dial into your terminal session to publish photos.' });
       return;
     }
 
@@ -328,7 +320,26 @@ postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next
  */
 postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
   try {
+    const user = await getSessionUser(req);
+    if (!user) {
+      res.status(401).json({ ok: false, error: 'Authentication required to modify records.' });
+      return;
+    }
+
     const { id } = req.params;
+
+    // Check post exists and verify ownership
+    const postCheck = await query('SELECT user_id FROM posts WHERE id = $1', [id]);
+    if (postCheck.rows.length === 0) {
+      res.status(404).json({ ok: false, error: 'Post not found in terminal registry.' });
+      return;
+    }
+
+    if (postCheck.rows[0].user_id !== user.id) {
+      res.status(403).json({ ok: false, error: 'Access denied: You are not authorized to edit this station post.' });
+      return;
+    }
+
     const { caption, mood, webring, location, filterApplied } = req.body;
 
     const updateResult = await query(
@@ -345,11 +356,6 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
     `,
       [caption, mood, webring, location, filterApplied, id]
     );
-
-    if (updateResult.rows.length === 0) {
-      res.status(404).json({ ok: false, error: 'Post not found.' });
-      return;
-    }
 
     const updated = updateResult.rows[0];
 
@@ -389,16 +395,27 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
  */
 postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
   try {
+    const user = await getSessionUser(req);
+    if (!user) {
+      res.status(401).json({ ok: false, error: 'Authentication required to purge records.' });
+      return;
+    }
+
     const { id } = req.params;
 
-    // 1. Fetch post to get image and thumbnail paths for disk cleanup
+    // 1. Fetch post to verify ownership and get image and thumbnail paths for disk cleanup
     const postQuery = await query('SELECT user_id, image_path, thumbnail_path FROM posts WHERE id = $1', [id]);
     if (postQuery.rows.length === 0) {
-      res.status(404).json({ ok: false, error: 'Post not found.' });
+      res.status(404).json({ ok: false, error: 'Post not found in terminal registry.' });
       return;
     }
 
     const { user_id, image_path, thumbnail_path } = postQuery.rows[0];
+
+    if (user_id !== user.id) {
+      res.status(403).json({ ok: false, error: 'Access denied: You are not authorized to delete this station post.' });
+      return;
+    }
 
     // 2. Delete post row from PostgreSQL (comments cascade delete)
     await query('DELETE FROM posts WHERE id = $1', [id]);

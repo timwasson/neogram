@@ -38,7 +38,7 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
     const userId = (req as any).user.userId;
 
     const userRes = await query(
-      `SELECT id, email, handle, site_url, deployment_type, deployment_credentials, auto_deploy, last_deployed_at, avatar_path
+      `SELECT id, email, handle, uin, site_url, deployment_type, deployment_credentials, auto_deploy, last_deployed_at, avatar_path
        FROM users
        WHERE id = $1`,
       [userId]
@@ -59,6 +59,8 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
     res.json({
       ok: true,
       settings: {
+        id: user.id,
+        uin: user.uin ? parseInt(user.uin, 10) : undefined,
         handle: user.handle,
         email: user.email,
         avatarPath: user.avatar_path || '/icons/default-avatar.svg',
@@ -85,7 +87,7 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
     const userId = (req as any).user.userId;
     const { handle, removeAvatar } = req.body;
 
-    const userRes = await query('SELECT id, email, handle, avatar_path FROM users WHERE id = $1', [userId]);
+    const userRes = await query('SELECT id, email, handle, uin, avatar_path FROM users WHERE id = $1', [userId]);
     if (userRes.rows.length === 0) {
       res.status(404).json({ ok: false, error: 'User not found.' });
       return;
@@ -117,8 +119,13 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
       newHandle = cleanHandle;
       await query('UPDATE users SET handle = $1, updated_at = NOW() WHERE id = $2', [newHandle, userId]);
 
-      // Re-issue updated session cookie with new handle
-      const newToken = signSessionToken({ userId: user.id, email: user.email, handle: newHandle });
+      // Re-issue updated session cookie with new handle and uin
+      const newToken = signSessionToken({
+        userId: user.id,
+        email: user.email,
+        handle: newHandle,
+        uin: user.uin ? parseInt(user.uin, 10) : undefined,
+      });
       setSessionCookie(res, newToken);
     }
 
@@ -143,6 +150,7 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
       message: 'Cyber identity and avatar updated successfully.',
       user: {
         id: userId,
+        uin: user.uin ? parseInt(user.uin, 10) : undefined,
         handle: newHandle,
         avatarPath: newAvatarPath || '/icons/default-avatar.svg',
         hasCustomAvatar: !!newAvatarPath,

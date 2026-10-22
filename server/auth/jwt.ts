@@ -6,6 +6,7 @@ export interface UserSessionPayload {
   userId: string;
   email: string;
   handle: string;
+  uin?: number;
 }
 
 export const COOKIE_NAME = 'neogram_session';

@@ -1,9 +1,11 @@
 import { query } from '../db';
+import { sendOtpNotification } from '../services/notifier';
 
 export interface AuthUser {
   id: string;
   email: string;
   handle: string;
+  uin?: number;
   siteUrl?: string;
   deploymentType?: string;
   avatarPath?: string;
@@ -29,29 +31,68 @@ export function extractDisplayHandle(email: string): string {
   return parts[0] || 'surfer';
 }
 
-export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; identifier: string; code: string; message: string }> {
+/**
+ * Generates a unique, sanitized handle for a new user.
+ * If the base handle is already taken, automatically appends a random retro number suffix.
+ */
+export async function generateUniqueHandle(rawPrefix: string): Promise<string> {
+  let candidate = rawPrefix
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '')
+    .slice(0, 20);
+
+  if (!candidate || candidate.length < 3) {
+    candidate = 'surfer';
+  }
+
+  // 1. Try base candidate
+  const check = await query('SELECT id FROM users WHERE handle = $1', [candidate]);
+  if (check.rows.length === 0) {
+    return candidate;
+  }
+
+  // 2. If collision, append random retro numbers
+  for (let i = 0; i < 20; i++) {
+    const suffix = Math.floor(100 + Math.random() * 900); // 3-digit suffix e.g. 196, 404, 782
+    const suffixed = `${candidate.slice(0, 15)}_${suffix}`;
+    const dupCheck = await query('SELECT id FROM users WHERE handle = $1', [suffixed]);
+    if (dupCheck.rows.length === 0) {
+      return suffixed;
+    }
+  }
+
+  return `${candidate.slice(0, 12)}_${Date.now().toString(36).slice(-4)}`;
+}
+
+export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; identifier: string; code: string; message: string; uin?: number }> {
   if (!rawIdentifier || !rawIdentifier.trim()) {
     throw new Error('Please provide a valid email address or phone number.');
   }
 
   const normalized = normalizeIdentifier(rawIdentifier);
-  const handle = extractDisplayHandle(normalized);
 
   // 1. Check or create user
-  const existing = await query('SELECT id, email, handle FROM users WHERE email = $1', [normalized]);
+  const existing = await query('SELECT id, email, handle, uin FROM users WHERE email = $1', [normalized]);
 
   let userId: string;
+  let userHandle: string;
+  let userUin: number;
+
   if (existing.rows.length > 0) {
     userId = existing.rows[0].id;
+    userHandle = existing.rows[0].handle;
+    userUin = existing.rows[0].uin ? parseInt(existing.rows[0].uin, 10) : 100101;
   } else {
+    userHandle = await generateUniqueHandle(extractDisplayHandle(normalized));
     const newUser = await query(
       `INSERT INTO users (email, handle, site_url, deployment_type)
        VALUES ($1, $2, $3, 'none')
-       RETURNING id, email, handle`,
-      [normalized, handle, `http://${handle}.neocities.org`]
+       RETURNING id, email, handle, uin`,
+      [normalized, userHandle, `https://${userHandle}.neocities.org`]
     );
     userId = newUser.rows[0].id;
-    console.log(`[:> AUTH] Registered new Neogram user: ${handle} (${normalized})`);
+    userUin = parseInt(newUser.rows[0].uin, 10);
+    console.log(`[:> AUTH] Registered new Neogram node: @${userHandle} (UIN: #${userUin}, ${normalized})`);
   }
 
   // 2. Generate 6-digit OTP code
@@ -70,14 +111,24 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
   console.log('====================================================');
   console.log(`[:> DIAL-UP CARRIER TRANSMISSION]`);
   console.log(`[:> TARGET]: ${rawIdentifier} (${normalized})`);
+  console.log(`[:> NODE UIN]: #${userUin}`);
   console.log(`[:> 6-DIGIT OTP AUTH CODE]: ${code}`);
   console.log('====================================================');
+
+  // 4. Dispatch notification via Email (Resend) or SMS (Twilio)
+  const notifyResult = await sendOtpNotification({
+    destination: rawIdentifier,
+    code,
+    handle: userHandle,
+    uin: userUin,
+  });
 
   return {
     ok: true,
     identifier: normalized,
     code,
-    message: 'Carrier handshake established. 6-digit OTP code dispatched.',
+    message: notifyResult.message || 'Carrier handshake established. 6-digit OTP code dispatched.',
+    uin: userUin,
   };
 }
 
@@ -85,7 +136,7 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
   const normalized = normalizeIdentifier(rawIdentifier);
 
   const res = await query(
-    `SELECT id, email, handle, auth_token, auth_token_expires_at, site_url, deployment_type
+    `SELECT id, email, handle, uin, auth_token, auth_token_expires_at, site_url, deployment_type, avatar_path
      FROM users
      WHERE email = $1`,
     [normalized]
@@ -115,12 +166,13 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
     [user.id]
   );
 
-  console.log(`[:> AUTH SUCCESS] User node authenticated: ${user.handle} (${user.id})`);
+  console.log(`[:> AUTH SUCCESS] User node authenticated: @${user.handle} (UIN: #${user.uin}, ${user.id})`);
 
   return {
     id: user.id,
     email: user.email,
     handle: user.handle,
+    uin: user.uin ? parseInt(user.uin, 10) : undefined,
     siteUrl: user.site_url,
     deploymentType: user.deployment_type,
     avatarPath: user.avatar_path,
@@ -129,7 +181,7 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
 
 export async function getUserById(id: string): Promise<AuthUser | null> {
   const res = await query(
-    'SELECT id, email, handle, site_url as "siteUrl", deployment_type as "deploymentType", deployment_credentials, avatar_path as "avatarPath" FROM users WHERE id = $1',
+    'SELECT id, email, handle, uin, site_url as "siteUrl", deployment_type as "deploymentType", deployment_credentials, avatar_path as "avatarPath" FROM users WHERE id = $1',
     [id]
   );
   if (!res.rows[0]) return null;
@@ -148,6 +200,7 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
     id: user.id,
     email: user.email,
     handle: user.handle,
+    uin: user.uin ? parseInt(user.uin, 10) : undefined,
     siteUrl: user.siteUrl || (user.handle ? `https://${user.handle}.neocities.org` : undefined),
     deploymentType: user.deploymentType,
     avatarPath: user.avatarPath,

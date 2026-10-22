@@ -22,10 +22,11 @@
         <!-- Station Identity Row -->
         <div class="auth-node-box p-3 mb-4">
           <div class="flex justify-between items-center flex-wrap gap-2">
-            <div>
+            <div class="flex items-center gap-2 flex-wrap">
               <span class="font-bold text-prompt">[:&gt; LOGGED-IN CREATOR]:</span>
               <span id="headerUserHandle" class="font-bold text-white">@{{ currentUser.handle }}</span>
-              <span class="text-muted text-xs ml-2">({{ currentUser.email }})</span>
+              <span class="text-xs text-mac font-mono font-bold bg-black px-1.5 py-0.5 border border-main" title="Immutable ICQ-style static node ID">[UIN: #{{ currentUser.uin or '100101' }}]</span>
+              <span class="text-muted text-xs">({{ currentUser.email }})</span>
             </div>
             <div class="text-xs text-muted">
               Static Host: <code id="headerSiteUrl" class="text-prompt">{{ currentUser.siteUrl or 'http://' + currentUser.handle + '.neocities.org' }}</code>
@@ -489,10 +490,22 @@
                     </div>
                   </div>
 
+                  <!-- Permanent Node UIN (ICQ Protocol) -->
+                  <div class="p-3 bg-black border border-main mb-2 flex items-center justify-between">
+                    <div>
+                      <span class="text-3xs text-muted font-mono block uppercase">Permanent Node UIN (Immutable Identity):</span>
+                      <span class="font-bold text-prompt font-pixel text-base tracking-widest">#{{ currentUser.uin or '100101' }}</span>
+                    </div>
+                    <div class="text-right">
+                      <span class="text-3xs text-muted font-mono block">ANCHOR</span>
+                      <span class="text-xs text-mac font-bold font-mono">ICQ-STATIC-NODE</span>
+                    </div>
+                  </div>
+
                   <!-- Call-Sign / Handle Input -->
                   <div>
                     <label for="settingsHandleInput" class="block text-xs font-bold mb-1">
-                      Cyber Call-Sign / Username:
+                      Cyber Call-Sign / Handle:
                     </label>
                     <div class="flex items-center gap-1.5">
                       <span class="font-bold text-prompt font-mono text-sm">@</span>
@@ -508,7 +521,7 @@
                       />
                     </div>
                     <span class="text-xs text-muted block mt-1">
-                      3–30 chars (lowercase letters, numbers, hyphens, and underscores). Updates your chat presence, feed URLs, and station identifier.
+                      3–30 chars. You can change your call-sign anytime without breaking your external site embeds or web counters, which are permanently anchored to your Node UIN (#{{ currentUser.uin or '100101' }}).
                     </span>
                   </div>
 

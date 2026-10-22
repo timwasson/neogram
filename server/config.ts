@@ -12,6 +12,11 @@ export interface AppConfig {
   storageDir: string;
   appUrl: string;
   enableMemoryDbFallback: boolean;
+  resendApiKey?: string;
+  emailFrom: string;
+  twilioAccountSid?: string;
+  twilioAuthToken?: string;
+  twilioPhoneNumber?: string;
 }
 
 export const config: AppConfig = {
@@ -23,4 +28,9 @@ export const config: AppConfig = {
   storageDir: process.env.STORAGE_DIR || path.resolve(process.cwd(), 'public/uploads'),
   appUrl: process.env.APP_URL || 'http://localhost:4000',
   enableMemoryDbFallback: process.env.USE_MEMORY_DB === 'true' || !process.env.DATABASE_URL,
+  resendApiKey: process.env.RESEND_API_KEY,
+  emailFrom: process.env.EMAIL_FROM || 'Neogram <auth@neogram.retro>',
+  twilioAccountSid: process.env.TWILIO_ACCOUNT_SID,
+  twilioAuthToken: process.env.TWILIO_AUTH_TOKEN,
+  twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER,
 };

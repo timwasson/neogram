@@ -13,6 +13,7 @@ authRouter.post('/request-otp', async (req: Request, res: Response, next: NextFu
       ok: true,
       message: result.message,
       identifier: result.identifier,
+      uin: result.uin,
       // Provide code in response for rapid testing during development
       demoCode: process.env.NODE_ENV !== 'production' ? result.code : undefined,
     });
@@ -35,6 +36,7 @@ authRouter.post('/verify-otp', async (req: Request, res: Response, next: NextFun
       userId: user.id,
       email: user.email,
       handle: user.handle,
+      uin: user.uin,
     });
 
     setSessionCookie(res, token);

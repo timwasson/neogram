@@ -18,18 +18,28 @@ async function getAuthUser(req: Request) {
 }
 
 /**
- * Helper to lookup user by handle or UUID
+ * Helper to lookup user by handle, numeric UIN, or UUID
  */
 async function findUserByHandleOrId(identifier: string) {
-  // Check if identifier is a valid UUID
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+  if (!identifier) return null;
+  const cleanId = identifier.trim();
+
+  // 1. Check if identifier is a valid UUID
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
   if (isUuid) {
-    const res = await query('SELECT * FROM users WHERE id = $1', [identifier]);
+    const res = await query('SELECT * FROM users WHERE id = $1', [cleanId]);
     if (res.rows.length > 0) return res.rows[0];
   }
 
-  // Lookup by handle or email prefix
-  const byHandle = await query('SELECT * FROM users WHERE handle = $1 OR split_part(email, \'@\', 1) = $1', [identifier]);
+  // 2. Check if identifier is a numeric UIN (e.g. 100101, 749210)
+  if (/^\d{3,10}$/.test(cleanId)) {
+    const byUin = await query('SELECT * FROM users WHERE uin = $1', [parseInt(cleanId, 10)]);
+    if (byUin.rows.length > 0) return byUin.rows[0];
+  }
+
+  // 3. Lookup by handle or email prefix
+  const cleanHandle = cleanId.replace(/^@/, '').toLowerCase();
+  const byHandle = await query('SELECT * FROM users WHERE handle = $1 OR split_part(email, \'@\', 1) = $1', [cleanHandle]);
   if (byHandle.rows.length > 0) return byHandle.rows[0];
 
   return null;
