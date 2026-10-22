@@ -12,6 +12,7 @@ coverage/
 *.key
 *.cert
 .antigravity/
+.agents/
 .vscode/
 *.local.*
 *.local.md
