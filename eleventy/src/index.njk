@@ -63,7 +63,7 @@ title: Static Photo Stream
         <!-- Thumbnail Viewport with CRT & Filter Shaders -->
         <a href="{{ ('/photos/' + post.id + '/') | url }}" class="block bg-black p-1 h-56 flex items-center justify-center overflow-hidden relative group crt-scanlines">
           <img
-            src="{{ post.thumbnailPath or post.imagePath }}"
+            src="{{ (post.thumbnailPath or post.imagePath) | url }}"
             alt="{{ post.caption }}"
             class="max-h-full max-w-full object-contain filter-{{ post.filterApplied or 'none' }} group-hover:scale-105 transition-transform duration-150"
             loading="lazy"

@@ -2511,8 +2511,10 @@
       }
 
       alertBox.className = 'retro-alert retro-alert--success mb-3';
-      tag.textContent = '[✓] 11TY COMPILED:';
-      msg.textContent = data.postsCount + ' photos generated in ' + data.durationMs + 'ms -> dist/static-gallery';
+      tag.textContent = data.deployed ? '[✓] 11TY DEPLOYED:' : '[✓] 11TY COMPILED:';
+      msg.textContent = data.deployed
+        ? (data.filesCount + ' files uploaded live to ' + (data.siteUrl || 'Neocities') + ' in ' + data.durationMs + 'ms')
+        : (data.postsCount + ' photos generated in ' + data.durationMs + 'ms -> dist/static-gallery');
       alertBox.classList.remove('hidden');
 
       if (window.retroAudio) window.retroAudio.playSuccess();

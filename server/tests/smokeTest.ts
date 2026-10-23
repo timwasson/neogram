@@ -239,11 +239,15 @@ async function runSmokeTests() {
     let indexExists = false;
     let photoExists = false;
     let hasAuthorHeader = false;
+    let hasCorrectAssetPrefix = false;
+    let hasEmbedAssets = false;
 
     try {
       const indexContent = await fs.readFile(indexHtmlPath, 'utf-8');
       indexExists = true;
       hasAuthorHeader = indexContent.includes(testUser.handle.toUpperCase());
+      hasCorrectAssetPrefix = indexContent.includes('/photos/css/neogram.css') && indexContent.includes('/photos/embed/neogram-embed.css');
+      hasEmbedAssets = await fs.stat(path.join(userGalleryDir, 'embed/neogram-embed.css')).then(() => true).catch(() => false);
       const photoContent = await fs.readFile(photoHtmlPath, 'utf-8');
       photoExists = true;
     } catch (err: any) {
@@ -252,6 +256,8 @@ async function runSmokeTests() {
 
     assertTest('Static gallery grid (index.html) created in isolated tenant folder', indexExists);
     assertTest('Static gallery includes uppercase user handle', hasAuthorHeader);
+    assertTest('Static gallery assets correctly prepended with deploy pathPrefix (/photos/)', hasCorrectAssetPrefix);
+    assertTest('Passthrough copies embed assets to embed/ folder', hasEmbedAssets);
     assertTest('Single photo detail page (photos/<id>/index.html) generated', photoExists);
 
     // -------------------------------------------------------------------------

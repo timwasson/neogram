@@ -35,7 +35,7 @@ eleventyComputed:
       <div class="lg:w-7/12 flex flex-col gap-3">
         <div class="bg-black p-1 min-h-[380px] flex items-center justify-center relative overflow-hidden crt-scanlines border-2 border-main">
           <img
-            src="{{ post.imagePath }}"
+            src="{{ post.imagePath | url }}"
             alt="{{ post.caption }}"
             class="max-h-[500px] max-w-full object-contain filter-{{ post.filterApplied or 'none' }}"
           />

@@ -1,8 +1,13 @@
 export default function (eleventyConfig) {
+  // Disable template caching so multi-tenant builds with different pathPrefix / options
+  // never contaminate each other in the long-running server process
+  eleventyConfig.setUseTemplateCache(false);
+
   // Passthrough static assets so the generated static site is completely self-contained
   eleventyConfig.addPassthroughCopy({ 'public/css': 'css' });
   eleventyConfig.addPassthroughCopy({ 'public/icons': 'icons' });
   eleventyConfig.addPassthroughCopy({ 'public/js': 'js' });
+  eleventyConfig.addPassthroughCopy({ 'embed': 'embed' });
   eleventyConfig.addPassthroughCopy({ 'embed/embed.js': 'embed.js' });
   eleventyConfig.addPassthroughCopy({ 'embed/neogram-embed.css': 'neogram-embed.css' });
 
@@ -25,19 +30,28 @@ export default function (eleventyConfig) {
     return str ? String(str).toUpperCase() : '';
   });
 
-  const outputDir = process.env.ELEVENTY_OUTPUT_DIR || 'dist/static-galleries/default';
-  const pathPrefix = process.env.ELEVENTY_PATH_PREFIX || '/';
+  const dirConfig = {
+    input: 'eleventy/src',
+    includes: '_includes',
+    data: '_data',
+  };
 
-  return {
-    pathPrefix: pathPrefix,
-    dir: {
-      input: 'eleventy/src',
-      output: outputDir,
-      includes: '_includes',
-      data: '_data',
-    },
+  // Only assign output in config if explicitly provided via env;
+  // otherwise let programmatic new Eleventy(input, targetOutputDir) govern output
+  if (process.env.ELEVENTY_OUTPUT_DIR) {
+    dirConfig.output = process.env.ELEVENTY_OUTPUT_DIR;
+  }
+
+  const configObj = {
     templateFormats: ['njk', 'html', 'md'],
     htmlTemplateEngine: 'njk',
     markdownTemplateEngine: 'njk',
+    dir: dirConfig,
   };
+
+  if (process.env.ELEVENTY_PATH_PREFIX) {
+    configObj.pathPrefix = process.env.ELEVENTY_PATH_PREFIX;
+  }
+
+  return configObj;
 }

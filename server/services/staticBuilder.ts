@@ -196,6 +196,7 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
 
     const elev = new Eleventy(inputDir, targetOutputDir, {
       configPath: configPath,
+      pathPrefix: pathPrefix,
     });
 
     await elev.write();

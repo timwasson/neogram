@@ -32,10 +32,9 @@ apiRouter.get('/stats', async (_req: Request, res: Response, next) => {
   }
 });
 
-// Trigger Eleventy static site rebuild (requires session)
+// Trigger Eleventy static site rebuild & deploy (requires session)
 apiRouter.post('/build-static', async (req: Request, res: Response, next) => {
   try {
-    const { buildStaticGallery } = await import('../services/staticBuilder');
     const { extractToken, verifySessionToken } = await import('../auth/jwt');
     const token = extractToken(req);
     const payload = token ? verifySessionToken(token) : null;
@@ -44,6 +43,31 @@ apiRouter.post('/build-static', async (req: Request, res: Response, next) => {
       return;
     }
     const userId = payload.userId;
+
+    // Check if user has Neocities credentials linked for live deployment
+    const { query } = await import('../db');
+    const { decryptCredentials } = await import('../utils/crypto');
+    const userRes = await query('SELECT deployment_credentials FROM users WHERE id = $1', [userId]);
+    const userRow = userRes.rows[0];
+    const creds = userRow?.deployment_credentials
+      ? decryptCredentials<{ apiKey?: string }>(userRow.deployment_credentials)
+      : null;
+
+    if (creds && creds.apiKey && creds.apiKey.trim()) {
+      const { deployToNeocities } = await import('../services/neocitiesPublisher');
+      const deployResult = await deployToNeocities(userId);
+      res.json({
+        ok: true,
+        deployed: true,
+        siteUrl: deployResult.siteUrl,
+        filesCount: deployResult.filesCount,
+        durationMs: deployResult.durationMs,
+        message: 'Static site compiled and deployed live to Neocities!',
+      });
+      return;
+    }
+
+    const { buildStaticGallery } = await import('../services/staticBuilder');
     const result = await buildStaticGallery({ userId });
     res.json(result);
   } catch (err) {
