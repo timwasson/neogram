@@ -133,8 +133,28 @@ CREATE INDEX idx_chat_queue_expires ON ephemeral_chat_queue(expires_at);
 
 ## 4. Key Architectural Patterns & Constraints
 
-### 4.1 Strict BEM Embed Contract
-All embeddable widgets must render standard HTML markup with consistent BEM classes so users can inject custom CSS without breaking structure:
+### 4.1 Strict BEM Embed & Static Site Deliverable Contract
+
+#### Dual Styling Strategy: Workstation Utilities vs. Static Deliverable BEM
+- **Neogram Workstation App (`views/index.njk`):** Built for rapid internal UI assembly using custom zero-dependency utility classes (`flex`, `p-4`, `text-xs`, etc.) and retro components (`.pixel-box`, `.pixel-btn`).
+- **Static Gallery Output (`eleventy/src/` delivered to Neocities):** Must **never** use ad-hoc utility classes. Static sites delivered to end users must use standard, semantic BEM classes (`.neogram-*`).
+- **End-User Customization Rationale:** Static site owners (Neocities, GitHub Pages, self-hosted) need complete flexibility to attach custom stylesheets or `<style>` blocks and override elements without fighting utility class specificity or needing `!important`. All default styling is encapsulated in `src/styles/components/_static-gallery.scss` at base class specificity `(0, 1, 0)`.
+- **Custom CSS Injection (`custom_css_url`):** `users.custom_css_url` is queried in `server/services/staticBuilder.ts`, passed to `site.json` as `site.customCssUrl`, and automatically linked in `eleventy/src/_includes/layouts/base.njk`.
+
+#### 1. Static Gallery BEM Hierarchy (`eleventy/src/`)
+| Block | Elements / Modifiers | Description |
+|---|---|---|
+| **`.neogram-site`** | `__taskbar`, `__branding`, `__logo`, `__title`, `__tag`, `__nav`, `__main`, `__footer`, `__footer-inner`, `__footer-info`, `__footer-host`, `__footer-url`, `__footer-sub`, `__footer-badges` | Overall site shell layout (`base.njk`) |
+| **`.neogram-banner`** | `__header`, `__title`, `__status`, `__body`, `__info`, `__desc`, `__node`, `__actions` | Header info window card on gallery index |
+| **`.neogram-grid`** | *(Container)* | Multi-column responsive CSS grid for photos |
+| **`.neogram-card`** | `__header`, `__author`, `__shader`, `__media`, `__image`, `__overlay`, `__overlay-btn`, `__body`, `__content`, `__meta`, `__location`, `__date`, `__caption`, `__tags`, `__footer`, `__likes` | Individual photo window card (`index.njk`) |
+| **`.neogram-detail`** | `__header`, `__title`, `__status`, `__status-shader`, `__status-sub`, `__body`, `__layout`, `__media-col`, `__viewport`, `__image`, `__tags`, `__info-col`, `__author-box`, `__author-meta`, `__author-handle`, `__author-date`, `__caption`, `__reactions` | Detail photo page (`photos/<id>/index.html`) |
+| **`.neogram-comments`** | `__header`, `__title`, `__status`, `__ledger`, `__empty`, `__item`, `__item-header`, `__item-author`, `__item-time`, `__item-body`, `__form`, `__form-row`, `__input`, `__submit` | Live comments ledger & form (`photo.njk`) |
+| **`.neogram-btn`** | `--sm`, `--lg`, `--primary`, `--yellow`, `--accent`, `--cyan`, `--success`, `--green`, `--danger`, `--red` | Reusable retro push button (`(0, 1, 0)` specificity) |
+| **`.neogram-badge`** | `--cyan`, `--magenta`, `--amber`, `--green` | 88x31 / micro status pills |
+| **`.neogram-empty`** | `__icon`, `__title`, `__desc`, `__action` | Empty photo stream state |
+
+#### 2. Embeddable Widgets BEM Contract (`embed/`)
 - `.neogram-feed`: Container for the entire feed
 - `.neogram-post`: Individual card wrapper
 - `.neogram-post__header`: User avatar, handle, timestamp
@@ -162,6 +182,8 @@ All embeddable widgets must render standard HTML markup with consistent BEM clas
 4. **11ty Static Site Generation (`server/services/staticBuilder.ts`):**
    - **Multi-Tenant Isolated Builds:** Compiles personal static photo galleries strictly into isolated user folders (`dist/static-galleries/<userId>/`).
    - **FIFO BuildQueue Serialization:** All static build and compile requests are queued through an in-memory sequential FIFO queue (`buildQueue.enqueue(...)`). This guarantees that concurrent user operations (uploads, comments, edits, or deploys) run one at a time, completely eliminating race conditions on shared template data files (`posts.json` and `site.json`).
+   - **Cross-Tenant Template Cache Isolation:** Eleventy v3 caches compiled template functions in-memory by default. In multi-tenant environments with varying `deploy_path` values (e.g. `/neogram/` vs. `/photos/`), cached template functions would reuse another tenant's prefix. The Eleventy config explicitly sets `eleventyConfig.setUseTemplateCache(false)` to prevent template function bleeding across builds.
+   - **Embed Asset Passthrough:** Guarantees that `embed/` stylesheets and scripts are copied into each tenant's static distribution directory (`dist/static-galleries/<userId>/embed/`).
    - **Direct Static Focus (No `/preview/` Bloat):** The redundant `/preview/` and `/photos/<id>/` preview routes have been removed in favor of clean static deployments directly to Neocities and embeddable widgets.
    - Generates responsive gallery grid (`index.html`) and paginated photo pages (`photos/<id>/index.html`).
    - Copies stylesheets (`css/neogram.css`), uploads, and embed scripts into the user's static bundle.
@@ -169,6 +191,7 @@ All embeddable widgets must render standard HTML markup with consistent BEM clas
    - Reads decrypted Neocities API key and pushes multipart archive directly to `POST https://neocities.org/api/upload` from the user's isolated directory (`dist/static-galleries/<userId>/`).
    - Probes remote site views and hits via `https://neocities.org/api/info`.
    - Optional automatic deployment on post creation, edit, or deletion (`users.auto_deploy`).
+   - The manual rebuild endpoint (`POST /api/build-static`) automatically triggers `deployToNeocities(...)` when credentials exist.
 6. Centralized social layer: Visitors to static sites react and comment; comments post back to `/api/posts/:id/comments` and trigger an automated background 11ty rebuild in the queue.
 
 ### 4.4 Styling Architecture: Pure Custom Utilities & BEM (Strictly NO Tailwind)
