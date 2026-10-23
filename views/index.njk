@@ -112,23 +112,15 @@
                     Supports JPEG, PNG, WebP, GIF, BMP (Processed via Sharp)
                   </div>
                   
-                  <div class="flex items-center justify-center gap-3 flex-wrap">
+                  <div class="flex items-center justify-center">
                     <button
                       type="button"
                       id="selectPhotoBtn"
                       class="pixel-btn pixel-btn--yellow font-bold text-xs"
                       onclick="triggerFileInput(event)"
+                      title="Snap photo with camera or choose from gallery"
                     >
-                      <span>📁</span> <span>SELECT PHOTO FILE</span>
-                    </button>
-                    <button
-                      type="button"
-                      id="snapCameraBtn"
-                      class="pixel-btn font-bold text-xs"
-                      onclick="triggerCameraInput(event)"
-                      title="Open mobile device camera hardware"
-                    >
-                      <span>📸</span> <span>SNAP CAMERA PHOTO</span>
+                      <span>📸</span> <span>SNAP OR CHOOSE PHOTO</span>
                     </button>
                   </div>
                 </div>
@@ -209,20 +201,12 @@
                   </div>
                 </div>
 
-                <!-- Clean Hidden File Inputs (Outside containers to prevent bubbling conflicts) -->
+                <!-- Clean Hidden File Input (Outside containers to prevent bubbling conflicts) -->
                 <input
                   type="file"
                   id="imageFileInput"
                   name="imageFile"
                   accept="image/*"
-                  style="display:none;"
-                  onchange="handleFileInputChange(event)"
-                />
-                <input
-                  type="file"
-                  id="cameraCaptureInput"
-                  accept="image/*"
-                  capture="environment"
                   style="display:none;"
                   onchange="handleFileInputChange(event)"
                 />
@@ -1233,7 +1217,6 @@
 
   function triggerFileInput(e) {
     if (e) {
-      if (e.target && e.target.id === 'snapCameraBtn') return;
       e.stopPropagation();
     }
     if (window.retroAudio) window.retroAudio.playClick();
@@ -1242,10 +1225,7 @@
   }
 
   function triggerCameraInput(e) {
-    if (e) e.stopPropagation();
-    if (window.retroAudio) window.retroAudio.playClick();
-    var input = document.getElementById('cameraCaptureInput');
-    if (input) input.click();
+    triggerFileInput(e);
   }
 
   function setFilter(filter) {
@@ -1321,11 +1301,9 @@
     var uploadDropzone = document.getElementById('uploadDropzone');
     var previewContainer = document.getElementById('previewContainer');
     var imageFileInput = document.getElementById('imageFileInput');
-    var cameraCaptureInput = document.getElementById('cameraCaptureInput');
 
     if (previewImg) previewImg.src = '';
     if (imageFileInput) imageFileInput.value = '';
-    if (cameraCaptureInput) cameraCaptureInput.value = '';
 
     // In-place swap: Hide live preview, restore upload dropzone
     if (previewContainer) previewContainer.classList.add('hidden');
@@ -1343,15 +1321,6 @@
     var fileInput = document.getElementById('imageFileInput');
     if (fileInput) {
       fileInput.addEventListener('change', function(e) {
-        if (e.target.files && e.target.files[0]) {
-          loadFile(e.target.files[0]);
-        }
-      });
-    }
-
-    var cameraInput = document.getElementById('cameraCaptureInput');
-    if (cameraInput) {
-      cameraInput.addEventListener('change', function(e) {
         if (e.target.files && e.target.files[0]) {
           loadFile(e.target.files[0]);
         }
