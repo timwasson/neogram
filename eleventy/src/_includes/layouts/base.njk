@@ -9,27 +9,30 @@
   <!-- Neogram Retro Framework (Pure Sass, Zero Tailwind) -->
   <link rel="stylesheet" href="{{ '/css/neogram.css' | url }}">
   <link rel="stylesheet" href="{{ '/embed/neogram-embed.css' | url }}">
+  {% if site.customCssUrl %}
+  <link rel="stylesheet" href="{{ site.customCssUrl }}">
+  {% endif %}
 </head>
-<body class="desktop-bg min-h-screen flex flex-col font-mono text-main antialiased selection-invert">
+<body class="neogram-site">
 
   <!-- ==============================================================
        TOP RETRO SYSTEM BAR (Mac System 7 / Win95 Styled)
        ============================================================== -->
-  <header class="taskbar flex items-center justify-between px-3 py-1 text-xs select-none sticky top-0 z-50">
-    <div class="flex items-center gap-2">
-      <span class="text-base">🍎</span>
-      <span class="font-bold tracking-wider">NEOGRAM STATIC ARCHIVE</span>
-      <span class="text-prompt text-xs hidden sm:inline">[:&gt; ELEVENTY GENERATED]</span>
+  <header class="neogram-site__taskbar">
+    <div class="neogram-site__branding">
+      <span class="neogram-site__logo">🍎</span>
+      <span class="neogram-site__title">NEOGRAM STATIC ARCHIVE</span>
+      <span class="neogram-site__tag">[:&gt; ELEVENTY GENERATED]</span>
     </div>
 
-    <div class="flex items-center gap-3">
-      <a href="{{ '/' | url }}" class="pixel-btn pixel-btn--sm">
+    <div class="neogram-site__nav">
+      <a href="{{ '/' | url }}" class="neogram-btn neogram-btn--sm">
         <span>🏠 Gallery Grid</span>
       </a>
-      <a href="{{ site.apiUrl or 'http://localhost:4000' }}" target="_blank" class="pixel-btn pixel-btn--yellow pixel-btn--sm">
+      <a href="{{ site.apiUrl or 'http://localhost:4000' }}" target="_blank" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
         <span>🔑 Neogram Studio</span>
       </a>
-      <button type="button" id="themeToggleBtn" class="pixel-btn pixel-btn--sm" title="Toggle Theme Skin">
+      <button type="button" id="themeToggleBtn" class="neogram-btn neogram-btn--sm" title="Toggle Theme Skin">
         <span>☾ Theme</span>
       </button>
     </div>
@@ -38,26 +41,26 @@
   <!-- ==============================================================
        PAGE CONTENT CONTAINER
        ============================================================== -->
-  <main class="flex-1 p-3 sm:p-6 max-w-6xl w-full mx-auto">
+  <main class="neogram-site__main">
     {{ content | safe }}
   </main>
 
   <!-- ==============================================================
        STATIC SITE RETRO FOOTER
        ============================================================== -->
-  <footer class="mt-8 border-t-2 border-main p-4 bg-window text-xs font-mono text-center select-none">
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 max-w-6xl mx-auto">
-      <div class="text-left">
-        <div class="font-bold text-prompt">STATIC HOST: <span class="text-main">{{ site.neocitiesUrl }}</span></div>
-        <div class="text-muted text-xs">Built with 11ty (Eleventy) &amp; Neogram Sharp Publishing Pipeline</div>
+  <footer class="neogram-site__footer">
+    <div class="neogram-site__footer-inner">
+      <div class="neogram-site__footer-info">
+        <div class="neogram-site__footer-host">STATIC HOST: <span class="neogram-site__footer-url">{{ site.neocitiesUrl }}</span></div>
+        <div class="neogram-site__footer-sub">Built with 11ty (Eleventy) &amp; Neogram Sharp Publishing Pipeline</div>
       </div>
 
       <!-- Retro 88x31 Badges -->
-      <div class="flex items-center gap-2 flex-wrap justify-center">
-        <span class="pixel-badge pixel-badge--cyan">11TY STATIC</span>
-        <span class="pixel-badge pixel-badge--green">NEOCITIES READY</span>
-        <span class="pixel-badge pixel-badge--magenta">800x600 BEST</span>
-        <span class="pixel-badge pixel-badge--amber">NETSCAPE 4.0</span>
+      <div class="neogram-site__footer-badges">
+        <span class="neogram-badge neogram-badge--cyan">11TY STATIC</span>
+        <span class="neogram-badge neogram-badge--green">NEOCITIES READY</span>
+        <span class="neogram-badge neogram-badge--magenta">800x600 BEST</span>
+        <span class="neogram-badge neogram-badge--amber">NETSCAPE 4.0</span>
       </div>
     </div>
   </footer>
@@ -68,7 +71,7 @@
     document.addEventListener('DOMContentLoaded', function () {
       // Audio click handler for retro buttons
       if (window.retroAudio) {
-        document.querySelectorAll('.pixel-btn, .filter-btn').forEach(function (btn) {
+        document.querySelectorAll('.neogram-btn, .pixel-btn, .filter-btn').forEach(function (btn) {
           btn.addEventListener('click', function () {
             window.retroAudio.playClick();
           });

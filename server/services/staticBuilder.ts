@@ -156,7 +156,7 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
     // 3. Update site.json metadata for this specific user's compilation
     let pathPrefix = '/';
     if (userId) {
-      const userRes = await query('SELECT id, email, handle, site_url, deploy_path, avatar_path FROM users WHERE id = $1', [userId]);
+      const userRes = await query('SELECT id, email, handle, site_url, deploy_path, avatar_path, custom_css_url FROM users WHERE id = $1', [userId]);
       if (userRes.rows.length > 0) {
         const u = userRes.rows[0];
         const author = u.handle || u.email.split('@')[0];
@@ -176,6 +176,7 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
           pathPrefix: pathPrefix,
           apiUrl: config.appUrl || 'http://localhost:4000',
           systemMood: '[:> SURFING THE RETRO STATIC WEBRING]',
+          customCssUrl: u.custom_css_url || null,
         };
         const siteJsonPath = path.join(process.cwd(), 'eleventy/src/_data/site.json');
         await fs.writeFile(siteJsonPath, JSON.stringify(siteData, null, 2), 'utf-8');

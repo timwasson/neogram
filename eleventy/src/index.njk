@@ -6,104 +6,104 @@ title: Static Photo Stream
 <!-- ==============================================================
      STATIC GALLERY BANNER (Retro 90s Geocities/Cyber Homage)
      ============================================================== -->
-<div class="pixel-box mb-6">
-  <div class="window-header">
-    <div class="flex items-center gap-2">
+<section class="neogram-banner">
+  <div class="neogram-banner__header">
+    <div class="neogram-banner__title">
       <span>⚡</span>
-      <span class="font-bold">[:&gt; {{ site.title }}]</span>
+      <span>[:&gt; {{ site.title }}]</span>
     </div>
-    <div class="flex items-center gap-2 text-xs">
-      <span class="text-prompt font-bold">● NEOCITIES STATIC STREAM</span>
+    <div class="neogram-banner__status">
+      <span>● NEOCITIES STATIC STREAM</span>
     </div>
   </div>
 
-  <div class="p-4 bg-window">
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-      <div>
-        <p class="font-bold text-sm text-mac mb-1">{{ site.description }}</p>
-        <p class="text-muted">
-          Broadcast node: <code class="text-prompt">{{ site.neocitiesUrl }}</code> · Formatted for Netscape &amp; Modern Browsers
-        </p>
-      </div>
+  <div class="neogram-banner__body">
+    <div class="neogram-banner__info">
+      <p class="neogram-banner__desc">{{ site.description }}</p>
+      <p class="neogram-banner__node">
+        Broadcast node: <code>{{ site.neocitiesUrl }}</code> · Formatted for Netscape &amp; Modern Browsers
+      </p>
+    </div>
 
-      <div class="flex items-center gap-2">
-        <span class="pixel-badge pixel-badge--cyan font-bold">{{ posts.length }} PHOTOS ARCHIVED</span>
-        <a href="{{ site.apiUrl or 'http://localhost:4000' }}" target="_blank" class="pixel-btn pixel-btn--yellow pixel-btn--sm">
-          <span>📸 Upload New Photo :&gt;</span>
-        </a>
-      </div>
+    <div class="neogram-banner__actions">
+      <span class="neogram-badge neogram-badge--cyan">{{ posts.length }} PHOTOS ARCHIVED</span>
+      <a href="{{ site.apiUrl or 'http://localhost:4000' }}" target="_blank" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
+        <span>📸 Upload New Photo :&gt;</span>
+      </a>
     </div>
   </div>
-</div>
+</section>
 
 <!-- ==============================================================
      STATIC PHOTO GRID
      ============================================================== -->
 {% if posts.length == 0 %}
-  <div class="pixel-box p-8 text-center bg-window">
-    <div class="text-3xl mb-3">📡</div>
-    <div class="font-bold text-mac text-sm mb-2">[:&gt; NO PHOTOS BROADCAST TO STATIC REPO YET]</div>
-    <p class="text-muted text-xs mb-4">
+  <div class="neogram-empty">
+    <div class="neogram-empty__icon">📡</div>
+    <div class="neogram-empty__title">[:&gt; NO PHOTOS BROADCAST TO STATIC REPO YET]</div>
+    <p class="neogram-empty__desc">
       Log into your Neogram Workstation to upload your first photograph and trigger the 11ty build pipeline.
     </p>
-    <a href="{{ site.apiUrl or 'http://localhost:4000' }}" class="pixel-btn pixel-btn--green text-xs font-bold py-2 px-4">
-      <span>🚀 Open Neogram Creator Studio</span>
-    </a>
+    <div class="neogram-empty__action">
+      <a href="{{ site.apiUrl or 'http://localhost:4000' }}" class="neogram-btn neogram-btn--green neogram-btn--lg">
+        <span>🚀 Open Neogram Creator Studio</span>
+      </a>
+    </div>
   </div>
 {% else %}
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <div class="neogram-grid">
     {% for post in posts %}
-      <article class="pixel-box flex flex-col transition-transform hover:-translate-y-1 bg-window">
+      <article class="neogram-card">
         <!-- Card Window Header -->
-        <div class="window-header flex items-center justify-between text-xs">
-          <span class="truncate font-bold">@{{ post.author }}</span>
-          <span class="text-prompt text-xs font-bold uppercase">{{ post.filterApplied or 'RAW' }}</span>
+        <div class="neogram-card__header">
+          <span class="neogram-card__author">@{{ post.author }}</span>
+          <span class="neogram-card__shader">{{ post.filterApplied or 'RAW' }}</span>
         </div>
 
         <!-- Thumbnail Viewport with CRT & Filter Shaders -->
-        <a href="{{ ('/photos/' + post.id + '/') | url }}" class="block bg-black p-1 h-56 flex items-center justify-center overflow-hidden relative group crt-scanlines">
+        <a href="{{ ('/photos/' + post.id + '/') | url }}" class="neogram-card__media">
           <img
             src="{{ (post.thumbnailPath or post.imagePath) | url }}"
             alt="{{ post.caption }}"
-            class="max-h-full max-w-full object-contain filter-{{ post.filterApplied or 'none' }} group-hover:scale-105 transition-transform duration-150"
+            class="neogram-card__image filter-{{ post.filterApplied or 'none' }}"
             loading="lazy"
           />
-          <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-            <span class="pixel-btn pixel-btn--yellow text-xs font-bold py-1 px-3">
+          <div class="neogram-card__overlay">
+            <span class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn">
               <span>👁️ VIEW &amp; COMMENT</span>
             </span>
           </div>
         </a>
 
         <!-- Metadata & Caption Card Body -->
-        <div class="p-4 flex-1 flex flex-col justify-between text-xs">
-          <div>
-            <div class="flex items-center justify-between text-muted text-xs mb-2">
-              <span>{{ post.location or 'Earth // Cyberspace' }}</span>
-              <span>{{ post.createdAt | formatDate }}</span>
+        <div class="neogram-card__body">
+          <div class="neogram-card__content">
+            <div class="neogram-card__meta">
+              <span class="neogram-card__location">{{ post.location or 'Earth // Cyberspace' }}</span>
+              <span class="neogram-card__date">{{ post.createdAt | formatDate }}</span>
             </div>
 
-            <p class="line-clamp-2 leading-relaxed text-main mb-3">
+            <p class="neogram-card__caption">
               {{ post.caption }}
             </p>
           </div>
 
           <!-- Tags & Actions Footer -->
           <div>
-            <div class="flex flex-wrap gap-1 mb-3">
+            <div class="neogram-card__tags">
               {% if post.mood %}
-                <span class="pixel-badge pixel-badge--cyan">{{ post.mood }}</span>
+                <span class="neogram-badge neogram-badge--cyan">{{ post.mood }}</span>
               {% endif %}
               {% if post.webring %}
-                <span class="pixel-badge pixel-badge--magenta">ring: {{ post.webring }}</span>
+                <span class="neogram-badge neogram-badge--magenta">ring: {{ post.webring }}</span>
               {% endif %}
             </div>
 
-            <div class="flex items-center justify-between pt-2 border-t border-main">
-              <span class="text-xs text-muted">
-                ❤️ <strong class="text-main">{{ post.likes or 0 }}</strong> likes
+            <div class="neogram-card__footer">
+              <span class="neogram-card__likes">
+                ❤️ <strong>{{ post.likes or 0 }}</strong> likes
               </span>
-              <a href="{{ ('/photos/' + post.id + '/') | url }}" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold">
+              <a href="{{ ('/photos/' + post.id + '/') | url }}" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
                 <span>View Details :&gt;</span>
               </a>
             </div>
