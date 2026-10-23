@@ -139,13 +139,33 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
       ORDER BY c.created_at ASC
     `);
 
-    // Group comments by post
+    // 2. Fetch comments from self-hosted comments.json files (with fallback to database)
+    const { getCommentsRelativePath } = await import('./staticStorage');
     const commentsByPost: Record<string, any[]> = {};
+
+    // Group database comments first as baseline
     for (const comment of commentsQuery.rows) {
       if (!commentsByPost[comment.postId]) {
         commentsByPost[comment.postId] = [];
       }
       commentsByPost[comment.postId].push(comment);
+    }
+
+    // Overlay or populate from self-hosted comments.json files
+    for (const post of postsQuery.rows) {
+      if (post.imagePath) {
+        const relPath = getCommentsRelativePath(post.imagePath);
+        const jsonFilePath = path.join(targetOutputDir, relPath);
+        try {
+          const raw = await fs.readFile(jsonFilePath, 'utf-8');
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed.comments) && parsed.comments.length > 0) {
+            commentsByPost[post.id] = parsed.comments;
+          }
+        } catch (_err) {
+          // File doesn't exist yet on disk; keeps DB comments or empty array
+        }
+      }
     }
 
     const posts = postsQuery.rows.map((post) => ({

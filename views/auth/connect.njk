@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neogram Cyber-Pass Handshake</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/neogram.css">
+    <script src="/js/retroAudio.js?v=2.2.0"></script>
+  </head>
+  <body class="p-4 bg-desktop min-h-screen flex items-center justify-center font-mono">
+    <div class="pixel-box w-full max-w-sm bg-window border-4 border-black p-4">
+      <div class="window-header flex items-center justify-between mb-3 border-b-2 border-main pb-1">
+        <span class="font-bold text-xs">[:&gt; NEOGRAM CYBER-PASS v1.0]</span>
+        <span class="text-xs text-muted">SECURE AUTH</span>
+      </div>
+
+      {% if authenticated %}
+        <!-- State A: Already Logged In -> Instant Handshake & Close -->
+        <div class="flex flex-col items-center text-center py-2">
+          <div class="text-3xl mb-2">⚡</div>
+          <div class="text-xs text-muted mb-1">AUTHENTICATED CALLSIGN:</div>
+          <div class="text-sm font-bold text-mac mb-3">@{{ user.handle }} <span class="text-muted font-normal">[#{{ user.uin }}]</span></div>
+
+          <div class="w-full bg-window border-2 border-main p-2 mb-3 text-xs text-left">
+            <span class="text-muted">Target Site:</span>
+            <div class="font-bold truncate text-prompt">{{ targetOrigin }}</div>
+          </div>
+
+          <p class="text-xs text-muted mb-4">Transmitting session pass to static terminal...</p>
+
+          <button
+            type="button"
+            id="btnManualAuthorize"
+            class="pixel-btn pixel-btn--green w-full font-bold py-2 mb-2"
+            onclick="dispatchPass()"
+          >
+            <span>AUTHORIZE &amp; CLOSE :&gt;</span>
+          </button>
+        </div>
+
+        <script>
+          var passData = {
+            type: 'NEOGRAM_CYBER_PASS',
+            token: '{{ token }}',
+            handle: '{{ user.handle }}',
+            uin: {{ user.uin }},
+            avatar: '{{ user.avatarPath or "💬" }}'
+          };
+          var targetOrigin = '{{ targetOrigin or "*" }}';
+
+          function dispatchPass() {
+            if (window.retroAudio) window.retroAudio.playSuccess();
+            if (window.opener) {
+              window.opener.postMessage(passData, targetOrigin === '*' ? '*' : targetOrigin);
+              setTimeout(function () {
+                window.close();
+              }, 300);
+            } else {
+              alert('[:> Cyber-Pass token active. You can return to the photo page.]');
+            }
+          }
+
+          // Auto-dispatch after 350ms for seamless 1-click UX
+          window.addEventListener('DOMContentLoaded', function () {
+            setTimeout(dispatchPass, 350);
+          });
+        </script>
+
+      {% else %}
+        <!-- State B: Not Logged In -> Fast Retro OTP Login Form -->
+        <div class="flex flex-col gap-3">
+          <p class="text-xs text-muted">
+            Identify yourself via Neogram to leave comments and signatures on retro static sites.
+          </p>
+
+          <!-- Step 1: Identifier -->
+          <form id="requestOtpForm" class="flex flex-col gap-2">
+            <label for="connectIdentifier" class="font-bold text-xs">CYBER EMAIL OR MOBILE:</label>
+            <input
+              type="text"
+              id="connectIdentifier"
+              placeholder="surfer@cyberspace.net"
+              required
+              class="p-2 border-2 border-main font-mono text-xs w-full bg-desktop text-main"
+            />
+            <button type="submit" id="btnRequestCode" class="pixel-btn pixel-btn--yellow font-bold py-2 text-xs">
+              <span>REQUEST 6-DIGIT CODE :&gt;</span>
+            </button>
+          </form>
+
+          <!-- Step 2: Verification Code -->
+          <form id="verifyOtpForm" class="hidden flex flex-col gap-2">
+            <label for="connectCode" class="font-bold text-xs">ENTER 6-DIGIT CODE:</label>
+            <input
+              type="text"
+              id="connectCode"
+              placeholder="123456"
+              maxlength="6"
+              required
+              class="p-2 border-2 border-main font-mono text-xs w-full bg-desktop text-main tracking-widest text-center font-bold text-base"
+            />
+            <button type="submit" id="btnVerifyCode" class="pixel-btn pixel-btn--green font-bold py-2 text-xs">
+              <span>AUTHORIZE CYBER-PASS :&gt;</span>
+            </button>
+          </form>
+
+          <div id="connectStatusMsg" class="hidden p-2 retro-alert text-xs"></div>
+        </div>
+
+        <script>
+          var targetOrigin = '{{ targetOrigin or "*" }}';
+          var savedIdentifier = '';
+
+          var reqForm = document.getElementById('requestOtpForm');
+          var verForm = document.getElementById('verifyOtpForm');
+          var idInput = document.getElementById('connectIdentifier');
+          var codeInput = document.getElementById('connectCode');
+          var statusMsg = document.getElementById('connectStatusMsg');
+          var btnRequest = document.getElementById('btnRequestCode');
+          var btnVerify = document.getElementById('btnVerifyCode');
+
+          function showStatus(text, isError) {
+            statusMsg.className = 'p-2 retro-alert text-xs ' + (isError ? 'retro-alert--error' : 'retro-alert--success');
+            statusMsg.textContent = text;
+            statusMsg.classList.remove('hidden');
+          }
+
+          reqForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            savedIdentifier = idInput.value.trim();
+            if (!savedIdentifier) return;
+
+            btnRequest.disabled = true;
+            btnRequest.textContent = 'TRANSMITTING...';
+            if (window.retroAudio) window.retroAudio.playClick();
+
+            try {
+              var res = await fetch('/api/auth/request-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifier: savedIdentifier }),
+              });
+              var data = await res.json();
+              if (res.ok && data.ok) {
+                reqForm.classList.add('hidden');
+                verForm.classList.remove('hidden');
+                codeInput.focus();
+                showStatus(data.demoCode ? '[:> Code dispatched! Demo code: ' + data.demoCode + ']' : '[:> Code dispatched! Check your messages.]', false);
+              } else {
+                showStatus(data.error || 'Failed to request code.', true);
+                btnRequest.disabled = false;
+                btnRequest.textContent = 'REQUEST 6-DIGIT CODE :>';
+              }
+            } catch (err) {
+              showStatus('Network error connecting to carrier.', true);
+              btnRequest.disabled = false;
+              btnRequest.textContent = 'REQUEST 6-DIGIT CODE :>';
+            }
+          });
+
+          verForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var code = codeInput.value.trim();
+            if (!code) return;
+
+            btnVerify.disabled = true;
+            btnVerify.textContent = 'VERIFYING...';
+            if (window.retroAudio) window.retroAudio.playClick();
+
+            try {
+              var res = await fetch('/api/auth/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifier: savedIdentifier, code: code }),
+              });
+              var data = await res.json();
+              if (res.ok && data.ok && data.token) {
+                showStatus('[:> Cyber-Pass approved! Closing...]', false);
+                if (window.retroAudio) window.retroAudio.playSuccess();
+
+                if (window.opener) {
+                  window.opener.postMessage({
+                    type: 'NEOGRAM_CYBER_PASS',
+                    token: data.token,
+                    handle: data.user.handle,
+                    uin: data.user.uin,
+                    avatar: data.user.avatarPath || '💬'
+                  }, targetOrigin === '*' ? '*' : targetOrigin);
+
+                  setTimeout(function () {
+                    window.close();
+                  }, 400);
+                }
+              } else {
+                showStatus(data.error || 'Verification failed. Invalid code.', true);
+                btnVerify.disabled = false;
+                btnVerify.textContent = 'AUTHORIZE CYBER-PASS :>';
+              }
+            } catch (err) {
+              showStatus('Network error while verifying.', true);
+              btnVerify.disabled = false;
+              btnVerify.textContent = 'AUTHORIZE CYBER-PASS :>';
+            }
+          });
+        </script>
+      {% endif %}
+
+    </div>
+  </body>
+</html>

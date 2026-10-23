@@ -378,6 +378,14 @@
                           </button>
                           <button
                             type="button"
+                            class="pixel-btn pixel-btn--sm pixel-btn--blue font-bold text-xs"
+                            onclick="openCommentsModalById('{{ post.id }}')"
+                            title="Moderate comments stored on your static site"
+                          >
+                            <span>💬 Comments (<span id="post-comment-count-{{ post.id }}">{{ post.commentCount or 0 }}</span>)</span>
+                          </button>
+                          <button
+                            type="button"
                             class="pixel-btn pixel-btn--sm pixel-btn--red font-bold text-xs"
                             onclick="confirmDeletePost('{{ post.id }}')"
                           >
@@ -456,6 +464,36 @@
                 </button>
               </div>
             </form>
+        </dialog>
+
+        <!-- Retro Comments Moderation Dialog (Accessible Native HTML5 Dialog) -->
+        <dialog id="commentsModalDialog" class="pixel-dialog" closedby="any" aria-labelledby="commentsDialogTitle">
+          <div class="pixel-box max-w-lg w-full bg-window border-4 border-black font-mono">
+            <div class="window-header flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span>💬</span>
+                <span class="font-bold text-xs" id="commentsDialogTitle">[:&gt; COMMENTS_MODERATOR.EXE - Self-Hosted Ledger]</span>
+              </div>
+              <button type="button" class="pixel-btn pixel-btn--sm font-bold" onclick="closeCommentsModal()" aria-label="Close dialog">
+                <span>✕</span>
+              </button>
+            </div>
+
+            <div class="p-4 space-y-3">
+              <div class="text-xs text-muted">
+                :&gt; Reading self-hosted comments directly from your static host JSON file. Purging a comment updates the file on your remote site.
+              </div>
+
+              <div id="commentsModalList" class="max-h-64 overflow-y-auto space-y-2 border-2 border-main p-2 bg-desktop">
+                <div class="text-xs text-muted text-center py-4">Loading comments from static host...</div>
+              </div>
+
+              <div class="flex items-center justify-end pt-2 border-t border-main">
+                <button type="button" class="pixel-btn text-xs font-bold" onclick="closeCommentsModal()">
+                  <span>Close Window</span>
+                </button>
+              </div>
+            </div>
           </div>
         </dialog>
 
@@ -2489,6 +2527,90 @@
     } catch (err) {
       if (window.retroAudio) window.retroAudio.playError();
       alert('Delete failed: ' + err.message);
+    }
+  }
+
+  var currentModPostId = null;
+
+  async function openCommentsModalById(postId) {
+    currentModPostId = postId;
+    if (window.retroAudio) window.retroAudio.playClick();
+    var list = document.getElementById('commentsModalList');
+    list.innerHTML = '<div class="text-xs text-muted text-center py-4">Loading comments from static host...</div>';
+
+    var dialog = document.getElementById('commentsModalDialog');
+    if (dialog && typeof dialog.showModal === 'function') {
+      dialog.showModal();
+    }
+
+    try {
+      var res = await fetch('/api/posts/' + postId + '/comments');
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to load comments');
+
+      var comments = data.comments || [];
+      if (comments.length === 0) {
+        list.innerHTML = '<div class="text-xs text-muted text-center py-4">:&gt; No comments found in this photo\'s self-hosted ledger.</div>';
+        return;
+      }
+
+      list.innerHTML = '';
+      comments.forEach(function(c) {
+        var card = document.createElement('div');
+        card.className = 'retro-card p-2 text-xs flex flex-col gap-1 border border-main bg-window';
+        card.id = 'comment-card-' + c.id;
+        var uinBadge = c.uin ? ' <span class="text-muted font-normal">[#' + c.uin + ']</span>' : '';
+        card.innerHTML = 
+          '<div class="flex items-center justify-between border-b border-main pb-1">' +
+          '  <div class="flex items-center gap-1 font-bold">' +
+          '    <span>' + (c.avatar || '💬') + '</span>' +
+          '    <span class="text-mac">@' + escapeHtml(c.author) + '</span>' + uinBadge +
+          '  </div>' +
+          '  <button type="button" onclick="purgeComment(\\'' + escapeHtml(c.id) + '\\')" class="pixel-btn pixel-btn--sm pixel-btn--red font-bold text-xs py-0.5 px-2" title="Purge from static host">' +
+          '    <span>🗑️ Purge</span>' +
+          '  </button>' +
+          '</div>' +
+          '<p class="p-1 font-mono text-xs whitespace-pre-wrap">' + escapeHtml(c.text) + '</p>';
+        list.appendChild(card);
+      });
+    } catch (err) {
+      list.innerHTML = '<div class="text-xs text-crimson text-center py-4 font-bold">Error reading static comments: ' + escapeHtml(err.message) + '</div>';
+    }
+  }
+
+  function closeCommentsModal() {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var dialog = document.getElementById('commentsModalDialog');
+    if (dialog && dialog.open) dialog.close();
+  }
+
+  async function purgeComment(commentId) {
+    if (!currentModPostId) return;
+    if (!confirm('[:> Confirm purge: Delete this comment permanently from your static host JSON file?]')) {
+      return;
+    }
+    if (window.retroAudio) window.retroAudio.playClick();
+
+    try {
+      var res = await fetch('/api/posts/' + currentModPostId + '/comments/' + commentId, {
+        method: 'DELETE'
+      });
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to purge comment');
+
+      var card = document.getElementById('comment-card-' + commentId);
+      if (card) card.remove();
+
+      var countEl = document.getElementById('post-comment-count-' + currentModPostId);
+      if (countEl) {
+        var curr = Math.max(0, parseInt(countEl.textContent || '0', 10) - 1);
+        countEl.textContent = curr;
+      }
+
+      if (window.retroAudio) window.retroAudio.playSuccess();
+    } catch (err) {
+      if (window.retroAudio) window.retroAudio.playError();
+      alert('Error purging comment: ' + err.message);
     }
   }
 

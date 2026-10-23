@@ -278,25 +278,56 @@ async function runSmokeTests() {
     assertTest('UIN counter contains valid XML tags', svgUinContent.includes('<svg'));
 
     // -------------------------------------------------------------------------
-    // TEST 10: Centralized Comment Ledger
+    // TEST 10: Self-Hosted Comments & Cyber-Pass Security
     // -------------------------------------------------------------------------
-    logHeader('10. CENTRALIZED COMMENT LEDGER');
-    const commentRes = await fetch(`${API_BASE}/api/posts/${testPostId}/comments`, {
+    logHeader('10. SELF-HOSTED COMMENTS & CYBER-PASS SECURITY');
+
+    // 10a. Unauthenticated comment rejection
+    const unauthCommentRes = await fetch(`${API_BASE}/api/posts/${testPostId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'Spam bot test' }),
+    });
+    assertTest('POST /api/posts/:id/comments without auth returns HTTP 401', unauthCommentRes.status === 401);
+
+    // 10b. Authenticated comment via Cyber-Pass / session
+    const commentRes = await fetch(`${API_BASE}/api/posts/${testPostId}/comments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
       body: JSON.stringify({
-        author: 'visitor_surfer_99',
         text: 'This photograph looks radical on my Netscape Navigator browser!',
       }),
     });
-    assertTest('POST /api/posts/:id/comments returns HTTP 201/200', commentRes.status === 201 || commentRes.status === 200);
+    assertTest('POST /api/posts/:id/comments with Cyber-Pass returns HTTP 201', commentRes.status === 201);
     const commentData = await commentRes.json() as any;
-    assertTest('Comment recorded on static post ledger', commentData.ok === true && !!commentData.comment);
+    assertTest('Comment recorded with author callsign and UIN', commentData.ok === true && !!commentData.comment && commentData.comment.author === testUser.handle);
+    const createdCommentId = commentData.comment?.id;
 
-    // Verify comment query
-    const singlePostRes = await fetch(`${API_BASE}/api/posts/${testPostId}`);
-    const singlePostData = await singlePostRes.json() as any;
-    assertTest('GET /api/posts/:id includes new comment', singlePostData.post?.comments?.length >= 1);
+    // 10c. Verify comment query from self-hosted endpoint
+    const postCommentsRes = await fetch(`${API_BASE}/api/posts/${testPostId}/comments`);
+    assertTest('GET /api/posts/:id/comments returns HTTP 200', postCommentsRes.status === 200);
+    const postCommentsData = await postCommentsRes.json() as any;
+    assertTest('Comments list contains new self-hosted comment', Array.isArray(postCommentsData.comments) && postCommentsData.comments.length >= 1);
+
+    // 10d. Test Cyber-Pass connect endpoint
+    const connectRes = await fetch(`${API_BASE}/auth/connect?origin=https%3A%2F%2Fexample.neocities.org`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('GET /auth/connect returns HTTP 200', connectRes.status === 200);
+    const connectHtml = await connectRes.text();
+    assertTest('Connect page includes NEOGRAM_CYBER_PASS handshake script', connectHtml.includes('NEOGRAM_CYBER_PASS'));
+
+    // 10e. Moderate / Purge comment
+    if (createdCommentId) {
+      const purgeCommentRes = await fetch(`${API_BASE}/api/posts/${testPostId}/comments/${createdCommentId}`, {
+        method: 'DELETE',
+        headers: { 'Cookie': sessionCookie },
+      });
+      assertTest('DELETE /api/posts/:id/comments/:commentId returns HTTP 200', purgeCommentRes.status === 200);
+    }
 
     // -------------------------------------------------------------------------
     // TEST 11: Public Headless JSON Feed (JSONFeed 1.1)

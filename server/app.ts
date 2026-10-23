@@ -7,7 +7,7 @@ import { requestLogger } from './middleware/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { apiRouter } from './routes/api';
 import { embedsRouter } from './routes/embeds';
-import { COOKIE_NAME, verifySessionToken, clearSessionCookie, extractToken } from './auth/jwt';
+import { COOKIE_NAME, verifySessionToken, clearSessionCookie, extractToken, signSessionToken } from './auth/jwt';
 import { getUserById } from './auth/service';
 import { config } from './config';
 
@@ -175,6 +175,32 @@ export function createApp(): Express {
       title: 'Neogram - Terminal Login',
       activeView: 'login',
     });
+  });
+
+  app.get('/auth/connect', (req: Request, res: Response) => {
+    const rawOrigin = (req.query.origin as string) || '*';
+    const targetOrigin = rawOrigin.replace(/[^\w.:\/-]/g, '');
+    const user = res.locals.currentUser;
+
+    if (user) {
+      const token = signSessionToken({
+        userId: user.id,
+        email: user.email,
+        handle: user.handle,
+        uin: user.uin,
+      });
+      res.render('auth/connect', {
+        authenticated: true,
+        user,
+        token,
+        targetOrigin,
+      });
+    } else {
+      res.render('auth/connect', {
+        authenticated: false,
+        targetOrigin,
+      });
+    }
   });
 
   app.get('/logout', (_req: Request, res: Response) => {

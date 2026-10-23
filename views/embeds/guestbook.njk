@@ -25,20 +25,22 @@
         :&gt; Leave a note on this retro station! Signatures are logged directly to the visitor ledger.
       </p>
 
-      <!-- Signature Form -->
-      <form id="guestbookForm" class="retro-card p-3 mb-6 flex flex-col gap-3 font-mono text-xs">
-        <div class="flex flex-col sm:flex-row gap-3">
-          <div class="flex-1 flex flex-col gap-1">
-            <label for="gbName" class="font-bold">YOUR ALIAS / HANDLE: *</label>
-            <input type="text" id="gbName" name="visitorName" required placeholder="AcidBurn_01" class="p-2 border-2 border-main font-mono text-xs" />
+      <!-- State A: Signature Form (when Cyber-Pass is active) -->
+      <form id="guestbookForm" class="retro-card p-3 mb-6 flex flex-col gap-3 font-mono text-xs hidden">
+        <div class="flex items-center justify-between text-xs font-mono p-1 border border-main bg-window">
+          <div class="flex items-center gap-1">
+            <span>⚡ IDENTIFIED CALLSIGN:</span>
+            <span id="gbAuthHandle" class="font-bold text-mac">@visitor</span>
+            <span id="gbAuthUin" class="text-muted font-normal">[#000000]</span>
           </div>
+          <button type="button" onclick="disconnectGbPass()" class="text-muted text-xs hover:underline" title="Disconnect pass">[Disconnect ✕]</button>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
           <div class="flex-1 flex flex-col gap-1">
             <label for="gbWebsite" class="font-bold">HOMEPAGE URL:</label>
             <input type="text" id="gbWebsite" name="visitorWebsite" placeholder="https://..." class="p-2 border-2 border-main font-mono text-xs" />
           </div>
-        </div>
-
-        <div class="flex flex-col sm:flex-row gap-3">
           <div class="flex-1 flex flex-col gap-1">
             <label for="gbLocation" class="font-bold">LOCATION / BBS NODE:</label>
             <input type="text" id="gbLocation" name="visitorLocation" placeholder="Node #313 // Cyberspace" class="p-2 border-2 border-main font-mono text-xs" />
@@ -61,7 +63,7 @@
         </div>
 
         <div class="flex items-center justify-between pt-1">
-          <span class="text-xs text-muted">* Written to public database</span>
+          <span class="text-xs text-muted">* Written to self-hosted JSON ledger</span>
           <button type="submit" id="gbSubmitBtn" class="pixel-btn pixel-btn--blue font-bold px-4 py-2">
             <span>✍️ Sign Guestbook</span>
           </button>
@@ -69,6 +71,21 @@
 
         <div id="gbStatusMsg" class="hidden text-xs font-mono font-bold p-2 retro-alert retro-alert--success"></div>
       </form>
+
+      <!-- State B: Unauthenticated Lock Banner -->
+      <div id="gbPassPrompt" class="p-3 border-2 border-dashed border-main text-center bg-window mb-6">
+        <div class="text-xs font-bold text-mac mb-1">🔒 NEOGRAM CYBER-PASS REQUIRED</div>
+        <p class="text-xs text-muted mb-3">
+          Visitors must identify via their Neogram station to sign this public visitor ledger.
+        </p>
+        <button
+          type="button"
+          onclick="openGbPassModal()"
+          class="pixel-btn pixel-btn--yellow font-bold text-xs py-2 px-4"
+        >
+          <span>⚡ Connect Cyber-Pass / Login :&gt;</span>
+        </button>
+      </div>
 
       <!-- Ledger of Signatures -->
       <div class="flex flex-col gap-3 font-mono">
@@ -131,6 +148,67 @@
           return '';
         }
 
+        function getStoredPass() {
+          try {
+            var raw = localStorage.getItem('neogram_pass');
+            return raw ? JSON.parse(raw) : null;
+          } catch (_err) {
+            return null;
+          }
+        }
+
+        function renderGbAuthUI() {
+          var pass = getStoredPass();
+          var form = document.getElementById('guestbookForm');
+          var prompt = document.getElementById('gbPassPrompt');
+          var handleEl = document.getElementById('gbAuthHandle');
+          var uinEl = document.getElementById('gbAuthUin');
+
+          if (pass && pass.token) {
+            if (form) form.classList.remove('hidden');
+            if (prompt) prompt.classList.add('hidden');
+            if (handleEl) handleEl.textContent = '@' + pass.handle;
+            if (uinEl) uinEl.textContent = pass.uin ? '[#' + pass.uin + ']' : '';
+          } else {
+            if (form) form.classList.add('hidden');
+            if (prompt) prompt.classList.remove('hidden');
+          }
+        }
+
+        window.disconnectGbPass = function() {
+          try {
+            localStorage.removeItem('neogram_pass');
+          } catch (_err) {}
+          if (window.retroAudio) retroAudio.playClick();
+          renderGbAuthUI();
+        };
+
+        window.openGbPassModal = function() {
+          if (window.retroAudio) retroAudio.playClick();
+          var origin = encodeURIComponent(window.location.origin);
+          var popup = window.open(
+            '/auth/connect?origin=' + origin,
+            'neogram_auth',
+            'width=440,height=480,menubar=no,toolbar=no,location=no,status=no'
+          );
+        };
+
+        window.addEventListener('message', function(e) {
+          if (e.data && (e.data.type === 'NEOGRAM_CYBER_PASS' || e.data.type === 'NEOGRAM_EXTENSION_PASS')) {
+            try {
+              localStorage.setItem('neogram_pass', JSON.stringify({
+                token: e.data.token,
+                handle: e.data.handle,
+                uin: e.data.uin,
+              }));
+            } catch (_err) {}
+            renderGbAuthUI();
+            if (window.retroAudio) retroAudio.playSuccess();
+          }
+        });
+
+        renderGbAuthUI();
+
         var form = document.getElementById('guestbookForm');
         var submitBtn = document.getElementById('gbSubmitBtn');
         var statusMsg = document.getElementById('gbStatusMsg');
@@ -139,6 +217,12 @@
 
         form.addEventListener('submit', async function(e) {
           e.preventDefault();
+          var pass = getStoredPass();
+          if (!pass || !pass.token) {
+            window.openGbPassModal();
+            return;
+          }
+
           if (window.retroAudio) retroAudio.playClick();
 
           submitBtn.disabled = true;
@@ -146,7 +230,6 @@
           statusMsg.classList.add('hidden');
 
           var payload = {
-            visitorName: document.getElementById('gbName').value,
             visitorWebsite: document.getElementById('gbWebsite').value,
             visitorLocation: document.getElementById('gbLocation').value,
             moodIcon: document.getElementById('gbMood').value,
@@ -156,7 +239,10 @@
           try {
             var res = await fetch('/api/guestbook/{{ handle }}', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + pass.token
+              },
               body: JSON.stringify(payload),
             });
 
@@ -167,7 +253,7 @@
 
             if (window.retroAudio) retroAudio.playSuccess();
 
-            statusMsg.textContent = '✓ Signature committed to disk! Thanks for signing.';
+            statusMsg.textContent = '✓ Signature committed to self-hosted ledger on static host!';
             statusMsg.className = 'text-xs font-mono font-bold p-2 retro-alert retro-alert--success';
             statusMsg.classList.remove('hidden');
 
@@ -179,11 +265,12 @@
             card.className = 'retro-card p-3 flex flex-col gap-2 text-xs';
             var safeUrl = sanitizeUrl(payload.visitorWebsite);
             var siteHtml = safeUrl ? '<div class="text-xs"><a href="' + escapeHtml(safeUrl) + '" target="_blank" rel="noopener noreferrer" class="text-mac underline">🌐 ' + escapeHtml(safeUrl) + '</a></div>' : '';
+            var uinBadge = pass.uin ? ' <span class="text-muted font-normal">[#' + pass.uin + ']</span>' : '';
             card.innerHTML = 
               '<div class="flex items-center justify-between border-b border-main pb-1">' +
                 '<div class="flex items-center gap-2">' +
                   '<span class="text-base">' + escapeHtml(payload.moodIcon || '😎') + '</span>' +
-                  '<span class="font-bold">' + escapeHtml(payload.visitorName) + '</span>' +
+                  '<span class="font-bold">@' + escapeHtml(pass.handle) + '</span>' + uinBadge +
                   '<span class="text-muted text-xs">from ' + escapeHtml(payload.visitorLocation || 'Cyberspace') + '</span>' +
                 '</div>' +
                 '<span class="text-xs text-muted">Just now</span>' +

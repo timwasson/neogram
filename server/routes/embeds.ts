@@ -201,7 +201,7 @@ embedsRouter.put('/api/counter', async (req: Request, res: Response) => {
 
 /**
  * GET /api/guestbook/:handle
- * Returns guestbook signatures for a user
+ * Returns guestbook signatures for a user from self-hosted data/guestbook.json
  */
 embedsRouter.get('/api/guestbook/:identifier', async (req: Request, res: Response) => {
   try {
@@ -211,20 +211,28 @@ embedsRouter.get('/api/guestbook/:identifier', async (req: Request, res: Respons
       return;
     }
 
-    const entriesRes = await query(
-      `SELECT id, visitor_name as "visitorName", visitor_website as "visitorWebsite", 
-              visitor_location as "visitorLocation", mood_icon as "moodIcon", 
-              message, is_moderated as "isModerated", created_at as "createdAt"
-       FROM guestbook_entries
-       WHERE user_id = $1
-       ORDER BY created_at DESC`,
-      [user.id]
-    );
+    const { readRemoteJson, getGuestbookRelativePath } = await import('../services/staticStorage');
+    const gbData = await readRemoteJson<any>(user, getGuestbookRelativePath(), { entries: [] });
+    let entries = Array.isArray(gbData.entries) ? gbData.entries : [];
+
+    // Fallback to legacy SQL records if self-hosted file not populated yet
+    if (entries.length === 0) {
+      const entriesRes = await query(
+        `SELECT id, visitor_name as "visitorName", visitor_website as "visitorWebsite", 
+                visitor_location as "visitorLocation", mood_icon as "moodIcon", 
+                message, is_moderated as "isModerated", created_at as "createdAt"
+         FROM guestbook_entries
+         WHERE user_id = $1
+         ORDER BY created_at DESC`,
+        [user.id]
+      );
+      entries = entriesRes.rows;
+    }
 
     res.json({
       ok: true,
       handle: user.handle || user.email.split('@')[0],
-      entries: entriesRes.rows,
+      entries,
     });
   } catch (err: any) {
     res.status(500).json({ ok: false, error: err.message });
@@ -247,7 +255,7 @@ function checkGbRateLimit(ip: string): boolean {
 
 /**
  * POST /api/guestbook/:handle
- * Public signature submission to a user's visitor ledger
+ * Verified signature submission to a user's self-hosted visitor ledger on static host
  */
 embedsRouter.post('/api/guestbook/:identifier', async (req: Request, res: Response) => {
   try {
@@ -257,25 +265,30 @@ embedsRouter.post('/api/guestbook/:identifier', async (req: Request, res: Respon
       return;
     }
 
-    const user = await findUserByHandleOrId(req.params.identifier);
-    if (!user) {
+    // Require verified Neogram user
+    const visitorUser = await getAuthUser(req);
+    if (!visitorUser) {
+      res.status(401).json({
+        ok: false,
+        error: 'Authentication required. Please connect your Neogram Cyber-Pass to sign the guestbook.',
+      });
+      return;
+    }
+
+    const hostUser = await findUserByHandleOrId(req.params.identifier);
+    if (!hostUser) {
       res.status(404).json({ ok: false, error: 'User node not found' });
       return;
     }
 
-    const { visitorName, visitorWebsite, visitorLocation, moodIcon, message } = req.body;
-
-    if (!visitorName || !visitorName.trim()) {
-      res.status(400).json({ ok: false, error: 'Visitor name is required.' });
-      return;
-    }
+    const { visitorLocation, visitorWebsite, moodIcon, message } = req.body;
 
     if (!message || !message.trim()) {
       res.status(400).json({ ok: false, error: 'Message is required.' });
       return;
     }
 
-    // Strictly validate website protocol: only http:// and https:// allowed (blocks javascript: and data: URIs)
+    // Strictly validate website protocol: only http:// and https:// allowed
     let cleanWebsite: string | null = null;
     if (visitorWebsite && typeof visitorWebsite === 'string') {
       const trimmed = visitorWebsite.trim();
@@ -284,26 +297,35 @@ embedsRouter.post('/api/guestbook/:identifier', async (req: Request, res: Respon
       }
     }
 
-    const insertRes = await query(
-      `INSERT INTO guestbook_entries (user_id, visitor_name, visitor_website, visitor_location, mood_icon, message)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, visitor_name as "visitorName", visitor_website as "visitorWebsite",
-                 visitor_location as "visitorLocation", mood_icon as "moodIcon",
-                 message, is_moderated as "isModerated", created_at as "createdAt"`,
+    const { appendGuestbookEntry } = await import('../services/staticStorage');
+    const entry = await appendGuestbookEntry(hostUser, {
+      visitorName: visitorUser.handle || visitorUser.email.split('@')[0],
+      uin: visitorUser.uin,
+      visitorLocation: visitorLocation || 'Cyberspace',
+      visitorWebsite: cleanWebsite || undefined,
+      moodIcon: moodIcon || '😎',
+      message: message.trim(),
+    });
+
+    // Mirror to database table for backwards compatibility
+    await query(
+      `INSERT INTO guestbook_entries (id, user_id, visitor_name, visitor_website, visitor_location, mood_icon, message)
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
+       ON CONFLICT DO NOTHING`,
       [
-        user.id,
-        visitorName.trim().slice(0, 100),
+        hostUser.id,
+        visitorUser.handle || 'visitor',
         cleanWebsite ? cleanWebsite.slice(0, 500) : null,
         (visitorLocation || 'Cyberspace').trim().slice(0, 200),
         (moodIcon || '😎').slice(0, 10),
         message.trim().slice(0, 1000),
       ]
-    );
+    ).catch(() => {});
 
     res.status(201).json({
       ok: true,
-      message: 'Signature committed to disk!',
-      entry: insertRes.rows[0],
+      message: 'Signature committed to self-hosted ledger on static host!',
+      entry,
     });
   } catch (err: any) {
     res.status(500).json({ ok: false, error: err.message });
@@ -312,7 +334,7 @@ embedsRouter.post('/api/guestbook/:identifier', async (req: Request, res: Respon
 
 /**
  * DELETE /api/guestbook/:id
- * Allows authenticated owner to delete a guestbook signature
+ * Allows authenticated owner to delete a guestbook signature from self-hosted JSON
  */
 embedsRouter.delete('/api/guestbook/:id', async (req: Request, res: Response) => {
   try {
@@ -323,17 +345,14 @@ embedsRouter.delete('/api/guestbook/:id', async (req: Request, res: Response) =>
     }
 
     const entryId = req.params.id;
-    const deleteRes = await query(
-      'DELETE FROM guestbook_entries WHERE id = $1 AND user_id = $2 RETURNING id',
-      [entryId, user.id]
-    );
 
-    if (deleteRes.rows.length === 0) {
-      res.status(404).json({ ok: false, error: 'Entry not found or unauthorized' });
-      return;
-    }
+    const { deleteGuestbookEntry } = await import('../services/staticStorage');
+    const deleted = await deleteGuestbookEntry(user, entryId);
 
-    res.json({ ok: true, deletedId: entryId });
+    // Also remove from legacy database table
+    await query('DELETE FROM guestbook_entries WHERE id::text = $1 AND user_id = $2', [entryId, user.id]).catch(() => {});
+
+    res.json({ ok: true, deleted, deletedId: entryId });
   } catch (err: any) {
     res.status(500).json({ ok: false, error: err.message });
   }

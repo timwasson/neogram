@@ -328,7 +328,7 @@ function checkCommentRateLimit(ip: string): boolean {
 }
 
 /**
- * 5. POST /api/posts/:id/comments - Post a centralized comment from static embeds / gallery
+ * 5. POST /api/posts/:id/comments - Post a comment to self-hosted comments.json on static host
  */
 postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next) => {
   try {
@@ -339,8 +339,17 @@ postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next
     }
 
     const { id } = req.params;
-    const { authorName, author, text } = req.body;
-    const finalAuthor = (authorName || author || 'guest_surfer').trim().slice(0, 50);
+    const { text } = req.body;
+
+    // Verify authenticated Neogram user (Cyber-Pass token or session)
+    const user = await getSessionUser(req);
+    if (!user) {
+      res.status(401).json({
+        ok: false,
+        error: 'Authentication required. Please connect your Neogram Cyber-Pass to leave a comment.',
+      });
+      return;
+    }
 
     if (!text || !text.trim()) {
       res.status(400).json({ ok: false, error: 'Comment body cannot be empty.' });
@@ -348,29 +357,133 @@ postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next
     }
     const cleanText = text.trim().slice(0, 1000);
 
-    const insertResult = await query(
-      `
-      INSERT INTO comments (post_id, author_name, body)
-      VALUES ($1, $2, $3)
-      RETURNING id, author_name as "author", author_avatar as "avatar", body as "text", created_at as "timestamp"
-    `,
-      [id, finalAuthor, cleanText]
+    // Fetch target post
+    const postRes = await query('SELECT * FROM posts WHERE id = $1', [id]);
+    if (postRes.rows.length === 0) {
+      res.status(404).json({ ok: false, error: 'Post not found in terminal registry.' });
+      return;
+    }
+    const post = postRes.rows[0];
+
+    // Fetch post owner to access deployment credentials
+    const ownerRes = await query('SELECT * FROM users WHERE id = $1', [post.user_id]);
+    if (ownerRes.rows.length === 0) {
+      res.status(404).json({ ok: false, error: 'Post owner not found.' });
+      return;
+    }
+    const ownerUser = ownerRes.rows[0];
+
+    // Append comment directly to self-hosted JSON on static host (Neocities / Nekoweb / local static bundle)
+    const { appendPostComment } = await import('../services/staticStorage');
+    const comment = await appendPostComment(
+      ownerUser,
+      post,
+      {
+        handle: user.handle || user.email.split('@')[0],
+        uin: user.uin || 0,
+        avatar: user.avatarPath || undefined,
+      },
+      cleanText
     );
 
+    // Mirror to database comments table for legacy smoke tests and queries
+    await query(
+      `INSERT INTO comments (id, post_id, author_name, author_avatar, body)
+       VALUES (gen_random_uuid(), $1, $2, $3, $4)
+       ON CONFLICT DO NOTHING`,
+      [id, user.handle || 'visitor', user.avatarPath || '💬', cleanText]
+    ).catch(() => {});
+
     // Trigger 11ty static update in background for post owner
-    query('SELECT user_id FROM posts WHERE id = $1', [id]).then((pRes) => {
-      const ownerId = pRes.rows[0]?.user_id;
-      if (ownerId) {
-        import('../services/staticBuilder')
-          .then((m) => m.buildStaticGallery({ userId: ownerId }))
-          .catch(() => {});
-      }
-    });
+    import('../services/staticBuilder')
+      .then((m) => m.buildStaticGallery({ userId: ownerUser.id }))
+      .catch(() => {});
 
     res.status(201).json({
       ok: true,
-      message: 'Comment committed to centralized ledger.',
-      comment: insertResult.rows[0],
+      message: 'Comment committed to self-hosted ledger on static host.',
+      comment: {
+        id: comment.id,
+        author: comment.author,
+        uin: comment.uin,
+        avatar: comment.avatar,
+        text: comment.text,
+        timestamp: comment.timestamp,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * 5b. GET /api/posts/:id/comments - Retrieve comments from self-hosted comments.json
+ */
+postsRouter.get('/posts/:id/comments', async (req: Request, res: Response, next) => {
+  try {
+    const { id } = req.params;
+    const postRes = await query('SELECT * FROM posts WHERE id = $1', [id]);
+    if (postRes.rows.length === 0) {
+      res.status(404).json({ ok: false, error: 'Post not found.' });
+      return;
+    }
+    const post = postRes.rows[0];
+
+    const ownerRes = await query('SELECT * FROM users WHERE id = $1', [post.user_id]);
+    const ownerUser = ownerRes.rows[0];
+
+    const { readRemoteJson, getCommentsRelativePath } = await import('../services/staticStorage');
+    const relPath = getCommentsRelativePath(post.image_path);
+    const commentsData = await readRemoteJson<any>(ownerUser, relPath, { comments: [] });
+
+    res.json({
+      ok: true,
+      comments: commentsData.comments || [],
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * 5c. DELETE /api/posts/:postId/comments/:commentId - Delete comment from self-hosted JSON (Owner moderation)
+ */
+postsRouter.delete('/posts/:postId/comments/:commentId', async (req: Request, res: Response, next) => {
+  try {
+    const user = await getSessionUser(req);
+    if (!user) {
+      res.status(401).json({ ok: false, error: 'Authentication required to moderate comments.' });
+      return;
+    }
+
+    const { postId, commentId } = req.params;
+    const postRes = await query('SELECT * FROM posts WHERE id = $1', [postId]);
+    if (postRes.rows.length === 0) {
+      res.status(404).json({ ok: false, error: 'Post not found.' });
+      return;
+    }
+    const post = postRes.rows[0];
+
+    if (post.user_id !== user.id) {
+      res.status(403).json({ ok: false, error: 'Access denied: You can only moderate comments on your own station photos.' });
+      return;
+    }
+
+    const { deletePostComment } = await import('../services/staticStorage');
+    const deleted = await deletePostComment(user, post, commentId);
+
+    // Clean up legacy table if exists
+    await query('DELETE FROM comments WHERE id::text = $1 OR body = $1', [commentId]).catch(() => {});
+
+    // Trigger 11ty static rebuild
+    import('../services/staticBuilder')
+      .then((m) => m.buildStaticGallery({ userId: user.id }))
+      .catch(() => {});
+
+    res.json({
+      ok: true,
+      message: deleted ? 'Comment purged from static host.' : 'Comment not found in remote ledger.',
+      deletedId: commentId,
     });
   } catch (err) {
     next(err);

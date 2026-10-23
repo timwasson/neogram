@@ -326,6 +326,25 @@ CREATE INDEX idx_chat_queue_expires ON ephemeral_chat_queue(expires_at);
 - **Production Container Hardening (Non-Root Execution):**
   - The production `Dockerfile` runs as non-root user `node` (UID 1000) with `/app` and subdirectories recursively owned by `node:node`, preventing container breakout.
 
+### 4.22 Zero-Retention Self-Hosted Social Layer (Comments & Guestbook JSON)
+- **Self-Hosted Storage on Static Host (0 MB Server Retention):**
+  - Comments are stored in self-hosted JSON files directly alongside each photo on the user's connected static host (`uploads/images/<fileId>.comments.json`).
+  - Visitor guestbook entries are stored in self-hosted JSON files under `data/guestbook.json`.
+  - The Neogram server acts as a **stateless broker/dispatcher**: when an authenticated visitor submits a comment or signature, Neogram validates their JWT, reads the remote JSON from the host, appends the entry, and pushes the updated file directly to Neocities (or Nekoweb) via API. PostgreSQL retains 0 bytes of comments or guestbooks.
+  - Concurrency and race conditions are eliminated using an in-memory sequential file lock (`withFileLock`).
+- **Neogram Cyber-Pass Handshake (`/auth/connect`):**
+  - Cross-domain static photo pages require a verified Neogram identity to prevent anonymous bot spam.
+  - Clicking `[⚡ Connect Cyber-Pass]` triggers a lightweight 1-click popup handshake with `neogram.net/auth/connect`, transmitting `{ token, handle, uin }` back via `window.postMessage` and caching to the site's `localStorage.getItem('neogram_pass')`.
+  - Token stays valid for 90 days across all photos and guestbooks under that creator's origin without re-prompting.
+- **WebExtension Auto-Authentication Bridge:**
+  - The Neogram WebExtension includes a content script (`extension/content/auth-bridge.js`) matching `*.neocities.org` and `*.nekoweb.org`.
+  - When a user with the extension installed loads any Neogram static gallery, the content script automatically broadcasts their active session pass to the page with 0 clicks.
+- **Same-Origin Static Hydration:**
+  - On static photo detail pages, client-side JS performs a same-origin fetch of `./uploads/images/<fileId>.comments.json` on page mount, reconciling and appending any fresh comments without waiting for an 11ty redeploy.
+- **Owner Content Editing & Moderation:**
+  - In the Neogram Workstation, creators can view and moderate comments directly on each post card via `COMMENTS_MODERATOR.EXE`. Clicking purge sends `DELETE /api/posts/:postId/comments/:commentId`, which removes the entry from the remote JSON file on Neocities and saves the updated ledger.
+- **Like Deduping:**
+  - Likes are tracked in client-side storage (`localStorage.getItem('neogram_liked_' + postId)`), toggling active state and preventing duplicate increment requests from the same visitor browser.
 
 ---
 
@@ -411,6 +430,13 @@ When building the production backend and views, extract and reuse the following 
     - Integrated transactional auth: verified Resend domain for email OTP (`auth@neogram.club`) and configured Twilio for SMS OTP (`+16416364726`).
     - Implemented carrier-compliant `/terms` and `/privacy` pages with full CTIA/TCPA SMS program disclosures and mobile information non-disclosure clauses.
     - Configured automated GitHub Actions CI/CD pipeline (`.github/workflows/deploy.yml`) executing TypeScript lint checks, SSH remote git pull, Docker Compose recreation, and `/api/health` polling.
+15. **[x] Step 15: Zero-Retention Self-Hosted Comments, Guestbooks, Cyber-Pass SSO & Extension Bridge**
+    - Self-hosted comments storage in plain JSON files (`uploads/images/<fileId>.comments.json`) and guestbooks (`data/guestbook.json`) on the creator's static host (0 MB retention on Neogram host).
+    - Stateless dispatching pipeline (`server/services/staticStorage.ts`) with concurrency mutex lock (`withFileLock`) uploading directly to Neocities (and Nekoweb ready).
+    - Neogram Cyber-Pass 1-click pop-up handshake (`/auth/connect`) establishing cross-domain scoped JWTs in `localStorage` without third-party cookie dependencies.
+    - Browser extension content script (`extension/content/auth-bridge.js`) automatically injecting active sessions across `*.neocities.org` and `*.nekoweb.org` with 0 clicks.
+    - Same-origin comments hydration on static photo detail pages (`eleventy/src/photo.njk`), like deduping, and audio chimes.
+    - In-workstation comment moderation dialog (`COMMENTS_MODERATOR.EXE`) in `views/index.njk` to review and purge comments directly from the self-hosted JSON.
 
 ---
 

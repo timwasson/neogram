@@ -76,7 +76,7 @@ eleventyComputed:
             onclick="handleLikePost('{{ post.id }}')"
             class="neogram-btn"
           >
-            <span>❤️ LIKE (<span id="likeCount">{{ post.likes or 0 }}</span>)</span>
+            <span id="likeBtnText">❤️ LIKE (<span id="likeCount">{{ post.likes or 0 }}</span>)</span>
           </button>
 
           <button
@@ -96,11 +96,11 @@ eleventyComputed:
           </button>
         </div>
 
-        <!-- Centralized Comments Ledger -->
+        <!-- Self-Hosted Comments Ledger -->
         <section class="neogram-comments">
           <header class="neogram-comments__header">
             <span class="neogram-comments__title">💬 COMMENT LEDGER (<span id="commentCount">{{ post.comments.length or 0 }}</span>)</span>
-            <span class="neogram-comments__status">LIVE SYNC</span>
+            <span class="neogram-comments__status">SELF-HOSTED JSON</span>
           </header>
 
           <!-- Comments Scroll Container -->
@@ -111,9 +111,12 @@ eleventyComputed:
               </div>
             {% else %}
               {% for comment in post.comments %}
-                <div class="neogram-comments__item">
+                <div class="neogram-comments__item" data-comment-id="{{ comment.id }}">
                   <div class="neogram-comments__item-header">
-                    <span class="neogram-comments__item-author">{{ comment.avatar or '💬' }} @{{ comment.author }}</span>
+                    <span class="neogram-comments__item-author">
+                      {{ comment.avatar or '💬' }} @{{ comment.author }}
+                      {% if comment.uin %}<span class="text-muted font-normal">[#{{ comment.uin }}]</span>{% endif %}
+                    </span>
                     <span class="neogram-comments__item-time">{{ comment.timestamp | formatDate }}</span>
                   </div>
                   <p class="neogram-comments__item-body">{{ comment.text }}</p>
@@ -122,17 +125,18 @@ eleventyComputed:
             {% endif %}
           </div>
 
-          <!-- Add Comment Form (Posts to Neogram Backend) -->
-          <form id="commentForm" onsubmit="handleStaticCommentSubmit(event, '{{ post.id }}')" class="neogram-comments__form">
+          <!-- State A: Authenticated Comment Form (Active Cyber-Pass) -->
+          <form id="commentForm" onsubmit="handleStaticCommentSubmit(event, '{{ post.id }}')" class="neogram-comments__form hidden">
+            <div class="flex items-center justify-between text-xs font-mono p-1 border border-main bg-window mb-2">
+              <div class="flex items-center gap-1">
+                <span>⚡ IDENTIFIED CALLSIGN:</span>
+                <span id="authStationHandle" class="font-bold text-mac">@visitor</span>
+                <span id="authStationUin" class="text-muted font-normal">[#000000]</span>
+              </div>
+              <button type="button" onclick="disconnectCyberPass()" class="text-muted text-xs hover:underline" title="Disconnect pass">[Disconnect ✕]</button>
+            </div>
+
             <div class="neogram-comments__form-row">
-              <input
-                type="text"
-                id="commentAuthor"
-                placeholder="Visitor Handle"
-                value="visitor_surfer"
-                required
-                class="neogram-comments__input neogram-comments__input--author"
-              />
               <input
                 type="text"
                 id="commentText"
@@ -149,6 +153,21 @@ eleventyComputed:
               <span>COMMIT COMMENT TO LEDGER :&gt;</span>
             </button>
           </form>
+
+          <!-- State B: Unauthenticated Lock Banner (Prompts to Connect via Neogram) -->
+          <div id="cyberPassPrompt" class="p-3 border-2 border-dashed border-main text-center bg-window mt-2">
+            <div class="text-xs font-bold text-mac mb-1">🔒 NEOGRAM CYBER-PASS REQUIRED</div>
+            <p class="text-xs text-muted mb-3">
+              Identify via your Neogram station to leave comments and prevent spam bots.
+            </p>
+            <button
+              type="button"
+              onclick="openCyberPassModal()"
+              class="neogram-btn neogram-btn--yellow neogram-btn--sm"
+            >
+              <span>⚡ Connect Cyber-Pass / Login :&gt;</span>
+            </button>
+          </div>
         </section>
 
       </div>
@@ -159,6 +178,8 @@ eleventyComputed:
 
 <script>
   var API_BASE = '{{ site.apiUrl or "http://localhost:4000" }}';
+  var COMMENTS_JSON_URL = ('{{ post.imagePath | url }}').replace(/\.[a-zA-Z0-9]+$/, '.comments.json');
+  var POST_ID = '{{ post.id }}';
 
   function escapeHtml(str) {
     if (!str) return '';
@@ -170,53 +191,173 @@ eleventyComputed:
       .replace(/'/g, '&#039;');
   }
 
+  // =========================================================================
+  // 1. CYBER-PASS AUTHENTICATION LAYER
+  // =========================================================================
+
+  function getStoredPass() {
+    try {
+      var raw = localStorage.getItem('neogram_pass');
+      return raw ? JSON.parse(raw) : null;
+    } catch (_err) {
+      return null;
+    }
+  }
+
+  function setCyberPass(data) {
+    if (!data || !data.token || !data.handle) return;
+    try {
+      localStorage.setItem('neogram_pass', JSON.stringify({
+        token: data.token,
+        handle: data.handle,
+        uin: data.uin,
+        avatar: data.avatar || '💬'
+      }));
+    } catch (_err) {}
+    renderAuthUI();
+  }
+
+  function disconnectCyberPass() {
+    try {
+      localStorage.removeItem('neogram_pass');
+    } catch (_err) {}
+    if (window.retroAudio) window.retroAudio.playClick();
+    renderAuthUI();
+  }
+
+  function renderAuthUI() {
+    var pass = getStoredPass();
+    var form = document.getElementById('commentForm');
+    var prompt = document.getElementById('cyberPassPrompt');
+    var handleEl = document.getElementById('authStationHandle');
+    var uinEl = document.getElementById('authStationUin');
+
+    if (pass && pass.token) {
+      if (form) form.classList.remove('hidden');
+      if (prompt) prompt.classList.add('hidden');
+      if (handleEl) handleEl.textContent = '@' + pass.handle;
+      if (uinEl) uinEl.textContent = pass.uin ? '[#' + pass.uin + ']' : '';
+    } else {
+      if (form) form.classList.add('hidden');
+      if (prompt) prompt.classList.remove('hidden');
+    }
+  }
+
+  function openCyberPassModal() {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var origin = encodeURIComponent(window.location.origin);
+    var popupUrl = API_BASE + '/auth/connect?origin=' + origin;
+    var popup = window.open(
+      popupUrl,
+      'neogram_auth',
+      'width=440,height=480,menubar=no,toolbar=no,location=no,status=no'
+    );
+    if (!popup) {
+      alert('[:> Pop-up blocked! Please allow pop-ups from this site to connect your Cyber-Pass.]');
+    }
+  }
+
+  // Cross-Window Listener (handles popup handshake and browser extension content script)
+  window.addEventListener('message', function (e) {
+    if (e.data && (e.data.type === 'NEOGRAM_CYBER_PASS' || e.data.type === 'NEOGRAM_EXTENSION_PASS')) {
+      setCyberPass(e.data);
+      if (window.retroAudio) window.retroAudio.playSuccess();
+    }
+  });
+
+  // =========================================================================
+  // 2. LIKING & RADICAL REACTIONS (With LocalStorage Deduping)
+  // =========================================================================
+
+  function renderLikeUI() {
+    var hasLiked = false;
+    try {
+      hasLiked = localStorage.getItem('neogram_liked_' + POST_ID) === 'true';
+    } catch (_err) {}
+
+    var btn = document.getElementById('likeBtn');
+    var textSpan = document.getElementById('likeBtnText');
+    var countEl = document.getElementById('likeCount');
+    var currentCount = countEl ? countEl.textContent : '0';
+
+    if (hasLiked && btn && textSpan) {
+      btn.classList.add('neogram-btn--active');
+      textSpan.innerHTML = '❤️ LIKED (<span id="likeCount">' + currentCount + '</span>)';
+    }
+  }
+
   function handleLikePost(postId) {
+    var hasLiked = false;
+    try {
+      hasLiked = localStorage.getItem('neogram_liked_' + postId) === 'true';
+    } catch (_err) {}
+
+    if (hasLiked) {
+      if (window.retroAudio) window.retroAudio.playClick();
+      alert('[:> You already transmitted love for this photograph!]');
+      return;
+    }
+
     if (window.retroAudio) window.retroAudio.playClick();
     fetch(API_BASE + '/api/posts/' + postId + '/like', { method: 'POST' })
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
         if (data.ok) {
+          try {
+            localStorage.setItem('neogram_liked_' + postId, 'true');
+          } catch (_err) {}
           var el = document.getElementById('likeCount');
           if (el) el.textContent = data.likes;
+          renderLikeUI();
           if (window.retroAudio) window.retroAudio.playSuccess();
         }
       })
-      .catch(function(err) {
+      .catch(function (err) {
         console.error('Like error:', err);
       });
   }
 
   function handleRadicalPost() {
     if (window.retroAudio) window.retroAudio.playSuccess();
-    alert('[:> RADICAL! Reaction broadcasted.]');
+    alert('[:> RADICAL! Reaction broadcasted across the webring.]');
   }
 
   function handleBookmarkPost() {
     if (window.retroAudio) window.retroAudio.playClick();
-    alert('[:> Photograph bookmarked to your local cache.]');
+    alert('[:> Photograph bookmarked to your station memory.]');
   }
+
+  // =========================================================================
+  // 3. COMMENT SUBMISSION (STATELESS DISPATCHER)
+  // =========================================================================
 
   function handleStaticCommentSubmit(e, postId) {
     e.preventDefault();
-    var authorInput = document.getElementById('commentAuthor');
+    var pass = getStoredPass();
+    if (!pass || !pass.token) {
+      openCyberPassModal();
+      return;
+    }
+
     var textInput = document.getElementById('commentText');
     var submitBtn = document.getElementById('commentSubmitBtn');
-
-    var author = authorInput.value.trim();
     var text = textInput.value.trim();
     if (!text) return;
 
     submitBtn.disabled = true;
-    submitBtn.textContent = 'TRANSMITTING...';
+    submitBtn.textContent = 'TRANSMITTING TO HOST...';
     if (window.retroAudio) window.retroAudio.playClick();
 
     fetch(API_BASE + '/api/posts/' + postId + '/comments', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ author: author, text: text })
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + pass.token
+      },
+      body: JSON.stringify({ text: text })
     })
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
       submitBtn.disabled = false;
       submitBtn.textContent = 'COMMIT COMMENT TO LEDGER :>';
 
@@ -228,14 +369,19 @@ eleventyComputed:
         var ledger = document.getElementById('commentsLedger');
         var item = document.createElement('div');
         item.className = 'neogram-comments__item';
-        var safeAuthor = escapeHtml(data.comment.author || author);
+        item.setAttribute('data-comment-id', data.comment.id);
+
+        var safeAuthor = escapeHtml(data.comment.author || pass.handle);
         var safeText = escapeHtml(data.comment.text || text);
-        item.innerHTML = 
+        var uinBadge = data.comment.uin ? ' <span class="text-muted font-normal">[#' + data.comment.uin + ']</span>' : '';
+
+        item.innerHTML =
           '<div class="neogram-comments__item-header">' +
-          '  <span class="neogram-comments__item-author">💬 @' + safeAuthor + '</span>' +
+          '  <span class="neogram-comments__item-author">' + (data.comment.avatar || '💬') + ' @' + safeAuthor + uinBadge + '</span>' +
           '  <span class="neogram-comments__item-time">Just now</span>' +
           '</div>' +
           '<p class="neogram-comments__item-body">' + safeText + '</p>';
+
         ledger.appendChild(item);
         ledger.scrollTop = ledger.scrollHeight;
 
@@ -244,13 +390,85 @@ eleventyComputed:
 
         if (window.retroAudio) window.retroAudio.playSuccess();
       } else {
-        alert('Comment could not be posted: ' + (data.error || 'Server error'));
+        if (data.error && data.error.includes('Authentication')) {
+          disconnectCyberPass();
+          alert('[:> Cyber-Pass expired. Please reconnect your pass.]');
+        } else {
+          alert('Comment could not be posted: ' + (data.error || 'Server error'));
+        }
       }
     })
-    .catch(function(err) {
+    .catch(function (_err) {
       submitBtn.disabled = false;
       submitBtn.textContent = 'COMMIT COMMENT TO LEDGER :>';
-      alert('Network error while committing comment.');
+      alert('Network error while committing comment to remote ledger.');
     });
   }
+
+  // =========================================================================
+  // 4. SAME-ORIGIN COMMENTS HYDRATION ON PAGE LOAD
+  // =========================================================================
+
+  function hydrateCommentsFromSelfHostedJson() {
+    if (!COMMENTS_JSON_URL) return;
+    fetch(COMMENTS_JSON_URL, { cache: 'no-cache' })
+      .then(function (res) {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.comments)) return;
+
+        var ledger = document.getElementById('commentsLedger');
+        if (!ledger) return;
+
+        var existingIds = {};
+        var domItems = ledger.querySelectorAll('[data-comment-id]');
+        for (var i = 0; i < domItems.length; i++) {
+          var id = domItems[i].getAttribute('data-comment-id');
+          if (id) existingIds[id] = true;
+        }
+
+        var addedCount = 0;
+        data.comments.forEach(function (c) {
+          if (!existingIds[c.id]) {
+            if (addedCount === 0) {
+              var emptyNotice = document.getElementById('emptyCommentsNotice');
+              if (emptyNotice) emptyNotice.remove();
+            }
+            var item = document.createElement('div');
+            item.className = 'neogram-comments__item';
+            item.setAttribute('data-comment-id', c.id);
+            var safeAuthor = escapeHtml(c.author);
+            var safeText = escapeHtml(c.text);
+            var uinBadge = c.uin ? ' <span class="text-muted font-normal">[#' + c.uin + ']</span>' : '';
+
+            item.innerHTML =
+              '<div class="neogram-comments__item-header">' +
+              '  <span class="neogram-comments__item-author">' + (c.avatar || '💬') + ' @' + safeAuthor + uinBadge + '</span>' +
+              '  <span class="neogram-comments__item-time">Synced</span>' +
+              '</div>' +
+              '<p class="neogram-comments__item-body">' + safeText + '</p>';
+
+            ledger.appendChild(item);
+            addedCount++;
+          }
+        });
+
+        if (addedCount > 0) {
+          var countEl = document.getElementById('commentCount');
+          if (countEl) countEl.textContent = data.comments.length;
+        }
+      })
+      .catch(function () {
+        // Same-origin JSON not yet uploaded or offline; pre-rendered 11ty HTML remains intact
+      });
+  }
+
+  // Initialize UI on load
+  document.addEventListener('DOMContentLoaded', function () {
+    renderAuthUI();
+    renderLikeUI();
+    hydrateCommentsFromSelfHostedJson();
+  });
 </script>

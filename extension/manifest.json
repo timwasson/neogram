@@ -27,6 +27,18 @@
   ],
   "host_permissions": [
     "http://localhost:4000/*",
-    "https://*.neocities.org/*"
+    "https://*.neocities.org/*",
+    "https://*.nekoweb.org/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost:4000/*",
+        "https://*.neocities.org/*",
+        "https://*.nekoweb.org/*"
+      ],
+      "js": ["content/auth-bridge.js"],
+      "run_at": "document_start"
+    }
   ]
 }
