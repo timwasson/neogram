@@ -32,14 +32,18 @@ apiRouter.get('/stats', async (_req: Request, res: Response, next) => {
   }
 });
 
-// Trigger Eleventy static site rebuild
+// Trigger Eleventy static site rebuild (requires session)
 apiRouter.post('/build-static', async (req: Request, res: Response, next) => {
   try {
     const { buildStaticGallery } = await import('../services/staticBuilder');
     const { extractToken, verifySessionToken } = await import('../auth/jwt');
     const token = extractToken(req);
     const payload = token ? verifySessionToken(token) : null;
-    const userId = payload?.userId;
+    if (!payload) {
+      res.status(401).json({ ok: false, error: 'Authentication required to trigger static builds.' });
+      return;
+    }
+    const userId = payload.userId;
     const result = await buildStaticGallery({ userId });
     res.json(result);
   } catch (err) {

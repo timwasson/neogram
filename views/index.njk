@@ -1786,6 +1786,25 @@
     }
   }
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function sanitizeUrl(url) {
+    if (!url) return '';
+    var clean = String(url).trim();
+    if (/^https?:\/\//i.test(clean)) {
+      return clean;
+    }
+    return '';
+  }
+
   async function loadGuestbookEntries() {
     var container = document.getElementById('gbSignaturesList');
     var badge = document.getElementById('gbCountBadge');
@@ -1805,23 +1824,24 @@
 
       var html = '';
       data.entries.forEach(function(entry) {
-        var site = entry.visitorWebsite ? '<div class="text-xs"><a href="' + entry.visitorWebsite + '" target="_blank" class="text-mac underline">🌐 ' + entry.visitorWebsite + '</a></div>' : '';
+        var safeUrl = sanitizeUrl(entry.visitorWebsite);
+        var site = safeUrl ? '<div class="text-xs"><a href="' + escapeHtml(safeUrl) + '" target="_blank" rel="noopener noreferrer" class="text-mac underline">🌐 ' + escapeHtml(safeUrl) + '</a></div>' : '';
         html += '<div class="retro-card p-2 flex flex-col gap-1 text-xs border border-main">' +
           '<div class="flex items-center justify-between border-b border-main pb-1">' +
             '<div class="flex items-center gap-1.5">' +
-              '<span>' + (entry.moodIcon || '😎') + '</span>' +
-              '<span class="font-bold">' + entry.visitorName + '</span>' +
-              '<span class="text-muted text-xs">(' + (entry.visitorLocation || 'Cyberspace') + ')</span>' +
+              '<span>' + escapeHtml(entry.moodIcon || '😎') + '</span>' +
+              '<span class="font-bold">' + escapeHtml(entry.visitorName) + '</span>' +
+              '<span class="text-muted text-xs">(' + escapeHtml(entry.visitorLocation || 'Cyberspace') + ')</span>' +
             '</div>' +
-            '<button type="button" onclick="deleteGuestbookEntry(\'' + entry.id + '\')" class="text-crimson font-bold text-xs hover:underline" title="Delete signature">[Delete]</button>' +
+            '<button type="button" onclick="deleteGuestbookEntry(\'' + escapeHtml(entry.id) + '\')" class="text-crimson font-bold text-xs hover:underline" title="Delete signature">[Delete]</button>' +
           '</div>' + site +
-          '<div class="whitespace-pre-wrap p-1 text-xs font-mono bg-window">"' + entry.message + '"</div>' +
+          '<div class="whitespace-pre-wrap p-1 text-xs font-mono bg-window">"' + escapeHtml(entry.message) + '"</div>' +
         '</div>';
       });
 
       container.innerHTML = html;
     } catch (e) {
-      container.innerHTML = '<div class="text-center py-4 text-xs text-crimson">Failed to load signatures: ' + e.message + '</div>';
+      container.innerHTML = '<div class="text-center py-4 text-xs text-crimson">Failed to load signatures: ' + escapeHtml(e.message) + '</div>';
     }
   }
 
@@ -1863,19 +1883,20 @@
         if (u.isSelf) {
           actionBtn = '<span class="text-xs text-muted font-bold">[YOU]</span>';
         } else if (u.isFollowing) {
-          actionBtn = '<button type="button" onclick="toggleFollowUser(\'' + u.handle + '\', true)" class="pixel-btn pixel-btn--yellow text-xs py-0.5 px-2">✓ Following</button>';
+          actionBtn = '<button type="button" onclick="toggleFollowUser(\'' + escapeHtml(u.handle) + '\', true)" class="pixel-btn pixel-btn--yellow text-xs py-0.5 px-2">✓ Following</button>';
         } else {
-          actionBtn = '<button type="button" onclick="toggleFollowUser(\'' + u.handle + '\', false)" class="pixel-btn text-xs py-0.5 px-2">+ Follow</button>';
+          actionBtn = '<button type="button" onclick="toggleFollowUser(\'' + escapeHtml(u.handle) + '\', false)" class="pixel-btn text-xs py-0.5 px-2">+ Follow</button>';
         }
 
-        var site = u.siteUrl ? '<a href="' + u.siteUrl + '" target="_blank" class="text-mac underline text-xs">🌐 Site</a>' : '';
+        var safeSite = sanitizeUrl(u.siteUrl);
+        var site = safeSite ? '<a href="' + escapeHtml(safeSite) + '" target="_blank" rel="noopener noreferrer" class="text-mac underline text-xs">🌐 Site</a>' : '';
 
         html += '<div class="retro-card p-2 flex items-center justify-between gap-2 border border-main text-xs">' +
           '<div class="flex items-center gap-2">' +
             '<span class="text-base">👾</span>' +
             '<div>' +
-              '<div class="font-bold text-prompt">@' + u.handle + '</div>' +
-              '<div class="text-muted text-xs">' + u.postCount + ' photos • ' + u.followersCount + ' followers ' + (site ? '• ' + site : '') + '</div>' +
+              '<div class="font-bold text-prompt">@' + escapeHtml(u.handle) + '</div>' +
+              '<div class="text-muted text-xs">' + Number(u.postCount || 0) + ' photos • ' + Number(u.followersCount || 0) + ' followers ' + (site ? '• ' + site : '') + '</div>' +
             '</div>' +
           '</div>' +
           '<div>' + actionBtn + '</div>' +

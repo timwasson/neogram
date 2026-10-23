@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import Eleventy from '@11ty/eleventy';
 import { query, initDatabase } from '../db';
+import { config } from '../config';
 
 export interface StaticBuildOptions {
   userId?: string;
@@ -173,7 +174,7 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
           description: `Personal 90s retro static photo stream published via Neogram`,
           neocitiesUrl: fullSiteUrl,
           pathPrefix: pathPrefix,
-          apiUrl: 'http://localhost:4000',
+          apiUrl: config.appUrl || 'http://localhost:4000',
           systemMood: '[:> SURFING THE RETRO STATIC WEBRING]',
         };
         const siteJsonPath = path.join(process.cwd(), 'eleventy/src/_data/site.json');

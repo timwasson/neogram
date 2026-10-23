@@ -160,6 +160,16 @@ eleventyComputed:
 <script>
   var API_BASE = '{{ site.apiUrl or "http://localhost:4000" }}';
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   function handleLikePost(postId) {
     if (window.retroAudio) window.retroAudio.playClick();
     fetch(API_BASE + '/api/posts/' + postId + '/like', { method: 'POST' })
@@ -218,12 +228,14 @@ eleventyComputed:
         var ledger = document.getElementById('commentsLedger');
         var item = document.createElement('div');
         item.className = 'border-b border-main/30 pb-2';
+        var safeAuthor = escapeHtml(data.comment.author || author);
+        var safeText = escapeHtml(data.comment.text || text);
         item.innerHTML = 
           '<div class="flex items-center justify-between text-xs font-bold text-prompt">' +
-          '  <span>💬 @' + (data.comment.author || author) + '</span>' +
+          '  <span>💬 @' + safeAuthor + '</span>' +
           '  <span class="text-muted text-xs">Just now</span>' +
           '</div>' +
-          '<p class="mt-1 text-xs text-main">' + (data.comment.text || text) + '</p>';
+          '<p class="mt-1 text-xs text-main">' + safeText + '</p>';
         ledger.appendChild(item);
         ledger.scrollTop = ledger.scrollHeight;
 

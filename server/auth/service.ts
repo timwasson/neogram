@@ -1,5 +1,9 @@
+import crypto from 'crypto';
 import { query } from '../db';
 import { sendOtpNotification } from '../services/notifier';
+
+// In-memory failed attempt counter: max 5 failed attempts before burning code
+const failedOtpAttempts = new Map<string, number>();
 
 export interface AuthUser {
   id: string;
@@ -96,8 +100,8 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
     console.log(`[:> AUTH] Registered new Neogram node: @${userHandle} (UIN: #${userUin}, ${normalized})`);
   }
 
-  // 2. Generate 6-digit OTP code
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  // 2. Generate cryptographically secure 6-digit OTP code
+  const code = crypto.randomInt(100000, 1000000).toString();
 
   // 3. Save OTP with 10-minute expiry
   await query(
@@ -150,8 +154,26 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
   const user = res.rows[0];
 
   if (!user.auth_token || user.auth_token !== code.trim()) {
-    throw new Error('Invalid authorization key. Code does not match.');
+    const attempts = (failedOtpAttempts.get(user.id) || 0) + 1;
+    if (attempts >= 5) {
+      // Invalidate code after 5 failed attempts to prevent brute force
+      await query(
+        `UPDATE users
+         SET auth_token = NULL,
+             auth_token_expires_at = NULL,
+             updated_at = NOW()
+         WHERE id = $1`,
+        [user.id]
+      );
+      failedOtpAttempts.delete(user.id);
+      throw new Error('Too many invalid attempts. Authorization key has been burned. Please request a new carrier signal.');
+    }
+    failedOtpAttempts.set(user.id, attempts);
+    throw new Error(`Invalid authorization key. Code does not match. (${5 - attempts} attempts remaining)`);
   }
+
+  // Clear failed attempts counter on success
+  failedOtpAttempts.delete(user.id);
 
   if (user.auth_token_expires_at && new Date(user.auth_token_expires_at) < new Date()) {
     throw new Error('Authorization key has expired. Please request a new carrier signal.');

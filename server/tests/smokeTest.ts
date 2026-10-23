@@ -326,6 +326,9 @@ async function runSmokeTests() {
       assertTest('Temporary static gallery build folder wiped from disk', true);
     } catch {}
 
+    // Wait briefly for background 11ty rebuild triggered by DELETE /api/posts to finalize
+    await new Promise((r) => setTimeout(r, 300));
+
     // Restore original eleventy template data files
     await fs.writeFile(postsJsonPath, originalPostsJson, 'utf-8').catch(() => {});
     await fs.writeFile(siteJsonPath, originalSiteJson, 'utf-8').catch(() => {});

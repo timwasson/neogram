@@ -18,6 +18,11 @@ COPY . .
 # Compile Sass retro stylesheets to public/css/neogram.css
 RUN npm run sass:build
 
+# Set ownership to non-root node user and switch
+RUN chown -R node:node /app
+
+USER node
+
 # Environment defaults
 ENV NODE_ENV=production
 ENV PORT=4000

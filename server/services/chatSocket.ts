@@ -44,6 +44,27 @@ export function initChatWebSocketServer(server: http.Server) {
     let authenticatedUser: any = null;
 
     try {
+      // 0. Verify Origin to prevent Cross-Site WebSocket Hijacking (CSWSH)
+      const origin = req.headers.origin;
+      if (origin) {
+        const { config } = await import('../config');
+        const isAllowedOrigin =
+          origin === config.appUrl ||
+          origin.startsWith('http://localhost:') ||
+          origin.startsWith('http://127.0.0.1:') ||
+          origin.startsWith('https://localhost:') ||
+          origin.startsWith('https://127.0.0.1:') ||
+          origin.startsWith('chrome-extension://') ||
+          origin.startsWith('moz-extension://');
+
+        if (!isAllowedOrigin) {
+          console.warn(`[:> WEBSOCKET CSWSH BLOCKED] Rejected connection from unauthorized origin: ${origin}`);
+          ws.send(JSON.stringify({ type: 'error', code: 'FORBIDDEN_ORIGIN', message: 'Cross-site WebSocket connection rejected' }));
+          ws.close(4003, 'Forbidden origin');
+          return;
+        }
+      }
+
       // 1. Authenticate via Session Cookie or Token Query
       const cookieHeader = req.headers.cookie || '';
       const parsedCookies = cookie.parse(cookieHeader);
@@ -283,12 +304,34 @@ async function flushOfflineQueue(ws: WebSocket, userId: string) {
   }
 }
 
+// Rate limiting map for direct messages: max 30 messages per minute per user
+const chatMsgLimits = new Map<string, number[]>();
+const CHAT_MSG_WINDOW_MS = 60 * 1000;
+const MAX_CHAT_MSGS = 30;
+
+function checkChatRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const timestamps = (chatMsgLimits.get(userId) || []).filter((ts) => now - ts < CHAT_MSG_WINDOW_MS);
+  if (timestamps.length >= MAX_CHAT_MSGS) return false;
+  timestamps.push(now);
+  chatMsgLimits.set(userId, timestamps);
+  return true;
+}
+
 /**
  * Handles incoming messages from WebSocket clients
  */
 async function handleClientMessage(sender: ActiveSession, msg: any) {
   switch (msg.type) {
     case 'direct_message': {
+      if (!checkChatRateLimit(sender.userId)) {
+        sender.ws.send(JSON.stringify({
+          type: 'message_error',
+          error: 'Rate limit exceeded: You are transmitting messages too quickly. Please wait a moment.',
+        }));
+        return;
+      }
+
       const { to, text, id } = msg;
       if (!to || !text || !text.trim()) return;
 

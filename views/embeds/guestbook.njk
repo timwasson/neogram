@@ -112,6 +112,25 @@
 
     <script>
       (function() {
+        function escapeHtml(str) {
+          if (!str) return '';
+          return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+        }
+
+        function sanitizeUrl(url) {
+          if (!url) return '';
+          var clean = String(url).trim();
+          if (/^https?:\/\//i.test(clean)) {
+            return clean;
+          }
+          return '';
+        }
+
         var form = document.getElementById('guestbookForm');
         var submitBtn = document.getElementById('gbSubmitBtn');
         var statusMsg = document.getElementById('gbStatusMsg');
@@ -158,17 +177,18 @@
             if (noEntries) noEntries.remove();
             var card = document.createElement('div');
             card.className = 'retro-card p-3 flex flex-col gap-2 text-xs';
-            var siteHtml = payload.visitorWebsite ? '<div class="text-xs"><a href="' + payload.visitorWebsite + '" target="_blank" class="text-mac underline">🌐 ' + payload.visitorWebsite + '</a></div>' : '';
+            var safeUrl = sanitizeUrl(payload.visitorWebsite);
+            var siteHtml = safeUrl ? '<div class="text-xs"><a href="' + escapeHtml(safeUrl) + '" target="_blank" rel="noopener noreferrer" class="text-mac underline">🌐 ' + escapeHtml(safeUrl) + '</a></div>' : '';
             card.innerHTML = 
               '<div class="flex items-center justify-between border-b border-main pb-1">' +
                 '<div class="flex items-center gap-2">' +
-                  '<span class="text-base">' + (payload.moodIcon || '😎') + '</span>' +
-                  '<span class="font-bold">' + payload.visitorName + '</span>' +
-                  '<span class="text-muted text-xs">from ' + (payload.visitorLocation || 'Cyberspace') + '</span>' +
+                  '<span class="text-base">' + escapeHtml(payload.moodIcon || '😎') + '</span>' +
+                  '<span class="font-bold">' + escapeHtml(payload.visitorName) + '</span>' +
+                  '<span class="text-muted text-xs">from ' + escapeHtml(payload.visitorLocation || 'Cyberspace') + '</span>' +
                 '</div>' +
                 '<span class="text-xs text-muted">Just now</span>' +
               '</div>' + siteHtml +
-              '<p class="whitespace-pre-wrap p-2 border border-main text-xs font-mono bg-window">"' + payload.message + '"</p>';
+              '<p class="whitespace-pre-wrap p-2 border border-main text-xs font-mono bg-window">"' + escapeHtml(payload.message) + '"</p>';
             list.insertBefore(card, list.firstChild);
 
           } catch (err) {

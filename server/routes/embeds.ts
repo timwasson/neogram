@@ -231,12 +231,32 @@ embedsRouter.get('/api/guestbook/:identifier', async (req: Request, res: Respons
   }
 });
 
+// In-memory rate limiting map for guestbook submissions (max 6 per 5 min per IP)
+const guestbookRateLimits = new Map<string, number[]>();
+const GB_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const MAX_GB_REQUESTS = 6;
+
+function checkGbRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const timestamps = (guestbookRateLimits.get(ip) || []).filter((ts) => now - ts < GB_LIMIT_WINDOW_MS);
+  if (timestamps.length >= MAX_GB_REQUESTS) return false;
+  timestamps.push(now);
+  guestbookRateLimits.set(ip, timestamps);
+  return true;
+}
+
 /**
  * POST /api/guestbook/:handle
  * Public signature submission to a user's visitor ledger
  */
 embedsRouter.post('/api/guestbook/:identifier', async (req: Request, res: Response) => {
   try {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown-ip';
+    if (!checkGbRateLimit(ip)) {
+      res.status(429).json({ ok: false, error: 'Carrier busy: Too many signatures submitted. Please wait 5 minutes.' });
+      return;
+    }
+
     const user = await findUserByHandleOrId(req.params.identifier);
     if (!user) {
       res.status(404).json({ ok: false, error: 'User node not found' });
@@ -255,7 +275,14 @@ embedsRouter.post('/api/guestbook/:identifier', async (req: Request, res: Respon
       return;
     }
 
-    const cleanWebsite = visitorWebsite && visitorWebsite.trim() !== 'http://' ? visitorWebsite.trim() : null;
+    // Strictly validate website protocol: only http:// and https:// allowed (blocks javascript: and data: URIs)
+    let cleanWebsite: string | null = null;
+    if (visitorWebsite && typeof visitorWebsite === 'string') {
+      const trimmed = visitorWebsite.trim();
+      if (/^https?:\/\//i.test(trimmed) && trimmed !== 'http://' && trimmed !== 'https://') {
+        cleanWebsite = trimmed.slice(0, 500);
+      }
+    }
 
     const insertRes = await query(
       `INSERT INTO guestbook_entries (user_id, visitor_name, visitor_website, visitor_location, mood_icon, message)

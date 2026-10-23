@@ -313,19 +313,40 @@ postsRouter.post('/posts/:id/like', async (req: Request, res: Response, next) =>
   }
 });
 
+// In-memory rate limiting map for comments (max 10 comments per 5 minutes per IP)
+const commentRateLimits = new Map<string, number[]>();
+const COMMENT_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const MAX_COMMENT_REQUESTS = 10;
+
+function checkCommentRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const timestamps = (commentRateLimits.get(ip) || []).filter((ts) => now - ts < COMMENT_LIMIT_WINDOW_MS);
+  if (timestamps.length >= MAX_COMMENT_REQUESTS) return false;
+  timestamps.push(now);
+  commentRateLimits.set(ip, timestamps);
+  return true;
+}
+
 /**
  * 5. POST /api/posts/:id/comments - Post a centralized comment from static embeds / gallery
  */
 postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next) => {
   try {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown-ip';
+    if (!checkCommentRateLimit(ip)) {
+      res.status(429).json({ ok: false, error: 'Too many comments submitted. Please wait 5 minutes.' });
+      return;
+    }
+
     const { id } = req.params;
     const { authorName, author, text } = req.body;
-    const finalAuthor = (authorName || author || 'guest_surfer').trim();
+    const finalAuthor = (authorName || author || 'guest_surfer').trim().slice(0, 50);
 
     if (!text || !text.trim()) {
       res.status(400).json({ ok: false, error: 'Comment body cannot be empty.' });
       return;
     }
+    const cleanText = text.trim().slice(0, 1000);
 
     const insertResult = await query(
       `
@@ -333,7 +354,7 @@ postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next
       VALUES ($1, $2, $3)
       RETURNING id, author_name as "author", author_avatar as "avatar", body as "text", created_at as "timestamp"
     `,
-      [id, finalAuthor, text.trim()]
+      [id, finalAuthor, cleanText]
     );
 
     // Trigger 11ty static update in background for post owner

@@ -469,6 +469,7 @@
         else offline.push(b);
       });
 
+      var self = this;
       // 1. Online list
       if (online.length === 0) {
         this.buddiesListEl.innerHTML = '<div class="text-xs text-muted p-1 italic">No buddies currently online.</div>';
@@ -476,11 +477,11 @@
         var html = '';
         online.forEach(function (b) {
           var dot = b.status === 'away' ? '🟡' : '🟢';
-          var awayTip = b.awayMessage ? ' — "' + b.awayMessage + '"' : '';
-          html += '<div class="aim-window__buddy-item" data-handle="' + b.handle + '">' +
+          var awayTip = b.awayMessage ? ' — "' + self.escapeHtml(b.awayMessage) + '"' : '';
+          html += '<div class="aim-window__buddy-item" data-handle="' + self.escapeHtml(b.handle) + '">' +
             '<div class="flex items-center gap-1.5 overflow-hidden">' +
               '<span>' + dot + '</span>' +
-              '<span class="font-bold text-prompt">@' + b.handle + '</span>' +
+              '<span class="font-bold text-prompt">@' + self.escapeHtml(b.handle) + '</span>' +
               '<span class="text-muted text-xs truncate">' + awayTip + '</span>' +
             '</div>' +
             '<button type="button" class="aim-window__btn-sm">IM</button>' +
@@ -495,10 +496,10 @@
       } else {
         var offHtml = '';
         offline.forEach(function (b) {
-          offHtml += '<div class="aim-window__buddy-item opacity-70" data-handle="' + b.handle + '">' +
+          offHtml += '<div class="aim-window__buddy-item opacity-70" data-handle="' + self.escapeHtml(b.handle) + '">' +
             '<div class="flex items-center gap-1.5 overflow-hidden">' +
               '<span>⚪</span>' +
-              '<span>@' + b.handle + '</span>' +
+              '<span>@' + self.escapeHtml(b.handle) + '</span>' +
             '</div>' +
             '<button type="button" class="aim-window__btn-sm">MSG</button>' +
           '</div>';
@@ -616,11 +617,11 @@
         line.textContent = msg.text;
       } else if (msg.isMe) {
         line.className = 'aim-window__msg-line aim-window__msg-line--me';
-        line.innerHTML = '<span class="text-muted">[' + timeStr + ']</span> <strong>&lt;' + msg.from + '&gt;:</strong> ' + this.escapeHtml(msg.text);
+        line.innerHTML = '<span class="text-muted">[' + timeStr + ']</span> <strong>&lt;' + this.escapeHtml(msg.from) + '&gt;:</strong> ' + this.escapeHtml(msg.text);
       } else {
         line.className = 'aim-window__msg-line aim-window__msg-line--them';
         var queuedBadge = msg.wasQueued ? ' <span class="aim-window__msg-line--sys">[offline delivered]</span>' : '';
-        line.innerHTML = '<span class="text-muted">[' + timeStr + ']</span> <strong>&lt;' + msg.from + '&gt;:</strong> ' + this.escapeHtml(msg.text) + queuedBadge;
+        line.innerHTML = '<span class="text-muted">[' + timeStr + ']</span> <strong>&lt;' + this.escapeHtml(msg.from) + '&gt;:</strong> ' + this.escapeHtml(msg.text) + queuedBadge;
       }
 
       this.imTranscriptEl.appendChild(line);

@@ -34,3 +34,13 @@ export const config: AppConfig = {
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN,
   twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER,
 };
+
+// Security hygiene check for production environments
+if (config.env === 'production') {
+  if (config.jwtSecret === 'neogram_retro_super_secret_jwt_key_1996') {
+    console.warn('\x1b[31m[:> SECURITY WARNING] JWT_SECRET is using the public default key in production! Set a custom JWT_SECRET in your production .env\x1b[0m');
+  }
+  if (config.encryptionSecret === 'neogram_retro_aes256_vault_key_1996_master_secret') {
+    console.warn('\x1b[31m[:> SECURITY WARNING] ENCRYPTION_SECRET is using the public default key in production! Set a custom ENCRYPTION_SECRET in your production .env\x1b[0m');
+  }
+}

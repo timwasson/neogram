@@ -12,6 +12,13 @@ export function errorHandler(
   console.error(`[:> SYSTEM ERROR] ${req.method} ${req.url}:`, err.stack || err);
 
   if (req.accepts('html') && !req.path.startsWith('/api')) {
+    const safeMessage = String(message)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
     res.status(status).send(`
       <!doctype html>
       <html>
@@ -27,7 +34,7 @@ export function errorHandler(
         <body>
           <h1>*** STOP: 0x000000ED NEOGRAM SYSTEM FAULT ***</h1>
           <p>An unhandled exception occurred in the server pipeline:</p>
-          <pre>${message}</pre>
+          <pre>${safeMessage}</pre>
           <p><a href="/">&lt; Return to Safe Terminal</a></p>
         </body>
       </html>

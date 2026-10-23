@@ -279,6 +279,30 @@ All embeddable widgets must render standard HTML markup with consistent BEM clas
 - **Reverse Proxy (Caddy v2):** Handles HTTP/2 and TLS v1.3 with automatic Let's Encrypt certificates for `neogram.club` and `www.neogram.club`, proxying traffic to internal port `127.0.0.1:4000`.
 - **Continuous Deployment (GitHub Actions):** `.github/workflows/deploy.yml` triggers on any push to `origin/main`. It executes TypeScript lint checks (`npm run lint`), SSHs into the Droplet, executes `git pull`, rebuilds containers via `docker compose up -d --build`, and polls `/api/health` until healthy.
 
+### 4.21 Security Architecture, CORS Invariants & Content Sanitization
+- **The Cross-Domain Invariant (CORS vs. XSS):**
+  - **Permissive CORS on Public Routes:** Neogram's core service allows personal static websites (Neocities, GitHub Pages, self-hosted sites) to embed interactive feeds, dynamic SVG hit counters, guestbooks, and comment boxes. All public endpoints (`/counter/*`, `/feed/*`, `/embed/*`, `/api/guestbook/*`, `/api/posts/:id/comments`, `/api/posts/:id/like`, `/api/users/*`, `/api/network`) strictly maintain permissive CORS (`Access-Control-Allow-Origin: *`) and handle preflight `OPTIONS` requests.
+  - **Strict Output Sanitization (Stored XSS Elimination):** External visitors can submit text across domains without authentication, so all user-supplied text rendered into templates, embeds, or dynamic DOM insertions (comment author/body, guestbook messages, screen handles, away statuses) must pass through HTML escaping (`escapeHtml()`). Nunjucks templates must **never** use `| safe` on untrusted user strings.
+  - **URL Protocol Whitelisting:** User-supplied links (e.g. `visitor_website` in guestbooks) must strictly validate against `^https?://`, rejecting `javascript:`, `data:`, and `vbscript:` schemes.
+- **Dual Clickjacking & Frame Ancestors Policy:**
+  - **Workstation / Admin App:** Enforces `X-Frame-Options: SAMEORIGIN` and `Content-Security-Policy: frame-ancestors 'self'` to prevent clickjacking attacks against user settings, upload controls, and private galleries.
+  - **Public Embeds & Counters:** Embed routes (`/embed/*`) and SVG hit counters explicitly override this policy with `Content-Security-Policy: frame-ancestors *` so third-party static hosts can embed iframes freely.
+- **WebSocket (NIM) CSWSH Origin Verification & Chat Flood Control:**
+  - Real-time WebSocket upgrades on `/ws/chat` strictly validate the HTTP `Origin` header against `config.appUrl`, `localhost:*`, `127.0.0.1:*`, and browser extension schemes (`chrome-extension://*`), mitigating Cross-Site WebSocket Hijacking (CSWSH).
+  - Outgoing direct messages enforce a per-user sliding window limiter (max 30 messages/minute) to prevent spam and socket flooding.
+- **Authentication & Verification Hardening:**
+  - **Cryptographic OTP PRNG:** Single-use 6-digit OTP tokens are generated with `crypto.randomInt(100000, 1000000)`.
+  - **Burnout Invariant:** Stored OTP records self-destruct after 5 consecutive failed verification attempts.
+  - **Sliding-Window Verification Limiter:** `POST /api/auth/verify-otp` enforces a sliding-window rate limit of maximum 10 attempts per 5 minutes per IP and identifier.
+  - **Restricted Test Suite Bypass:** The `x-test-suite: true` rate limit bypass header is strictly ignored when `NODE_ENV === 'production'`.
+  - **Production Secrets Enforcement:** Production boot logs warnings if fallback development secrets are detected for `JWT_SECRET` or `ENCRYPTION_SECRET`.
+- **API Resource Protection & Multi-Tenant Data Isolation:**
+  - **Multi-Tenant Archive Isolation:** The authenticated workstation archive (`GET /`) queries posts filtered strictly by `currentUser.id`.
+  - **Static Builder Protection:** `POST /api/build-static` requires an active authenticated session to prevent unauthenticated CPU/disk resource exhaustion.
+  - **Public Form Bounds & Throttling:** Comments (`POST /api/posts/:id/comments`) allow max 10 submissions per 5 min per IP (author $\le$ 50 chars, body $\le$ 1000 chars); guestbook submissions allow max 6 submissions per 5 min per IP.
+- **Production Container Hardening (Non-Root Execution):**
+  - The production `Dockerfile` runs as non-root user `node` (UID 1000) with `/app` and subdirectories recursively owned by `node:node`, preventing container breakout.
+
 
 ---
 

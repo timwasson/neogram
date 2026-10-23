@@ -12,6 +12,22 @@ const otpRateLimits = new Map<string, RateLimitRecord>();
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const MAX_REQUESTS_PER_WINDOW = 4;
 
+const verifyRateLimits = new Map<string, RateLimitRecord>();
+const VERIFY_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const MAX_VERIFY_REQUESTS = 10;
+
+function checkVerifyRateLimit(key: string): boolean {
+  const now = Date.now();
+  const record = verifyRateLimits.get(key) || { timestamps: [] };
+  const recent = record.timestamps.filter((ts) => now - ts < VERIFY_LIMIT_WINDOW_MS);
+  if (recent.length >= MAX_VERIFY_REQUESTS) {
+    return false;
+  }
+  recent.push(now);
+  verifyRateLimits.set(key, { timestamps: recent });
+  return true;
+}
+
 function checkOtpRateLimit(key: string): boolean {
   const now = Date.now();
   const record = otpRateLimits.get(key) || { timestamps: [] };
@@ -36,7 +52,8 @@ authRouter.post('/request-otp', async (req: Request, res: Response, next: NextFu
 
     const cleanId = identifier.trim().toLowerCase();
     const ip = req.ip || req.socket.remoteAddress || 'unknown-ip';
-    const isTestSuite = req.headers['x-test-suite'] === 'true' || process.env.NODE_ENV === 'test';
+    // Only allow test-suite header bypass in non-production environments
+    const isTestSuite = (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test';
 
     // Check rate limit on target identifier (always) and client IP (in production)
     if (!checkOtpRateLimit(`id:${cleanId}`) || (!isTestSuite && !checkOtpRateLimit(`ip:${ip}`))) {
@@ -67,6 +84,13 @@ authRouter.post('/verify-otp', async (req: Request, res: Response, next: NextFun
     const { identifier, code } = req.body;
     if (!identifier || !code) {
       res.status(400).json({ ok: false, error: 'Identifier and OTP code are required.' });
+      return;
+    }
+
+    const cleanId = String(identifier).trim().toLowerCase();
+    const ip = req.ip || req.socket.remoteAddress || 'unknown-ip';
+    if (!checkVerifyRateLimit(`verify:ip:${ip}`) || !checkVerifyRateLimit(`verify:id:${cleanId}`)) {
+      res.status(429).json({ ok: false, error: 'Too many verification attempts. Please wait 5 minutes before trying again.' });
       return;
     }
 
