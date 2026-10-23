@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -n \"SERVER,SASS\" -c \"blue,magenta\" \"npm run dev:server\" \"npm run sass:watch\"",
-    "dev:server": "tsx watch server/index.ts",
+    "dev:server": "tsx watch --watch server --watch eleventy server/index.ts",
     "sass:build": "sass src/styles/main.scss public/css/neogram.css --no-source-map",
     "sass:watch": "sass src/styles/main.scss public/css/neogram.css --watch --no-source-map",
     "build:static": "tsx -e \"import { buildStaticGallery } from './server/services/staticBuilder'; buildStaticGallery();\"",
