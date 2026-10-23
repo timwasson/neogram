@@ -464,6 +464,7 @@
                 </button>
               </div>
             </form>
+          </div>
         </dialog>
 
         <!-- Retro Comments Moderation Dialog (Accessible Native HTML5 Dialog) -->
@@ -2566,7 +2567,7 @@
           '    <span>' + (c.avatar || '💬') + '</span>' +
           '    <span class="text-mac">@' + escapeHtml(c.author) + '</span>' + uinBadge +
           '  </div>' +
-          '  <button type="button" onclick="purgeComment(\\'' + escapeHtml(c.id) + '\\')" class="pixel-btn pixel-btn--sm pixel-btn--red font-bold text-xs py-0.5 px-2" title="Purge from static host">' +
+          '  <button type="button" onclick="purgeComment(\'' + escapeHtml(c.id) + '\')" class="pixel-btn pixel-btn--sm pixel-btn--red font-bold text-xs py-0.5 px-2" title="Purge from static host">' +
           '    <span>🗑️ Purge</span>' +
           '  </button>' +
           '</div>' +
@@ -2613,6 +2614,10 @@
       alert('Error purging comment: ' + err.message);
     }
   }
+
+  window.openCommentsModalById = openCommentsModalById;
+  window.closeCommentsModal = closeCommentsModal;
+  window.purgeComment = purgeComment;
 
   async function triggerStaticRebuild() {
     var btn = document.getElementById('rebuildStaticBtn');
