@@ -1,7 +1,7 @@
 {% extends "layouts/base.njk" %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto p-3 sm:p-4 md:p-6 w-full font-mono">
+<div class="max-w-6xl mx-auto p-4 w-full font-mono">
 
   <!-- Top Breadcrumb & Station Link -->
   <div class="flex items-center justify-between mb-4 flex-wrap gap-2 text-xs">
@@ -38,7 +38,7 @@
     <!-- Pinstripes -->
     <div class="mac-pinstripes"></div>
 
-    <div class="p-4 md:p-6 flex flex-col gap-6">
+    <div class="p-4 flex flex-col gap-5">
 
       <!-- Terminal Welcome Banner -->
       <div class="p-3 bg-black border border-main text-xs space-y-2">
@@ -57,10 +57,10 @@
       </div>
 
       <!-- Main Layout: Sidebar Navigation & Content Pane -->
-      <div class="flex-responsive items-start gap-6">
+      <div class="docs-layout">
 
         <!-- LEFT COLUMN: Topic Navigation Menu -->
-        <aside class="w-full md:w-64 shrink-0 flex flex-col gap-2">
+        <aside class="docs-sidebar">
           <div class="text-xs font-bold text-muted uppercase tracking-wider mb-1 flex items-center justify-between">
             <span>TOPIC INDEX:</span>
             <span class="text-xxs text-prompt">[SELECT TOPIC]</span>
@@ -140,17 +140,17 @@
           <div class="mt-4 p-3 bg-window border border-main text-xs flex flex-col gap-2">
             <span class="font-bold text-xxs uppercase tracking-wider text-muted">DOCUMENTATION REPO FILES:</span>
             <div class="flex flex-col gap-1 text-xxs">
-              <a href="/docs/neocities-setup.md" class="text-mac hover:underline truncate">📄 neocities-setup.md</a>
-              <a href="/docs/embeds.md" class="text-mac hover:underline truncate">📄 embeds.md</a>
-              <a href="/docs/publishing-pipeline.md" class="text-mac hover:underline truncate">📄 publishing-pipeline.md</a>
-              <a href="/docs/custom-styling.md" class="text-mac hover:underline truncate">📄 custom-styling.md</a>
-              <a href="/docs/buddylist-chat.md" class="text-mac hover:underline truncate">📄 buddylist-chat.md</a>
+              <a href="/docs/neocities-setup.md" class="text-mac underline truncate">📄 neocities-setup.md</a>
+              <a href="/docs/embeds.md" class="text-mac underline truncate">📄 embeds.md</a>
+              <a href="/docs/publishing-pipeline.md" class="text-mac underline truncate">📄 publishing-pipeline.md</a>
+              <a href="/docs/custom-styling.md" class="text-mac underline truncate">📄 custom-styling.md</a>
+              <a href="/docs/buddylist-chat.md" class="text-mac underline truncate">📄 buddylist-chat.md</a>
             </div>
           </div>
         </aside>
 
         <!-- RIGHT COLUMN: Topic Content Panes -->
-        <div class="flex-1 min-w-0">
+        <div class="docs-content">
 
           <!-- ========================================================= -->
           <!-- TOPIC 1: NEOCITIES SETUP GUIDE                            -->
@@ -160,7 +160,7 @@
             <div class="border-b-2 border-main pb-2">
               <div class="flex items-center gap-2">
                 <span class="text-xl">🚀</span>
-                <h1 class="text-base sm:text-lg font-bold text-prompt m-0 uppercase">Neocities Static Hosting &amp; Setup Guide</h1>
+                <h1 class="text-base font-bold text-prompt m-0 uppercase">Neocities Static Hosting &amp; Setup Guide</h1>
               </div>
               <p class="text-xs text-muted mt-1 m-0">
                 Connect your personal Neocities site to enable automated publishing, isolated gallery compilation, and live media uploads.
@@ -262,7 +262,7 @@
             <div class="border-b-2 border-main pb-2">
               <div class="flex items-center gap-2">
                 <span class="text-xl">🔢</span>
-                <h1 class="text-base sm:text-lg font-bold text-prompt m-0 uppercase">Dynamic SVG Web Hit Counter</h1>
+                <h1 class="text-base font-bold text-prompt m-0 uppercase">Dynamic SVG Web Hit Counter</h1>
               </div>
               <p class="text-xs text-muted mt-1 m-0">
                 A high-contrast, privacy-friendly dynamic SVG hit counter for your static site. Automatically increments visits without cookies or third-party ad trackers.
@@ -293,7 +293,7 @@
               <!-- Interactive Palette Switcher -->
               <div class="font-mono text-xs">
                 <label class="block font-bold mb-1.5 uppercase text-xxs text-muted">SELECT HARDWARE PALETTE:</label>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div class="docs-palette-grid">
                   <button type="button" class="pixel-btn pixel-btn--yellow text-xs py-1" onclick="switchDocCounterStyle('green_led')">
                     🟢 Green Phosphor
                   </button>
@@ -389,7 +389,7 @@
             <div class="border-b-2 border-main pb-2">
               <div class="flex items-center gap-2">
                 <span class="text-xl">✍️</span>
-                <h1 class="text-base sm:text-lg font-bold text-prompt m-0 uppercase">Public Visitor Guestbook Ledger</h1>
+                <h1 class="text-base font-bold text-prompt m-0 uppercase">Public Visitor Guestbook Ledger</h1>
               </div>
               <p class="text-xs text-muted mt-1 m-0">
                 A public guestbook ledger with spam protection, mood icons, verified Neogram Cyber-Pass signatures, and self-hosted static JSON persistence.
@@ -470,7 +470,7 @@
             <div class="border-b-2 border-main pb-2">
               <div class="flex items-center gap-2">
                 <span class="text-xl">📡</span>
-                <h1 class="text-base sm:text-lg font-bold text-prompt m-0 uppercase">Headless Feeds, Comments &amp; Widgets</h1>
+                <h1 class="text-base font-bold text-prompt m-0 uppercase">Headless Feeds, Comments &amp; Widgets</h1>
               </div>
               <p class="text-xs text-muted mt-1 m-0">
                 Connect your static gallery to external static site generators, build custom client photo carousels, or embed zero-dependency widgets.
@@ -570,7 +570,7 @@
             <div class="border-b-2 border-main pb-2">
               <div class="flex items-center gap-2">
                 <span class="text-xl">⚙️</span>
-                <h1 class="text-base sm:text-lg font-bold text-prompt m-0 uppercase">Publishing &amp; Processing Pipeline</h1>
+                <h1 class="text-base font-bold text-prompt m-0 uppercase">Publishing &amp; Processing Pipeline</h1>
               </div>
               <p class="text-xs text-muted mt-1 m-0">
                 A technical deep-dive into how photo bytes are ingested, transformed via Sharp, compiled into static HTML via Eleventy, and published with zero server retention.
@@ -578,7 +578,7 @@
             </div>
 
             <!-- Core Architectural Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="docs-grid-2-col">
               
               <div class="retro-card p-4 m-0 flex flex-col gap-2">
                 <div class="flex items-center gap-2 font-bold text-xs text-prompt">
@@ -648,7 +648,7 @@ POST /api/posts (Multer 25MB Buffer)
             <div class="border-b-2 border-main pb-2">
               <div class="flex items-center gap-2">
                 <span class="text-xl">🎨</span>
-                <h1 class="text-base sm:text-lg font-bold text-prompt m-0 uppercase">Semantic BEM Theming &amp; Custom CSS</h1>
+                <h1 class="text-base font-bold text-prompt m-0 uppercase">Semantic BEM Theming &amp; Custom CSS</h1>
               </div>
               <p class="text-xs text-muted mt-1 m-0">
                 How Neogram formats static site HTML with standard BEM classes at base specificity (0, 1, 0) for effortless custom CSS overrides.
@@ -669,22 +669,22 @@ POST /api/posts (Multer 25MB Buffer)
             <div class="retro-card p-4 m-0 flex flex-col gap-3">
               <h3 class="font-bold text-xs uppercase text-prompt m-0">BEM Class Reference</h3>
               <div class="overflow-x-auto">
-                <table class="w-full text-xs font-mono border-collapse">
+                <table class="docs-table">
                   <thead>
-                    <tr class="border-b-2 border-main bg-window text-left">
-                      <th class="p-2">BEM Class</th>
-                      <th class="p-2">Description</th>
+                    <tr>
+                      <th>BEM Class</th>
+                      <th>Description</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-main">
-                    <tr><td class="p-2 text-prompt"><code>.neogram-site</code></td><td class="p-2 text-muted">Outer site wrapper and layout container</td></tr>
-                    <tr><td class="p-2 text-prompt"><code>.neogram-grid</code></td><td class="p-2 text-muted">Multi-column responsive CSS grid container</td></tr>
-                    <tr><td class="p-2 text-prompt"><code>.neogram-card</code></td><td class="p-2 text-muted">Individual photo card window box</td></tr>
-                    <tr><td class="p-2 text-prompt"><code>.neogram-card__image</code></td><td class="p-2 text-muted">Photo thumbnail element</td></tr>
-                    <tr><td class="p-2 text-prompt"><code>.neogram-card__caption</code></td><td class="p-2 text-muted">Post caption text</td></tr>
-                    <tr><td class="p-2 text-prompt"><code>.neogram-detail</code></td><td class="p-2 text-muted">Photo detail page view (photos/&lt;id&gt;/)</td></tr>
-                    <tr><td class="p-2 text-prompt"><code>.neogram-comments</code></td><td class="p-2 text-muted">Comment ledger and entry form container</td></tr>
-                    <tr><td class="p-2 text-prompt"><code>.neogram-btn</code></td><td class="p-2 text-muted">Base retro push button</td></tr>
+                  <tbody>
+                    <tr><td class="text-prompt font-bold"><code>.neogram-site</code></td><td class="text-muted">Outer site wrapper and layout container</td></tr>
+                    <tr><td class="text-prompt font-bold"><code>.neogram-grid</code></td><td class="text-muted">Multi-column responsive CSS grid container</td></tr>
+                    <tr><td class="text-prompt font-bold"><code>.neogram-card</code></td><td class="text-muted">Individual photo card window box</td></tr>
+                    <tr><td class="text-prompt font-bold"><code>.neogram-card__image</code></td><td class="text-muted">Photo thumbnail element</td></tr>
+                    <tr><td class="text-prompt font-bold"><code>.neogram-card__caption</code></td><td class="text-muted">Post caption text</td></tr>
+                    <tr><td class="text-prompt font-bold"><code>.neogram-detail</code></td><td class="text-muted">Photo detail page view (photos/&lt;id&gt;/)</td></tr>
+                    <tr><td class="text-prompt font-bold"><code>.neogram-comments</code></td><td class="text-muted">Comment ledger and entry form container</td></tr>
+                    <tr><td class="text-prompt font-bold"><code>.neogram-btn</code></td><td class="text-muted">Base retro push button</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -738,7 +738,7 @@ body.neogram-site {
             <div class="border-b-2 border-main pb-2">
               <div class="flex items-center gap-2">
                 <span class="text-xl">💬</span>
-                <h1 class="text-base sm:text-lg font-bold text-prompt m-0 uppercase">Neogram Instant Messenger (NIM) &amp; Extension</h1>
+                <h1 class="text-base font-bold text-prompt m-0 uppercase">Neogram Instant Messenger (NIM) &amp; Extension</h1>
               </div>
               <p class="text-xs text-muted mt-1 m-0">
                 A 90s AIM/ICQ-style instant messenger with real-time WebSockets, buddy lists, sound chimes, and a Manifest V3 browser extension.
