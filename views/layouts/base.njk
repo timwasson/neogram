@@ -210,6 +210,15 @@
                   </a>
 
                   <a
+                    href="/docs"
+                    id="dropdownDocsLink"
+                    class="pixel-btn pixel-btn--sm text-xs justify-center w-full"
+                    onclick="if(typeof toggleUserMenu==='function'){toggleUserMenu(false);} if(window.retroAudio) retroAudio.playClick();"
+                  >
+                    <span>📖</span> <span>Documentation</span>
+                  </a>
+
+                  <a
                     href="/logout"
                     id="dropdownLogoutBtn"
                     class="pixel-btn pixel-btn--danger pixel-btn--sm text-xs justify-center w-full font-bold"
@@ -263,6 +272,8 @@
           <a href="/terms" class="text-muted hover:text-white underline">Terms</a>
           <span class="text-muted">/</span>
           <a href="/privacy" class="text-muted hover:text-white underline">Privacy</a>
+          <span class="text-muted">/</span>
+          <a href="/docs" class="text-muted hover:text-white underline">Docs</a>
         </div>
       </div>
 

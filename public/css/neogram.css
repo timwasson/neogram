@@ -3185,3 +3185,97 @@ dialog.pixel-dialog[open] {
 .neogram-comments__submit {
   width: 100%;
 }
+
+/**
+ * _docs.scss: Styles for the Neogram Documentation Portal
+ */
+.docs-code-card {
+  background-color: var(--surface-sunken);
+  border: 2px solid var(--border-main);
+  box-shadow: inset 2px 2px 0px 0px rgba(0, 0, 0, 0.4);
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.docs-code-header {
+  background-color: var(--surface-window);
+  border-bottom: 2px solid var(--border-main);
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.docs-code-pre {
+  margin: 0;
+  padding: 12px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-code);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.docs-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: var(--accent-yellow);
+  color: #000000;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  border: 2px solid var(--border-main);
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 0.8);
+  flex-shrink: 0;
+}
+
+.docs-topic-btn {
+  text-align: left;
+  border: 2px solid var(--border-main);
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: bold;
+  background-color: var(--surface-window);
+  color: var(--text-main);
+  cursor: pointer;
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 0.8);
+  transition: all 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.docs-topic-btn:hover {
+  background-color: var(--accent-yellow);
+  color: #000000;
+}
+.docs-topic-btn.is-active {
+  background-color: var(--accent-prompt);
+  color: #000000;
+  box-shadow: inset 2px 2px 0px 0px rgba(0, 0, 0, 0.4);
+}
+
+.docs-callout {
+  border: 2px solid var(--accent-mac);
+  background-color: var(--surface-sunken);
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  border-left-width: 6px;
+  margin-bottom: 1rem;
+}
+
+.docs-callout--tip {
+  border-color: var(--accent-prompt);
+}
+
+.docs-callout--warn {
+  border-color: var(--accent-amber);
+}

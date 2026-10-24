@@ -1,0 +1,258 @@
+# Static Site Embeds & Retro Widgets Manual
+
+One of Neogram's core superpowers is allowing you to embed live, interactive social widgets directly into your static websites (Neocities, GitHub Pages, or self-hosted servers) using zero-dependency HTML snippets, iframes, and dynamic SVGs.
+
+---
+
+## 1. Dynamic SVG Web Hit Counter
+
+The Neogram Web Hit Counter is a lightweight, dynamic SVG image that automatically increments your station visit count every time a browser renders it.
+
+```
++--------------------------------------------------------------------------+
+|  NEOGRAM HARDWARE HIT COUNTER (LIVE PREVIEW STYLES)                     |
++--------------------------------------------------------------------------+
+|  🟢 Green Phosphor:  [ 0 4 2 9 8 1 ]  (VT323 / High-contrast Matrix)    |
+|  🔴 Red Nixie Tube:  [ 0 4 2 9 8 1 ]  (Warm glowing ionized gas)        |
+|  ⚪ Mechanical B&W:  [ 0 4 2 9 8 1 ]  (Odometer rolling digit drums)    |
+|  🔵 Cyan VFD Tube:   [ 0 4 2 9 8 1 ]  (Vacuum Fluorescent VFD glow)     |
++--------------------------------------------------------------------------+
+```
+
+### Key Technical Properties:
+- **Zero Third-Party Trackers & Zero Cookies:** Privacy-friendly, pure vector graphic served as `image/svg+xml`.
+- **Instant Live Increments:** Configured with `Cache-Control: no-cache, no-store, must-revalidate` so every legitimate page view registers.
+- **Dual Identifier Resolution:** You can embed your counter using either your cyber call-sign (`@handle`) or your immutable numeric node ID (`UIN`).
+  - *Handle URL:* `https://neogram.club/counter/cyber_surfer.svg?style=green_led`
+  - *UIN URL:* `https://neogram.club/counter/100109.svg?style=green_led` *(Permanent anchor: will never break even if you change your handle!)*
+
+---
+
+### Hardware Palettes & Styles:
+
+| Style Code | Palette Name | Aesthetic Description |
+|---|---|---|
+| `green_led` | **Green Phosphor** *(Default)* | Classic Apple II / VT100 phosphor green CRT matrix |
+| `red_nixie` | **Red Nixie Tube** | Warm neon amber/red glowing digit discharge tube |
+| `odometer` | **B&W Mechanical** | Vintage mechanical automotive rolling drum counter |
+| `blue_vfd` | **Cyan VFD Tube** | Futuristic 80s VCR/Stereo vacuum fluorescent blue-cyan |
+
+---
+
+### Hit Counter Embed Code Samples:
+
+#### Option A: Direct HTML Image Tag (Recommended)
+Place this snippet anywhere in your site's HTML (footer, sidebar, or bio box):
+
+```html
+<!-- Neogram Dynamic Web Hit Counter -->
+<div class="neogram-counter">
+  <img 
+    src="https://neogram.club/counter/your_handle.svg?style=green_led" 
+    alt="You are visitor number" 
+    loading="eager"
+  />
+</div>
+```
+
+#### Option B: Immutable Numeric UIN Tag (Guaranteed Never to Break)
+```html
+<!-- Neogram UIN Hit Counter (#100101) -->
+<div class="neogram-counter">
+  <img 
+    src="https://neogram.club/counter/100101.svg?style=green_led" 
+    alt="Station Visitor Count" 
+  />
+</div>
+```
+
+#### Option C: Linked Counter with Workstation Telemetry
+```html
+<!-- Clickable Hit Counter linking to your Station Profile -->
+<a href="https://neogram.club/user/@your_handle" target="_blank" title="View Station Telemetry on Neogram">
+  <img src="https://neogram.club/counter/your_handle.svg?style=red_nixie" alt="Hit Counter" />
+</a>
+```
+
+---
+
+## 2. Public Visitor Guestbook Ledger
+
+The Neogram Guestbook brings back the legendary 90s web tradition of visitor guestbooks, enhanced with modern spam prevention and self-hosted static persistence.
+
+```
++--------------------------------------------------------------------------+
+|  [:> guestbook_daemon.cgi - PUBLIC VISITOR LEDGER]                       |
++--------------------------------------------------------------------------+
+|  ✍️  Leave your signature in our cyberspace ledger:                      |
+|  [ Name / Callsign ] [ Location ] [ Personal Website ] [ Mood Icon: 😎 ] |
+|  [ Message / Comments: "Radical site! Adding you to my webring!"       ] |
+|                                                                          |
+|  [ SUBMIT SIGNATURE TO LEDGER :> ]                                       |
++--------------------------------------------------------------------------+
+```
+
+### Key Technical Properties:
+- **Self-Hosted Storage on Static Host:** Signatures are stored in `data/guestbook.json` on your Neocities space. You own 100% of your guestbook data.
+- **Spam Sliding-Window Protection:** In-memory rate limiting strictly blocks excessive submissions (maximum 6 signatures per 5-minute window per IP).
+- **Owner Moderation:** You can inspect and delete any inappropriate signatures directly from the Neogram Station Workstation under the **Embeds** tab.
+- **Verified Cyber-Pass Identity:** Signers connect with their Neogram handle or numeric UIN.
+
+---
+
+### Guestbook Embed Code Samples:
+
+#### Option A: Responsive Iframe Window (Drop-In)
+Add this iframe into your guestbook page (e.g. `guestbook.html` on Neocities):
+
+```html
+<!-- Neogram Public Visitor Guestbook -->
+<iframe
+  src="https://neogram.club/embed/guestbook/your_handle"
+  width="100%"
+  height="650"
+  frameborder="0"
+  style="border: 3px solid #000000; box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.9); background: #161b22;"
+  title="Public Visitor Guestbook"
+></iframe>
+```
+
+#### Option B: Direct Station Link Button
+If you prefer not to embed an iframe, place a retro button linking to your live hosted guestbook:
+
+```html
+<a 
+  href="https://neogram.club/embed/guestbook/your_handle" 
+  target="_blank" 
+  style="display: inline-block; padding: 6px 12px; background: #ffff00; color: #000; font-family: monospace; font-weight: bold; border: 2px solid #000; text-decoration: none;"
+>
+  ✍️ Sign My Guestbook :&gt;
+</a>
+```
+
+---
+
+## 3. Headless JSONFeed 1.1 & Photo Streams
+
+Neogram exposes your photo transmissions through a compliant [JSONFeed 1.1](https://jsonfeed.org/version/1.1) endpoint. This allows you to fetch your latest photos from any static site generator (11ty, Jekyll, Hugo, Astro) or client-side JavaScript script.
+
+### Endpoint URLs:
+- **JSON Feed:** `https://neogram.club/api/users/your_handle/feed.json`
+- *(Shortcut):* `https://neogram.club/feed/your_handle.json`
+
+### Example JSON Payload:
+```json
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "cyber_surfer's Neogram Photo Feed",
+  "home_page_url": "https://cyber_surfer.neocities.org/neogram/",
+  "feed_url": "https://neogram.club/api/users/cyber_surfer/feed.json",
+  "items": [
+    {
+      "id": "e121c1a9-4b53-41ad-bcbb-1af12bdf9161",
+      "imageUrl": "https://cyber_surfer.neocities.org/neogram/uploads/images/1792863233120-photo.webp",
+      "thumbnailUrl": "https://cyber_surfer.neocities.org/neogram/uploads/thumbs/1792863233120-photo-thumb.webp",
+      "caption": "Night cruising through Shibuya neon alleys.",
+      "filter": "crt-phosphor",
+      "likes": 14,
+      "commentCount": 3,
+      "createdAt": "2026-10-24T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### Fetching & Rendering in Vanilla JavaScript:
+
+```html
+<div id="my-neogram-feed" class="retro-feed-container">
+  <p>Loading photo transmissions...</p>
+</div>
+
+<script>
+  (async function() {
+    try {
+      const res = await fetch('https://neogram.club/api/users/your_handle/feed.json');
+      const data = await res.json();
+      const container = document.getElementById('my-neogram-feed');
+      
+      if (!data.items || data.items.length === 0) {
+        container.innerHTML = '<p>No transmissions logged yet.</p>';
+        return;
+      }
+
+      container.innerHTML = data.items.map(post => `
+        <article class="neogram-card" style="border: 2px solid #000; margin-bottom: 15px; padding: 10px; background: #fff;">
+          <a href="${post.imageUrl}" target="_blank">
+            <img src="${post.thumbnailUrl}" alt="${post.caption}" style="max-width: 100%; display: block;" />
+          </a>
+          <p style="font-family: monospace; font-size: 12px; margin-top: 8px;">${post.caption}</p>
+          <small style="font-family: monospace; color: #666;">❤️ ${post.likes} Likes | 💬 ${post.commentCount} Comments</small>
+        </article>
+      `).join('');
+    } catch (err) {
+      console.error('Failed to load Neogram feed:', err);
+    }
+  })();
+</script>
+```
+
+---
+
+### Standalone Feed Iframe Widget:
+
+If you want a pre-styled carousel of your latest photos dropped onto your static homepage:
+
+```html
+<!-- Neogram Latest Photos Widget -->
+<iframe
+  src="https://neogram.club/embed/feed/your_handle"
+  width="100%"
+  height="480"
+  frameborder="0"
+  style="border: 2px solid #000; background: #000;"
+  title="Recent Photos"
+></iframe>
+```
+
+---
+
+## 4. Photo Comments & Likes (Self-Hosted + Cyber-Pass SSO)
+
+Neogram solves the hardest challenge of static websites: **interactive comments without ad tracking or heavy bloated widgets.**
+
+### How Comments Work:
+1. When visitors view a photo on your Neocities gallery (`photos/<id>/index.html`), the page displays an interactive comments ledger.
+2. If the visitor wants to comment, they click **"CONNECT WITH NEOGRAM CYBER-PASS"**.
+3. A lightweight popup opens (`/auth/connect`), authenticating their station identity and returning an ephemeral session token.
+4. The comment is submitted to `POST /api/posts/:id/comments`.
+5. **Static File Commit:** The comment is immediately saved into `uploads/images/<photo>.comments.json` directly on your Neocities static host, and an automated background 11ty static rebuild updates the static HTML page!
+6. **Zero Tracking:** No cookies, no ad retargeting, and no data harvesting.
+
+---
+
+## 5. Vanilla JS Client Embed Library (`embed.js`)
+
+Neogram provides an embed script (`/embed/embed.js`) and matching stylesheet (`/embed/neogram-embed.css`) that you can include on any external HTML page.
+
+### Including the Assets:
+```html
+<head>
+  <link rel="stylesheet" href="https://neogram.club/embed/neogram-embed.css" />
+  <script src="https://neogram.club/embed/embed.js" defer></script>
+</head>
+```
+
+### Declarative Widget Hooks:
+```html
+<!-- Automatically renders your dynamic counter -->
+<div data-neogram-widget="counter" data-user-id="your_handle" data-style="green_led"></div>
+
+<!-- Automatically renders your visitor guestbook -->
+<div data-neogram-widget="guestbook" data-user-id="your_handle"></div>
+
+<!-- Automatically renders your photo feed -->
+<div data-neogram-widget="feed" data-user-id="your_handle"></div>
+```

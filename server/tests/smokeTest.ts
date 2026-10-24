@@ -399,9 +399,64 @@ async function runSmokeTests() {
     }
 
     // -------------------------------------------------------------------------
-    // TEST 13: Safe Post Purge & Clean Teardown
+    // TEST 13: Cyberspace Documentation Center & Embed Manual
     // -------------------------------------------------------------------------
-    logHeader('13. SAFE PURGE & TEARDOWN');
+    logHeader('13. CYBERSPACE DOCUMENTATION & EMBED MANUAL');
+    const docsRes = await fetch(`${API_BASE}/docs`);
+    assertTest('GET /docs returns HTTP 200', docsRes.status === 200);
+    const docsHtml = await docsRes.text();
+
+    assertTest('Docs HTML contains Neocities Setup Guide',
+      docsHtml.includes('Neocities Static Hosting &amp; Setup Guide') || docsHtml.includes('Neocities Static Hosting & Setup Guide')
+    );
+    assertTest('Docs HTML contains Dynamic Web Hit Counter embed section',
+      docsHtml.includes('Dynamic SVG Web Hit Counter') && docsHtml.includes('neogram-counter')
+    );
+    assertTest('Docs HTML contains Public Visitor Guestbook embed section',
+      docsHtml.includes('Public Visitor Guestbook Ledger') && docsHtml.includes('/embed/guestbook/')
+    );
+    assertTest('Docs HTML contains Publishing & Processing Pipeline section',
+      docsHtml.includes('Publishing &amp; Processing Pipeline') && docsHtml.includes('Sharp') && docsHtml.includes('WebP')
+    );
+    assertTest('Docs HTML contains BEM Theming & Custom CSS section',
+      docsHtml.includes('Semantic BEM Theming &amp; Custom CSS') && docsHtml.includes('.neogram-site')
+    );
+    assertTest('Docs HTML contains NIM Chat & Browser Extension section',
+      docsHtml.includes('Neogram Instant Messenger (NIM)') && docsHtml.includes('Manifest V3')
+    );
+
+    // Verify authenticated docs interpolation
+    const authDocsRes = await fetch(`${API_BASE}/docs`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('GET /docs with session cookie returns HTTP 200', authDocsRes.status === 200);
+    const authDocsHtml = await authDocsRes.text();
+    assertTest('Authenticated Docs interpolates user station handle into embed snippets',
+      authDocsHtml.includes(`/counter/${testUser.handle}.svg`) && authDocsHtml.includes(`/embed/guestbook/${testUser.handle}`)
+    );
+    assertTest('Authenticated Docs interpolates immutable numeric UIN anchor',
+      authDocsHtml.includes(`/counter/${testUser.uin}.svg`)
+    );
+
+    // Verify topic filter query
+    const counterTopicRes = await fetch(`${API_BASE}/docs?topic=counter`);
+    assertTest('GET /docs?topic=counter returns HTTP 200', counterTopicRes.status === 200);
+
+    // Verify topic shortcut redirect
+    const shortcutRes = await fetch(`${API_BASE}/docs/neocities`, { redirect: 'manual' });
+    assertTest('GET /docs/neocities redirects to /docs?topic=neocities',
+      shortcutRes.status === 302 && (shortcutRes.headers.get('location') || '').includes('topic=neocities')
+    );
+
+    // Verify taskbar footer links to /docs
+    assertTest('Taskbar footer contains Docs link',
+      homeHtml.includes('href="/docs"') && homeHtml.includes('Docs')
+    );
+
+    // -------------------------------------------------------------------------
+    // TEST 14: Safe Post Purge & Clean Teardown
+    // -------------------------------------------------------------------------
+    logHeader('14. SAFE PURGE & TEARDOWN');
     // Delete post using authenticated session
     const deletePostRes = await fetch(`${API_BASE}/api/posts/${testPostId}`, {
       method: 'DELETE',

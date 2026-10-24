@@ -1,0 +1,858 @@
+{% extends "layouts/base.njk" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-3 sm:p-4 md:p-6 w-full font-mono">
+
+  <!-- Top Breadcrumb & Station Link -->
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-2 text-xs">
+    <div class="flex items-center gap-2 text-muted">
+      <span class="text-prompt font-bold">:&gt; DOCS_CYBERSPACE.HLP</span>
+      <span>/</span>
+      <span>STATION_MANUAL_v2.0</span>
+      {% if isAuthenticated %}
+        <span class="pixel-badge pixel-badge--cyan text-xxs font-bold">NODE: #{{ stationUin }} (@{{ stationHandle }})</span>
+      {% else %}
+        <span class="pixel-badge text-xxs">GUEST_MODE</span>
+      {% endif %}
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="/" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-3" onclick="if(window.retroAudio) retroAudio.playClick();">
+        <span>[ &lt; Return to Workstation ]</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Master Documentation Window Frame -->
+  <div class="pixel-box mb-6">
+    <!-- Window Header -->
+    <div class="window-header flex items-center justify-between p-2">
+      <div class="flex items-center gap-2">
+        <span>📖</span>
+        <span class="font-bold text-xs">[:&gt; NEOGRAM_DOCUMENTATION_CENTER.HLP — Station Manual &amp; Static Embed Specs]</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="pixel-badge pixel-badge--green text-xxs font-bold">ONLINE // CARRIER 33.6K</span>
+      </div>
+    </div>
+
+    <!-- Pinstripes -->
+    <div class="mac-pinstripes"></div>
+
+    <div class="p-4 md:p-6 flex flex-col gap-6">
+
+      <!-- Terminal Welcome Banner -->
+      <div class="p-3 bg-black border border-main text-xs space-y-2">
+        <div class="flex items-center justify-between text-muted text-[10px] uppercase font-bold tracking-wider">
+          <span>STATIC PUBLISHING ENGINE &amp; SOCIAL WIDGET MANUAL</span>
+          <span>REVISION: 2.0.4-PROD</span>
+        </div>
+        <p class="text-prompt leading-relaxed m-0">
+          Welcome to the <strong>Neogram Cyberspace Documentation</strong>. Neogram bridges mobile-first photo publishing with 90s web nostalgia, enabling creators to snap photos, compile isolated static galleries, and embed interactive hit counters, visitor guestbooks, and comment ledgers onto personal static websites (Neocities, GitHub Pages, or self-hosted servers).
+        </p>
+        <div class="flex items-center gap-3 text-xxs text-muted pt-1 border-t border-main flex-wrap">
+          <span>🔒 <strong>ZERO RETENTION:</strong> 0 MB local media storage</span>
+          <span>🛡️ <strong>SAFE SUBDIRECTORIES:</strong> Non-destructive root protection</span>
+          <span>🔢 <strong>PERMANENT ANCHOR:</strong> Immutable numeric UIN (#{{ stationUin }})</span>
+        </div>
+      </div>
+
+      <!-- Main Layout: Sidebar Navigation & Content Pane -->
+      <div class="flex-responsive items-start gap-6">
+
+        <!-- LEFT COLUMN: Topic Navigation Menu -->
+        <aside class="w-full md:w-64 shrink-0 flex flex-col gap-2">
+          <div class="text-xs font-bold text-muted uppercase tracking-wider mb-1 flex items-center justify-between">
+            <span>TOPIC INDEX:</span>
+            <span class="text-xxs text-prompt">[SELECT TOPIC]</span>
+          </div>
+
+          <button
+            type="button"
+            id="tabBtn-neocities"
+            class="docs-topic-btn {% if activeTopic == 'neocities' %}is-active{% endif %}"
+            onclick="switchDocTopic('neocities')"
+          >
+            <span>🚀 Neocities Setup</span>
+            <span class="text-xxs">›</span>
+          </button>
+
+          <button
+            type="button"
+            id="tabBtn-counter"
+            class="docs-topic-btn {% if activeTopic == 'counter' %}is-active{% endif %}"
+            onclick="switchDocTopic('counter')"
+          >
+            <span>🔢 Dynamic Hit Counter</span>
+            <span class="text-xxs">›</span>
+          </button>
+
+          <button
+            type="button"
+            id="tabBtn-guestbook"
+            class="docs-topic-btn {% if activeTopic == 'guestbook' %}is-active{% endif %}"
+            onclick="switchDocTopic('guestbook')"
+          >
+            <span>✍️ Visitor Guestbook</span>
+            <span class="text-xxs">›</span>
+          </button>
+
+          <button
+            type="button"
+            id="tabBtn-feeds"
+            class="docs-topic-btn {% if activeTopic == 'feeds' %}is-active{% endif %}"
+            onclick="switchDocTopic('feeds')"
+          >
+            <span>📡 Feeds &amp; Comments</span>
+            <span class="text-xxs">›</span>
+          </button>
+
+          <button
+            type="button"
+            id="tabBtn-pipeline"
+            class="docs-topic-btn {% if activeTopic == 'pipeline' %}is-active{% endif %}"
+            onclick="switchDocTopic('pipeline')"
+          >
+            <span>⚙️ Publishing Pipeline</span>
+            <span class="text-xxs">›</span>
+          </button>
+
+          <button
+            type="button"
+            id="tabBtn-styling"
+            class="docs-topic-btn {% if activeTopic == 'styling' %}is-active{% endif %}"
+            onclick="switchDocTopic('styling')"
+          >
+            <span>🎨 BEM Theming &amp; CSS</span>
+            <span class="text-xxs">›</span>
+          </button>
+
+          <button
+            type="button"
+            id="tabBtn-chat"
+            class="docs-topic-btn {% if activeTopic == 'chat' %}is-active{% endif %}"
+            onclick="switchDocTopic('chat')"
+          >
+            <span>💬 NIM Chat &amp; Extension</span>
+            <span class="text-xxs">›</span>
+          </button>
+
+          <!-- Raw Markdown Files Box -->
+          <div class="mt-4 p-3 bg-window border border-main text-xs flex flex-col gap-2">
+            <span class="font-bold text-xxs uppercase tracking-wider text-muted">DOCUMENTATION REPO FILES:</span>
+            <div class="flex flex-col gap-1 text-xxs">
+              <a href="/docs/neocities-setup.md" class="text-mac hover:underline truncate">📄 neocities-setup.md</a>
+              <a href="/docs/embeds.md" class="text-mac hover:underline truncate">📄 embeds.md</a>
+              <a href="/docs/publishing-pipeline.md" class="text-mac hover:underline truncate">📄 publishing-pipeline.md</a>
+              <a href="/docs/custom-styling.md" class="text-mac hover:underline truncate">📄 custom-styling.md</a>
+              <a href="/docs/buddylist-chat.md" class="text-mac hover:underline truncate">📄 buddylist-chat.md</a>
+            </div>
+          </div>
+        </aside>
+
+        <!-- RIGHT COLUMN: Topic Content Panes -->
+        <div class="flex-1 min-w-0">
+
+          <!-- ========================================================= -->
+          <!-- TOPIC 1: NEOCITIES SETUP GUIDE                            -->
+          <!-- ========================================================= -->
+          <section id="docSection-neocities" class="docs-section-pane flex flex-col gap-6 {% if activeTopic != 'neocities' %}hidden{% endif %}">
+            
+            <div class="border-b-2 border-main pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">🚀</span>
+                <h1 class="text-base sm:text-lg font-bold text-prompt m-0 uppercase">Neocities Static Hosting &amp; Setup Guide</h1>
+              </div>
+              <p class="text-xs text-muted mt-1 m-0">
+                Connect your personal Neocities site to enable automated publishing, isolated gallery compilation, and live media uploads.
+              </p>
+            </div>
+
+            <!-- Flow Overview Box -->
+            <div class="p-3 bg-black border border-main text-xs space-y-2">
+              <div class="text-mac font-bold uppercase tracking-wider text-xxs">DATA FLOW PIPELINE</div>
+              <div class="p-2 border border-muted bg-surface-sunken text-prompt font-mono text-xs overflow-x-auto leading-relaxed">
+[Mobile / Workstation Photo] ──&gt; [Sharp WebP Transform] ──&gt; [Eleventy Build] ──&gt; [Neocities API Upload] ──&gt; [Local Purge: 0 MB]
+              </div>
+              <p class="text-muted text-xs m-0">
+                Neogram never acts as a permanent media host. When you upload, photos are optimized, published directly to your Neocities account, and local files are immediately erased from the server.
+              </p>
+            </div>
+
+            <!-- Step by Step Walkthrough -->
+            <div class="flex flex-col gap-4">
+              
+              <!-- STEP 1 -->
+              <div class="retro-card p-4 m-0 flex flex-col gap-2">
+                <div class="flex items-center gap-3">
+                  <span class="docs-step-badge">1</span>
+                  <h3 class="font-bold text-xs uppercase text-prompt m-0">Obtain your Neocities API Key</h3>
+                </div>
+                <p class="text-xs leading-relaxed text-main m-0">
+                  Log in to your account at <a href="https://neocities.org" target="_blank" rel="noopener noreferrer" class="text-mac underline font-bold">neocities.org</a>, then navigate to your site settings at <a href="https://neocities.org/settings#api_key" target="_blank" rel="noopener noreferrer" class="text-mac underline font-bold">neocities.org/settings#api_key</a>. Scroll down to the <strong>API Key</strong> section and copy your token string.
+                </p>
+                <div class="p-2 bg-window border border-main text-xxs text-muted font-mono">
+                  KEY TOKEN EXAMPLE: <code>0123456789abcdef0123456789abcdef</code> (Keep this key private!)
+                </div>
+              </div>
+
+              <!-- STEP 2 -->
+              <div class="retro-card p-4 m-0 flex flex-col gap-2">
+                <div class="flex items-center gap-3">
+                  <span class="docs-step-badge">2</span>
+                  <h3 class="font-bold text-xs uppercase text-prompt m-0">Configure Station Settings in Neogram</h3>
+                </div>
+                <p class="text-xs leading-relaxed text-main m-0">
+                  In the top workstation navigation bar, click <strong>⚙ Settings</strong>. Scroll to the window titled <strong>[:&gt; CYBER_HOSTING.SYS — STATIC DEPLOY PIPELINE]</strong> and enter your hosting credentials:
+                </p>
+                <ul class="list-disc list-inside text-xs space-y-1 text-muted pl-2">
+                  <li><strong>Hosting Provider:</strong> <code>Neocities API (Primary)</code></li>
+                  <li><strong>Neocities API Key:</strong> Paste your API key token (encrypted in PostgreSQL with AES-256-GCM)</li>
+                  <li><strong>Site Subdomain:</strong> Enter your Neocities subdomain (e.g. <code>{{ stationHandle }}</code>)</li>
+                  <li><strong>Target Subfolder (`deploy_path`):</strong> <code>neogram</code> (Default safe subfolder)</li>
+                  <li><strong>Auto-Deploy on Transmit:</strong> Check this box to push updates automatically whenever you post</li>
+                </ul>
+              </div>
+
+              <!-- STEP 3 -->
+              <div class="retro-card p-4 m-0 flex flex-col gap-2">
+                <div class="flex items-center gap-3">
+                  <span class="docs-step-badge">3</span>
+                  <h3 class="font-bold text-xs uppercase text-prompt m-0">Safe Subdirectory Invariant (Root Protection)</h3>
+                </div>
+                <div class="docs-callout docs-callout--tip m-0">
+                  <strong>ROOT SITE NON-DESTRUCTION GUARANTEE:</strong><br />
+                  Neogram defaults to publishing under <code>/neogram/</code>. Your existing homepage (<code>index.html</code>), custom styling, blog posts, and fan listings on Neocities are <strong>never overwritten or modified</strong>.
+                </div>
+                <p class="text-xs text-muted m-0">
+                  Your photo gallery will be live at: <a href="https://{{ stationHandle }}.neocities.org/neogram/" target="_blank" class="text-mac underline font-bold">https://{{ stationHandle }}.neocities.org/neogram/</a>
+                </p>
+              </div>
+
+              <!-- STEP 4 -->
+              <div class="retro-card p-4 m-0 flex flex-col gap-2">
+                <div class="flex items-center gap-3">
+                  <span class="docs-step-badge">4</span>
+                  <h3 class="font-bold text-xs uppercase text-prompt m-0">Verify Connection &amp; Test</h3>
+                </div>
+                <p class="text-xs leading-relaxed text-main m-0">
+                  Click the <strong>[ 🔌 Test Neocities Connection ]</strong> button. Neogram will ping the Neocities API and verify your site. Once confirmed, click <strong>[ 💾 SAVE HOSTING CONFIG ]</strong>.
+                </p>
+                <p class="text-xs leading-relaxed text-muted m-0">
+                  Now, whenever you snap or upload a photo in the <strong>↑ Upload Studio</strong>, your photo will automatically be compiled and deployed live!
+                </p>
+              </div>
+
+            </div>
+
+            <!-- Future Providers Roadmap -->
+            <div class="p-3 bg-window border border-main text-xs space-y-1">
+              <span class="font-bold text-xxs uppercase tracking-wider text-muted">EXPANDING TO OTHER PROVIDERS (ROADMAP):</span>
+              <p class="text-muted m-0">
+                Neogram's modular static publisher architecture is designed to support <strong>GitHub Pages (Git PAT commits)</strong>, <strong>Nekoweb API</strong>, and universal <strong>SFTP / SSH</strong> in upcoming releases.
+              </p>
+            </div>
+
+          </section>
+
+          <!-- ========================================================= -->
+          <!-- TOPIC 2: DYNAMIC WEB HIT COUNTER                          -->
+          <!-- ========================================================= -->
+          <section id="docSection-counter" class="docs-section-pane flex flex-col gap-6 {% if activeTopic != 'counter' %}hidden{% endif %}">
+            
+            <div class="border-b-2 border-main pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">🔢</span>
+                <h1 class="text-base sm:text-lg font-bold text-prompt m-0 uppercase">Dynamic SVG Web Hit Counter</h1>
+              </div>
+              <p class="text-xs text-muted mt-1 m-0">
+                A high-contrast, privacy-friendly dynamic SVG hit counter for your static site. Automatically increments visits without cookies or third-party ad trackers.
+              </p>
+            </div>
+
+            <!-- Live SVG Preview Card -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-3">
+              <div class="window-header flex items-center justify-between">
+                <span>*** LIVE SVG HARDWARE PALETTE PREVIEW ***</span>
+                <span class="text-xxs text-prompt">HTTP GET /counter/*.svg</span>
+              </div>
+
+              <div class="p-4 bg-black border-2 border-main flex flex-col items-center justify-center gap-3">
+                <div class="p-3 border-2 border-main bg-black">
+                  <img
+                    id="docCounterPreviewImg"
+                    src="{{ appUrl }}/counter/{{ stationHandle }}.svg?style=green_led"
+                    alt="Neogram Live Hit Counter"
+                    class="block"
+                  />
+                </div>
+                <span id="docCounterUrlLabel" class="text-xxs font-mono text-muted break-all text-center">
+                  {{ appUrl }}/counter/{{ stationHandle }}.svg?style=green_led
+                </span>
+              </div>
+
+              <!-- Interactive Palette Switcher -->
+              <div class="font-mono text-xs">
+                <label class="block font-bold mb-1.5 uppercase text-xxs text-muted">SELECT HARDWARE PALETTE:</label>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <button type="button" class="pixel-btn pixel-btn--yellow text-xs py-1" onclick="switchDocCounterStyle('green_led')">
+                    🟢 Green Phosphor
+                  </button>
+                  <button type="button" class="pixel-btn text-xs py-1" onclick="switchDocCounterStyle('red_nixie')">
+                    🔴 Red Nixie Tube
+                  </button>
+                  <button type="button" class="pixel-btn text-xs py-1" onclick="switchDocCounterStyle('odometer')">
+                    ⚪ Mechanical B&amp;W
+                  </button>
+                  <button type="button" class="pixel-btn text-xs py-1" onclick="switchDocCounterStyle('blue_vfd')">
+                    🔵 Cyan VFD Tube
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Code Snippet Box 1: Standard HTML Image Tag -->
+            <div class="docs-code-card">
+              <div class="docs-code-header">
+                <span class="font-bold text-prompt">HTML EMBED SNIPPET (BY CALL-SIGN HANDLE)</span>
+                <button
+                  type="button"
+                  id="btnCopyCounterHandle"
+                  class="pixel-btn pixel-btn--blue pixel-btn--sm text-xxs font-bold"
+                  onclick="copyDocSnippet('btnCopyCounterHandle', 'codeCounterHandle')"
+                >
+                  📋 COPY CODE
+                </button>
+              </div>
+              <pre class="docs-code-pre" id="codeCounterHandle">&lt;!-- Neogram Dynamic Web Hit Counter --&gt;
+&lt;div class="neogram-counter"&gt;
+  &lt;img 
+    src="{{ appUrl }}/counter/{{ stationHandle }}.svg?style=green_led" 
+    alt="You are visitor number" 
+    loading="eager"
+  /&gt;
+&lt;/div&gt;</pre>
+            </div>
+
+            <!-- Code Snippet Box 2: Permanent UIN Anchor Tag -->
+            <div class="docs-code-card">
+              <div class="docs-code-header">
+                <span class="font-bold text-prompt">PERMANENT UIN ANCHOR (IMMUTABLE NODE ID #{{ stationUin }})</span>
+                <button
+                  type="button"
+                  id="btnCopyCounterUin"
+                  class="pixel-btn pixel-btn--blue pixel-btn--sm text-xxs font-bold"
+                  onclick="copyDocSnippet('btnCopyCounterUin', 'codeCounterUin')"
+                >
+                  📋 COPY CODE
+                </button>
+              </div>
+              <pre class="docs-code-pre" id="codeCounterUin">&lt;!-- Immutable Numeric UIN Hit Counter (Never breaks if handle changes) --&gt;
+&lt;div class="neogram-counter"&gt;
+  &lt;img 
+    src="{{ appUrl }}/counter/{{ stationUin }}.svg?style=green_led" 
+    alt="Station Visitor Count" 
+  /&gt;
+&lt;/div&gt;</pre>
+            </div>
+
+            <!-- Code Snippet Box 3: Linked Profile Counter -->
+            <div class="docs-code-card">
+              <div class="docs-code-header">
+                <span class="font-bold text-prompt">CLICKABLE BADGE LINKING TO STATION PROFILE</span>
+                <button
+                  type="button"
+                  id="btnCopyCounterLink"
+                  class="pixel-btn pixel-btn--blue pixel-btn--sm text-xxs font-bold"
+                  onclick="copyDocSnippet('btnCopyCounterLink', 'codeCounterLink')"
+                >
+                  📋 COPY CODE
+                </button>
+              </div>
+              <pre class="docs-code-pre" id="codeCounterLink">&lt;!-- Clickable Hit Counter linking to Cyberspace Station Profile --&gt;
+&lt;a href="{{ appUrl }}/user/@{{ stationHandle }}" target="_blank" rel="noopener noreferrer" title="View Station Telemetry on Neogram"&gt;
+  &lt;img src="{{ appUrl }}/counter/{{ stationHandle }}.svg?style=green_led" alt="Hit Counter" /&gt;
+&lt;/a&gt;</pre>
+            </div>
+
+            <!-- Technical Invariants Callout -->
+            <div class="docs-callout docs-callout--tip">
+              <strong>NO CACHE INVARIANT:</strong> All counter SVGs return <code>Cache-Control: no-cache, no-store, must-revalidate</code> headers. Browsers and proxies will not cache stale hit counts.
+            </div>
+
+          </section>
+
+          <!-- ========================================================= -->
+          <!-- TOPIC 3: VISITOR GUESTBOOK LEDGER                         -->
+          <!-- ========================================================= -->
+          <section id="docSection-guestbook" class="docs-section-pane flex flex-col gap-6 {% if activeTopic != 'guestbook' %}hidden{% endif %}">
+            
+            <div class="border-b-2 border-main pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">✍️</span>
+                <h1 class="text-base sm:text-lg font-bold text-prompt m-0 uppercase">Public Visitor Guestbook Ledger</h1>
+              </div>
+              <p class="text-xs text-muted mt-1 m-0">
+                A public guestbook ledger with spam protection, mood icons, verified Neogram Cyber-Pass signatures, and self-hosted static JSON persistence.
+              </p>
+            </div>
+
+            <div class="p-3 bg-black border border-main text-xs space-y-2">
+              <div class="text-prompt font-bold uppercase tracking-wider text-xxs">SELF-HOSTED LEDGER SPECIFICATION</div>
+              <p class="text-muted text-xs m-0">
+                Guestbook entries are written directly to <code>data/guestbook.json</code> on your Neocities host! You retain 100% data ownership. You can inspect, approve, or delete signatures directly from the <strong>Embeds</strong> tab in your Station Workstation.
+              </p>
+            </div>
+
+            <!-- Guestbook Iframe Code Snippet -->
+            <div class="docs-code-card">
+              <div class="docs-code-header">
+                <span class="font-bold text-prompt">RESPONSIVE IFRAME EMBED (DROP-IN WIDGET)</span>
+                <button
+                  type="button"
+                  id="btnCopyGbIframe"
+                  class="pixel-btn pixel-btn--blue pixel-btn--sm text-xxs font-bold"
+                  onclick="copyDocSnippet('btnCopyGbIframe', 'codeGbIframe')"
+                >
+                  📋 COPY CODE
+                </button>
+              </div>
+              <pre class="docs-code-pre" id="codeGbIframe">&lt;!-- Neogram Public Visitor Guestbook Iframe --&gt;
+&lt;iframe
+  src="{{ appUrl }}/embed/guestbook/{{ stationHandle }}"
+  width="100%"
+  height="650"
+  frameborder="0"
+  style="border: 3px solid #000000; box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.9); background: #161b22;"
+  title="Public Visitor Guestbook"
+&gt;&lt;/iframe&gt;</pre>
+            </div>
+
+            <!-- Direct Station Button Code -->
+            <div class="docs-code-card">
+              <div class="docs-code-header">
+                <span class="font-bold text-prompt">STANDALONE RETRO LINK BUTTON</span>
+                <button
+                  type="button"
+                  id="btnCopyGbBtn"
+                  class="pixel-btn pixel-btn--blue pixel-btn--sm text-xxs font-bold"
+                  onclick="copyDocSnippet('btnCopyGbBtn', 'codeGbBtn')"
+                >
+                  📋 COPY CODE
+                </button>
+              </div>
+              <pre class="docs-code-pre" id="codeGbBtn">&lt;!-- Retro Button Linking to Live Guestbook --&gt;
+&lt;a 
+  href="{{ appUrl }}/embed/guestbook/{{ stationHandle }}" 
+  target="_blank" 
+  rel="noopener noreferrer"
+  style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #ffff00; color: #000000; font-family: monospace; font-weight: bold; font-size: 12px; border: 2px solid #000000; box-shadow: 2px 2px 0px 0px #000000; text-decoration: none;"
+&gt;
+  ✍️ Sign My Guestbook :&gt;
+&lt;/a&gt;</pre>
+            </div>
+
+            <!-- Moderation & Spam Protection -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-2">
+              <h3 class="font-bold text-xs uppercase text-prompt m-0">Moderation &amp; Spam Protection</h3>
+              <p class="text-xs text-muted m-0">
+                1. <strong>Rate Limiting:</strong> In-memory sliding window rate limits submissions to maximum 6 signatures per 5 minutes per IP address.<br />
+                2. <strong>One-Click Owner Deletion:</strong> Open the <strong>Embeds</strong> tab in the Workstation. Under <strong>SIGNATURES ARCHIVE</strong>, click the <code>[ ✕ Delete ]</code> button next to any unwanted entry. It will be removed from your host's <code>guestbook.json</code> immediately.
+              </p>
+            </div>
+
+          </section>
+
+          <!-- ========================================================= -->
+          <!-- TOPIC 4: FEEDS, COMMENTS & WIDGETS                        -->
+          <!-- ========================================================= -->
+          <section id="docSection-feeds" class="docs-section-pane flex flex-col gap-6 {% if activeTopic != 'feeds' %}hidden{% endif %}">
+            
+            <div class="border-b-2 border-main pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">📡</span>
+                <h1 class="text-base sm:text-lg font-bold text-prompt m-0 uppercase">Headless Feeds, Comments &amp; Widgets</h1>
+              </div>
+              <p class="text-xs text-muted mt-1 m-0">
+                Connect your static gallery to external static site generators, build custom client photo carousels, or embed zero-dependency widgets.
+              </p>
+            </div>
+
+            <!-- Headless JSONFeed 1.1 -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <h3 class="font-bold text-xs uppercase text-prompt m-0">JSONFeed 1.1 Specification</h3>
+                <span class="pixel-badge pixel-badge--cyan text-xxs font-bold">STANDARDIZED API</span>
+              </div>
+              <p class="text-xs text-muted m-0">
+                Neogram exposes a compliant JSONFeed at:
+                <code class="text-prompt select-all">{{ appUrl }}/api/users/{{ stationHandle }}/feed.json</code>
+              </p>
+            </div>
+
+            <!-- Vanilla JS Fetch Code Snippet -->
+            <div class="docs-code-card">
+              <div class="docs-code-header">
+                <span class="font-bold text-prompt">VANILLA JAVASCRIPT PHOTO STREAM CONSUMER</span>
+                <button
+                  type="button"
+                  id="btnCopyFeedFetch"
+                  class="pixel-btn pixel-btn--blue pixel-btn--sm text-xxs font-bold"
+                  onclick="copyDocSnippet('btnCopyFeedFetch', 'codeFeedFetch')"
+                >
+                  📋 COPY CODE
+                </button>
+              </div>
+              <pre class="docs-code-pre" id="codeFeedFetch">&lt;!-- Container for recent photos --&gt;
+&lt;div id="neogram-feed"&gt;Loading photos...&lt;/div&gt;
+
+&lt;script&gt;
+  (async function() {
+    try {
+      const res = await fetch('{{ appUrl }}/api/users/{{ stationHandle }}/feed.json');
+      const data = await res.json();
+      const el = document.getElementById('neogram-feed');
+      if (!data.items || data.items.length === 0) {
+        el.innerHTML = '&lt;p&gt;No transmissions yet.&lt;/p&gt;';
+        return;
+      }
+      el.innerHTML = data.items.map(post =&gt; `
+        &lt;div style="border: 2px solid #000; margin-bottom: 12px; padding: 8px; background: #fff;"&gt;
+          &lt;img src="${post.thumbnailUrl}" alt="${post.caption}" style="max-width: 100%; display: block;" /&gt;
+          &lt;p style="font-family: monospace; font-size: 11px; margin-top: 6px;"&gt;${post.caption}&lt;/p&gt;
+        &lt;/div&gt;
+      `).join('');
+    } catch(err) {
+      console.error(err);
+    }
+  })();
+&lt;/script&gt;</pre>
+            </div>
+
+            <!-- Photo Feed Iframe -->
+            <div class="docs-code-card">
+              <div class="docs-code-header">
+                <span class="font-bold text-prompt">IFRAME FEED WIDGET</span>
+                <button
+                  type="button"
+                  id="btnCopyFeedIframe"
+                  class="pixel-btn pixel-btn--blue pixel-btn--sm text-xxs font-bold"
+                  onclick="copyDocSnippet('btnCopyFeedIframe', 'codeFeedIframe')"
+                >
+                  📋 COPY CODE
+                </button>
+              </div>
+              <pre class="docs-code-pre" id="codeFeedIframe">&lt;!-- Drop-in Photo Stream Iframe --&gt;
+&lt;iframe
+  src="{{ appUrl }}/embed/feed/{{ stationHandle }}"
+  width="100%"
+  height="480"
+  frameborder="0"
+  style="border: 2px solid #000; background: #000;"
+  title="Recent Photos"
+&gt;&lt;/iframe&gt;</pre>
+            </div>
+
+            <!-- Cyber-Pass SSO Comments -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-2">
+              <h3 class="font-bold text-xs uppercase text-prompt m-0">Zero-Tracking Comments &amp; Cyber-Pass SSO</h3>
+              <p class="text-xs text-muted m-0">
+                When visitors browse your static gallery (<code>photos/&lt;id&gt;/index.html</code>), they can post comments without creating third-party accounts. Clicking <strong>"CONNECT WITH NEOGRAM CYBER-PASS"</strong> opens a popup (<code>/auth/connect</code>) to authenticate their station node. Comments write directly to <code>uploads/images/&lt;photo&gt;.comments.json</code> on your Neocities space.
+              </p>
+            </div>
+
+          </section>
+
+          <!-- ========================================================= -->
+          <!-- TOPIC 5: PUBLISHING & PROCESSING PIPELINE                 -->
+          <!-- ========================================================= -->
+          <section id="docSection-pipeline" class="docs-section-pane flex flex-col gap-6 {% if activeTopic != 'pipeline' %}hidden{% endif %}">
+            
+            <div class="border-b-2 border-main pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">⚙️</span>
+                <h1 class="text-base sm:text-lg font-bold text-prompt m-0 uppercase">Publishing &amp; Processing Pipeline</h1>
+              </div>
+              <p class="text-xs text-muted mt-1 m-0">
+                A technical deep-dive into how photo bytes are ingested, transformed via Sharp, compiled into static HTML via Eleventy, and published with zero server retention.
+              </p>
+            </div>
+
+            <!-- Core Architectural Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              <div class="retro-card p-4 m-0 flex flex-col gap-2">
+                <div class="flex items-center gap-2 font-bold text-xs text-prompt">
+                  <span>📱</span>
+                  <span>1. 25MB INGESTION &amp; EXIF ROTATION</span>
+                </div>
+                <p class="text-xs text-muted leading-relaxed m-0">
+                  Mobile camera snaps upload via streaming Multer memory buffers (max 25MB limit). Sharp reads EXIF orientation tags and executes <code>.rotate()</code>, ensuring photos taken on iOS and Android devices never appear sideways on static sites.
+                </p>
+              </div>
+
+              <div class="retro-card p-4 m-0 flex flex-col gap-2">
+                <div class="flex items-center gap-2 font-bold text-xs text-prompt">
+                  <span>🖼️</span>
+                  <span>2. SHARP WEBP COMPRESSION</span>
+                </div>
+                <p class="text-xs text-muted leading-relaxed m-0">
+                  Images scale to a max 1200px boundary (main image) and 400x400px square thumbnail. Converted to WebP format (quality 85), saving 70-80% bandwidth over raw JPEGs while keeping images around 80-150KB.
+                </p>
+              </div>
+
+              <div class="retro-card p-4 m-0 flex flex-col gap-2">
+                <div class="flex items-center gap-2 font-bold text-xs text-prompt">
+                  <span>⚡</span>
+                  <span>3. ELEVENTY v3 FIFO QUEUE</span>
+                </div>
+                <p class="text-xs text-muted leading-relaxed m-0">
+                  Static galleries compile inside isolated user folders (<code>dist/static-galleries/&lt;userId&gt;/</code>). Build tasks serialize through an in-memory FIFO BuildQueue, eliminating template race conditions.
+                </p>
+              </div>
+
+              <div class="retro-card p-4 m-0 flex flex-col gap-2">
+                <div class="flex items-center gap-2 font-bold text-xs text-prompt">
+                  <span>🗑️</span>
+                  <span>4. ZERO-RETENTION LOCAL PURGE</span>
+                </div>
+                <p class="text-xs text-muted leading-relaxed m-0">
+                  As soon as Neocities confirms upload success, local copies of user images are immediately wiped from disk (<code>fs.rm(uploadsDir)</code>). The Neogram server retains 0 bytes of user media.
+                </p>
+              </div>
+
+            </div>
+
+            <!-- Pipeline Flow ASCII Diagram -->
+            <div class="p-3 bg-black border border-main text-xs space-y-1">
+              <span class="text-mac font-bold uppercase tracking-wider text-xxs">ISOLATED FIFO PIPELINE EXECUTION</span>
+              <pre class="text-prompt text-xxs leading-normal overflow-x-auto m-0 select-all">
+POST /api/posts (Multer 25MB Buffer)
+  └─► sharp(buffer).rotate()
+        ├─► resize(1200, 1200).webp(85)  ──► uploads/images/*.webp
+        └─► resize(400, 400).webp(80)    ──► uploads/thumbs/*.webp
+              └─► buildQueue.enqueue('User:<userId>')
+                    ├─► setUseTemplateCache(false)
+                    ├─► Eleventy compiles HTML/CSS
+                    └─► deployToNeocities() 
+                          ├─► POST https://neocities.org/api/upload
+                          └─► fs.rm(uploadsDir) [0 MB DISK RETENTION]</pre>
+            </div>
+
+          </section>
+
+          <!-- ========================================================= -->
+          <!-- TOPIC 6: SEMANTIC BEM THEMING & CUSTOM CSS                -->
+          <!-- ========================================================= -->
+          <section id="docSection-styling" class="docs-section-pane flex flex-col gap-6 {% if activeTopic != 'styling' %}hidden{% endif %}">
+            
+            <div class="border-b-2 border-main pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">🎨</span>
+                <h1 class="text-base sm:text-lg font-bold text-prompt m-0 uppercase">Semantic BEM Theming &amp; Custom CSS</h1>
+              </div>
+              <p class="text-xs text-muted mt-1 m-0">
+                How Neogram formats static site HTML with standard BEM classes at base specificity (0, 1, 0) for effortless custom CSS overrides.
+              </p>
+            </div>
+
+            <!-- Custom CSS Injection Walkthrough -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-2">
+              <h3 class="font-bold text-xs uppercase text-prompt m-0">How to Inject Your Custom Stylesheet</h3>
+              <p class="text-xs text-muted m-0">
+                1. Create a CSS stylesheet on your Neocities site (e.g. <code>https://{{ stationHandle }}.neocities.org/custom-theme.css</code>).<br />
+                2. In the Workstation, open <strong>⚙ Settings</strong> and enter the URL in <strong>CUSTOM CSS URL</strong>.<br />
+                3. Click <strong>[ 💾 SAVE SETTINGS ]</strong>. Eleventy automatically adds a <code>&lt;link rel="stylesheet"&gt;</code> tag to your gallery pages!
+              </p>
+            </div>
+
+            <!-- BEM Class Hierarchy Table -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-3">
+              <h3 class="font-bold text-xs uppercase text-prompt m-0">BEM Class Reference</h3>
+              <div class="overflow-x-auto">
+                <table class="w-full text-xs font-mono border-collapse">
+                  <thead>
+                    <tr class="border-b-2 border-main bg-window text-left">
+                      <th class="p-2">BEM Class</th>
+                      <th class="p-2">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-main">
+                    <tr><td class="p-2 text-prompt"><code>.neogram-site</code></td><td class="p-2 text-muted">Outer site wrapper and layout container</td></tr>
+                    <tr><td class="p-2 text-prompt"><code>.neogram-grid</code></td><td class="p-2 text-muted">Multi-column responsive CSS grid container</td></tr>
+                    <tr><td class="p-2 text-prompt"><code>.neogram-card</code></td><td class="p-2 text-muted">Individual photo card window box</td></tr>
+                    <tr><td class="p-2 text-prompt"><code>.neogram-card__image</code></td><td class="p-2 text-muted">Photo thumbnail element</td></tr>
+                    <tr><td class="p-2 text-prompt"><code>.neogram-card__caption</code></td><td class="p-2 text-muted">Post caption text</td></tr>
+                    <tr><td class="p-2 text-prompt"><code>.neogram-detail</code></td><td class="p-2 text-muted">Photo detail page view (photos/&lt;id&gt;/)</td></tr>
+                    <tr><td class="p-2 text-prompt"><code>.neogram-comments</code></td><td class="p-2 text-muted">Comment ledger and entry form container</td></tr>
+                    <tr><td class="p-2 text-prompt"><code>.neogram-btn</code></td><td class="p-2 text-muted">Base retro push button</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Sample Custom CSS Theme -->
+            <div class="docs-code-card">
+              <div class="docs-code-header">
+                <span class="font-bold text-prompt">SAMPLE THEME: NEON CYBERPUNK 2077</span>
+                <button
+                  type="button"
+                  id="btnCopyThemeCss"
+                  class="pixel-btn pixel-btn--blue pixel-btn--sm text-xxs font-bold"
+                  onclick="copyDocSnippet('btnCopyThemeCss', 'codeThemeCss')"
+                >
+                  📋 COPY CSS
+                </button>
+              </div>
+              <pre class="docs-code-pre" id="codeThemeCss">/* Neon Cyberpunk Theme for Neogram */
+body.neogram-site {
+  background: #0d001a !important;
+  color: #00ffff !important;
+}
+
+.neogram-card, .neogram-banner {
+  background: #190033;
+  border: 2px solid #ff007f;
+  box-shadow: 4px 4px 0px 0px #00ffff;
+}
+
+.neogram-card__header, .neogram-banner__header {
+  background: #ff007f;
+  color: #ffffff;
+}
+
+.neogram-btn {
+  background: #ff007f;
+  color: #ffffff;
+  border: 2px solid #00ffff;
+  box-shadow: 2px 2px 0px 0px #00ffff;
+}</pre>
+            </div>
+
+          </section>
+
+          <!-- ========================================================= -->
+          <!-- TOPIC 7: NIM CHAT & BROWSER EXTENSION                     -->
+          <!-- ========================================================= -->
+          <section id="docSection-chat" class="docs-section-pane flex flex-col gap-6 {% if activeTopic != 'chat' %}hidden{% endif %}">
+            
+            <div class="border-b-2 border-main pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">💬</span>
+                <h1 class="text-base sm:text-lg font-bold text-prompt m-0 uppercase">Neogram Instant Messenger (NIM) &amp; Extension</h1>
+              </div>
+              <p class="text-xs text-muted mt-1 m-0">
+                A 90s AIM/ICQ-style instant messenger with real-time WebSockets, buddy lists, sound chimes, and a Manifest V3 browser extension.
+              </p>
+            </div>
+
+            <!-- Zero Retention Callout -->
+            <div class="docs-callout docs-callout--tip">
+              <strong>ZERO SERVER RETENTION CONTRACT:</strong> Neogram <strong>never</strong> permanently stores chat logs in the database. Messages route strictly in-memory between active WebSockets. If a recipient is offline, the message is staged in an ephemeral queue and <strong>immediately hard-deleted</strong> upon delivery. All chat history resides 100% in your browser's local storage.
+            </div>
+
+            <!-- Extension Installation Card -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-3">
+              <div class="flex items-center justify-between">
+                <h3 class="font-bold text-xs uppercase text-prompt m-0">Chrome / Edge Manifest V3 Extension</h3>
+                <span class="pixel-badge pixel-badge--yellow text-xxs font-bold">DEVELOPER MODE</span>
+              </div>
+              <p class="text-xs text-muted m-0">
+                Stay connected to your buddy list from any tab without keeping the Neogram workstation open!
+              </p>
+              <ol class="list-decimal list-inside text-xs space-y-1 text-muted pl-2">
+                <li>Open Chrome or Edge and go to <code>chrome://extensions/</code></li>
+                <li>Toggle on <strong>"Developer mode"</strong> in the top-right corner</li>
+                <li>Click <strong>"Load unpacked"</strong> and select the <code>extension/</code> folder in the repository</li>
+                <li>Click the Neogram 💬 extension icon and click <strong>"CONNECT TO STATION"</strong></li>
+              </ol>
+            </div>
+
+            <!-- Developer Sync Script -->
+            <div class="p-3 bg-black border border-main text-xs space-y-1">
+              <span class="text-muted font-bold uppercase tracking-wider text-xxs">EXTENSION ASSET PIPELINE</span>
+              <div class="p-2 bg-surface-sunken border border-muted font-mono text-xs text-prompt">
+                npm run extension:sync    # Syncs latest CSS and Audio to extension/shared/<br />
+                npm run extension:package # Syncs and packages into neogram-aim-extension.zip
+              </div>
+            </div>
+
+          </section>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Client-side Topic Switcher & Copy Helper -->
+<script>
+  function switchDocTopic(topic) {
+    if (window.retroAudio) retroAudio.playClick();
+
+    // 1. Update Buttons
+    var buttons = document.querySelectorAll('.docs-topic-btn');
+    buttons.forEach(function(btn) {
+      btn.classList.remove('is-active');
+    });
+    var targetBtn = document.getElementById('tabBtn-' + topic);
+    if (targetBtn) targetBtn.classList.add('is-active');
+
+    // 2. Update Content Panes
+    var panes = document.querySelectorAll('.docs-section-pane');
+    panes.forEach(function(pane) {
+      pane.classList.add('hidden');
+    });
+    var targetPane = document.getElementById('docSection-' + topic);
+    if (targetPane) targetPane.classList.remove('hidden');
+
+    // 3. Update URL without reloading
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', '/docs?topic=' + topic);
+    }
+  }
+
+  function switchDocCounterStyle(style) {
+    if (window.retroAudio) retroAudio.playClick();
+    var img = document.getElementById('docCounterPreviewImg');
+    var label = document.getElementById('docCounterUrlLabel');
+    var base = '{{ appUrl }}/counter/{{ stationHandle }}.svg?style=' + style;
+    if (img) img.src = base;
+    if (label) label.textContent = base;
+  }
+
+  function copyDocSnippet(btnId, codeId) {
+    if (window.retroAudio) retroAudio.playClick();
+    var codeEl = document.getElementById(codeId);
+    var btnEl = document.getElementById(btnId);
+    if (!codeEl || !btnEl) return;
+
+    var text = codeEl.innerText || codeEl.textContent;
+    navigator.clipboard.writeText(text).then(function() {
+      var originalText = btnEl.innerHTML;
+      btnEl.innerHTML = '<span>✓ COPIED!</span>';
+      btnEl.classList.remove('pixel-btn--blue');
+      btnEl.classList.add('pixel-btn--green');
+
+      setTimeout(function() {
+        btnEl.innerHTML = originalText;
+        btnEl.classList.remove('pixel-btn--green');
+        btnEl.classList.add('pixel-btn--blue');
+      }, 2000);
+    }).catch(function(err) {
+      console.error('Failed to copy to clipboard', err);
+    });
+  }
+
+  // Handle URL query parameters or initial load
+  (function() {
+    var params = new URLSearchParams(window.location.search);
+    var topic = params.get('topic');
+    if (topic && document.getElementById('docSection-' + topic)) {
+      switchDocTopic(topic);
+    }
+  })();
+</script>
+{% endblock %}

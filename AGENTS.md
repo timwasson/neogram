@@ -385,10 +385,22 @@ CREATE INDEX idx_chat_queue_expires ON ephemeral_chat_queue(expires_at);
     - Station status broadcast message.
     - Public photo transmission count.
     - Clickable profile link to `/user/@handle`.
-- **Interactive Terminal Filtering & Ergonomics:**
-  - Real-time client-side instant filter input (`#directorySearchInput`) allowing rapid search by `@handle` or `#UID` with live match count and Web Audio click SFX.
-  - Seamless reciprocal breadcrumb navigation linking `/directory` directly to individual station profiles (`views/user.njk`).
-  - Direct topnav links for both authenticated workstations and logged-out public visitors, plus quick launcher in the user dropdown menu, guest hero section, and persistent taskbar footer link (`VIEW: DIRECTORY` -> `/directory`).
+  - Direct topnav links for both authenticated workstations and logged-out public visitors, plus quick launcher in the user dropdown menu and guest hero section.
+
+### 4.25 Cyberspace Documentation Center & Embed Manual (`/docs` & `docs/`)
+- **Dual-Layer Documentation System:**
+  - **Interactive Manual & Embed Guide (`views/docs.njk` & `server/routes/docs.ts`):** Serves a comprehensive retro documentation center covering Neocities setup, dynamic hit counters, guestbooks, Sharp image processing pipeline, semantic BEM theming, and NIM chat integration. Topics accessible via direct shortcuts (e.g. `/docs/neocities`, `/docs/counter`, `/docs/guestbook`, `/docs/pipeline`, `/docs/theming`, `/docs/chat`) or query parameters (`/docs?topic=counter`).
+  - **Repository Markdown Documentation (`docs/`):** Self-contained markdown guides in the project repository:
+    - `docs/README.md`: Central documentation index and architectural overview.
+    - `docs/neocities-setup.md`: Step-by-step setup guide for Neocities static hosting, API key encryption, and safe subdirectory publishing.
+    - `docs/embeds.md`: Dynamic SVG hit counter styles, visitor guestbook ledger, headless JSONFeed 1.1, and client SDK widgets.
+    - `docs/publishing-pipeline.md`: 25MB Multer streaming, Sharp EXIF auto-orientation, WebP compression, 11ty FIFO BuildQueue, and zero-retention local purge.
+    - `docs/custom-styling.md`: Semantic BEM static deliverable contract, base specificity `(0, 1, 0)`, and custom CSS injection.
+    - `docs/buddylist-chat.md`: NIM real-time chat, zero server retention, and WebExtension MV3 installation.
+- **Dynamic Session-Aware Code Interpolation:**
+  - Authenticated sessions automatically interpolate the user's live `@handle` and immutable `#uin` directly into embed code snippets for instant 1-click copying.
+- **Topnav & Taskbar Integration:**
+  - Directly accessible from top navigation (`Docs`), user account dropdown (`Documentation`), and bottom taskbar panel next to Terms and Privacy.
 
 ---
 
@@ -493,6 +505,9 @@ When building the production backend and views, extract and reuse the following 
     - Station node cards with small avatar thumbnail, `@handle`, numeric `#uin`, status message, photo tally, and direct profile links.
     - Interactive client-side live search filter by `@handle` or `#UID` with match counters and Web Audio SFX.
     - Integrated reciprocal breadcrumbs, topnav buttons for authenticated and public visitors, and comprehensive automated QA smoke tests.
+18. **[x] Step 18: Cyberspace Documentation Center & Embed Manual (`/docs`)**
+    - Interactive manual (`views/docs.njk` & `docs/*.md`) covering Neocities setup, dynamic SVG hit counters, guestbook ledgers, Sharp processing pipeline, BEM theming, and NIM chat.
+    - Direct topic filter routing with shortcuts (`/docs/:topic`), session-aware live code interpolation, and 75 automated QA smoke tests.
 
 ---
 

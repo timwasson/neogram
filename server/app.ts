@@ -8,6 +8,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { apiRouter } from './routes/api';
 import { embedsRouter } from './routes/embeds';
 import { directoryRouter } from './routes/directory';
+import { docsRouter } from './routes/docs';
 import { COOKIE_NAME, verifySessionToken, clearSessionCookie, extractToken, signSessionToken } from './auth/jwt';
 import { getUserById } from './auth/service';
 import { config } from './config';
@@ -145,6 +146,7 @@ export function createApp(): Express {
 
   // 5. Server-rendered Web Views
   app.use(directoryRouter);
+  app.use(docsRouter);
 
   app.get('/', async (_req: Request, res: Response, next: NextFunction) => {
     try {
