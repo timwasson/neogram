@@ -917,6 +917,32 @@
     font-weight: 700;
   }
 
+  &__author-link {
+    color: var(--accent-prompt, #00ff66);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: 700;
+    transition: color 0.15s ease, background-color 0.15s ease;
+
+    &:hover {
+      color: #ffffff;
+      background-color: #000000;
+    }
+  }
+
+  &__site-link {
+    display: inline-block;
+    margin-left: 2px;
+    text-decoration: none;
+    font-size: 11px;
+    vertical-align: middle;
+    transition: transform 0.15s ease;
+
+    &:hover {
+      transform: scale(1.25);
+    }
+  }
+
   &__item-time {
     color: var(--text-muted, #555555);
     font-size: 10px;

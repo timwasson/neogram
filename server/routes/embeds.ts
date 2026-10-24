@@ -20,7 +20,7 @@ async function getAuthUser(req: Request) {
 /**
  * Helper to lookup user by handle, numeric UIN, or UUID
  */
-async function findUserByHandleOrId(identifier: string) {
+export async function findUserByHandleOrId(identifier: string) {
   if (!identifier) return null;
   const cleanId = identifier.trim();
 

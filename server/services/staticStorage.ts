@@ -203,11 +203,13 @@ export async function writeRemoteJson(user: any, relPath: string, data: any): Pr
 
 export interface PostCommentItem {
   id: string;
+  userId?: string;
   author: string;
   uin: number;
   avatar?: string;
   text: string;
   timestamp: string;
+  siteUrl?: string;
 }
 
 export interface PostCommentsPayload {
@@ -224,7 +226,7 @@ export interface PostCommentsPayload {
 export async function appendPostComment(
   ownerUser: any,
   post: any,
-  commenter: { handle: string; uin: number; avatar?: string },
+  commenter: { id?: string; handle: string; uin: number; avatar?: string; siteUrl?: string },
   text: string
 ): Promise<PostCommentItem> {
   const relPath = getCommentsRelativePath(post.image_path || post.imagePath);
@@ -240,11 +242,13 @@ export async function appendPostComment(
 
     const newComment: PostCommentItem = {
       id: `c_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`,
+      userId: commenter.id,
       author: commenter.handle,
       uin: commenter.uin,
       avatar: commenter.avatar || '💬',
       text: text.trim().slice(0, 1000),
       timestamp: new Date().toISOString(),
+      siteUrl: commenter.siteUrl,
     };
 
     const updatedComments = Array.isArray(existing.comments) ? existing.comments : [];

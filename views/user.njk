@@ -1,0 +1,268 @@
+{% extends "layouts/base.njk" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-4 md:p-6 w-full font-mono">
+
+  <!-- Top Breadcrumb / Return Bar -->
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-2 text-xs">
+    <div class="flex items-center gap-2 text-muted">
+      <span>:&gt; CYBERSPACE_DIRECTORY</span>
+      <span>/</span>
+      <span class="text-mac font-bold">@{{ profileUser.handle }}</span>
+      <span>[#{{ profileUser.uin }}]</span>
+    </div>
+    <a href="/" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-3">
+      <span>[ &lt; Return to Station Workstation ]</span>
+    </a>
+  </div>
+
+  <!-- Main Profile Grid: Identity Card (Left) + Transmissions Stream (Right) -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+    <!-- LEFT COLUMN: Station Identity (4 cols) -->
+    <div class="lg:col-span-4 flex flex-col gap-4">
+
+      <!-- Profile Identity Window Box -->
+      <div class="retro-card p-0 m-0">
+        <div class="window-header flex items-center justify-between p-2">
+          <div class="flex items-center gap-2">
+            <span>👾</span>
+            <span class="font-bold text-xs truncate">[:&gt; STATION_ID.SYS]</span>
+          </div>
+          {% if profileUser.isAway %}
+            <span class="text-xs text-amber font-bold">[AWAY]</span>
+          {% else %}
+            <span class="text-xs text-prompt font-bold">[ONLINE]</span>
+          {% endif %}
+        </div>
+
+        <div class="p-4 flex flex-col items-center text-center gap-3">
+          <!-- Avatar Frame -->
+          <div class="relative">
+            <img
+              src="{{ profileUser.avatarPath }}"
+              alt="@{{ profileUser.handle }} Avatar"
+              class="w-32 h-32 pixel-box border-4 border-black object-cover bg-black"
+            />
+            <div class="absolute -bottom-2 -right-2">
+              {% if profileUser.isAway %}
+                <span class="pixel-btn pixel-btn--sm font-bold text-xs py-0.5 px-1 bg-amber text-black" title="Away">🟡 AWAY</span>
+              {% else %}
+                <span class="pixel-btn pixel-btn--green pixel-btn--sm font-bold text-xs py-0.5 px-1" title="Online">🟢 V.90</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Handle & Callsign -->
+          <div class="flex flex-col items-center gap-1 mt-1">
+            <h1 class="text-lg md:text-xl font-bold text-mac tracking-wide m-0">
+              @{{ profileUser.handle }}
+            </h1>
+            <div class="flex items-center gap-2 flex-wrap justify-center">
+              <span class="pixel-btn pixel-btn--sm text-xs font-bold py-0.5 px-2 bg-window">
+                Node #{{ profileUser.uin }}
+              </span>
+              {% if profileUser.cleanRootSiteUrl %}
+                <a
+                  href="{{ profileUser.cleanRootSiteUrl }}"
+                  target="_blank"
+                  rel="noopener"
+                  class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xs font-bold py-0.5 px-2"
+                  title="Visit root website"
+                >
+                  <span>🌐 Root Site ↗</span>
+                </a>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Bio / Status Message -->
+          <div class="w-full text-left bg-black border border-main p-2.5 text-xs text-prompt space-y-1">
+            <div class="text-[10px] text-muted uppercase font-bold tracking-wider">
+              CYBER_BROADCAST_STATUS:
+            </div>
+            <p class="whitespace-pre-wrap leading-relaxed">
+              "{{ profileUser.statusMessage }}"
+            </p>
+          </div>
+
+          <!-- Station Telemetry Stats -->
+          <div class="w-full grid grid-cols-3 gap-2 border-t border-b border-main py-2 text-xs">
+            <div class="flex flex-col">
+              <span class="text-muted text-[10px]">PHOTOS</span>
+              <span class="font-bold text-mac text-sm">{{ posts.length }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-muted text-[10px]">LIKES</span>
+              <span class="font-bold text-crimson text-sm">{{ profileUser.totalLikes }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-muted text-[10px]">VISITS</span>
+              <span class="font-bold text-prompt text-sm">{{ profileUser.hits }}</span>
+            </div>
+          </div>
+
+          <!-- Dynamic SVG Hit Counter -->
+          <div class="w-full flex flex-col items-center gap-1 pt-1">
+            <span class="text-[10px] text-muted font-bold tracking-wider uppercase">
+              DYNAMIC NODE HIT COUNTER
+            </span>
+            <img
+              src="/counter/{{ profileUser.uin }}.svg?style={{ profileUser.counterStyle }}"
+              alt="Hits for #{{ profileUser.uin }}"
+              class="border-2 border-main p-1 bg-black"
+              loading="lazy"
+            />
+          </div>
+
+          <!-- Action Buttons / Links -->
+          <div class="w-full flex flex-col gap-2 pt-2">
+            {% if profileUser.cleanRootSiteUrl %}
+              <a
+                href="{{ profileUser.cleanRootSiteUrl }}"
+                target="_blank"
+                rel="noopener"
+                class="pixel-btn pixel-btn--yellow text-xs font-bold py-2 w-full flex items-center justify-center gap-1"
+              >
+                <span>🌐 Visit Personal Website: {{ profileUser.cleanRootSiteUrl }} ↗</span>
+              </a>
+            {% endif %}
+
+            {% if profileUser.galleryUrl %}
+              <a
+                href="{{ profileUser.galleryUrl }}"
+                target="_blank"
+                rel="noopener"
+                class="pixel-btn pixel-btn--green text-xs font-bold py-2 w-full flex items-center justify-center gap-1"
+              >
+                <span>📷 View Neogram Photo Gallery ↗</span>
+              </a>
+            {% endif %}
+
+            <a
+              href="/#chat"
+              class="pixel-btn text-xs font-bold py-2 w-full flex items-center justify-center gap-1"
+            >
+              <span>💬 Open Neogram Instant Messenger (NIM)</span>
+            </a>
+          </div>
+
+          <!-- Station Metadata Footer -->
+          <div class="text-[11px] text-muted pt-2 border-t border-main w-full text-left space-y-1">
+            <div><strong>Commissioned:</strong> {{ profileUser.createdAt | formatDate }}</div>
+            {% if profileUser.lastDeployedAt %}
+              <div><strong>Last Deployed:</strong> {{ profileUser.lastDeployedAt | formatDate }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: Transmissions & Photographs Stream (8 cols) -->
+    <div class="lg:col-span-8 flex flex-col gap-4">
+
+      <!-- Gallery Archive Window Frame -->
+      <div class="retro-card p-0 m-0">
+        <div class="window-header flex items-center justify-between p-2">
+          <div class="flex items-center gap-2">
+            <span>📷</span>
+            <span class="font-bold text-xs">
+              [:&gt; TRANSMISSIONS_ARCHIVE.EXE - Broadcasted Photographs ({{ posts.length }})]
+            </span>
+          </div>
+          {% if profileUser.galleryUrl %}
+            <a
+              href="{{ profileUser.galleryUrl }}"
+              target="_blank"
+              rel="noopener"
+              class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xs py-0.5 px-2"
+            >
+              <span>Static Gallery ↗</span>
+            </a>
+          {% endif %}
+        </div>
+
+        <div class="p-4">
+          {% if not posts or posts.length == 0 %}
+            <!-- Empty State -->
+            <div class="p-8 border-2 border-dashed border-main text-center bg-black text-prompt space-y-2">
+              <div class="text-2xl">📡</div>
+              <div class="font-bold text-sm">NO PHOTOGRAPHS DETECTED IN STORAGE LEDGER</div>
+              <p class="text-xs text-muted max-w-md mx-auto">
+                Station @{{ profileUser.handle }} has not broadcasted any public photographs yet. Check back once their transmitter goes live!
+              </p>
+            </div>
+          {% else %}
+            <!-- Transmissions Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {% for post in posts %}
+                <div class="retro-card p-2 flex flex-col gap-2 bg-window border border-main">
+                  
+                  <!-- Thumbnail Viewport with Filter Tag -->
+                  <div class="relative bg-black border border-main overflow-hidden group">
+                    {% if profileUser.galleryUrl %}
+                      <a href="{{ profileUser.galleryUrl }}photos/{{ post.id }}/" target="_blank" rel="noopener">
+                        <img
+                          src="{{ post.thumbnailPath or post.imagePath }}"
+                          alt="{{ post.caption or 'Photo' }}"
+                          loading="lazy"
+                          class="w-full h-48 object-cover transition-transform group-hover:scale-105"
+                        />
+                      </a>
+                    {% else %}
+                      <a href="{{ post.imagePath }}" target="_blank" rel="noopener">
+                        <img
+                          src="{{ post.thumbnailPath or post.imagePath }}"
+                          alt="{{ post.caption or 'Photo' }}"
+                          loading="lazy"
+                          class="w-full h-48 object-cover transition-transform group-hover:scale-105"
+                        />
+                      </a>
+                    {% endif %}
+
+                    {% if post.filterApplied and post.filterApplied != 'none' %}
+                      <div class="absolute top-1.5 left-1.5">
+                        <span class="pixel-btn pixel-btn--sm text-[10px] py-0 px-1 font-bold bg-black text-prompt border border-prompt">
+                          {{ post.filterApplied }}
+                        </span>
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  <!-- Caption & Metadata -->
+                  <div class="flex flex-col gap-1 flex-1">
+                    <p class="text-xs font-mono line-clamp-2 leading-relaxed m-0 text-main">
+                      {{ post.caption }}
+                    </p>
+
+                    <div class="flex items-center justify-between text-[11px] text-muted pt-2 mt-auto border-t border-main">
+                      <span>❤️ {{ post.likes or 0 }} likes</span>
+                      <span>{{ post.createdAt | formatDateTime }}</span>
+                    </div>
+
+                    {% if profileUser.galleryUrl %}
+                      <a
+                        href="{{ profileUser.galleryUrl }}photos/{{ post.id }}/"
+                        target="_blank"
+                        rel="noopener"
+                        class="pixel-btn pixel-btn--yellow text-xs font-bold py-1 px-2 text-center mt-1"
+                      >
+                        <span>👁️ View &amp; Comment :&gt;</span>
+                      </a>
+                    {% endif %}
+                  </div>
+
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

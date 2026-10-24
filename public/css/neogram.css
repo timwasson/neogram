@@ -2914,6 +2914,28 @@ dialog.pixel-dialog[open] {
 .neogram-comments__item-author {
   font-weight: 700;
 }
+.neogram-comments__author-link {
+  color: var(--accent-prompt, #00ff66);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 700;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.neogram-comments__author-link:hover {
+  color: #ffffff;
+  background-color: #000000;
+}
+.neogram-comments__site-link {
+  display: inline-block;
+  margin-left: 2px;
+  text-decoration: none;
+  font-size: 11px;
+  vertical-align: middle;
+  transition: transform 0.15s ease;
+}
+.neogram-comments__site-link:hover {
+  transform: scale(1.25);
+}
 .neogram-comments__item-time {
   color: var(--text-muted, #555555);
   font-size: 10px;

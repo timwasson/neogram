@@ -34,6 +34,26 @@ export function createApp(): Express {
       return String(dateStr);
     }
   });
+  nunjucksEnv.addFilter('formatDateTime', (dateStr: any) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      return (
+        d.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        }) +
+        ', ' +
+        d.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      );
+    } catch {
+      return String(dateStr);
+    }
+  });
   app.set('view engine', 'njk');
 
   // 2. Security Headers & Clickjacking Protections
@@ -206,6 +226,89 @@ export function createApp(): Express {
   app.get('/logout', (_req: Request, res: Response) => {
     clearSessionCookie(res);
     res.redirect('/login');
+  });
+
+  app.get('/user/:identifier', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { identifier } = req.params;
+      const { findUserByHandleOrId } = await import('./routes/embeds');
+      const user = await findUserByHandleOrId(identifier);
+
+      if (!user) {
+        res.status(404).render('404', {
+          title: 'Neogram - Station Node Not Found',
+          url: req.originalUrl,
+          message: `[:> Station node "${identifier}" not found in Neogram Cyberspace Directory.]`,
+        });
+        return;
+      }
+
+      const { query } = await import('./db');
+      // Fetch public transmissions from this user
+      const postsRes = await query(
+        `SELECT id, image_path as "imagePath", thumbnail_path as "thumbnailPath", caption,
+                filter_applied as "filterApplied", mood, webring, location, likes_count as "likes",
+                created_at as "createdAt"
+         FROM posts
+         WHERE user_id = $1
+         ORDER BY created_at DESC`,
+        [user.id]
+      );
+
+      // Clean root personal site URL (strips any deploy_path subdirectory)
+      let cleanRootSiteUrl = '';
+      if (user.site_url && user.site_url.trim()) {
+        try {
+          const parsed = new URL(user.site_url);
+          cleanRootSiteUrl = `${parsed.protocol}//${parsed.host}`;
+        } catch (_err) {
+          cleanRootSiteUrl = user.site_url.replace(/\/+$/, '');
+        }
+      } else if (user.handle) {
+        cleanRootSiteUrl = `https://${user.handle}.neocities.org`;
+      }
+
+      // Static photo gallery URL
+      const deployPath = (user.deploy_path !== null && user.deploy_path !== undefined)
+        ? String(user.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+        : 'neogram';
+      const galleryUrl = cleanRootSiteUrl
+        ? (deployPath ? `${cleanRootSiteUrl}/${deployPath}/` : `${cleanRootSiteUrl}/`)
+        : '';
+
+      // Hit counter telemetry
+      const counterRes = await query('SELECT hits, style FROM web_counters WHERE user_id = $1', [user.id]);
+      const hits = counterRes.rows.length > 0 ? parseInt(counterRes.rows[0].hits, 10) : 0;
+      const counterStyle = counterRes.rows.length > 0 ? counterRes.rows[0].style : 'green_led';
+
+      // Aggregate likes
+      const totalLikes = postsRes.rows.reduce((sum: number, p: any) => sum + (p.likes || 0), 0);
+
+      res.render('user', {
+        title: `Neogram - Station @${user.handle || 'surfer'} [#${user.uin}]`,
+        activeView: 'profile',
+        profileUser: {
+          id: user.id,
+          handle: user.handle || user.email.split('@')[0],
+          uin: user.uin,
+          email: user.email,
+          siteUrl: user.site_url,
+          cleanRootSiteUrl,
+          galleryUrl,
+          avatarPath: user.avatar_path || '/icons/default-avatar.svg',
+          statusMessage: user.status_message || 'Surfing cyberspace',
+          isAway: !!user.is_away,
+          createdAt: user.created_at,
+          lastDeployedAt: user.last_deployed_at,
+          hits,
+          counterStyle,
+          totalLikes,
+        },
+        posts: postsRes.rows,
+      });
+    } catch (err) {
+      next(err);
+    }
   });
 
   app.get('/terms', (_req: Request, res: Response) => {

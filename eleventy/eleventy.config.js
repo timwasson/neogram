@@ -26,6 +26,27 @@ export default function (eleventyConfig) {
     }
   });
 
+  eleventyConfig.addFilter('formatDateTime', (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      return (
+        d.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        }) +
+        ', ' +
+        d.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      );
+    } catch {
+      return String(dateStr);
+    }
+  });
+
   eleventyConfig.addFilter('uppercase', (str) => {
     return str ? String(str).toUpperCase() : '';
   });

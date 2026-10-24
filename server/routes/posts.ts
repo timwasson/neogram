@@ -393,15 +393,30 @@ postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next
     }
     const ownerUser = ownerRes.rows[0];
 
+    // Resolve clean root site URL for commenter
+    let cleanCommenterSiteUrl: string | undefined = undefined;
+    if (user.site_url && user.site_url.trim()) {
+      try {
+        const parsed = new URL(user.site_url);
+        cleanCommenterSiteUrl = `${parsed.protocol}//${parsed.host}`;
+      } catch (_e) {
+        cleanCommenterSiteUrl = user.site_url.replace(/\/+$/, '');
+      }
+    } else if (user.handle) {
+      cleanCommenterSiteUrl = `https://${user.handle}.neocities.org`;
+    }
+
     // Append comment directly to self-hosted JSON on static host (Neocities / Nekoweb / local static bundle)
     const { appendPostComment } = await import('../services/staticStorage');
     const comment = await appendPostComment(
       ownerUser,
       post,
       {
+        id: user.id,
         handle: user.handle || user.email.split('@')[0],
         uin: user.uin || 0,
         avatar: user.avatarPath || undefined,
+        siteUrl: cleanCommenterSiteUrl,
       },
       cleanText
     );
@@ -424,11 +439,13 @@ postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next
       message: 'Comment committed to self-hosted ledger on static host.',
       comment: {
         id: comment.id,
+        userId: comment.userId,
         author: comment.author,
         uin: comment.uin,
         avatar: comment.avatar,
         text: comment.text,
         timestamp: comment.timestamp,
+        siteUrl: comment.siteUrl,
       },
     });
   } catch (err) {

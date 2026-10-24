@@ -68,7 +68,7 @@ eleventyComputed:
           </p>
         </div>
 
-        <!-- Reactions Bar -->
+        <!-- Reactions Bar (Like Action) -->
         <div class="neogram-detail__reactions">
           <button
             type="button"
@@ -77,22 +77,6 @@ eleventyComputed:
             class="neogram-btn"
           >
             <span id="likeBtnText">❤️ LIKE (<span id="likeCount">{{ post.likes or 0 }}</span>)</span>
-          </button>
-
-          <button
-            type="button"
-            onclick="handleRadicalPost()"
-            class="neogram-btn"
-          >
-            <span>⚡ RADICAL</span>
-          </button>
-
-          <button
-            type="button"
-            onclick="handleBookmarkPost()"
-            class="neogram-btn"
-          >
-            <span>💾 BOOKMARK</span>
           </button>
         </div>
 
@@ -114,10 +98,14 @@ eleventyComputed:
                 <div class="neogram-comments__item" data-comment-id="{{ comment.id }}">
                   <div class="neogram-comments__item-header">
                     <span class="neogram-comments__item-author">
-                      {{ comment.avatar or '💬' }} @{{ comment.author }}
+                      {{ comment.avatar or '💬' }}
+                      <a href="{{ site.apiUrl or 'https://neogram.club' }}/user/{{ comment.userId or comment.author }}" target="_blank" class="neogram-comments__author-link" title="View @{{ comment.author }} on Neogram">@{{ comment.author }}</a>
                       {% if comment.uin %}<span class="text-muted font-normal">[#{{ comment.uin }}]</span>{% endif %}
+                      {% if comment.siteUrl %}
+                        <a href="{{ comment.siteUrl }}" target="_blank" rel="noopener" class="neogram-comments__site-link" title="Visit {{ comment.author }}'s personal site ({{ comment.siteUrl }})">🌐</a>
+                      {% endif %}
                     </span>
-                    <span class="neogram-comments__item-time">{{ comment.timestamp | formatDate }}</span>
+                    <span class="neogram-comments__item-time">{{ comment.timestamp | formatDateTime }}</span>
                   </div>
                   <p class="neogram-comments__item-body">{{ comment.text }}</p>
                 </div>
@@ -317,14 +305,22 @@ eleventyComputed:
       });
   }
 
-  function handleRadicalPost() {
-    if (window.retroAudio) window.retroAudio.playSuccess();
-    alert('[:> RADICAL! Reaction broadcasted across the webring.]');
-  }
-
-  function handleBookmarkPost() {
-    if (window.retroAudio) window.retroAudio.playClick();
-    alert('[:> Photograph bookmarked to your station memory.]');
+  function formatCommentTime(isoStr) {
+    if (!isoStr) return 'Just now';
+    try {
+      var d = new Date(isoStr);
+      if (isNaN(d.getTime())) return 'Just now';
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      }) + ', ' + d.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (_e) {
+      return 'Just now';
+    }
   }
 
   // =========================================================================
@@ -363,31 +359,9 @@ eleventyComputed:
 
       if (data.ok && data.comment) {
         textInput.value = '';
-        var emptyNotice = document.getElementById('emptyCommentsNotice');
-        if (emptyNotice) emptyNotice.remove();
-
+        renderComments([data.comment]);
         var ledger = document.getElementById('commentsLedger');
-        var item = document.createElement('div');
-        item.className = 'neogram-comments__item';
-        item.setAttribute('data-comment-id', data.comment.id);
-
-        var safeAuthor = escapeHtml(data.comment.author || pass.handle);
-        var safeText = escapeHtml(data.comment.text || text);
-        var uinBadge = data.comment.uin ? ' <span class="text-muted font-normal">[#' + data.comment.uin + ']</span>' : '';
-
-        item.innerHTML =
-          '<div class="neogram-comments__item-header">' +
-          '  <span class="neogram-comments__item-author">' + (data.comment.avatar || '💬') + ' @' + safeAuthor + uinBadge + '</span>' +
-          '  <span class="neogram-comments__item-time">Just now</span>' +
-          '</div>' +
-          '<p class="neogram-comments__item-body">' + safeText + '</p>';
-
-        ledger.appendChild(item);
-        ledger.scrollTop = ledger.scrollHeight;
-
-        var countEl = document.getElementById('commentCount');
-        if (countEl) countEl.textContent = parseInt(countEl.textContent || '0', 10) + 1;
-
+        if (ledger) ledger.scrollTop = ledger.scrollHeight;
         if (window.retroAudio) window.retroAudio.playSuccess();
       } else {
         if (data.error && data.error.includes('Authentication')) {
@@ -409,52 +383,57 @@ eleventyComputed:
   // 4. SAME-ORIGIN COMMENTS HYDRATION ON PAGE LOAD
   // =========================================================================
 
+  function renderComments(comments) {
+    if (!Array.isArray(comments)) return;
+    var ledger = document.getElementById('commentsLedger');
+    if (!ledger) return;
+
+    var existingIds = {};
+    var domItems = ledger.querySelectorAll('[data-comment-id]');
+    for (var i = 0; i < domItems.length; i++) {
+      var id = domItems[i].getAttribute('data-comment-id');
+      if (id) existingIds[id] = true;
+    }
+
+    var addedCount = 0;
+    comments.forEach(function (c) {
+      if (!existingIds[c.id]) {
+        if (addedCount === 0) {
+          var emptyNotice = document.getElementById('emptyCommentsNotice');
+          if (emptyNotice) emptyNotice.remove();
+        }
+        var item = document.createElement('div');
+        item.className = 'neogram-comments__item';
+        item.setAttribute('data-comment-id', c.id);
+        var safeAuthor = escapeHtml(c.author);
+        var safeText = escapeHtml(c.text);
+        var uinBadge = c.uin ? ' <span class="text-muted font-normal">[#' + c.uin + ']</span>' : '';
+        var profileUrl = API_BASE + '/user/' + (c.userId || encodeURIComponent(c.author));
+        var siteLinkHtml = c.siteUrl
+          ? ' <a href="' + escapeHtml(c.siteUrl) + '" target="_blank" rel="noopener" class="neogram-comments__site-link" title="Visit personal website">🌐</a>'
+          : '';
+        var authorLinkHtml = '<a href="' + escapeHtml(profileUrl) + '" target="_blank" class="neogram-comments__author-link" title="View @' + safeAuthor + ' on Neogram">@' + safeAuthor + '</a>';
+
+        item.innerHTML =
+          '<div class="neogram-comments__item-header">' +
+          '  <span class="neogram-comments__item-author">' + (c.avatar || '💬') + ' ' + authorLinkHtml + uinBadge + siteLinkHtml + '</span>' +
+          '  <span class="neogram-comments__item-time">' + formatCommentTime(c.timestamp) + '</span>' +
+          '</div>' +
+          '<p class="neogram-comments__item-body">' + safeText + '</p>';
+
+        ledger.appendChild(item);
+        addedCount++;
+      }
+    });
+
+    if (addedCount > 0 || comments.length > 0) {
+      var countEl = document.getElementById('commentCount');
+      if (countEl) countEl.textContent = ledger.querySelectorAll('.neogram-comments__item').length;
+    }
+  }
+
   function hydrateCommentsFromSelfHostedJson() {
     if (!COMMENTS_JSON_URL) return;
-
-    function renderComments(comments) {
-      if (!Array.isArray(comments)) return;
-      var ledger = document.getElementById('commentsLedger');
-      if (!ledger) return;
-
-      var existingIds = {};
-      var domItems = ledger.querySelectorAll('[data-comment-id]');
-      for (var i = 0; i < domItems.length; i++) {
-        var id = domItems[i].getAttribute('data-comment-id');
-        if (id) existingIds[id] = true;
-      }
-
-      var addedCount = 0;
-      comments.forEach(function (c) {
-        if (!existingIds[c.id]) {
-          if (addedCount === 0) {
-            var emptyNotice = document.getElementById('emptyCommentsNotice');
-            if (emptyNotice) emptyNotice.remove();
-          }
-          var item = document.createElement('div');
-          item.className = 'neogram-comments__item';
-          item.setAttribute('data-comment-id', c.id);
-          var safeAuthor = escapeHtml(c.author);
-          var safeText = escapeHtml(c.text);
-          var uinBadge = c.uin ? ' <span class="text-muted font-normal">[#' + c.uin + ']</span>' : '';
-
-          item.innerHTML =
-            '<div class="neogram-comments__item-header">' +
-            '  <span class="neogram-comments__item-author">' + (c.avatar || '💬') + ' @' + safeAuthor + uinBadge + '</span>' +
-            '  <span class="neogram-comments__item-time">Synced</span>' +
-            '</div>' +
-            '<p class="neogram-comments__item-body">' + safeText + '</p>';
-
-          ledger.appendChild(item);
-          addedCount++;
-        }
-      });
-
-      if (addedCount > 0 || comments.length > 0) {
-        var countEl = document.getElementById('commentCount');
-        if (countEl) countEl.textContent = comments.length;
-      }
-    }
 
     fetch(COMMENTS_JSON_URL, { cache: 'no-cache' })
       .then(function (res) {
