@@ -1,8 +1,8 @@
 # AGENTS.md: Neogram Project Guide & Specification
 
 > **Notice for AI Agents:**
-> The existing frontend code in this repository was generated as a **look-and-feel prototype** in Google AI Studio (React 19 + Vite + Tailwind CSS). It establishes the retro aesthetic, CSS tokens, sound effects, BEM class conventions, and screen flows.
-> **Do not treat the existing React prototype as the final architecture.** The target production system is an API-first, decoupled monolith built with Node.js (Express), Nunjucks/server-rendered views, PostgreSQL, Sharp image processing, embeddable vanilla JS widgets, and a Manifest V3 browser extension.
+> The migration from the initial Google AI Studio React prototype to the target production system is **100% complete**. Neogram is an API-first, decoupled monolith built with Node.js (Express), Nunjucks server-rendered views, 11ty v3 static site generation, PostgreSQL, Sharp image processing, embeddable vanilla JS widgets, and a Manifest V3 browser extension.
+> **All styling is strictly Pure Vanilla CSS / Sass with BEM classes. Tailwind CSS is strictly prohibited.**
 
 ---
 
@@ -12,9 +12,12 @@
 
 It provides:
 1. **Mobile-to-Static Publishing Engine (PWA):** Snap or upload a photo, apply retro filters/shaders, write a caption, and publish it directly to personal static sites (via Neocities API, GitHub Pages commits, or SFTP).
-2. **Centralized Social Layer (Embeddable Widgets):** Embeddable async JS/iframes that inject styled, interactive feeds, comment ledgers, and like/reaction buttons onto static sites.
-3. **Legacy Retro Widgets:** Public guestbook (with moderation) and dynamic web hit counter images (LED/Nixie/Odometer/VFD).
+2. **Centralized & Self-Hosted Social Layer:** Embeddable async JS/iframes that inject styled feeds, guestbook ledgers, and zero-retention self-hosted comment files onto static sites with 1-click Cyber-Pass authentication.
+3. **Legacy Retro Widgets:** Dynamic web hit counter images (LED/Nixie/Odometer/VFD) and guestbook ledgers permanently anchored to immutable numeric node UINs.
 4. **Retro Chat Browser Extension:** A Chrome/Firefox Manifest V3 sidebar/popup emulating classic 90s AIM/ICQ mechanics with buddy lists, DMs, sound chimes, and status messages.
+5. **Cyberspace Friends Network & Static Follow Grid:** Simple "Friends" engine with reciprocal 1-click adding, dedicated workstation Friends console (`/friends`), static `/friends/index.html` photo grid on Neocities, and concurrency-safe cascading FIFO rebuilds when friends broadcast new photographs.
+6. **Cyberspace Station Directory & Presence Hub (`/directory`):** Public station white-pages categorizing registered nodes by live presence (Active 🟢, Away 🟡, Inactive ⚪) with deterministic alphabetical sorting and instant search filtering.
+7. **Interactive Cyberspace Documentation Center (`/docs`):** Complete user manuals, setup guides, and live session-interpolated embed snippets.
 
 ---
 
@@ -144,15 +147,15 @@ CREATE INDEX idx_chat_queue_expires ON ephemeral_chat_queue(expires_at);
 #### 1. Static Gallery BEM Hierarchy (`eleventy/src/`)
 | Block | Elements / Modifiers | Description |
 |---|---|---|
-| **`.neogram-site`** | `__taskbar`, `__branding`, `__logo`, `__title`, `__tag`, `__nav`, `__main`, `__footer`, `__footer-inner`, `__footer-info`, `__footer-host`, `__footer-url`, `__footer-sub`, `__footer-badges` | Overall site shell layout (`base.njk`) |
-| **`.neogram-banner`** | `__header`, `__title`, `__status`, `__body`, `__info`, `__desc`, `__node`, `__actions` | Header info window card on gallery index |
-| **`.neogram-grid`** | *(Container)* | Multi-column responsive CSS grid for photos |
-| **`.neogram-card`** | `__header`, `__author`, `__shader`, `__media`, `__image`, `__overlay`, `__overlay-btn`, `__body`, `__content`, `__meta`, `__location`, `__date`, `__caption`, `__tags`, `__footer`, `__likes` | Individual photo window card (`index.njk`) |
+| **`.neogram-site`** | `__taskbar`, `__branding`, `__logo`, `__title`, `__tag`, `__nav`, `__main`, `__footer`, `__footer-inner`, `__footer-info`, `__footer-host`, `__footer-url`, `__footer-sub`, `__footer-badges` | Overall site shell layout (`base.njk`) with nav toggles between `[🏠 Gallery Grid]` and `[👥 Friends Grid]` |
+| **`.neogram-banner`** | `__header`, `__title`, `__status`, `__body`, `__info`, `__desc`, `__node`, `__actions` | Header info window card on gallery index & static friends stream; hosts `#staticFriendBtn` |
+| **`.neogram-grid`** | *(Container)* | Multi-column responsive CSS grid for photos (`index.html` and `friends/index.html`) |
+| **`.neogram-card`** | `__header`, `__author`, `__shader`, `__media`, `__image`, `__overlay`, `__overlay-btn`, `__body`, `__content`, `__meta`, `__location`, `__date`, `__caption`, `__tags`, `__footer`, `__likes` | Individual photo window card (`index.njk` & `friends.njk`) |
 | **`.neogram-detail`** | `__header`, `__title`, `__status`, `__status-shader`, `__status-sub`, `__body`, `__layout`, `__media-col`, `__viewport`, `__image`, `__tags`, `__info-col`, `__author-box`, `__author-meta`, `__author-handle`, `__author-date`, `__caption`, `__reactions` | Detail photo page (`photos/<id>/index.html`) |
 | **`.neogram-comments`** | `__header`, `__title`, `__status`, `__ledger`, `__empty`, `__item`, `__item-header`, `__item-author`, `__item-time`, `__item-body`, `__form`, `__form-row`, `__input`, `__submit` | Live comments ledger & form (`photo.njk`) |
 | **`.neogram-btn`** | `--sm`, `--lg`, `--primary`, `--yellow`, `--accent`, `--cyan`, `--success`, `--green`, `--danger`, `--red` | Reusable retro push button (`(0, 1, 0)` specificity) |
 | **`.neogram-badge`** | `--cyan`, `--magenta`, `--amber`, `--green` | 88x31 / micro status pills |
-| **`.neogram-empty`** | `__icon`, `__title`, `__desc`, `__action` | Empty photo stream state |
+| **`.neogram-empty`** | `__icon`, `__title`, `__desc`, `__action` | Empty photo stream state (used in both personal gallery and friends stream) |
 
 #### 2. Embeddable Widgets BEM Contract (`embed/`)
 - `.neogram-feed`: Container for the entire feed
@@ -408,19 +411,69 @@ CREATE INDEX idx_chat_queue_expires ON ephemeral_chat_queue(expires_at);
   - Reciprocal "Add Friend" action on station cyber-profiles (`/user/:identifier`) and static gallery index banners (`index.html`).
 - **Neogram Workstation Friends Console (`views/friends.njk` & `/friends`):**
   - Authenticated top navigation button `[🤝 Friends]` linking to `/friends`.
-  - Friends Roster (`FRIENDS_ROSTER.SYS`): Cards displaying followed friends with avatar, active/away/offline status LED, calls-sign `@handle`, node `#uin`, bio broadcast, root personal website link (`🌐`), and `[✕ Unfriend]` action.
+  - Friends Roster (`FRIENDS_ROSTER.SYS`): Cards displaying followed friends with avatar, active/away/offline status LED, call-sign `@handle`, node `#uin`, bio broadcast, root personal website link (`🌐`), and `[✕ Unfriend]` action.
   - Broadcast Feed (`BROADCAST_FEED.EXE`): Reverse-chronological photo stream of photographs published by followed friends, complete with CRT scanlines, filter shaders, tags, likes, and station links.
+- **Friends API Endpoints & State Contracts:**
+  - `POST /api/users/:identifier/follow`: Authenticated. Looks up target by handle, UIN, or UUID. Inserts record into `follows`. Enqueues follower static rebuild (`syncFollowerStaticSite`) into `buildQueue`. Dispatches real-time WebSocket buddy list refresh (`refreshUserBuddyList`) to both parties. Returns `{ ok: true, isFriend: true, message: "Station added to Friends network" }`.
+  - `DELETE /api/users/:identifier/follow`: Authenticated. Removes `follows` record, queues follower static rebuild, refreshes buddy lists, and returns `{ ok: true, isFriend: false, message: "Station unfriended" }`.
+  - `GET /api/users/:identifier/friend-status`: Dual-mode (authenticated or public). Evaluates `isFriend` and `isSelf` for the calling session, plus aggregate `followersCount` and `followingCount`.
+  - `GET /api/friends`: Authenticated JSON endpoint returning followed friends roster and their chronological posts `{ ok: true, friends, posts }`.
+  - `GET /friends`: Authenticated workstation UI rendering `views/friends.njk`.
 - **Static Friends Gallery Grid (`eleventy/src/friends.njk` -> `/friends/index.html`):**
   - Generated inside the user's isolated static directory (`dist/static-galleries/<userId>/friends/index.html`).
   - Adheres strictly to the safe subdirectory invariant (e.g. `https://<user>.neocities.org/neogram/friends/`).
   - Top navigation bar on static sites provides 1-click switching between `[🏠 Gallery Grid]` and `[👥 Friends Grid]`.
-  - Resolves friend image URLs to fully qualified absolute paths so remote static hosts render images without missing local files.
+  - Dynamic template data: `eleventy/src/_data/friendsPosts.json` is synthesized per-tenant during `executeStaticBuild()`.
+  - **Cross-Domain Image Resolution Invariant:** In `executeStaticBuild()`, relative media paths (`/uploads/images/...` and `/uploads/thumbs/...`) of friends are dynamically resolved to absolute remote URLs (`https://<friend>.neocities.org/<deploy_path>/uploads/...` or `config.appUrl`), guaranteeing that third-party static host visitors never encounter broken 404 images.
 - **Cascading Rebuild Queue on Follow, Unfollow, and Publication:**
   - When user A follows or unfollows user B, user A's static site is queued for rebuild and deployed to Neocities to update `/friends/index.html`.
-  - When friend B broadcasts or deletes a photograph, all users following B (`SELECT follower_id FROM follows WHERE following_id = $1`) are sequentially enqueued in `buildQueue` to rebuild and deploy their static galleries one at a time without CPU or rate-limit overloading.
+  - When friend B broadcasts (`POST /api/posts`) or deletes (`DELETE /api/posts/:id`) a photograph, `triggerFollowersCascade(authorId)` queries all active followers (`SELECT follower_id FROM follows WHERE following_id = $1`) and sequentially enqueues each follower into `buildQueue` (`CascadeFollower:<followerId>`).
+  - **One-At-A-Time Concurrency Safety:** Because all jobs pass through the single-flight in-memory FIFO `buildQueue`, multi-user follower rebuilds run strictly sequentially. This prevents race conditions on shared template data files (`friendsPosts.json`, `posts.json`, `site.json`) and eliminates CPU exhaustion or Neocities API rate-limit spikes.
 - **NIM (Neogram Instant Messenger) Prioritization:**
   - NIM buddy list categorizes confirmed friends at the top under `🤝 Friends (🟢 X Online / ⚪ Y Offline)`, followed by `🌐 Other Stations`.
   - Real-time buddy list refresh dispatched over WebSockets upon follow/unfollow events.
+
+### 4.27 Consolidated Route & REST API Architecture Matrix
+
+The following matrix documents all server routes, auth requirements, and functional behaviors in the Neogram monolith:
+
+| Domain | Method | Route | Auth / Headers | Purpose / Response |
+|---|---|---|---|---|
+| **Workstation UI** | `GET` | `/` | Cookie (Optional) | Workstation dashboard (Studio, Archive, Config, Embeds). If logged out, displays cyber login hero. |
+| **Workstation UI** | `GET` | `/friends` | Session Cookie | Authenticated Friends console: friends roster (`FRIENDS_ROSTER.SYS`) and friends photo stream (`BROADCAST_FEED.EXE`). |
+| **Workstation UI** | `GET` | `/directory` | None (Public) | Cyberspace white-pages directory (`views/directory.njk`) with Active, Away, and Inactive categorization. |
+| **Workstation UI** | `GET` | `/user/:identifier` | None (Public) | Public station profile (`views/user.njk`) resolving UUID, `@handle`, or `#uin` with bio, hit counter, photo stream, and Add Friend toggle. |
+| **Workstation UI** | `GET` | `/docs` / `/docs/:topic` | None (Public) | Cyberspace Documentation Center & Interactive Embed Manual (`views/docs.njk`) with session credential interpolation. |
+| **Workstation UI** | `GET` | `/auth/connect` | Session Cookie | 1-click Cyber-Pass handshake popup for static site visitor authentication (`window.postMessage`). |
+| **Workstation UI** | `GET` | `/terms`, `/privacy` | None (Public) | TCPA/CTIA carrier compliance disclosures and mobile information non-disclosure legal documents. |
+| **Workstation UI** | `GET` | `/offline.html` | None (Public) | Retro 90s offline fallback shell with 300-baud modem telemetry. |
+| **Authentication** | `POST` | `/api/auth/request-otp` | IP Rate Limited | Generates 6-digit numeric OTP; dispatches via Resend (email), Twilio (SMS), or console fallback (dev). Max 4 req / 15 min. |
+| **Authentication** | `POST` | `/api/auth/verify-otp` | IP Rate Limited | Verifies OTP, auto-provisions station UIN if new, sets `neogram_session` cookie, and returns `{ success, token, user }`. |
+| **Authentication** | `GET` | `/api/auth/magic-login` | Query `?token=` | One-click magic URL authentication link. Sets cookie and redirects to `/`. |
+| **Authentication** | `GET` | `/api/auth/logout` | None | Clears `neogram_session` cookie and redirects to `/`. |
+| **Posts & Media** | `POST` | `/api/posts` | Bearer / Cookie | 25MB Multer upload. Sharp processes WebP full (1200px) & thumb (400px). Enqueues 11ty static build and triggers cascading follower rebuilds. |
+| **Posts & Media** | `PUT` | `/api/posts/:id` | Bearer / Cookie | Updates caption, mood, webring, location, and filter. Triggers 11ty rebuild and auto-deploy. |
+| **Posts & Media** | `DELETE` | `/api/posts/:id` | Bearer / Cookie | Purges post from PostgreSQL, deletes remote image on Neocities (`deploy_path` safe), triggers cascading follower rebuilds. |
+| **Posts & Media** | `POST` | `/api/build-static` | Bearer / Cookie | Manual trigger for 11ty compilation and live Neocities deployment via `buildQueue`. |
+| **Comments & Likes** | `POST` | `/api/posts/:id/comments` | Cyber-Pass JWT | Stateless comment submission. Validates JWT, acquires file lock (`withFileLock`), appends to remote `<fileId>.comments.json`, pushes to host. |
+| **Comments & Likes** | `GET` | `/api/posts/:id/comments` | None (CORS: *) | Reads remote comment JSON ledger for given photo. |
+| **Comments & Likes** | `DELETE` | `/api/posts/:postId/comments/:commentId` | Post Owner | Purges comment from remote self-hosted JSON ledger and saves updated file. |
+| **Comments & Likes** | `POST` | `/api/posts/:id/like` | None (CORS: *) | Increments post like counter in PostgreSQL. Deduplicated client-side. |
+| **Friends Network** | `POST` | `/api/users/:identifier/follow` | Bearer / Cookie | Adds target user as Friend. Enqueues follower static rebuild to update `/friends/index.html` and pushes real-time NIM refresh. |
+| **Friends Network** | `DELETE` | `/api/users/:identifier/follow` | Bearer / Cookie | Unfriends target user. Enqueues follower static rebuild and pushes real-time NIM refresh. |
+| **Friends Network** | `GET` | `/api/users/:identifier/friend-status` | None (CORS: *) | Checks `isFriend` and `isSelf` state for active caller, plus `followersCount` and `followingCount`. |
+| **Friends Network** | `GET` | `/api/friends` | Bearer / Cookie | Returns JSON list of followed friends and chronological photos stream. |
+| **Directory & Profiles**| `GET` | `/api/directory`, `/api/users` | None (CORS: *) | Headless directory JSON categorized by presence: Active (🟢), Away (🟡), Inactive (⚪). Alphabetical sequence by handle. |
+| **Settings & Profile** | `GET` | `/api/settings` | Bearer / Cookie | Returns station config: `handle`, `uin`, `siteUrl`, `deployPath`, `autoDeploy`, `hasApiKey`, `sitename`, `remoteViews`, `customCssUrl`. |
+| **Settings & Profile** | `PUT` | `/api/settings` | Bearer / Cookie | Updates site URL, deployment subfolder (`deploy_path`), Neocities API key (AES-256-GCM encrypted), auto-deploy, custom CSS URL. |
+| **Settings & Profile** | `PUT` | `/api/settings/profile` | Bearer / Cookie | Updates handle and processes custom 128x128 WebP avatar via Sharp `.rotate().resize(128, 128)`. |
+| **Widgets & Embeds** | `GET` | `/counter/:identifier.svg` | None (CORS: *) | Generates dynamic SVG web hit counter (Green LED, Red Nixie, Odometer, VFD). Resolves by `@handle` or `#uin`. |
+| **Widgets & Embeds** | `GET` | `/api/users/:handle/feed.json` | None (CORS: *) | JSONFeed 1.1 compliant feed of creator's published photos. |
+| **Widgets & Embeds** | `GET` | `/api/guestbook/:handle` | None (CORS: *) | Reads remote `data/guestbook.json` ledger. |
+| **Widgets & Embeds** | `POST` | `/api/guestbook/:handle` | IP Rate Limited | Stateless guestbook sign. Appends signature to remote `data/guestbook.json` with HTML escaping. |
+| **Widgets & Embeds** | `GET` | `/embed/guestbook/:handle` | None (Frame: *) | Retro iframe guestbook widget with visitor signature form and moderated entry list. |
+| **Widgets & Embeds** | `GET` | `/embed/feed/:handle` | None (Frame: *) | Retro iframe photo stream embed card. |
+| **Real-Time WebSockets**| `WS` | `/ws/chat` | JWT Cookie / Param | In-memory NIM chat router. CSWSH origin validation, presence tracking, store-and-forward queue, zero database retention. |
 
 ---
 
@@ -576,8 +629,8 @@ npm run extension:package
 # Run end-to-end integration assertions against the live backend
 npm test
 ```
-- Executes 50 automated assertions in ~2.3s.
-- Verifies: OTP request, auto-provisioning, rate limiting, JWT cookies, profile identity, Sharp WebP compression, isolated 11ty static build, SVG counters, self-hosted comments & Cyber-Pass handshake, JSONFeed 1.1, and safe teardown.
+- Executes 89 automated assertions across 15 telemetry suites in ~2.9s.
+- Verifies: OTP request, auto-provisioning, sliding-window rate limiting, JWT cookies, cyber identity/avatars, Sharp WebP compression & thumbnails, multi-tenant isolated 11ty static compilation, SVG hit counters (handle and UIN), self-hosted comments & Cyber-Pass SSO, JSONFeed 1.1 headless feeds, Cyberspace User Directory & presence categorization (Active, Away, Inactive), Cyberspace Documentation & embed manual, Cyberspace Friends Network & static follow grid lifecycle, and safe post/user teardown.
 
 ### 7.5 Database Migrations & Seeding
 Migrations run automatically on server start via `server/db/migrate.ts`.
