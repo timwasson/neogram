@@ -17,6 +17,7 @@
 - **User Directory & Presence:** Cyberspace white-pages directory (`/directory` & `/api/directory`) with presence categorization (Active, Away, Inactive), search filtering, and profile linking
 - **Documentation Center:** Complete user guides and interactive embed manual (`/docs` & `docs/`) with step-by-step setup guides, sample embed codes for hit counters and guestbooks, and publishing pipeline deep-dives
 - **Instant Messenger:** WebSockets (`/ws/chat`) with ephemeral offline queue, client-side retention, categorized online/offline Friends and Cyberspace Stations buddy list, and Manifest V3 browser extension
+- **Cyber Notification Dispatcher:** Real-time multi-channel alerts (WebSockets, topnav notification drawer, 8-bit Web Audio chimes, and native desktop/PWA push) for DMs, follows, comments, replies, guestbook entries, likes, friend broadcasts, and deploy status with a user settings dashboard
 
 ---
 
@@ -31,6 +32,7 @@
 7. **Cyberspace Station Directory & Presence Categorization (`/directory`):** Public station white-pages listing all registered nodes in hierarchical carrier order: Active transmitters first (🟢), then "Away" stations (🟡), then Inactive nodes (⚪). Each sub-category is strictly ordered alphabetically by handle, displaying handle, numeric UID (`#uin`), small thumbnail, and link to profile. Real-time client-side instant filtering enables rapid searching by `@handle` or `#UID`, with instant access from the top navigation bar and user account menu.
 8. **Cyberspace Documentation Center & Interactive Manual (`/docs`):** Complete self-hosted guides and embed manual covering Neocities setup, dynamic SVG hit counters, guestbook ledgers, Sharp processing pipeline, and BEM theming. Interpolates active creator credentials and immutable numeric UINs directly into embed snippets for 1-click deployment.
 9. **Friends Network & Static Follow Grid (`/friends` & static `/friends/`):** Connect with fellow creators using simple "Friends". View a creator's profile or static site banner to add them as a friend. Features a dedicated workstation `/friends` page to browse friends' photo feeds and manage connections, a static `/friends/` photo grid on your personal Neocities site, NIM buddy list prioritization (Friends at the top), and automatic cascading FIFO background rebuilds across all follower static sites whenever a friend broadcasts a new photograph.
+10. **Configurable Cyber Notifications & Zero-Retention DM Alerts:** Complete user preferences dashboard (`[:> NOTIFICATION_DISPATCHER.CFG]`) in Workstation Settings to customize notifications across 8 event categories, synthesized 8-bit audio chimes, and browser desktop/PWA push. NIM direct message alerts strictly record sender handle metadata ("@handle sent you a transmission") without message text, preserving zero-retention chat privacy.
 
 ---
 
@@ -70,8 +72,8 @@ npm run dev
 ```bash
 npm test
 ```
-- Runs 75 automated end-to-end integration tests in ~2.5 seconds.
-- Validates OTP dispatch, sliding rate limiting, session auth, Sharp WebP compression, isolated 11ty static builds, dynamic SVG hit counters, self-hosted comments & Cyber-Pass handshake, JSONFeed 1.1, Cyberspace User Directory presence categorization & ordering, Cyberspace Documentation Center & embed snippets, and safe post purge.
+- Runs 132 automated end-to-end integration tests in ~2.5 seconds.
+- Validates OTP dispatch, sliding rate limiting, session auth, Sharp WebP compression, isolated 11ty static builds, dynamic SVG hit counters, self-hosted comments & Cyber-Pass handshake, JSONFeed 1.1, Cyberspace User Directory presence categorization & ordering, Cyberspace Documentation Center & embed snippets, Cyberspace Friends follow grid & cascading rebuilds, notification preferences & suppression, real-time WebSocket dispatches, and safe post purge.
 
 ---
 

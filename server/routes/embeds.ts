@@ -322,6 +322,21 @@ embedsRouter.post('/api/guestbook/:identifier', async (req: Request, res: Respon
       ]
     ).catch(() => {});
 
+    // Dispatch in-app notification to host if signer is another station
+    if (visitorUser.id !== hostUser.id) {
+      import('../services/notificationService').then((m) => {
+        m.dispatchNotification({
+          userId: hostUser.id,
+          actorId: visitorUser.id,
+          type: 'guestbook',
+          title: `@${visitorUser.handle || 'visitor'} signed your guestbook!`,
+          body: message.trim().slice(0, 150),
+          linkUrl: `/docs?topic=guestbook`,
+          icon: '📖',
+        }).catch(() => {});
+      }).catch(() => {});
+    }
+
     res.status(201).json({
       ok: true,
       message: 'Signature committed to self-hosted ledger on static host!',
@@ -653,6 +668,19 @@ embedsRouter.post('/api/users/:identifier/follow', async (req: Request, res: Res
       const { refreshUserBuddyList } = await import('../services/chatSocket');
       await refreshUserBuddyList(currentUser.id);
     } catch (_wsErr) {}
+
+    // 3. Dispatch follow notification to target station
+    import('../services/notificationService').then((m) => {
+      m.dispatchNotification({
+        userId: targetUser.id,
+        actorId: currentUser.id,
+        type: 'follow',
+        title: `@${currentUser.handle || 'user'} followed your station!`,
+        body: 'Added your station to their Cyberspace Friends network.',
+        linkUrl: `/user/@${currentUser.handle || currentUser.id}`,
+        icon: '🤝',
+      }).catch(() => {});
+    }).catch(() => {});
 
     res.json({
       ok: true,

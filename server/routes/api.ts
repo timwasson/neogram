@@ -4,6 +4,7 @@ import { authRouter } from './auth';
 import { postsRouter } from './posts';
 import { settingsRouter } from './settings';
 import { directoryRouter } from './directory';
+import { notificationsRouter } from './notifications';
 import { query } from '../db';
 
 export const apiRouter = Router();
@@ -13,6 +14,7 @@ apiRouter.use('/auth', authRouter);
 apiRouter.use(postsRouter);
 apiRouter.use(settingsRouter);
 apiRouter.use(directoryRouter);
+apiRouter.use(notificationsRouter);
 
 // Temporary test route to verify database queries execute properly
 apiRouter.get('/stats', async (_req: Request, res: Response, next) => {

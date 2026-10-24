@@ -196,6 +196,12 @@
             this.showTyping(packet.from);
           }
           break;
+
+        case 'notification':
+          if (window.NeogramNotifications && typeof window.NeogramNotifications.handleRealtimeNotification === 'function') {
+            window.NeogramNotifications.handleRealtimeNotification(packet);
+          }
+          break;
       }
     },
 

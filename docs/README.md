@@ -52,6 +52,13 @@ Explore the topic guides below:
    - Static photo grid compilation at `/friends/index.html` with cross-domain asset resolution
    - Concurrency-safe cascading FIFO rebuild queue when friends broadcast new photographs
 
+7. **[Cyber Notification Dispatcher & Alert Protocols](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/notifications.md)**
+   - Configurable event matrix across 8 retro-social triggers
+   - User preferences dashboard (`[:> NOTIFICATION_DISPATCHER.CFG]`) in Workstation Settings
+   - 8-bit Web Audio alert chimes & native desktop/PWA push permission request
+   - Real-time WebSocket delivery & offline persistent inbox
+   - Zero-retention chat privacy invariant for NIM direct messages
+
 ---
 
 ## Architectural Principles

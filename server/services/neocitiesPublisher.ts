@@ -204,6 +204,18 @@ export async function deployToNeocities(userId: string): Promise<DeployResult> {
     `[:> NEOCITIES DEPLOY SUCCESS] Uploaded ${filesToUpload.length} files in ${durationMs}ms: ${data.message}`
   );
 
+  // Dispatch deploy notification to user
+  import('./notificationService').then((m) => {
+    m.dispatchNotification({
+      userId: user.id,
+      type: 'deploy',
+      title: '🚀 Neocities Deployment Complete!',
+      body: `Synchronized ${filesToUpload.length} files to your static host (${durationMs}ms).`,
+      linkUrl: deployedSiteUrl,
+      icon: '🚀',
+    }).catch(() => {});
+  }).catch(() => {});
+
   return {
     ok: true,
     message: data.message || 'Files successfully uploaded to Neocities.',

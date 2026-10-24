@@ -113,6 +113,75 @@
         </button>
 
         {% if currentUser %}
+          <!-- Retro Notification Bell Dropdown -->
+          <div class="retro-notify-menu" id="retroNotifyMenu">
+            <button
+              type="button"
+              id="notifyMenuBtn"
+              class="pixel-btn pixel-btn--sm flex items-center gap-1 font-bold text-xs"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-controls="notifyDropdownMenu"
+              title="Station Notifications (:> NOTIFICATION_CENTER.SYS)"
+            >
+              <span>🔔</span>
+              <span id="navNotifyBadge" class="pixel-badge pixel-badge--crimson text-3xs hidden">0</span>
+            </button>
+
+            <!-- Notification Center Dropdown Window -->
+            <div
+              id="notifyDropdownMenu"
+              class="retro-notify-dropdown pixel-box hidden"
+              role="region"
+              aria-label="Station notifications inbox"
+            >
+              <!-- Window Header -->
+              <div class="window-header flex items-center justify-between text-xs py-1 px-2.5">
+                <div class="flex items-center gap-1.5">
+                  <span>🔔</span>
+                  <span class="font-bold uppercase tracking-wider text-xs">NOTIFY_CENTER.SYS</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    class="text-3xs text-prompt hover:underline font-mono"
+                    onclick="handleMarkAllNotificationsRead(event)"
+                    title="Mark all notifications as read"
+                  >
+                    [✓ ALL READ]
+                  </button>
+                  <button
+                    type="button"
+                    class="text-3xs text-muted hover:text-white font-mono"
+                    onclick="toggleNotificationCenter(false)"
+                    title="Close"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <!-- Notifications List Container -->
+              <div id="notifyDropdownList" class="p-2 flex flex-col gap-1.5 max-h-80 overflow-y-auto text-xs font-mono">
+                <div class="text-xs text-muted text-center p-3 font-mono">
+                  Checking cyberspace transmissions...
+                </div>
+              </div>
+
+              <!-- Notification Center Footer -->
+              <div class="p-2 border-t border-main bg-black flex items-center justify-between text-3xs font-mono">
+                <a
+                  href="/#settings"
+                  onclick="if(typeof switchDashboardTab==='function'){switchDashboardTab('settings', event);} toggleNotificationCenter(false);"
+                  class="text-mac hover:underline font-bold"
+                >
+                  ⚙️ Alert Settings :&gt;
+                </a>
+                <span class="text-muted">CARRIER: LIVE</span>
+              </div>
+            </div>
+          </div>
+
           <!-- User Station Account Menu Dropdown -->
           <div class="retro-user-menu" id="retroUserMenu">
             <button
@@ -540,6 +609,8 @@
 
       <!-- AIM Messenger Client Engine -->
       <script src="/js/aimMessenger.js"></script>
+      <!-- Notifications Client Engine -->
+      <script src="/js/notifications.js"></script>
       <script>
         document.addEventListener('DOMContentLoaded', function() {
           if (window.AimClient) {

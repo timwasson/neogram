@@ -780,6 +780,143 @@
                   </div>
                 </form>
               </div>
+
+              <!-- Station Notification Protocols Card -->
+              <div class="retro-card p-4 m-0">
+                <div class="window-header mb-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span>🔔</span>
+                    <span class="font-bold">[:&gt; NOTIFICATION_DISPATCHER.CFG - Cyber Alert Protocols]</span>
+                  </div>
+                  <span class="text-xs font-mono text-prompt font-bold">[REAL-TIME]</span>
+                </div>
+
+                <div id="notifySettingsAlert" class="retro-alert hidden mb-3">
+                  <span id="notifySettingsAlertTag" class="retro-alert__tag"></span>
+                  <span id="notifySettingsAlertMsg"></span>
+                </div>
+
+                <form id="notifySettingsForm" onsubmit="handleSaveNotificationSettings(event)" class="space-y-4">
+                  <p class="text-xs text-muted mb-2">
+                    Configure which Cyberspace transmissions trigger live workstation alerts, 8-bit sound chimes, and persistent inbox notifications.
+                  </p>
+
+                  <!-- Section 1: Transmissions & Social Events -->
+                  <div class="border-2 border-main p-3 bg-card space-y-2.5">
+                    <span class="text-xs font-bold text-prompt block border-b border-main pb-1 uppercase tracking-wider">
+                      📡 Transmissions &amp; Social Events:
+                    </span>
+
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" id="notifyNimInput" class="mt-1" checked />
+                      <div class="text-xs">
+                        <span class="font-bold text-white block">🗨️ Instant Messages (NIM)</span>
+                        <span class="text-muted block">Alert when another station sends you an instant message via NIM.</span>
+                      </div>
+                    </label>
+
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" id="notifyFollowInput" class="mt-1" checked />
+                      <div class="text-xs">
+                        <span class="font-bold text-white block">🤝 Cyberspace Friends &amp; Followers</span>
+                        <span class="text-muted block">Alert when another station follows your node and adds you to their Friends list.</span>
+                      </div>
+                    </label>
+
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" id="notifyCommentOwnInput" class="mt-1" checked />
+                      <div class="text-xs">
+                        <span class="font-bold text-white block">💬 Comments on Your Photos</span>
+                        <span class="text-muted block">Alert when a visitor signs the comment ledger on one of your photos.</span>
+                      </div>
+                    </label>
+
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" id="notifyCommentThreadInput" class="mt-1" checked />
+                      <div class="text-xs">
+                        <span class="font-bold text-white block">🧵 Comment Thread Replies</span>
+                        <span class="text-muted block">Alert when someone leaves a new comment on a photo thread you participated in.</span>
+                      </div>
+                    </label>
+
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" id="notifyGuestbookInput" class="mt-1" checked />
+                      <div class="text-xs">
+                        <span class="font-bold text-white block">📖 Guestbook Signatures</span>
+                        <span class="text-muted block">Alert when a visitor signs your public guestbook ledger on your static site.</span>
+                      </div>
+                    </label>
+
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" id="notifyLikeInput" class="mt-1" checked />
+                      <div class="text-xs">
+                        <span class="font-bold text-white block">⚡ Radical Likes &amp; Reactions</span>
+                        <span class="text-muted block">Alert when someone clicks Radical (⚡) on your photo transmissions.</span>
+                      </div>
+                    </label>
+
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" id="notifyFriendPostInput" class="mt-1" checked />
+                      <div class="text-xs">
+                        <span class="font-bold text-white block">📸 Friend Photo Broadcasts</span>
+                        <span class="text-muted block">Alert when a friend you follow uploads a new photo transmission.</span>
+                      </div>
+                    </label>
+
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" id="notifyDeployInput" class="mt-1" checked />
+                      <div class="text-xs">
+                        <span class="font-bold text-white block">🚀 Neocities Deploy Telemetry</span>
+                        <span class="text-muted block">Alert when your 11ty static compilation and remote upload finishes or fails.</span>
+                      </div>
+                    </label>
+                  </div>
+
+                  <!-- Section 2: Audio & Device Channels -->
+                  <div class="border-2 border-main p-3 bg-card space-y-2.5">
+                    <span class="text-xs font-bold text-mac block border-b border-main pb-1 uppercase tracking-wider">
+                      🔊 Delivery Hardware &amp; Channels:
+                    </span>
+
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" id="notifySoundInput" class="mt-1" checked />
+                      <div class="text-xs">
+                        <span class="font-bold text-white block">🔊 8-Bit Synthesized Sound Chimes</span>
+                        <span class="text-muted block">Play retro Web Audio alert beeps when transmissions arrive in real-time.</span>
+                      </div>
+                    </label>
+
+                    <div class="flex items-start justify-between gap-2">
+                      <label class="flex items-start gap-2 cursor-pointer flex-1">
+                        <input type="checkbox" id="notifyDesktopPushInput" class="mt-1" />
+                        <div class="text-xs">
+                          <span class="font-bold text-white block">🖥️ Desktop &amp; Device Push Notifications</span>
+                          <span class="text-muted block">Show system notification banners via Service Worker when window is backgrounded.</span>
+                        </div>
+                      </label>
+                      <button
+                        type="button"
+                        id="requestPushPermissionBtn"
+                        class="pixel-btn pixel-btn--sm pixel-btn--yellow text-3xs font-bold shrink-0 self-center"
+                        onclick="requestBrowserPushPermission()"
+                      >
+                        <span>PERMIT BROWSER</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Action Button -->
+                  <div class="pt-1">
+                    <button
+                      type="submit"
+                      id="saveNotifySettingsBtn"
+                      class="pixel-btn pixel-btn--green font-bold text-xs w-full py-2"
+                    >
+                      <span>💾 SAVE NOTIFICATION PROTOCOLS :&gt;</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
 
             <!-- RIGHT COLUMN: Live Neocities Node Stats & Deploy Terminal -->
@@ -1633,6 +1770,7 @@
       if (settingsBtn) settingsBtn.classList.add('pixel-btn--yellow');
       if (mobileSettingsBtn) mobileSettingsBtn.classList.add('is-active');
       if (typeof loadSettings === 'function') loadSettings();
+      if (typeof loadNotificationSettings === 'function') loadNotificationSettings();
     } else if (tab === 'embeds') {
       if (embedsSec) embedsSec.classList.remove('hidden');
       if (embedsBtn) embedsBtn.classList.add('pixel-btn--yellow');
@@ -2361,6 +2499,144 @@
       deployBtn.disabled = false;
       deployBtn.textContent = '🚀 DEPLOY TO NEOCITIES NOW :>';
     }
+  }
+
+  // -------------------------------------------------------------
+  // STATION NOTIFICATION PROTOCOLS CONTROLLER
+  // -------------------------------------------------------------
+  async function loadNotificationSettings() {
+    try {
+      var res = await fetch('/api/settings/notifications');
+      var data = await res.json();
+      if (!res.ok || !data.ok || !data.preferences) return;
+
+      var p = data.preferences;
+      var nimInput = document.getElementById('notifyNimInput');
+      var followInput = document.getElementById('notifyFollowInput');
+      var commentOwnInput = document.getElementById('notifyCommentOwnInput');
+      var commentThreadInput = document.getElementById('notifyCommentThreadInput');
+      var guestbookInput = document.getElementById('notifyGuestbookInput');
+      var likeInput = document.getElementById('notifyLikeInput');
+      var friendPostInput = document.getElementById('notifyFriendPostInput');
+      var deployInput = document.getElementById('notifyDeployInput');
+      var soundInput = document.getElementById('notifySoundInput');
+      var desktopPushInput = document.getElementById('notifyDesktopPushInput');
+
+      if (nimInput) nimInput.checked = !!p.notifyNim;
+      if (followInput) followInput.checked = !!p.notifyFollow;
+      if (commentOwnInput) commentOwnInput.checked = !!p.notifyCommentOwn;
+      if (commentThreadInput) commentThreadInput.checked = !!p.notifyCommentThread;
+      if (guestbookInput) guestbookInput.checked = !!p.notifyGuestbook;
+      if (likeInput) likeInput.checked = !!p.notifyLike;
+      if (friendPostInput) friendPostInput.checked = !!p.notifyFriendPost;
+      if (deployInput) deployInput.checked = !!p.notifyDeploy;
+      if (soundInput) soundInput.checked = !!p.soundEnabled;
+      if (desktopPushInput) desktopPushInput.checked = !!p.desktopPush;
+
+      // Update push permission button state
+      var pushBtn = document.getElementById('requestPushPermissionBtn');
+      if (pushBtn && typeof Notification !== 'undefined') {
+        if (Notification.permission === 'granted') {
+          pushBtn.innerHTML = '<span>✓ PERMITTED</span>';
+          pushBtn.className = 'pixel-btn pixel-btn--sm pixel-btn--green text-3xs font-bold shrink-0 self-center';
+        } else if (Notification.permission === 'denied') {
+          pushBtn.innerHTML = '<span>✕ BLOCKED IN BROWSER</span>';
+          pushBtn.className = 'pixel-btn pixel-btn--sm pixel-btn--danger text-3xs font-bold shrink-0 self-center';
+        }
+      }
+    } catch (err) {
+      console.warn('[:> NOTIFY SETTINGS LOAD ERROR]', err);
+    }
+  }
+
+  async function handleSaveNotificationSettings(e) {
+    if (e) e.preventDefault();
+    if (window.retroAudio) window.retroAudio.playClick();
+
+    var saveBtn = document.getElementById('saveNotifySettingsBtn');
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'SYNCHRONIZING PROTOCOLS...';
+    }
+
+    var alertBox = document.getElementById('notifySettingsAlert');
+    var alertTag = document.getElementById('notifySettingsAlertTag');
+    var alertMsg = document.getElementById('notifySettingsAlertMsg');
+    if (alertBox) alertBox.classList.add('hidden');
+
+    try {
+      var payload = {
+        notifyNim: document.getElementById('notifyNimInput').checked,
+        notifyFollow: document.getElementById('notifyFollowInput').checked,
+        notifyCommentOwn: document.getElementById('notifyCommentOwnInput').checked,
+        notifyCommentThread: document.getElementById('notifyCommentThreadInput').checked,
+        notifyGuestbook: document.getElementById('notifyGuestbookInput').checked,
+        notifyLike: document.getElementById('notifyLikeInput').checked,
+        notifyFriendPost: document.getElementById('notifyFriendPostInput').checked,
+        notifyDeploy: document.getElementById('notifyDeployInput').checked,
+        soundEnabled: document.getElementById('notifySoundInput').checked,
+        desktopPush: document.getElementById('notifyDesktopPushInput').checked,
+      };
+
+      var res = await fetch('/api/settings/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to update notification protocols.');
+
+      if (alertBox && alertTag && alertMsg) {
+        alertBox.className = 'retro-alert retro-alert--success mb-3';
+        alertTag.textContent = '[✓] PROTOCOLS SAVED:';
+        alertMsg.textContent = 'Cyberspace transmission filters updated. Alerts are active for this station.';
+        alertBox.classList.remove('hidden');
+      }
+
+      if (window.retroAudio) window.retroAudio.playSuccess();
+    } catch (err) {
+      if (window.retroAudio) window.retroAudio.playError();
+      if (alertBox && alertTag && alertMsg) {
+        alertBox.className = 'retro-alert retro-alert--error mb-3';
+        alertTag.textContent = '[:> ERROR]:';
+        alertMsg.textContent = err.message;
+        alertBox.classList.remove('hidden');
+      }
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 SAVE NOTIFICATION PROTOCOLS :>';
+      }
+    }
+  }
+
+  function requestBrowserPushPermission() {
+    if (window.retroAudio) window.retroAudio.playClick();
+    if (typeof Notification === 'undefined') {
+      alert('Desktop Push Notifications are not supported by this browser.');
+      return;
+    }
+
+    Notification.requestPermission().then(function(permission) {
+      var pushBtn = document.getElementById('requestPushPermissionBtn');
+      var pushCheckbox = document.getElementById('notifyDesktopPushInput');
+
+      if (permission === 'granted') {
+        if (pushCheckbox) pushCheckbox.checked = true;
+        if (pushBtn) {
+          pushBtn.innerHTML = '<span>✓ PERMITTED</span>';
+          pushBtn.className = 'pixel-btn pixel-btn--sm pixel-btn--green text-3xs font-bold shrink-0 self-center';
+        }
+        if (window.retroAudio) window.retroAudio.playSuccess();
+        alert('Cyberspace alert carrier permitted! Click "Save Notification Protocols" to commit changes.');
+      } else {
+        if (pushBtn) {
+          pushBtn.innerHTML = '<span>✕ BLOCKED IN BROWSER</span>';
+          pushBtn.className = 'pixel-btn pixel-btn--sm pixel-btn--danger text-3xs font-bold shrink-0 self-center';
+        }
+      }
+    });
   }
 
   function copyPostWebUrl(url, btn) {

@@ -11,6 +11,7 @@ const STATIC_PRECACHE = [
   '/css/neogram.css',
   '/js/retroAudio.js',
   '/js/aimMessenger.js',
+  '/js/notifications.js',
   '/js/pwa.js',
   '/manifest.json',
   '/icons/icon-192.png',
@@ -128,3 +129,25 @@ async function syncBufferedPosts() {
     client.postMessage({ type: 'CARRIER_RESTORED' });
   }
 }
+
+// Notification Click: Focus window and navigate to target URL
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const urlToOpen = (event.notification.data && event.notification.data.url) ? event.notification.data.url : '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          if ('navigate' in client) {
+            client.navigate(urlToOpen);
+          }
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});

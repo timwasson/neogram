@@ -18,6 +18,7 @@ It provides:
 5. **Cyberspace Friends Network & Static Follow Grid:** Simple "Friends" engine with reciprocal 1-click adding, dedicated workstation Friends console (`/friends`), static `/friends/index.html` photo grid on Neocities, and concurrency-safe cascading FIFO rebuilds when friends broadcast new photographs.
 6. **Cyberspace Station Directory & Presence Hub (`/directory`):** Public station white-pages categorizing registered nodes by live presence (Active 🟢, Away 🟡, Inactive ⚪) with deterministic alphabetical sorting and instant search filtering.
 7. **Interactive Cyberspace Documentation Center (`/docs`):** Complete user manuals, setup guides, and live session-interpolated embed snippets.
+8. **Configurable Cyberspace Notification Engine & In-App Alert Center (`[:> NOTIFY_CENTER.SYS]`):** Real-time WebSocket transmission alerts (`/ws/chat`), 8-bit synthesized audio chimes, native desktop/PWA service worker pushes, and a user dashboard configuration console (`[:> NOTIFICATION_DISPATCHER.CFG]`) to toggle delivery across 8 event types.
 
 ---
 
@@ -130,6 +131,38 @@ CREATE TABLE ephemeral_chat_queue (
 
 CREATE INDEX idx_chat_queue_receiver ON ephemeral_chat_queue(receiver_id);
 CREATE INDEX idx_chat_queue_expires ON ephemeral_chat_queue(expires_at);
+
+-- Notification Preferences per Station Node
+CREATE TABLE notification_preferences (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    notify_nim BOOLEAN DEFAULT TRUE,
+    notify_follow BOOLEAN DEFAULT TRUE,
+    notify_comment_own BOOLEAN DEFAULT TRUE,
+    notify_comment_thread BOOLEAN DEFAULT TRUE,
+    notify_guestbook BOOLEAN DEFAULT TRUE,
+    notify_like BOOLEAN DEFAULT TRUE,
+    notify_friend_post BOOLEAN DEFAULT TRUE,
+    notify_deploy BOOLEAN DEFAULT TRUE,
+    sound_enabled BOOLEAN DEFAULT TRUE,
+    desktop_push BOOLEAN DEFAULT FALSE,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- In-App Persistent Notifications Inbox
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    body TEXT,
+    link_url VARCHAR(500),
+    icon VARCHAR(20) DEFAULT '🔔',
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read, created_at DESC);
 ```
 
 ---
@@ -433,7 +466,50 @@ CREATE INDEX idx_chat_queue_expires ON ephemeral_chat_queue(expires_at);
   - NIM buddy list categorizes confirmed friends at the top under `🤝 Friends (🟢 X Online / ⚪ Y Offline)`, followed by `🌐 Other Stations`.
   - Real-time buddy list refresh dispatched over WebSockets upon follow/unfollow events.
 
-### 4.27 Consolidated Route & REST API Architecture Matrix
+### 4.27 Cyber Notification Dispatcher & User Alert Protocols
+
+Neogram features a centralized, real-time notification engine connecting social activity across personal static websites (Neocities, GitHub Pages, self-hosted sites) and the Neogram Workstation:
+
+- **Configurable Event Matrix & Notification Types:**
+  1. `nim`: Incoming Neogram Instant Messenger direct transmission (`notify_nim`).
+  2. `follow`: Fellow creator added station to Cyberspace Friends network (`notify_follow`).
+  3. `comment_own`: Visitor left a comment on one of the creator's photos (`notify_comment_own`).
+  4. `comment_thread`: A photo thread the creator previously commented on received replies (`notify_comment_thread`).
+  5. `guestbook`: A visitor signed the creator's station guestbook (`notify_guestbook`).
+  6. `like`: Visitor reacted to/liked a published photo (`notify_like`).
+  7. `friend_post`: A followed Cyberspace Friend broadcast a new photograph (`notify_friend_post`).
+  8. `deploy`: Background static build and Neocities deployment succeeded or failed (`notify_deploy`).
+
+- **User Preferences Dashboard (`[:> NOTIFICATION_DISPATCHER.CFG]`):**
+  - Configurable in the authenticated Workstation Settings tab (`#settings`).
+  - Provides independent toggle switches for each of the 8 event categories, allowing creators to silence noisy event types while keeping high-priority events active.
+  - Controls hardware alert channels:
+    - **8-Bit Audio Chimes (`sound_enabled`):** Web Audio API dual-pitch alert tones (`playAlertBeep(880, 0.1)`) synthesized client-side on incoming events.
+    - **Native Desktop & PWA Push (`desktop_push`):** Browser `Notification` API with Service Worker fallback for operating system / mobile push alerts when running as an installed PWA.
+  - Endpoints: `GET /api/settings/notifications` and `PUT /api/settings/notifications`. Default preferences are automatically provisioned on first fetch.
+
+- **Dual-Channel Delivery Pipeline (WebSockets + Inbox Persistence):**
+  - When an event occurs, `dispatchNotification()` first queries the recipient's `notification_preferences`.
+  - If the creator disabled that event category, the notification is cleanly suppressed (returns `null`), recording 0 database rows and emitting 0 socket packets.
+  - If enabled, the notification is inserted into the `notifications` table (`is_read = FALSE`).
+  - **Live WebSocket Dispatch:** If the recipient station is connected to `/ws/chat`, the server immediately routes a real-time `{ type: 'notification', notification: { ... } }` packet over their active socket.
+  - The client UI intercepts the packet, increments the unread counter badge (`#navNotifyBadge`), plays the 8-bit chime (if enabled), triggers OS desktop push (if enabled), and prepends the item to the notification dropdown ledger (`#notifyDropdownList`).
+
+- **Workstation Header Notification Center (`[:> NOTIFY_CENTER.SYS]`):**
+  - Fixed top navigation bar hosts a dedicated notification bell button (`#notifyMenuBtn`) displaying a high-contrast phosphor badge (`#navNotifyBadge`).
+  - Clicking toggles the retro dropdown drawer (`#notifyDropdownMenu`) featuring quick actions:
+    - Reverse-chronological list of recent alerts with icon, title, body, and relative timestamp.
+    - Click-to-navigate action directing creators straight to the relevant photo, friend profile, or guestbook.
+    - `[✓ Mark All Read]` trigger (`POST /api/notifications/read-all`).
+    - Individual item read tracking (`POST /api/notifications/:id/read`).
+
+- **Zero-Retention Chat Privacy Invariant:**
+  - For NIM direct messages, notification records strictly persist sender metadata (e.g. `title: "New NIM Transmission"`, `body: "@handle sent you a transmission"`).
+  - The message body text is **never stored in PostgreSQL**, fully preserving the 0-byte server chat retention invariant.
+
+---
+
+### 4.28 Consolidated Route & REST API Architecture Matrix
 
 The following matrix documents all server routes, auth requirements, and functional behaviors in the Neogram monolith:
 
@@ -455,25 +531,30 @@ The following matrix documents all server routes, auth requirements, and functio
 | **Posts & Media** | `PUT` | `/api/posts/:id` | Bearer / Cookie | Updates caption, mood, webring, location, and filter. Triggers 11ty rebuild and auto-deploy. |
 | **Posts & Media** | `DELETE` | `/api/posts/:id` | Bearer / Cookie | Purges post from PostgreSQL, deletes remote image on Neocities (`deploy_path` safe), triggers cascading follower rebuilds. |
 | **Posts & Media** | `POST` | `/api/build-static` | Bearer / Cookie | Manual trigger for 11ty compilation and live Neocities deployment via `buildQueue`. |
-| **Comments & Likes** | `POST` | `/api/posts/:id/comments` | Cyber-Pass JWT | Stateless comment submission. Validates JWT, acquires file lock (`withFileLock`), appends to remote `<fileId>.comments.json`, pushes to host. |
+| **Comments & Likes** | `POST` | `/api/posts/:id/comments` | Cyber-Pass JWT | Stateless comment submission. Validates JWT, acquires file lock (`withFileLock`), appends to remote `<fileId>.comments.json`, pushes to host. Dispatches notifications to photo author and thread participants. |
 | **Comments & Likes** | `GET` | `/api/posts/:id/comments` | None (CORS: *) | Reads remote comment JSON ledger for given photo. |
 | **Comments & Likes** | `DELETE` | `/api/posts/:postId/comments/:commentId` | Post Owner | Purges comment from remote self-hosted JSON ledger and saves updated file. |
-| **Comments & Likes** | `POST` | `/api/posts/:id/like` | None (CORS: *) | Increments post like counter in PostgreSQL. Deduplicated client-side. |
-| **Friends Network** | `POST` | `/api/users/:identifier/follow` | Bearer / Cookie | Adds target user as Friend. Enqueues follower static rebuild to update `/friends/index.html` and pushes real-time NIM refresh. |
+| **Comments & Likes** | `POST` | `/api/posts/:id/like` | None (CORS: *) | Increments post like counter in PostgreSQL. Deduplicated client-side. Dispatches author like notification. |
+| **Friends Network** | `POST` | `/api/users/:identifier/follow` | Bearer / Cookie | Adds target user as Friend. Enqueues follower static rebuild to update `/friends/index.html`, pushes real-time NIM refresh, and dispatches follow notification. |
 | **Friends Network** | `DELETE` | `/api/users/:identifier/follow` | Bearer / Cookie | Unfriends target user. Enqueues follower static rebuild and pushes real-time NIM refresh. |
 | **Friends Network** | `GET` | `/api/users/:identifier/friend-status` | None (CORS: *) | Checks `isFriend` and `isSelf` state for active caller, plus `followersCount` and `followingCount`. |
 | **Friends Network** | `GET` | `/api/friends` | Bearer / Cookie | Returns JSON list of followed friends and chronological photos stream. |
 | **Directory & Profiles**| `GET` | `/api/directory`, `/api/users` | None (CORS: *) | Headless directory JSON categorized by presence: Active (🟢), Away (🟡), Inactive (⚪). Alphabetical sequence by handle. |
+| **Notifications** | `GET` | `/api/notifications` | Bearer / Cookie | Returns user's notifications inbox (`notifications`) and total unread counter (`unreadCount`). |
+| **Notifications** | `POST` | `/api/notifications/:id/read` | Bearer / Cookie | Marks single notification as read (`is_read = TRUE`). |
+| **Notifications** | `POST` | `/api/notifications/read-all` | Bearer / Cookie | Marks all notifications for active user as read. |
+| **Notifications** | `GET` | `/api/settings/notifications` | Bearer / Cookie | Returns user's notification preferences (all 8 event toggles + audio chime & desktop push booleans). |
+| **Notifications** | `PUT` | `/api/settings/notifications` | Bearer / Cookie | Updates user's notification preferences in PostgreSQL. |
 | **Settings & Profile** | `GET` | `/api/settings` | Bearer / Cookie | Returns station config: `handle`, `uin`, `siteUrl`, `deployPath`, `autoDeploy`, `hasApiKey`, `sitename`, `remoteViews`, `customCssUrl`. |
 | **Settings & Profile** | `PUT` | `/api/settings` | Bearer / Cookie | Updates site URL, deployment subfolder (`deploy_path`), Neocities API key (AES-256-GCM encrypted), auto-deploy, custom CSS URL. |
 | **Settings & Profile** | `PUT` | `/api/settings/profile` | Bearer / Cookie | Updates handle and processes custom 128x128 WebP avatar via Sharp `.rotate().resize(128, 128)`. |
 | **Widgets & Embeds** | `GET` | `/counter/:identifier.svg` | None (CORS: *) | Generates dynamic SVG web hit counter (Green LED, Red Nixie, Odometer, VFD). Resolves by `@handle` or `#uin`. |
 | **Widgets & Embeds** | `GET` | `/api/users/:handle/feed.json` | None (CORS: *) | JSONFeed 1.1 compliant feed of creator's published photos. |
 | **Widgets & Embeds** | `GET` | `/api/guestbook/:handle` | None (CORS: *) | Reads remote `data/guestbook.json` ledger. |
-| **Widgets & Embeds** | `POST` | `/api/guestbook/:handle` | IP Rate Limited | Stateless guestbook sign. Appends signature to remote `data/guestbook.json` with HTML escaping. |
+| **Widgets & Embeds** | `POST` | `/api/guestbook/:handle` | IP Rate Limited | Stateless guestbook sign. Appends signature to remote `data/guestbook.json` with HTML escaping. Dispatches guestbook notification to station owner. |
 | **Widgets & Embeds** | `GET` | `/embed/guestbook/:handle` | None (Frame: *) | Retro iframe guestbook widget with visitor signature form and moderated entry list. |
 | **Widgets & Embeds** | `GET` | `/embed/feed/:handle` | None (Frame: *) | Retro iframe photo stream embed card. |
-| **Real-Time WebSockets**| `WS` | `/ws/chat` | JWT Cookie / Param | In-memory NIM chat router. CSWSH origin validation, presence tracking, store-and-forward queue, zero database retention. |
+| **Real-Time WebSockets**| `WS` | `/ws/chat` | JWT Cookie / Param | In-memory NIM chat router and notification carrier. CSWSH origin validation, presence tracking, store-and-forward queue, zero database retention. |
 
 ---
 

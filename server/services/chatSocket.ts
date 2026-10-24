@@ -414,6 +414,20 @@ async function handleClientMessage(sender: ActiveSession, msg: any) {
           timestamp,
         }));
       }
+
+      // Trigger notification for recipient (Zero-retention: text is never stored in DB)
+      import('./notificationService').then((m) => {
+        m.dispatchNotification({
+          userId: recipient.id,
+          actorId: sender.userId,
+          type: 'nim',
+          title: `New transmission from @${sender.handle}`,
+          body: 'Sent you an instant message via NIM.',
+          linkUrl: `/#nim?user=${sender.handle}`,
+          icon: '🗨️',
+        }).catch(() => {});
+      }).catch(() => {});
+
       break;
     }
 

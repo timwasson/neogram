@@ -303,5 +303,31 @@
     } catch (e) {}
   };
 
+  // 8-Bit Cyber Alert Chirp (Triple frequency hop)
+  RetroAudioEngine.prototype.playAlertBeep = function () {
+    if (!this.enabled) return;
+    try {
+      this.initCtx();
+      if (!this.ctx) return;
+      var now = this.ctx.currentTime;
+      var ctx = this.ctx;
+
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.setValueAtTime(1174.66, now + 0.05);
+      osc.frequency.setValueAtTime(1760, now + 0.1);
+
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    } catch (e) {}
+  };
+
   window.retroAudio = new RetroAudioEngine();
 })(window);

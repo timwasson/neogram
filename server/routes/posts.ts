@@ -276,6 +276,28 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
     // 6. Cascading rebuild of all friends/followers who follow this user
     triggerFollowersCascade(user.id);
 
+    // 7. Dispatch friend_post notifications to followers
+    query(
+      'SELECT follower_id as "followerId" FROM follows WHERE following_id = $1',
+      [user.id]
+    ).then((followersRes) => {
+      if (followersRes.rows.length > 0) {
+        import('../services/notificationService').then((m) => {
+          for (const row of followersRes.rows) {
+            m.dispatchNotification({
+              userId: row.followerId,
+              actorId: user.id,
+              type: 'friend_post',
+              title: `Friend @${user.handle || 'friend'} broadcast a new photo!`,
+              body: newPost.caption ? newPost.caption.slice(0, 150) : 'Check out the new transmission on your Friends stream.',
+              linkUrl: '/friends',
+              icon: '📸',
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+
     res.status(201).json({
       ok: true,
       message: hasApiKey
@@ -329,6 +351,22 @@ postsRouter.post('/posts/:id/like', async (req: Request, res: Response, next) =>
     import('../services/staticBuilder')
       .then((m) => m.buildStaticGallery({ userId: postOwnerId }))
       .catch(() => {});
+
+    // Dispatch like notification to photo owner
+    const liker = await getSessionUser(req);
+    if (!liker || liker.id !== postOwnerId) {
+      import('../services/notificationService').then((m) => {
+        m.dispatchNotification({
+          userId: postOwnerId,
+          actorId: liker?.id || null,
+          type: 'like',
+          title: `${liker?.handle ? '@' + liker.handle : 'A visitor'} thought your photo was RADICAL! ⚡`,
+          body: 'Received a new like on your photo transmission.',
+          linkUrl: `/#photo-${id}`,
+          icon: '⚡',
+        }).catch(() => {});
+      }).catch(() => {});
+    }
 
     res.json({ ok: true, likes: result.rows[0].likes });
   } catch (err) {
@@ -436,6 +474,46 @@ postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next
     import('../services/staticBuilder')
       .then((m) => m.buildStaticGallery({ userId: ownerUser.id }))
       .catch(() => {});
+
+    // 1. Dispatch comment_own notification to photo owner
+    if (user.id !== ownerUser.id) {
+      import('../services/notificationService').then((m) => {
+        m.dispatchNotification({
+          userId: ownerUser.id,
+          actorId: user.id,
+          type: 'comment_own',
+          title: `@${user.handle || 'visitor'} commented on your photo`,
+          body: cleanText.slice(0, 150),
+          linkUrl: `/#photo-${id}`,
+          icon: '💬',
+        }).catch(() => {});
+      }).catch(() => {});
+    }
+
+    // 2. Dispatch comment_thread notifications to previous thread participants
+    query(
+      `SELECT DISTINCT u.id as "userId"
+       FROM comments c
+       JOIN users u ON c.author_name = u.handle OR c.author_name = split_part(u.email, '@', 1)
+       WHERE c.post_id = $1 AND u.id != $2 AND u.id != $3`,
+      [id, user.id, ownerUser.id]
+    ).then((threadRes) => {
+      if (threadRes.rows.length > 0) {
+        import('../services/notificationService').then((m) => {
+          for (const participant of threadRes.rows) {
+            m.dispatchNotification({
+              userId: participant.userId,
+              actorId: user.id,
+              type: 'comment_thread',
+              title: `@${user.handle || 'visitor'} replied to a photo thread you joined`,
+              body: cleanText.slice(0, 150),
+              linkUrl: `/#photo-${id}`,
+              icon: '🧵',
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      }
+    }).catch(() => {});
 
     res.status(201).json({
       ok: true,

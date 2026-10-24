@@ -536,9 +536,148 @@ async function runSmokeTests() {
     assertTest('Friend status updated to isFriend = false after unfriend', postUnfriendStatusData.isFriend === false);
 
     // -------------------------------------------------------------------------
-    // TEST 15: Safe Post Purge & Clean Teardown
+    // TEST 15: Cyberspace Notification Engine & User Settings Dashboard
     // -------------------------------------------------------------------------
-    logHeader('15. SAFE PURGE & TEARDOWN');
+    logHeader('15. NOTIFICATION DISPATCHER & SETTINGS DASHBOARD');
+
+    // 1. Initial notification preferences query
+    const initPrefsRes = await fetch(`${API_BASE}/api/settings/notifications`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('GET /api/settings/notifications returns HTTP 200', initPrefsRes.status === 200);
+    const initPrefsData = await initPrefsRes.json();
+    assertTest('Default notification preferences provisioned', initPrefsData.ok === true && !!initPrefsData.preferences);
+    assertTest('Default notifyNim is enabled', initPrefsData.preferences.notifyNim === true);
+    assertTest('Default notifyFollow is enabled', initPrefsData.preferences.notifyFollow === true);
+    assertTest('Default notifyCommentOwn is enabled', initPrefsData.preferences.notifyCommentOwn === true);
+    assertTest('Default notifyCommentThread is enabled', initPrefsData.preferences.notifyCommentThread === true);
+    assertTest('Default notifyGuestbook is enabled', initPrefsData.preferences.notifyGuestbook === true);
+    assertTest('Default notifyLike is enabled', initPrefsData.preferences.notifyLike === true);
+    assertTest('Default notifyFriendPost is enabled', initPrefsData.preferences.notifyFriendPost === true);
+    assertTest('Default notifyDeploy is enabled', initPrefsData.preferences.notifyDeploy === true);
+    assertTest('Default soundEnabled is enabled', initPrefsData.preferences.soundEnabled === true);
+    assertTest('Default desktopPush is opt-in (disabled initially)', initPrefsData.preferences.desktopPush === false);
+
+    // 2. Update notification preferences via PUT
+    const updatePrefsRes = await fetch(`${API_BASE}/api/settings/notifications`, {
+      method: 'PUT',
+      headers: {
+        'Cookie': sessionCookie,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        notifyLike: false,
+        soundEnabled: false,
+      }),
+    });
+    assertTest('PUT /api/settings/notifications returns HTTP 200', updatePrefsRes.status === 200);
+    const updatePrefsData = await updatePrefsRes.json();
+    assertTest('PUT response reflects updated notifyLike = false', updatePrefsData.preferences.notifyLike === false);
+    assertTest('PUT response reflects updated soundEnabled = false', updatePrefsData.preferences.soundEnabled === false);
+
+    // 3. Verify preferences persist on subsequent GET
+    const verifyPrefsRes = await fetch(`${API_BASE}/api/settings/notifications`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    const verifyPrefsData = await verifyPrefsRes.json();
+    assertTest('Saved notification preferences persist in PostgreSQL', verifyPrefsData.preferences.notifyLike === false);
+
+    // 4. Initial notifications inbox query
+    const initInboxRes = await fetch(`${API_BASE}/api/notifications`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('GET /api/notifications returns HTTP 200', initInboxRes.status === 200);
+    const initInboxData = await initInboxRes.json();
+    assertTest('Initial notifications list is empty', Array.isArray(initInboxData.notifications) && initInboxData.notifications.length === 0);
+    assertTest('Initial unreadCount is 0', initInboxData.unreadCount === 0);
+
+    // 5. Test dispatchNotification suppression for muted event
+    const { dispatchNotification } = await import('../services/notificationService');
+    const mutedNotification = await dispatchNotification({
+      userId: testUser.id,
+      type: 'like',
+      title: 'Someone liked your photo',
+      body: 'Should be suppressed per user settings',
+    });
+    assertTest('Notification of muted type (notifyLike=false) is suppressed (returns null)', mutedNotification === null);
+
+    // 6. Test dispatchNotification for active event
+    const activeNotification = await dispatchNotification({
+      userId: testUser.id,
+      actorId: targetFriendUser.id,
+      type: 'comment_own',
+      title: `@${targetFriendUser.handle} commented on your photo`,
+      body: 'Radical retro colors on this shot!',
+      linkUrl: '/#post-123',
+    });
+    assertTest('Notification of enabled type is dispatched successfully', activeNotification !== null && activeNotification.type === 'comment_own');
+
+    // 7. Verify notification appears in inbox
+    const activeInboxRes = await fetch(`${API_BASE}/api/notifications`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    const activeInboxData = await activeInboxRes.json();
+    assertTest('Inbox contains new active notification', activeInboxData.notifications.length === 1);
+    assertTest('Inbox unreadCount incremented to 1', activeInboxData.unreadCount === 1);
+    assertTest('Notification record contains title and body', activeInboxData.notifications[0].title.includes('commented on your photo'));
+
+    // 8. Mark notification as read
+    const createdNotifId = activeNotification!.id;
+    const markReadRes = await fetch(`${API_BASE}/api/notifications/${createdNotifId}/read`, {
+      method: 'POST',
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('POST /api/notifications/:id/read returns HTTP 200', markReadRes.status === 200);
+    const postReadInboxRes = await fetch(`${API_BASE}/api/notifications`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    const postReadInboxData = await postReadInboxRes.json();
+    assertTest('Unread count decremented to 0 after marking read', postReadInboxData.unreadCount === 0);
+    assertTest('Notification marked as read in database', postReadInboxData.notifications[0].isRead === true);
+
+    // 9. Dispatch second notification and test mark-all-read
+    await dispatchNotification({
+      userId: testUser.id,
+      actorId: targetFriendUser.id,
+      type: 'follow',
+      title: `@${targetFriendUser.handle} followed your station!`,
+      body: 'Added your node to friends list.',
+    });
+    const markAllReadRes = await fetch(`${API_BASE}/api/notifications/read-all`, {
+      method: 'POST',
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('POST /api/notifications/read-all returns HTTP 200', markAllReadRes.status === 200);
+    const postMarkAllInboxRes = await fetch(`${API_BASE}/api/notifications`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    const postMarkAllInboxData = await postMarkAllInboxRes.json();
+    assertTest('All notifications marked read (unreadCount = 0)', postMarkAllInboxData.unreadCount === 0);
+
+    // 10. Verify Workstation UI contains Notification Bell and Settings Card
+    const dashHtmlRes = await fetch(`${API_BASE}/`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    const dashHtml = await dashHtmlRes.text();
+    assertTest('Top navigation bar contains #retroNotifyMenu dropdown', dashHtml.includes('id="retroNotifyMenu"'));
+    assertTest('Top navigation bar contains #notifyMenuBtn trigger', dashHtml.includes('id="notifyMenuBtn"'));
+    assertTest('Top navigation bar contains #navNotifyBadge badge', dashHtml.includes('id="navNotifyBadge"'));
+    assertTest('Settings dashboard contains #notifySettingsForm', dashHtml.includes('id="notifySettingsForm"'));
+    assertTest('Settings dashboard contains notifyNim input toggle', dashHtml.includes('id="notifyNimInput"'));
+    assertTest('Settings dashboard contains notifyFollow input toggle', dashHtml.includes('id="notifyFollowInput"'));
+    assertTest('Settings dashboard contains notifyCommentOwn input toggle', dashHtml.includes('id="notifyCommentOwnInput"'));
+    assertTest('Settings dashboard contains notifyCommentThread input toggle', dashHtml.includes('id="notifyCommentThreadInput"'));
+    assertTest('Settings dashboard contains notifyGuestbook input toggle', dashHtml.includes('id="notifyGuestbookInput"'));
+    assertTest('Settings dashboard contains notifyLike input toggle', dashHtml.includes('id="notifyLikeInput"'));
+    assertTest('Settings dashboard contains notifyFriendPost input toggle', dashHtml.includes('id="notifyFriendPostInput"'));
+    assertTest('Settings dashboard contains notifyDeploy input toggle', dashHtml.includes('id="notifyDeployInput"'));
+    assertTest('Settings dashboard contains notifySound input toggle', dashHtml.includes('id="notifySoundInput"'));
+    assertTest('Settings dashboard contains notifyDesktopPush input toggle', dashHtml.includes('id="notifyDesktopPushInput"'));
+
+    // -------------------------------------------------------------------------
+    // TEST 16: Safe Post Purge & Clean Teardown
+    // -------------------------------------------------------------------------
+    logHeader('16. SAFE PURGE & TEARDOWN');
     // Delete post using authenticated session
     const deletePostRes = await fetch(`${API_BASE}/api/posts/${testPostId}`, {
       method: 'DELETE',
