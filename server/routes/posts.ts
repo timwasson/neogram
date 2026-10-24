@@ -241,10 +241,30 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
 
     const newPost = insertResult.rows[0];
 
+    // Pre-initialize empty comments JSON on static bundle so client doesn't 404
+    try {
+      const { getCommentsRelativePath } = await import('../services/staticStorage');
+      const commentsRelPath = getCommentsRelativePath(newPost.image_path);
+      const initialCommentsPath = path.join(userStaticDir, commentsRelPath);
+      await (await import('fs/promises')).mkdir(path.dirname(initialCommentsPath), { recursive: true });
+      await (await import('fs/promises')).writeFile(
+        initialCommentsPath,
+        JSON.stringify({
+          version: 'neogram-comments-v1',
+          postId: newPost.id,
+          updatedAt: new Date().toISOString(),
+          comments: [],
+        }, null, 2),
+        'utf-8'
+      );
+    } catch (_initErr) {
+      console.warn('[:> STATIC-STORAGE] Could not write initial comments file:', _initErr);
+    }
+
     // 5. Build static gallery and deploy immediately to Neocities if connected
     if (hasApiKey) {
       const { deployToNeocities } = await import('../services/neocitiesPublisher');
-      // deployToNeocities automatically builds 11ty, uploads all assets (HTML, CSS, WebP images),
+      // deployToNeocities automatically builds 11ty, uploads all assets (HTML, CSS, WebP images, comments JSON),
       // and purges the local uploads directory upon confirmation!
       await deployToNeocities(user.id);
       console.log(`[:> ZERO-RETENTION PIPELINE] Deployed live to Neocities and purged local disk assets for user ${user.id}`);
@@ -436,9 +456,22 @@ postsRouter.get('/posts/:id/comments', async (req: Request, res: Response, next)
     const relPath = getCommentsRelativePath(post.image_path);
     const commentsData = await readRemoteJson<any>(ownerUser, relPath, { comments: [] });
 
+    // Fallback to mirrored database comments if static host returned empty list (e.g. newly deployed)
+    let comments = Array.isArray(commentsData.comments) ? commentsData.comments : [];
+    if (comments.length === 0) {
+      const dbComments = await query(
+        `SELECT id, author_name as "author", author_avatar as "avatar", body as "text", created_at as "timestamp"
+         FROM comments WHERE post_id = $1 ORDER BY created_at ASC`,
+        [id]
+      );
+      if (dbComments.rows.length > 0) {
+        comments = dbComments.rows;
+      }
+    }
+
     res.json({
       ok: true,
-      comments: commentsData.comments || [],
+      comments,
     });
   } catch (err) {
     next(err);

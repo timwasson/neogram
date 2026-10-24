@@ -411,57 +411,75 @@ eleventyComputed:
 
   function hydrateCommentsFromSelfHostedJson() {
     if (!COMMENTS_JSON_URL) return;
+
+    function renderComments(comments) {
+      if (!Array.isArray(comments)) return;
+      var ledger = document.getElementById('commentsLedger');
+      if (!ledger) return;
+
+      var existingIds = {};
+      var domItems = ledger.querySelectorAll('[data-comment-id]');
+      for (var i = 0; i < domItems.length; i++) {
+        var id = domItems[i].getAttribute('data-comment-id');
+        if (id) existingIds[id] = true;
+      }
+
+      var addedCount = 0;
+      comments.forEach(function (c) {
+        if (!existingIds[c.id]) {
+          if (addedCount === 0) {
+            var emptyNotice = document.getElementById('emptyCommentsNotice');
+            if (emptyNotice) emptyNotice.remove();
+          }
+          var item = document.createElement('div');
+          item.className = 'neogram-comments__item';
+          item.setAttribute('data-comment-id', c.id);
+          var safeAuthor = escapeHtml(c.author);
+          var safeText = escapeHtml(c.text);
+          var uinBadge = c.uin ? ' <span class="text-muted font-normal">[#' + c.uin + ']</span>' : '';
+
+          item.innerHTML =
+            '<div class="neogram-comments__item-header">' +
+            '  <span class="neogram-comments__item-author">' + (c.avatar || '💬') + ' @' + safeAuthor + uinBadge + '</span>' +
+            '  <span class="neogram-comments__item-time">Synced</span>' +
+            '</div>' +
+            '<p class="neogram-comments__item-body">' + safeText + '</p>';
+
+          ledger.appendChild(item);
+          addedCount++;
+        }
+      });
+
+      if (addedCount > 0 || comments.length > 0) {
+        var countEl = document.getElementById('commentCount');
+        if (countEl) countEl.textContent = comments.length;
+      }
+    }
+
     fetch(COMMENTS_JSON_URL, { cache: 'no-cache' })
       .then(function (res) {
-        if (!res.ok) return null;
-        return res.json();
+        if (res.ok) return res.json();
+        // Fallback: If static JSON is 404 on host (e.g. newly posted or CDN cache delay),
+        // seamlessly query Neogram API so comments show immediately with zero delay
+        return fetch(API_BASE + '/api/posts/' + POST_ID + '/comments')
+          .then(function (apiRes) { return apiRes.ok ? apiRes.json() : null; })
+          .catch(function () { return null; });
       })
       .then(function (data) {
-        if (!data || !Array.isArray(data.comments)) return;
-
-        var ledger = document.getElementById('commentsLedger');
-        if (!ledger) return;
-
-        var existingIds = {};
-        var domItems = ledger.querySelectorAll('[data-comment-id]');
-        for (var i = 0; i < domItems.length; i++) {
-          var id = domItems[i].getAttribute('data-comment-id');
-          if (id) existingIds[id] = true;
-        }
-
-        var addedCount = 0;
-        data.comments.forEach(function (c) {
-          if (!existingIds[c.id]) {
-            if (addedCount === 0) {
-              var emptyNotice = document.getElementById('emptyCommentsNotice');
-              if (emptyNotice) emptyNotice.remove();
-            }
-            var item = document.createElement('div');
-            item.className = 'neogram-comments__item';
-            item.setAttribute('data-comment-id', c.id);
-            var safeAuthor = escapeHtml(c.author);
-            var safeText = escapeHtml(c.text);
-            var uinBadge = c.uin ? ' <span class="text-muted font-normal">[#' + c.uin + ']</span>' : '';
-
-            item.innerHTML =
-              '<div class="neogram-comments__item-header">' +
-              '  <span class="neogram-comments__item-author">' + (c.avatar || '💬') + ' @' + safeAuthor + uinBadge + '</span>' +
-              '  <span class="neogram-comments__item-time">Synced</span>' +
-              '</div>' +
-              '<p class="neogram-comments__item-body">' + safeText + '</p>';
-
-            ledger.appendChild(item);
-            addedCount++;
-          }
-        });
-
-        if (addedCount > 0) {
-          var countEl = document.getElementById('commentCount');
-          if (countEl) countEl.textContent = data.comments.length;
+        if (data && Array.isArray(data.comments)) {
+          renderComments(data.comments);
         }
       })
       .catch(function () {
-        // Same-origin JSON not yet uploaded or offline; pre-rendered 11ty HTML remains intact
+        // Fallback to API if network error occurs on static host
+        fetch(API_BASE + '/api/posts/' + POST_ID + '/comments')
+          .then(function (apiRes) { return apiRes.ok ? apiRes.json() : null; })
+          .then(function (data) {
+            if (data && Array.isArray(data.comments)) {
+              renderComments(data.comments);
+            }
+          })
+          .catch(function () {});
       });
   }
 

@@ -26,12 +26,18 @@ export async function withFileLock<T>(lockKey: string, task: () => Promise<T>): 
 }
 
 /**
- * Returns clean relative file path for a photo's comments JSON.
- * Example: "/uploads/images/abc.webp" -> "uploads/images/abc.comments.json"
+ * Returns clean relative file path for a photo's comments JSON within the static gallery root.
+ * Always resolves to: "uploads/images/<filename>.comments.json"
+ * Strips any full URLs, domain names, or deploy path prefixes (e.g. "neogram/").
  */
 export function getCommentsRelativePath(imagePath: string): string {
-  const clean = imagePath.replace(/^https?:\/\/[^\/]+\//, '').replace(/^\/+/, '');
-  return clean.replace(/\.[a-zA-Z0-9]+$/, '.comments.json');
+  if (!imagePath) return 'uploads/images/unknown.comments.json';
+  // Strip protocol and hostname if full URL
+  const clean = imagePath.replace(/^https?:\/\/[^\/]+/, '');
+  // Isolate path from 'uploads/' onward so deploy_path prefixes are never duplicated
+  const uploadsIndex = clean.indexOf('uploads/');
+  const normalized = uploadsIndex !== -1 ? clean.substring(uploadsIndex) : clean.replace(/^\/+/, '');
+  return normalized.replace(/\.[a-zA-Z0-9]+$/, '.comments.json');
 }
 
 /**
@@ -80,6 +86,21 @@ export async function readRemoteJson<T>(user: any, relPath: string, defaultValue
     if (res.ok) {
       const data = (await res.json()) as T;
       return data;
+    } else if (res.status === 404 && deployPrefix) {
+      // Legacy auto-migration: check if file was previously uploaded under duplicated deploy prefix
+      try {
+        const legacyDoubleUrl = `${baseSiteUrl}/${deployPrefix}/${deployPrefix}/${relPath}`;
+        const legacyRes = await fetch(legacyDoubleUrl, {
+          method: 'GET',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        if (legacyRes.ok) {
+          const legacyData = (await legacyRes.json()) as T;
+          console.log(`[:> AUTO-MIGRATION] Migrating legacy double-path file to correct location: ${relPath}`);
+          writeRemoteJson(user, relPath, legacyData).catch(() => {});
+          return legacyData;
+        }
+      } catch (_legacyErr) {}
     }
   } catch (_err) {
     // Network failure or host not yet published; proceed to local fallback

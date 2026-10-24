@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs/promises';
+import { existsSync } from 'fs';
 import Eleventy from '@11ty/eleventy';
 import { query, initDatabase } from '../db';
 import { config } from '../config';
@@ -156,14 +157,37 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
       if (post.imagePath) {
         const relPath = getCommentsRelativePath(post.imagePath);
         const jsonFilePath = path.join(targetOutputDir, relPath);
+
+        // Check if old legacy double-path file exists on disk and migrate it
+        const legacyPath = path.join(targetOutputDir, 'neogram', relPath);
         try {
-          const raw = await fs.readFile(jsonFilePath, 'utf-8');
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed.comments) && parsed.comments.length > 0) {
-            commentsByPost[post.id] = parsed.comments;
+          if (existsSync(legacyPath) && !existsSync(jsonFilePath)) {
+            await fs.mkdir(path.dirname(jsonFilePath), { recursive: true });
+            await fs.copyFile(legacyPath, jsonFilePath);
+            await fs.unlink(legacyPath).catch(() => {});
+          }
+        } catch (_migErr) {}
+
+        try {
+          if (!existsSync(jsonFilePath)) {
+            // Write initial comments JSON to ensure static host serves 200 OK without 404
+            await fs.mkdir(path.dirname(jsonFilePath), { recursive: true });
+            const initialData = {
+              version: 'neogram-comments-v1',
+              postId: post.id,
+              updatedAt: new Date().toISOString(),
+              comments: commentsByPost[post.id] || [],
+            };
+            await fs.writeFile(jsonFilePath, JSON.stringify(initialData, null, 2), 'utf-8');
+          } else {
+            const raw = await fs.readFile(jsonFilePath, 'utf-8');
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed.comments) && parsed.comments.length > 0) {
+              commentsByPost[post.id] = parsed.comments;
+            }
           }
         } catch (_err) {
-          // File doesn't exist yet on disk; keeps DB comments or empty array
+          // File error; keeps DB comments or empty array
         }
       }
     }
