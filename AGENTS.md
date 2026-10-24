@@ -346,6 +346,27 @@ CREATE INDEX idx_chat_queue_expires ON ephemeral_chat_queue(expires_at);
 - **Like Deduping:**
   - Likes are tracked in client-side storage (`localStorage.getItem('neogram_liked_' + postId)`), toggling active state and preventing duplicate increment requests from the same visitor browser.
 
+### 4.23 Public Station Cyber-Profiles & Comment Author Linking
+- **Polymorphic Profile Routing (`/user/:identifier`):**
+  - Serves an authentic 90s cyber-identity profile page (`views/user.njk`) resolving any of three user identifier formats:
+    1. **UUID:** `https://neogram.club/user/4587aa36-b626-4ebb-b6f1-1e9fbd11259f`
+    2. **Handle / Callsign:** `https://neogram.club/user/wasson` or `https://neogram.club/user/@wasson`
+    3. **Immutable Node UIN:** `https://neogram.club/user/100102`
+- **Clean Root Website Derivation:**
+  - Extracts the root personal homepage on file using `new URL(siteUrl).origin`, cleanly stripping any configured subdirectories (`/neogram/`, `/photos/`).
+- **Profile Telemetry & Broadcast State:**
+  - Features profile avatar (128x128 WebP or default green CRT monitor), real-time online status LED (`🟢 V.90` / `🟡 AWAY`), status broadcast message, member since date, photo tally, aggregate likes, and live dynamic SVG hit counter widget (`/counter/:uin.svg`).
+  - Provides direct one-click buttons to:
+    - `🌐 Visit Personal Website: <origin> ↗` (opens the user's primary static homepage)
+    - `📷 View Neogram Photo Gallery ↗` (opens their static photo gallery stream on Neocities)
+    - `💬 Message Station via NIM ↗` (opens Neogram Instant Messenger to DM the creator)
+  - Interactive Transmissions photo stream displaying all published photos, thumbnails, captions, like counts, and links to static photo pages.
+- **Comment Author Linking & Timestamps:**
+  - Comment records stored in self-hosted JSON include the commenter's `userId` and clean `siteUrl`.
+  - Static photo pages (`eleventy/src/photo.njk`) and the workstation comment moderator render author handles as clickable links to `/user/:identifier`, with an adjacent `🌐` globe button opening their root personal website when available.
+  - Formatted comment timestamps display both localized date and time (e.g. `Oct 23, 2026, 9:26 PM`).
+  - Reaction controls are streamlined to a single `❤️ LIKE` button (removing unused `Radical` and `Bookmark` options).
+
 ---
 
 ## 5. Prototype Assets to Preserve & Port
@@ -437,6 +458,11 @@ When building the production backend and views, extract and reuse the following 
     - Browser extension content script (`extension/content/auth-bridge.js`) automatically injecting active sessions across `*.neocities.org` and `*.nekoweb.org` with 0 clicks.
     - Same-origin comments hydration on static photo detail pages (`eleventy/src/photo.njk`), like deduping, and audio chimes.
     - In-workstation comment moderation dialog (`COMMENTS_MODERATOR.EXE`) in `views/index.njk` to review and purge comments directly from the self-hosted JSON.
+16. **[x] Step 16: Public Station Cyber-Profiles (`/user/:id`), Comment Author Linking & Timestamping**
+    - Public station profile route (`/user/:identifier`) resolving UUID, `@handle`, or `#uin` to retro cyber-identity view (`views/user.njk`).
+    - Clean personal root website derivation (`new URL(siteUrl).origin`) stripping publishing subdirectories.
+    - Station telemetry card with avatar, presence LED, bio broadcast, hit counter, photo transmissions gallery, and NIM messaging button.
+    - Comment author linking to `/user/:identifier` and root website (`🌐`), formatted comment timestamps (date + time), and reaction controls streamlined to `❤️ LIKE`.
 
 ---
 
@@ -479,8 +505,8 @@ npm run extension:package
 # Run end-to-end integration assertions against the live backend
 npm test
 ```
-- Executes 43 automated assertions in ~0.5s.
-- Verifies: OTP request, auto-provisioning, rate limiting, JWT cookies, profile identity, Sharp WebP compression, isolated 11ty static build, SVG counters, JSONFeed 1.1, and safe teardown.
+- Executes 50 automated assertions in ~2.3s.
+- Verifies: OTP request, auto-provisioning, rate limiting, JWT cookies, profile identity, Sharp WebP compression, isolated 11ty static build, SVG counters, self-hosted comments & Cyber-Pass handshake, JSONFeed 1.1, and safe teardown.
 
 ### 7.5 Database Migrations & Seeding
 Migrations run automatically on server start via `server/db/migrate.ts`.

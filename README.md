@@ -12,7 +12,7 @@
 - **Static Site Engine:** Eleventy (11ty v3) with FIFO `BuildQueue` serialization & multi-tenant isolation (`dist/static-galleries/<userId>/`)
 - **Design System:** Zero Tailwind. Pure Vanilla CSS compiled from Dart Sass (`public/css/neogram.css`). Dual-layer styling: workstation UI uses modular utility classes; static gallery output delivered to Neocities/GitHub Pages uses strict BEM classes for 1-click end-user CSS overrides
 - **Audio Engine:** Web Audio API synthesized 8-bit clicks, camera shutters, success chimes, and dial-up tones
-- **Social & Widgets:** Dynamic SVG hit counters (`/counter/:handle.svg`), visitor guestbook, and JSONFeed 1.1 feeds
+- **Social & Widgets:** Dynamic SVG hit counters (`/counter/:handle.svg`), public station cyber-profiles (`/user/:id`), visitor guestbook, and JSONFeed 1.1 feeds
 - **Instant Messenger:** WebSockets (`/ws/chat`) with ephemeral offline queue, client-side retention, and Manifest V3 browser extension
 
 ---
@@ -24,6 +24,7 @@
 3. **Non-Destructive Deletion Invariant:** Remote deletions to Neocities are strictly restricted to `uploads/` matching the user's `deploy_path`. Non-Neogram files cannot be deleted.
 4. **Permanent Node UIN (ICQ-Style):** Accounts receive an immutable numeric node ID (`users.uin`, sequence starting at `#100101`). Creators can freely edit their `@handle` without breaking third-party static site embeds or counters.
 5. **Semantic BEM Static Deliverables & Custom CSS:** The Eleventy static site engine compiles galleries using pure BEM markup (`.neogram-*`) with zero inline utility classes. Static site owners can link custom stylesheets (`users.custom_css_url`) or inject custom CSS on Neocities to effortlessly override any component's look without fighting specificity or needing `!important`.
+6. **Public Station Cyber-Identity (`/user/:id`):** Public station profiles resolve by UUID, `@handle`, or immutable `#uin`. Features avatar, live hit counter, status broadcast, photo stream, and clean links directly to the creator's root personal website without subdirectories.
 
 ---
 
@@ -63,8 +64,8 @@ npm run dev
 ```bash
 npm test
 ```
-- Runs 43 automated end-to-end integration tests in under 1 second.
-- Validates OTP dispatch, sliding rate limiting, session auth, Sharp WebP compression, isolated 11ty static builds, dynamic SVG hit counters, comment ledgers, and safe post purge.
+- Runs 50 automated end-to-end integration tests in ~2 seconds.
+- Validates OTP dispatch, sliding rate limiting, session auth, Sharp WebP compression, isolated 11ty static builds, dynamic SVG hit counters, self-hosted comments & Cyber-Pass handshake, JSONFeed 1.1, and safe post purge.
 
 ---
 
