@@ -1,0 +1,384 @@
+{% extends "layouts/base.njk" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-4 md:p-6 w-full font-mono">
+
+  <!-- Top Breadcrumb / Return Navigation Bar -->
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-2 text-xs">
+    <div class="flex items-center gap-2 text-muted">
+      <span class="text-mac font-bold">:&gt; CYBERSPACE_DIRECTORY.EXE</span>
+      <span>/</span>
+      <span>STATION_INDEX</span>
+      <span>[{{ totalCount }} NODES TOTAL]</span>
+    </div>
+    <a href="/" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-3" onclick="if(window.retroAudio) retroAudio.playClick();">
+      <span>[ &lt; Return to Station Workstation ]</span>
+    </a>
+  </div>
+
+  <!-- Master Directory Overview Box -->
+  <div class="pixel-box mb-6">
+    <div class="window-header flex items-center justify-between p-2">
+      <div class="flex items-center gap-2">
+        <span>👥</span>
+        <span class="font-bold text-xs">[:&gt; CYBERSPACE_DIRECTORY.SYS - Neogram Public Station Registry]</span>
+      </div>
+      <span class="pixel-badge pixel-badge--cyan font-bold text-xxs">TOTAL: {{ totalCount }} NODES</span>
+    </div>
+
+    <div class="p-4 md:p-6 flex flex-col gap-4">
+      <!-- Terminal Welcome Banner -->
+      <div class="p-3 bg-black border border-main text-xs space-y-1">
+        <div class="flex items-center justify-between text-muted text-[10px] uppercase font-bold tracking-wider">
+          <span>WHITE-PAGES // 28.8K V.34 CARRIER DIRECTORY</span>
+          <span>SYSTEM 7 / BSD-X11</span>
+        </div>
+        <p class="text-prompt leading-relaxed m-0">
+          Public index of all registered Neogram station nodes. Stations are cataloged by carrier presence into <strong>Active</strong> transmitters (online), <strong>Away</strong> nodes, and <strong>Inactive</strong> standby stations. Select any handle or station card to inspect their public transmission archive and static gallery.
+        </p>
+      </div>
+
+      <!-- Telemetry Status Pills Bar -->
+      <div class="flex items-center justify-between flex-wrap gap-3 p-3 bg-window border border-main text-xs">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-muted font-bold text-xxs uppercase tracking-wider">FILTER SUMMARY:</span>
+          <span class="pixel-badge pixel-badge--green font-bold text-xs">
+            🟢 ACTIVE: {{ activeUsers.length }}
+          </span>
+          <span class="pixel-badge pixel-badge--amber font-bold text-xs">
+            🟡 AWAY: {{ awayUsers.length }}
+          </span>
+          <span class="pixel-badge font-bold text-xs">
+            ⚪ INACTIVE: {{ inactiveUsers.length }}
+          </span>
+        </div>
+        <div class="text-muted text-xxs">
+          <span>SORT ORDER: ALPHABETICAL BY CALLSIGN</span>
+        </div>
+      </div>
+
+      <!-- Interactive Quick Search / Filter Bar -->
+      <div class="directory-search-box">
+        <span class="text-prompt font-bold text-xs shrink-0">:&gt; SEARCH:</span>
+        <input
+          type="text"
+          id="directorySearchInput"
+          placeholder="Filter stations by @handle or #UID..."
+          aria-label="Filter stations by handle or UID"
+          autocomplete="off"
+        />
+        <button
+          type="button"
+          id="directoryClearBtn"
+          class="pixel-btn pixel-btn--sm text-xxs py-0.5 px-2 hidden"
+          title="Clear search filter"
+        >
+          <span>✕ Clear</span>
+        </button>
+      </div>
+      <div id="directorySearchResultText" class="text-xxs text-muted hidden"></div>
+    </div>
+  </div>
+
+  <!-- ==============================================================
+       SUB-CATEGORY 1: ACTIVE STATIONS (Online & Transmitting)
+       ============================================================== -->
+  <section class="directory-section" id="activeSection" aria-label="Active Stations">
+    <div class="directory-section-header">
+      <div class="flex items-center gap-2">
+        <span>🟢</span>
+        <span class="font-bold uppercase tracking-wider text-xs">
+          1. ACTIVE STATIONS (<span id="activeCount">{{ activeUsers.length }}</span>)
+        </span>
+      </div>
+      <span class="pixel-badge pixel-badge--green font-bold text-xxs">
+        CARRIER: ONLINE // 33600 V.90
+      </span>
+    </div>
+
+    <div class="p-4">
+      {% if activeUsers.length == 0 %}
+        <!-- Empty State for Active -->
+        <div class="p-6 border-2 border-dashed border-main text-center bg-black text-prompt text-xs space-y-1">
+          <div class="text-base">📡</div>
+          <div class="font-bold">NO STATIONS CURRENTLY TRANSMITTING LIVE</div>
+          <p class="text-muted text-xxs m-0">All station operators are currently away or on standby carrier.</p>
+        </div>
+      {% else %}
+        <div class="directory-grid" id="activeGrid">
+          {% for user in activeUsers %}
+            <article
+              class="directory-card directory-card--active"
+              data-handle="{{ user.handle | lower }}"
+              data-uin="{{ user.uin }}"
+            >
+              <!-- Small Thumbnail with Status Dot -->
+              <a href="{{ user.profileUrl }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
+                <img
+                  src="{{ user.avatarPath }}"
+                  alt="@{{ user.handle }} avatar"
+                  class="directory-avatar-img"
+                  loading="lazy"
+                />
+                <span class="directory-status-dot directory-status-dot--active" title="Active (Online)"></span>
+              </a>
+
+              <!-- Station Identity Meta -->
+              <div class="flex flex-col gap-1 min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-1">
+                  <a
+                    href="{{ user.profileUrl }}"
+                    class="text-mac font-bold hover:underline text-xs truncate"
+                    title="@{{ user.handle }}"
+                    onclick="if(window.retroAudio) retroAudio.playClick();"
+                  >
+                    @{{ user.handle }}
+                  </a>
+                  <span class="pixel-badge pixel-badge--cyan font-bold text-xxs shrink-0">
+                    #{{ user.uin }}
+                  </span>
+                </div>
+
+                <div class="text-prompt text-xxs truncate" title="{{ user.statusMessage }}">
+                  "{{ user.statusMessage }}"
+                </div>
+
+                <div class="flex items-center justify-between pt-1 border-t border-main text-xxs text-muted mt-0.5">
+                  <span>📷 {{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
+                  <a
+                    href="{{ user.profileUrl }}"
+                    class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
+                    onclick="if(window.retroAudio) retroAudio.playClick();"
+                  >
+                    <span>Profile :&gt;</span>
+                  </a>
+                </div>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- ==============================================================
+       SUB-CATEGORY 2: AWAY STATIONS (Marked Away from Terminal)
+       ============================================================== -->
+  <section class="directory-section" id="awaySection" aria-label="Away Stations">
+    <div class="directory-section-header">
+      <div class="flex items-center gap-2">
+        <span>🟡</span>
+        <span class="font-bold uppercase tracking-wider text-xs">
+          2. "AWAY" STATIONS (<span id="awayCount">{{ awayUsers.length }}</span>)
+        </span>
+      </div>
+      <span class="pixel-badge pixel-badge--amber font-bold text-xxs">
+        STATUS: AWAY FROM TERMINAL
+      </span>
+    </div>
+
+    <div class="p-4">
+      {% if awayUsers.length == 0 %}
+        <!-- Empty State for Away -->
+        <div class="p-6 border-2 border-dashed border-main text-center bg-black text-amber text-xs space-y-1">
+          <div class="text-base">⏳</div>
+          <div class="font-bold">NO STATIONS CURRENTLY MARKED AS AWAY</div>
+          <p class="text-muted text-xxs m-0">No operators have engaged away messages at this moment.</p>
+        </div>
+      {% else %}
+        <div class="directory-grid" id="awayGrid">
+          {% for user in awayUsers %}
+            <article
+              class="directory-card directory-card--away"
+              data-handle="{{ user.handle | lower }}"
+              data-uin="{{ user.uin }}"
+            >
+              <!-- Small Thumbnail with Status Dot -->
+              <a href="{{ user.profileUrl }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
+                <img
+                  src="{{ user.avatarPath }}"
+                  alt="@{{ user.handle }} avatar"
+                  class="directory-avatar-img"
+                  loading="lazy"
+                />
+                <span class="directory-status-dot directory-status-dot--away" title="Away"></span>
+              </a>
+
+              <!-- Station Identity Meta -->
+              <div class="flex flex-col gap-1 min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-1">
+                  <a
+                    href="{{ user.profileUrl }}"
+                    class="text-mac font-bold hover:underline text-xs truncate"
+                    title="@{{ user.handle }}"
+                    onclick="if(window.retroAudio) retroAudio.playClick();"
+                  >
+                    @{{ user.handle }}
+                  </a>
+                  <span class="pixel-badge pixel-badge--amber font-bold text-xxs shrink-0">
+                    #{{ user.uin }}
+                  </span>
+                </div>
+
+                <div class="text-amber text-xxs truncate" title="{{ user.statusMessage }}">
+                  "{{ user.statusMessage }}"
+                </div>
+
+                <div class="flex items-center justify-between pt-1 border-t border-main text-xxs text-muted mt-0.5">
+                  <span>📷 {{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
+                  <a
+                    href="{{ user.profileUrl }}"
+                    class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
+                    onclick="if(window.retroAudio) retroAudio.playClick();"
+                  >
+                    <span>Profile :&gt;</span>
+                  </a>
+                </div>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- ==============================================================
+       SUB-CATEGORY 3: INACTIVE STATIONS (Offline / Standby Carrier)
+       ============================================================== -->
+  <section class="directory-section" id="inactiveSection" aria-label="Inactive Stations">
+    <div class="directory-section-header">
+      <div class="flex items-center gap-2">
+        <span>⚪</span>
+        <span class="font-bold uppercase tracking-wider text-xs">
+          3. INACTIVE STATIONS (<span id="inactiveCount">{{ inactiveUsers.length }}</span>)
+        </span>
+      </div>
+      <span class="pixel-badge font-bold text-xxs">
+        STATUS: CARRIER OFFLINE / STANDBY
+      </span>
+    </div>
+
+    <div class="p-4">
+      {% if inactiveUsers.length == 0 %}
+        <!-- Empty State for Inactive -->
+        <div class="p-6 border-2 border-dashed border-main text-center bg-black text-muted text-xs space-y-1">
+          <div class="text-base">💾</div>
+          <div class="font-bold">ALL STATIONS ARE CURRENTLY ACTIVE OR AWAY</div>
+          <p class="text-muted text-xxs m-0">Zero inactive nodes recorded.</p>
+        </div>
+      {% else %}
+        <div class="directory-grid" id="inactiveGrid">
+          {% for user in inactiveUsers %}
+            <article
+              class="directory-card directory-card--inactive"
+              data-handle="{{ user.handle | lower }}"
+              data-uin="{{ user.uin }}"
+            >
+              <!-- Small Thumbnail with Status Dot -->
+              <a href="{{ user.profileUrl }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
+                <img
+                  src="{{ user.avatarPath }}"
+                  alt="@{{ user.handle }} avatar"
+                  class="directory-avatar-img"
+                  loading="lazy"
+                />
+                <span class="directory-status-dot directory-status-dot--inactive" title="Inactive (Offline)"></span>
+              </a>
+
+              <!-- Station Identity Meta -->
+              <div class="flex flex-col gap-1 min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-1">
+                  <a
+                    href="{{ user.profileUrl }}"
+                    class="text-mac font-bold hover:underline text-xs truncate"
+                    title="@{{ user.handle }}"
+                    onclick="if(window.retroAudio) retroAudio.playClick();"
+                  >
+                    @{{ user.handle }}
+                  </a>
+                  <span class="pixel-badge text-xxs font-bold shrink-0">
+                    #{{ user.uin }}
+                  </span>
+                </div>
+
+                <div class="text-muted text-xxs truncate" title="{{ user.statusMessage }}">
+                  "{{ user.statusMessage }}"
+                </div>
+
+                <div class="flex items-center justify-between pt-1 border-t border-main text-xxs text-muted mt-0.5">
+                  <span>📷 {{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
+                  <a
+                    href="{{ user.profileUrl }}"
+                    class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
+                    onclick="if(window.retroAudio) retroAudio.playClick();"
+                  >
+                    <span>Profile :&gt;</span>
+                  </a>
+                </div>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+</div>
+
+<!-- Progressive Enhancement: Client-side Instant Filter Script -->
+<script>
+  (function() {
+    var searchInput = document.getElementById('directorySearchInput');
+    var clearBtn = document.getElementById('directoryClearBtn');
+    var resultText = document.getElementById('directorySearchResultText');
+    if (!searchInput) return;
+
+    function filterDirectory() {
+      var query = searchInput.value.trim().toLowerCase().replace(/^@/, '');
+      var cards = document.querySelectorAll('.directory-card');
+      var matchedCount = 0;
+
+      if (clearBtn) {
+        if (query.length > 0) {
+          clearBtn.classList.remove('hidden');
+        } else {
+          clearBtn.classList.add('hidden');
+        }
+      }
+
+      cards.forEach(function(card) {
+        var handle = card.getAttribute('data-handle') || '';
+        var uin = card.getAttribute('data-uin') || '';
+        var isMatch = !query || handle.indexOf(query) !== -1 || uin.indexOf(query) !== -1;
+
+        if (isMatch) {
+          card.classList.remove('hidden');
+          matchedCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      if (resultText) {
+        if (query.length > 0) {
+          resultText.classList.remove('hidden');
+          resultText.textContent = '[:> FILTER APPLIED: ' + matchedCount + ' matching station(s) found for "' + query + '"]';
+        } else {
+          resultText.classList.add('hidden');
+        }
+      }
+    }
+
+    searchInput.addEventListener('input', filterDirectory);
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        if (window.retroAudio) retroAudio.playClick();
+        filterDirectory();
+        searchInput.focus();
+      });
+    }
+  })();
+</script>
+{% endblock %}

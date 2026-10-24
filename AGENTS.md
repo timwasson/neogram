@@ -367,6 +367,29 @@ CREATE INDEX idx_chat_queue_expires ON ephemeral_chat_queue(expires_at);
   - Formatted comment timestamps display both localized date and time (e.g. `Oct 23, 2026, 9:26 PM`).
   - Reaction controls are streamlined to a single `❤️ LIKE` button (removing unused `Radical` and `Bookmark` options).
 
+### 4.24 Cyberspace User Directory & Presence Categorization (`/directory` & `/api/directory`)
+- **Cyberspace Station White-Pages Routing (`/directory` & `/users`):**
+  - Serves an authentic retro 90s station node directory (`views/directory.njk`) cataloging all registered Neogram station nodes.
+  - Headless JSON API available at `/api/directory` and `/api/users` for programmatic consumers, widgets, and browser extensions.
+- **Strict Sub-Category Ordering Specification:**
+  - All stations are categorized and displayed in exact hierarchical order:
+    1. **Active Stations (🟢):** Connected live to the `/ws/chat` WebSocket router with status `'online'`.
+    2. **"Away" Stations (🟡):** Connected to WebSocket with status `'away'` OR disconnected users with database flag `is_away = true`.
+    3. **Inactive Stations (⚪):** Standby stations currently offline and not marked away.
+  - Within **each** sub-category, stations are deterministically ordered in alphabetical sequence by handle (`LOWER(handle) ASC`), with secondary sort by numeric UIN (`uin ASC`).
+- **Station Node Card Deliverables:**
+  - Every card features:
+    - Small thumbnail avatar (`avatarPath` or default CRT SVG) with overlaid status LED dot.
+    - User callsign/handle (`@handle`).
+    - Immutable numeric Node UID (`UID: #uin`).
+    - Station status broadcast message.
+    - Public photo transmission count.
+    - Clickable profile link to `/user/@handle`.
+- **Interactive Terminal Filtering & Ergonomics:**
+  - Real-time client-side instant filter input (`#directorySearchInput`) allowing rapid search by `@handle` or `#UID` with live match count and Web Audio click SFX.
+  - Seamless reciprocal breadcrumb navigation linking `/directory` directly to individual station profiles (`views/user.njk`).
+  - Direct topnav links for both authenticated workstations and logged-out public visitors, plus quick launcher in the user dropdown menu, guest hero section, and persistent taskbar footer link (`VIEW: DIRECTORY` -> `/directory`).
+
 ---
 
 ## 5. Prototype Assets to Preserve & Port
@@ -463,6 +486,13 @@ When building the production backend and views, extract and reuse the following 
     - Clean personal root website derivation (`new URL(siteUrl).origin`) stripping publishing subdirectories.
     - Station telemetry card with avatar, presence LED, bio broadcast, hit counter, photo transmissions gallery, and NIM messaging button.
     - Comment author linking to `/user/:identifier` and root website (`🌐`), formatted comment timestamps (date + time), and reaction controls streamlined to `❤️ LIKE`.
+17. **[x] Step 17: Cyberspace User Directory & Presence Categorization (`/directory` & `/api/directory`)**
+    - Public directory page (`views/directory.njk`) and JSON API (`server/routes/directory.ts`) cataloging all Neogram station nodes.
+    - Presence-based sub-category hierarchy: Active first (🟢), then "Away" (🟡), then Inactive (⚪).
+    - Deterministic alphabetical order by handle and secondary numeric UIN sort inside each sub-category.
+    - Station node cards with small avatar thumbnail, `@handle`, numeric `#uin`, status message, photo tally, and direct profile links.
+    - Interactive client-side live search filter by `@handle` or `#UID` with match counters and Web Audio SFX.
+    - Integrated reciprocal breadcrumbs, topnav buttons for authenticated and public visitors, and comprehensive automated QA smoke tests.
 
 ---
 

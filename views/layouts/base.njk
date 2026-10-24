@@ -61,6 +61,14 @@
             <span>✎&#xFE0E;</span> <span>Edit</span>
           </a>
           <a
+            href="/directory"
+            id="tabDirectoryBtn"
+            class="pixel-btn font-bold text-xs {% if activeView == 'directory' %}pixel-btn--active{% endif %}"
+            onclick="if(window.retroAudio) retroAudio.playClick();"
+          >
+            <span>👥</span> <span>Directory</span>
+          </a>
+          <a
             href="/#settings"
             id="tabSettingsBtn"
             class="pixel-btn font-bold text-xs"
@@ -80,6 +88,9 @@
           <!-- Public Informational Options (When Logged Out) -->
           <a href="/" class="pixel-btn {% if activeView == 'dashboard' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
             <span>💾</span> <span>About Neogram</span>
+          </a>
+          <a href="/directory" class="pixel-btn {% if activeView == 'directory' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>👥</span> <span>User Directory</span>
           </a>
           <a href="/embed/embed.js" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
             <span>💻</span> <span>Embed Specs</span>
@@ -184,6 +195,15 @@
                 <!-- Action Buttons: Settings & Logout -->
                 <div class="flex flex-col gap-1.5 pt-2 border-t border-main">
                   <a
+                    href="/directory"
+                    id="dropdownDirectoryLink"
+                    class="pixel-btn pixel-btn--sm text-xs justify-center w-full"
+                    onclick="if(typeof toggleUserMenu==='function'){toggleUserMenu(false);} if(window.retroAudio) retroAudio.playClick();"
+                  >
+                    <span>👥</span> <span>Station Directory</span>
+                  </a>
+
+                  <a
                     href="/#settings"
                     id="dropdownSettingsLink"
                     class="pixel-btn pixel-btn--sm text-xs justify-center w-full"
@@ -232,12 +252,17 @@
         <a href="/login" class="pixel-btn pixel-btn--sm bg-black text-prompt" onclick="if(window.retroAudio) retroAudio.playClick();">
           <span>:&gt; EXEC</span>
         </a>
-        <div class="retro-taskbar__panel text-xs">
+        <a
+          href="/directory"
+          class="retro-taskbar__panel text-xs"
+          title="Open Cyberspace User Directory"
+          onclick="if(window.retroAudio) retroAudio.playClick();"
+        >
           <span>VIEW:</span>
-          <span class="font-bold text-mac uppercase">
-            {{ activeView | default('LOGIN') }}
+          <span class="font-bold text-mac uppercase hover:underline">
+            DIRECTORY
           </span>
-        </div>
+        </a>
         <div class="retro-taskbar__panel text-xs">
           <span>PORT:</span>
           <span class="font-bold">4000 (SECURE)</span>

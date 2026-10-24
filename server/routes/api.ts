@@ -3,6 +3,7 @@ import { healthRouter } from './health';
 import { authRouter } from './auth';
 import { postsRouter } from './posts';
 import { settingsRouter } from './settings';
+import { directoryRouter } from './directory';
 import { query } from '../db';
 
 export const apiRouter = Router();
@@ -11,6 +12,7 @@ apiRouter.use(healthRouter);
 apiRouter.use('/auth', authRouter);
 apiRouter.use(postsRouter);
 apiRouter.use(settingsRouter);
+apiRouter.use(directoryRouter);
 
 // Temporary test route to verify database queries execute properly
 apiRouter.get('/stats', async (_req: Request, res: Response, next) => {

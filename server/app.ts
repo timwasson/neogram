@@ -7,6 +7,7 @@ import { requestLogger } from './middleware/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { apiRouter } from './routes/api';
 import { embedsRouter } from './routes/embeds';
+import { directoryRouter } from './routes/directory';
 import { COOKIE_NAME, verifySessionToken, clearSessionCookie, extractToken, signSessionToken } from './auth/jwt';
 import { getUserById } from './auth/service';
 import { config } from './config';
@@ -143,6 +144,8 @@ export function createApp(): Express {
   });
 
   // 5. Server-rendered Web Views
+  app.use(directoryRouter);
+
   app.get('/', async (_req: Request, res: Response, next: NextFunction) => {
     try {
       const { query } = await import('./db');
@@ -284,12 +287,14 @@ export function createApp(): Express {
       // Aggregate likes
       const totalLikes = postsRes.rows.reduce((sum: number, p: any) => sum + (p.likes || 0), 0);
 
+      const stationHandle = user.handle || user.email.split('@')[0] || 'surfer';
+
       res.render('user', {
-        title: `Neogram - Station @${user.handle || 'surfer'} [#${user.uin}]`,
+        title: `Neogram - Station @${stationHandle} [#${user.uin}]`,
         activeView: 'profile',
         profileUser: {
           id: user.id,
-          handle: user.handle || user.email.split('@')[0],
+          handle: stationHandle,
           uin: user.uin,
           email: user.email,
           siteUrl: user.site_url,

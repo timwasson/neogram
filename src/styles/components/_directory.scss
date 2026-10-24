@@ -1,0 +1,152 @@
+/**
+ * _directory.scss: Cyberspace Station User Directory
+ * Retro 90s white-pages / station node directory styling.
+ */
+
+/* Responsive Directory Grid */
+.directory-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Individual Station Directory Card */
+.directory-card {
+  background-color: var(--surface-window);
+  border: 3px solid var(--border-main);
+  box-shadow: 3px 3px 0px 0px rgba(0, 0, 0, 0.9);
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 0.1s ease, border-color 0.1s ease;
+  text-decoration: none;
+  color: inherit;
+
+  .dark & {
+    box-shadow: 3px 3px 0px 0px #000000;
+  }
+
+  &:hover {
+    border-color: var(--accent-prompt);
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.9);
+
+    .dark & {
+      box-shadow: 4px 4px 0px 0px #000000;
+    }
+  }
+
+  /* Modifiers for Status Accent Borders */
+  &--active {
+    border-left: 5px solid var(--accent-prompt);
+  }
+
+  &--away {
+    border-left: 5px solid var(--accent-amber);
+  }
+
+  &--inactive {
+    border-left: 5px solid #6b7280;
+    opacity: 0.85;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+/* Thumbnail Frame with Retro Borders */
+.directory-avatar-frame {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+}
+
+.directory-avatar-img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  background-color: #000000;
+  border: 2px solid var(--border-main);
+  box-sizing: border-box;
+}
+
+/* Status Indicator Dot Overlay */
+.directory-status-dot {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #000000;
+  box-sizing: border-box;
+
+  &--active {
+    background-color: #39ff14;
+    box-shadow: 0 0 4px #39ff14;
+  }
+
+  &--away {
+    background-color: #ffb000;
+    box-shadow: 0 0 4px #ffb000;
+  }
+
+  &--inactive {
+    background-color: #8b949e;
+  }
+}
+
+/* Category Window Section */
+.directory-section {
+  background-color: var(--surface-card);
+  border: 3px solid var(--border-main);
+  margin-bottom: 20px;
+}
+
+.directory-section-header {
+  background: var(--surface-title);
+  color: #ffffff;
+  padding: 8px 12px;
+  font-weight: bold;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 3px solid var(--border-main);
+  user-select: none;
+}
+
+/* Search Bar Container */
+.directory-search-box {
+  background-color: #000000;
+  border: 2px solid var(--border-main);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  input {
+    background: transparent;
+    border: none;
+    color: var(--accent-prompt);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    width: 100%;
+    outline: none;
+
+    &::placeholder {
+      color: rgba(57, 255, 20, 0.4);
+    }
+  }
+}

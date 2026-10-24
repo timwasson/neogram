@@ -25,6 +25,12 @@
     background: var(--surface-card);
     border: 2px solid var(--border-main);
     padding: 2px 8px;
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      border-color: var(--accent-prompt);
+    }
   }
 
   &__tray-btn {

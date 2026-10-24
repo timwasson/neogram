@@ -6,14 +6,19 @@
   <!-- Top Breadcrumb / Return Bar -->
   <div class="flex items-center justify-between mb-4 flex-wrap gap-2 text-xs">
     <div class="flex items-center gap-2 text-muted">
-      <span>:&gt; CYBERSPACE_DIRECTORY</span>
+      <a href="/directory" class="text-mac hover:underline font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">:&gt; CYBERSPACE_DIRECTORY</a>
       <span>/</span>
-      <span class="text-mac font-bold">@{{ profileUser.handle }}</span>
+      <span class="text-prompt font-bold">@{{ profileUser.handle }}</span>
       <span>[#{{ profileUser.uin }}]</span>
     </div>
-    <a href="/" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-3">
-      <span>[ &lt; Return to Station Workstation ]</span>
-    </a>
+    <div class="flex items-center gap-2">
+      <a href="/directory" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2.5" onclick="if(window.retroAudio) retroAudio.playClick();">
+        <span>[ 👥 Directory ]</span>
+      </a>
+      <a href="/" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2.5" onclick="if(window.retroAudio) retroAudio.playClick();">
+        <span>[ &lt; Workstation ]</span>
+      </a>
+    </div>
   </div>
 
   <!-- Main Profile Grid: Identity Card (Left) + Transmissions Stream (Right) -->

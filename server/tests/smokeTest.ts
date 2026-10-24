@@ -340,9 +340,68 @@ async function runSmokeTests() {
     assertTest('Feed items array contains published photo', Array.isArray(feedData.items) && feedData.items.length >= 1);
 
     // -------------------------------------------------------------------------
-    // TEST 12: Safe Post Purge & Clean Teardown
+    // TEST 12: Cyberspace User Directory & Categorization
     // -------------------------------------------------------------------------
-    logHeader('12. SAFE PURGE & TEARDOWN');
+    logHeader('12. CYBERSPACE USER DIRECTORY & CATEGORIZATION');
+    const directoryRes = await fetch(`${API_BASE}/directory`);
+    assertTest('GET /directory returns HTTP 200', directoryRes.status === 200);
+    const directoryHtml = await directoryRes.text();
+
+    const activeIdx = directoryHtml.indexOf('1. ACTIVE STATIONS');
+    const awayIdx = directoryHtml.indexOf('2. "AWAY" STATIONS');
+    const inactiveIdx = directoryHtml.indexOf('3. INACTIVE STATIONS');
+
+    assertTest('Directory HTML contains Active, Away, and Inactive sub-categories', activeIdx !== -1 && awayIdx !== -1 && inactiveIdx !== -1);
+    assertTest('Directory renders sub-categories in order: Active first, then Away, then Inactive', activeIdx < awayIdx && awayIdx < inactiveIdx);
+
+    // Verify taskbar footer contains Directory link
+    const homeRes = await fetch(`${API_BASE}/`);
+    const homeHtml = await homeRes.text();
+    assertTest('Taskbar footer panel links to /directory with "VIEW: DIRECTORY"',
+      homeHtml.includes('href="/directory"') && homeHtml.includes('DIRECTORY')
+    );
+
+    // API Directory check
+    const dirApiRes = await fetch(`${API_BASE}/api/directory`);
+    assertTest('GET /api/directory returns HTTP 200', dirApiRes.status === 200);
+    const dirApiData = await dirApiRes.json() as any;
+    assertTest('Directory API returns valid ok flag and total count', dirApiData.ok === true && typeof dirApiData.total === 'number');
+    assertTest('Directory API contains active, away, and inactive categories', 
+      Array.isArray(dirApiData.categories?.active) &&
+      Array.isArray(dirApiData.categories?.away) &&
+      Array.isArray(dirApiData.categories?.inactive)
+    );
+
+    // Verify ordering inside sub-categories
+    const isAlphabetical = (arr: any[]) => {
+      for (let i = 0; i < arr.length - 1; i++) {
+        const comp = (arr[i].handle || '').localeCompare(arr[i + 1].handle || '', undefined, { sensitivity: 'base' });
+        if (comp > 0) return false;
+      }
+      return true;
+    };
+
+    assertTest('Active sub-category users are listed in alphabetical order', isAlphabetical(dirApiData.categories.active));
+    assertTest('Away sub-category users are listed in alphabetical order', isAlphabetical(dirApiData.categories.away));
+    assertTest('Inactive sub-category users are listed in alphabetical order', isAlphabetical(dirApiData.categories.inactive));
+
+    // Verify user item properties (handle, UID, thumbnail, profile link)
+    const allSampleUsers = [...dirApiData.categories.active, ...dirApiData.categories.away, ...dirApiData.categories.inactive];
+    const sampleUser = allSampleUsers[0];
+    assertTest('Directory users contain handle (@...), numeric UID, avatar thumbnail, and profileUrl',
+      Boolean(sampleUser && sampleUser.handle && sampleUser.uin && sampleUser.avatarPath && sampleUser.profileUrl)
+    );
+
+    // Verify profile link loads
+    if (sampleUser) {
+      const userProfileRes = await fetch(`${API_BASE}${sampleUser.profileUrl}`);
+      assertTest(`Profile URL (${sampleUser.profileUrl}) returns HTTP 200`, userProfileRes.status === 200);
+    }
+
+    // -------------------------------------------------------------------------
+    // TEST 13: Safe Post Purge & Clean Teardown
+    // -------------------------------------------------------------------------
+    logHeader('13. SAFE PURGE & TEARDOWN');
     // Delete post using authenticated session
     const deletePostRes = await fetch(`${API_BASE}/api/posts/${testPostId}`, {
       method: 'DELETE',
