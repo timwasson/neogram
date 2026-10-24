@@ -38,7 +38,7 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
     const userId = (req as any).user.userId;
 
     const userRes = await query(
-      `SELECT id, email, handle, uin, site_url, deploy_path, deployment_type, deployment_credentials, auto_deploy, last_deployed_at, avatar_path
+      `SELECT id, email, handle, uin, site_url, deploy_path, deployment_type, deployment_credentials, auto_deploy, last_deployed_at, avatar_path, build_html
        FROM users
        WHERE id = $1`,
       [userId]
@@ -73,6 +73,7 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
         hasApiKey,
         maskedApiKey: maskedKey,
         autoDeploy: !!user.auto_deploy,
+        buildHtml: user.build_html !== false,
         lastDeployedAt: user.last_deployed_at,
       },
     });
@@ -169,11 +170,11 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
 settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).user.userId;
-    const { siteUrl, siteName, apiKey, deploymentType, autoDeploy, deployPath } = req.body;
+    const { siteUrl, siteName, apiKey, deploymentType, autoDeploy, deployPath, buildHtml } = req.body;
 
     // Fetch existing user to preserve existing apiKey if user didn't change it
     const existingRes = await query(
-      `SELECT id, deployment_credentials, site_url, deployment_type, auto_deploy, deploy_path
+      `SELECT id, deployment_credentials, site_url, deployment_type, auto_deploy, deploy_path, build_html
        FROM users
        WHERE id = $1`,
       [userId]
@@ -204,6 +205,7 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
 
     const finalDeployType = deploymentType || existingUser.deployment_type || 'neocities';
     const finalAutoDeploy = typeof autoDeploy === 'boolean' ? autoDeploy : !!existingUser.auto_deploy;
+    const finalBuildHtml = typeof buildHtml === 'boolean' ? buildHtml : (existingUser.build_html !== false);
 
     // Sanitize deploy_path (strip leading/trailing slashes, allow empty string for root)
     const finalDeployPath = deployPath !== undefined && deployPath !== null
@@ -217,12 +219,18 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
            deployment_credentials = $3,
            auto_deploy = $4,
            deploy_path = $5,
+           build_html = $6,
            updated_at = NOW()
-       WHERE id = $6`,
-      [finalSiteUrl, finalDeployType, encryptedCreds, finalAutoDeploy, finalDeployPath, userId]
+       WHERE id = $7`,
+      [finalSiteUrl, finalDeployType, encryptedCreds, finalAutoDeploy, finalDeployPath, finalBuildHtml, userId]
     );
 
-    console.log(`[:> SETTINGS] Updated deployment settings for user ${userId} (deployPath: "${finalDeployPath}")`);
+    console.log(`[:> SETTINGS] Updated deployment settings for user ${userId} (deployPath: "${finalDeployPath}", buildHtml: ${finalBuildHtml})`);
+
+    // Trigger static gallery rebuild in background with new settings
+    import('../services/staticBuilder')
+      .then((m) => m.buildStaticGallery({ userId }))
+      .catch((err) => console.error('[:> 11ty] Settings rebuild error:', err));
 
     res.json({
       ok: true,
@@ -235,6 +243,7 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
         hasApiKey: !!creds.apiKey,
         maskedApiKey: maskApiKey(creds.apiKey),
         autoDeploy: finalAutoDeploy,
+        buildHtml: finalBuildHtml,
       },
     });
   } catch (err) {

@@ -754,7 +754,26 @@
                       <div class="text-xs">
                         <span class="font-bold text-prompt block">⚡ Auto-Deploy on Modification</span>
                         <span class="text-muted block">
-                          Automatically compile 11ty static site and push live to Neocities whenever you upload, edit, or delete a transmission.
+                          Automatically compile static site and push live to Neocities whenever you upload, edit, or delete a transmission.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+
+                  <!-- Generate Static HTML Pages Checkbox (Opt-Out for Headless API) -->
+                  <div class="border-2 border-main p-3 bg-card mt-2">
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="settingsBuildHtml"
+                        name="buildHtml"
+                        class="mt-1"
+                        checked
+                      />
+                      <div class="text-xs">
+                        <span class="font-bold text-prompt block">📄 Generate Static HTML Pages</span>
+                        <span class="text-muted block">
+                          Compile 11ty static HTML gallery and photo pages. Uncheck for <strong>Headless API Mode</strong> (only JSON feeds, comments, and media will be generated and published, allowing you to build your own custom JavaScript frontend).
                         </span>
                       </div>
                     </label>
@@ -2324,6 +2343,9 @@
       updateSiteUrlPreview();
       if (s.deploymentType) document.getElementById('settingsDeployType').value = s.deploymentType;
       document.getElementById('settingsAutoDeploy').checked = !!s.autoDeploy;
+      if (document.getElementById('settingsBuildHtml')) {
+        document.getElementById('settingsBuildHtml').checked = s.buildHtml !== false;
+      }
 
       var badge = document.getElementById('keyStatusBadge');
       var keyInput = document.getElementById('settingsApiKey');
@@ -2362,6 +2384,7 @@
     var apiKey = document.getElementById('settingsApiKey').value.trim();
     var deploymentType = document.getElementById('settingsDeployType').value;
     var autoDeploy = document.getElementById('settingsAutoDeploy').checked;
+    var buildHtml = document.getElementById('settingsBuildHtml') ? document.getElementById('settingsBuildHtml').checked : true;
     var saveBtn = document.getElementById('saveSettingsBtn');
 
     saveBtn.disabled = true;
@@ -2382,7 +2405,8 @@
           deployPath: deployPath,
           apiKey: apiKey,
           deploymentType: deploymentType,
-          autoDeploy: autoDeploy
+          autoDeploy: autoDeploy,
+          buildHtml: buildHtml
         })
       });
 

@@ -19,6 +19,7 @@ It provides:
 6. **Cyberspace Station Directory & Presence Hub (`/directory`):** Public station white-pages categorizing registered nodes by live presence (Active 🟢, Away 🟡, Inactive ⚪) with deterministic alphabetical sorting and instant search filtering.
 7. **Interactive Cyberspace Documentation Center (`/docs`):** Complete user manuals, setup guides, and live session-interpolated embed snippets.
 8. **Configurable Cyberspace Notification Engine & In-App Alert Center (`[:> NOTIFY_CENTER.SYS]`):** Real-time WebSocket transmission alerts (`/ws/chat`), 8-bit synthesized audio chimes, native desktop/PWA service worker pushes, and a user dashboard configuration console (`[:> NOTIFICATION_DISPATCHER.CFG]`) to toggle delivery across 8 event types.
+9. **Headless Self-Hosted API & Static JSON Feeds:** Opt-out capability allowing users to disable 11ty static HTML generation (`users.build_html`) and compile/push strictly `feed.json`, `posts.json`, per-photo comment JSONs, and optimized media to their personal static host (Neocities), enabling custom bespoke frontends in Vanilla JavaScript, React, or Vue.
 
 ---
 
@@ -57,6 +58,7 @@ CREATE TABLE users (
     custom_css_url VARCHAR(500),
     avatar_path VARCHAR(500), -- 128x128 WebP profile avatar
     auto_deploy BOOLEAN DEFAULT FALSE,
+    build_html BOOLEAN DEFAULT TRUE, -- When FALSE, suppresses HTML compilation and publishes JSON feeds only
     last_deployed_at TIMESTAMPTZ,
     status_message VARCHAR(150) DEFAULT 'Surfing cyberspace',
     is_away BOOLEAN DEFAULT FALSE,
@@ -223,6 +225,8 @@ CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read, cr
    - **Direct Static Focus (No `/preview/` Bloat):** The redundant `/preview/` and `/photos/<id>/` preview routes have been removed in favor of clean static deployments directly to Neocities and embeddable widgets.
    - Generates responsive gallery grid (`index.html`) and paginated photo pages (`photos/<id>/index.html`).
    - Copies stylesheets (`css/neogram.css`), uploads, and embed scripts into the user's static bundle.
+   - **Self-Hosted JSON Feeds (`feed.json` & `posts.json`):** Always compiles and outputs structured JSON API feeds (`feed.json` and `posts.json`) directly into the user's root static distribution directory. These feeds provide full creator profile metadata (handle, UIN, avatar, site URL), published photo records, like counts, per-photo comments, and live interaction action URLs (`likeUrl`, `commentUrl`, `followUrl`).
+   - **Headless API Mode (`users.build_html = false`):** When opted out via dashboard settings (`users.build_html = false`), 11ty HTML compilation is skipped entirely. Any existing HTML templates (`index.html`, `photos/`, `friends/`, `css/`, `js/`) are purged from the static bundle while strictly preserving `uploads/`, `feed.json`, `posts.json`, and comments JSONs. The publisher then pushes only the static JSON feeds and media to Neocities, enabling users to build bespoke frontends from scratch using Vanilla JavaScript, React, Vue, or Svelte.
 5. **Deployment Adapter (`server/services/neocitiesPublisher.ts`):**
    - Reads decrypted Neocities API key and pushes multipart archive directly to `POST https://neocities.org/api/upload` from the user's isolated directory (`dist/static-galleries/<userId>/`).
    - Probes remote site views and hits via `https://neocities.org/api/info`.

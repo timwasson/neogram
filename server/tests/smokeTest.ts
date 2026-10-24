@@ -675,9 +675,102 @@ async function runSmokeTests() {
     assertTest('Settings dashboard contains notifyDesktopPush input toggle', dashHtml.includes('id="notifyDesktopPushInput"'));
 
     // -------------------------------------------------------------------------
-    // TEST 16: Safe Post Purge & Clean Teardown
+    // TEST 16: Headless Self-Hosted API & Static JSON Feeds
     // -------------------------------------------------------------------------
-    logHeader('16. SAFE PURGE & TEARDOWN');
+    logHeader('16. HEADLESS SELF-HOSTED API & STATIC JSON FEEDS');
+
+    // 1. Verify default setting buildHtml is true (opt-out)
+    const getSettingsRes = await fetch(`${API_BASE}/api/settings`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    const getSettingsData = await getSettingsRes.json();
+    assertTest('GET /api/settings returns HTTP 200', getSettingsRes.status === 200);
+    assertTest('Default buildHtml is true (opt-out)', getSettingsData.settings.buildHtml === true);
+
+    // 2. Opt-out: update buildHtml to false
+    const putSettingsRes = await fetch(`${API_BASE}/api/settings`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({
+        buildHtml: false,
+      }),
+    });
+    const putSettingsData = await putSettingsRes.json();
+    assertTest('PUT /api/settings returns HTTP 200', putSettingsRes.status === 200);
+    assertTest('PUT /api/settings response reflects updated buildHtml = false', putSettingsData.settings.buildHtml === false);
+
+    // 3. Verify setting persisted in PostgreSQL
+    const userDbRes = await query('SELECT build_html FROM users WHERE id = $1', [testUser.id]);
+    assertTest('build_html setting persisted as false in PostgreSQL', userDbRes.rows[0].build_html === false);
+
+    // 4. Trigger static build in Headless mode
+    const headlessBuildRes = await buildStaticGallery({ userId: testUser.id, outputDir: userGalleryDir });
+    assertTest('buildStaticGallery in headless mode completes successfully', headlessBuildRes.ok === true);
+
+    // 5. Verify feed.json exists in user's isolated directory
+    const feedJsonPath = path.join(userGalleryDir, 'feed.json');
+    assertTest('feed.json exists in user static directory', existsSync(feedJsonPath));
+    const feedJsonRaw = await fs.readFile(feedJsonPath, 'utf-8');
+    const feedJson = JSON.parse(feedJsonRaw);
+
+    assertTest('feed.json contains correct version', feedJson.version === 'neogram-api-v1');
+    assertTest('feed.json user contains handle', feedJson.user && feedJson.user.handle === testUser.handle);
+    assertTest('feed.json user contains numeric UIN', feedJson.user && feedJson.user.uin === testUser.uin);
+    assertTest('feed.json user contains avatarUrl', !!(feedJson.user && feedJson.user.avatarUrl));
+    assertTest('feed.json endpoints contains followUrl', feedJson.endpoints && feedJson.endpoints.followUrl.includes('/follow'));
+    assertTest('feed.json endpoints contains feedUrl', feedJson.endpoints && feedJson.endpoints.feedUrl.includes('/feed.json'));
+    assertTest('feed.json posts array contains published photo', Array.isArray(feedJson.posts) && feedJson.posts.length > 0);
+
+    const firstFeedPost = feedJson.posts[0];
+    assertTest('feed.json post contains caption', typeof firstFeedPost.caption === 'string');
+    assertTest('feed.json post contains imageUrl', typeof firstFeedPost.imageUrl === 'string');
+    assertTest('feed.json post contains thumbnailUrl', typeof firstFeedPost.thumbnailUrl === 'string');
+    assertTest('feed.json post contains likes count', typeof firstFeedPost.likes === 'number');
+    assertTest('feed.json post contains actions with likeUrl', firstFeedPost.actions && firstFeedPost.actions.likeUrl.includes('/like'));
+    assertTest('feed.json post contains actions with commentUrl', firstFeedPost.actions && firstFeedPost.actions.commentUrl.includes('/comments'));
+
+    // 6. Verify posts.json exists in user's isolated directory
+    const postsOutPath = path.join(userGalleryDir, 'posts.json');
+    assertTest('posts.json exists in user static directory', existsSync(postsOutPath));
+
+    // 7. Verify index.html does NOT exist in user static directory (Headless: no HTML!)
+    const userIndexHtmlPath = path.join(userGalleryDir, 'index.html');
+    assertTest('index.html suppressed and does NOT exist in Headless mode', !existsSync(userIndexHtmlPath));
+
+    // 8. Re-enable buildHtml = true
+    await fetch(`${API_BASE}/api/settings`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({
+        buildHtml: true,
+      }),
+    });
+    const standardBuildRes = await buildStaticGallery({ userId: testUser.id, outputDir: userGalleryDir });
+    assertTest('buildStaticGallery in standard mode completes successfully', standardBuildRes.ok === true);
+    assertTest('index.html restored when buildHtml = true', existsSync(userIndexHtmlPath));
+    assertTest('feed.json preserved when buildHtml = true', existsSync(feedJsonPath));
+
+    // 9. Verify Documentation includes Headless API topic
+    const docsHeadlessRes = await fetch(`${API_BASE}/docs?topic=headless`);
+    assertTest('GET /docs?topic=headless returns HTTP 200', docsHeadlessRes.status === 200);
+    const docsHeadlessHtml = await docsHeadlessRes.text();
+    assertTest('Docs HTML contains Headless API section', docsHeadlessHtml.includes('id="docSection-headless"'));
+    assertTest('Docs HTML contains sample JavaScript application', docsHeadlessHtml.includes('id="codeSampleJs"'));
+    assertTest('Docs HTML contains tabBtn-headless button', docsHeadlessHtml.includes('id="tabBtn-headless"'));
+
+    // 10. Verify Workstation UI contains settingsBuildHtml checkbox
+    assertTest('Workstation dashboard contains #settingsBuildHtml checkbox', dashHtml.includes('id="settingsBuildHtml"'));
+
+    // -------------------------------------------------------------------------
+    // TEST 17: Safe Post Purge & Clean Teardown
+    // -------------------------------------------------------------------------
+    logHeader('17. SAFE PURGE & TEARDOWN');
     // Delete post using authenticated session
     const deletePostRes = await fetch(`${API_BASE}/api/posts/${testPostId}`, {
       method: 'DELETE',

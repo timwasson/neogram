@@ -33,8 +33,61 @@
 8. **Cyberspace Documentation Center & Interactive Manual (`/docs`):** Complete self-hosted guides and embed manual covering Neocities setup, dynamic SVG hit counters, guestbook ledgers, Sharp processing pipeline, and BEM theming. Interpolates active creator credentials and immutable numeric UINs directly into embed snippets for 1-click deployment.
 9. **Friends Network & Static Follow Grid (`/friends` & static `/friends/`):** Connect with fellow creators using simple "Friends". View a creator's profile or static site banner to add them as a friend. Features a dedicated workstation `/friends` page to browse friends' photo feeds and manage connections, a static `/friends/` photo grid on your personal Neocities site, NIM buddy list prioritization (Friends at the top), and automatic cascading FIFO background rebuilds across all follower static sites whenever a friend broadcasts a new photograph.
 10. **Configurable Cyber Notifications & Zero-Retention DM Alerts:** Complete user preferences dashboard (`[:> NOTIFICATION_DISPATCHER.CFG]`) in Workstation Settings to customize notifications across 8 event categories, synthesized 8-bit audio chimes, and browser desktop/PWA push. NIM direct message alerts strictly record sender handle metadata ("@handle sent you a transmission") without message text, preserving zero-retention chat privacy.
+11. **Headless Self-Hosted API & Custom Frontend:** For creators who prefer to build a custom frontend from scratch using Vanilla JavaScript, React, Vue, or Svelte, Neogram includes an opt-out setting in the dashboard (`users.build_html`). When unchecked, Neogram suppresses 11ty HTML generation entirely—uploading only `feed.json`, `posts.json`, per-photo comments JSONs, and optimized media to your static host. Feeds include full creator profile data, published photo arrays, like counts, and interaction endpoints (`likeUrl`, `commentUrl`, `followUrl`).
 
 ---
+
+## ⚡ Headless API & Custom JavaScript Frontend
+
+Want complete design freedom without Neogram's default retro Eleventy templates? Neogram can function as a headless static API.
+
+### 1. Toggle Headless Mode in Dashboard
+1. Open **Settings** on your Neogram workstation dashboard.
+2. Under **DEPLOYMENT INTEGRATION**, uncheck **[ ] Generate Static HTML Pages**.
+3. Click **💾 SAVE SETTINGS :>**.
+
+Neogram will publish only `feed.json`, `posts.json`, and your WebP images to your Neocities account.
+
+### 2. Available Self-Hosted Feeds on Your Site
+- `https://<handle>.neocities.org/<deploy_path>/feed.json` (Master feed with profile, endpoints, and posts)
+- `https://<handle>.neocities.org/<deploy_path>/posts.json` (Direct photo posts array)
+- Relative path from your site: `./<deploy_path>/feed.json`
+
+### 3. Build Your Own App with Vanilla JavaScript:
+```html
+<div id="app">
+  <div id="profile"></div>
+  <div id="gallery">Loading photos...</div>
+</div>
+
+<script>
+async function loadCustomGallery() {
+  const res = await fetch('./neogram/feed.json');
+  const data = await res.json();
+
+  // 1. Render Profile Header
+  document.getElementById('profile').innerHTML = `
+    <img src="${data.user.avatarUrl}" width="48" height="48" />
+    <h2>@${data.user.handle} (#${data.user.uin})</h2>
+    <p>${data.user.statusMessage || ''}</p>
+    <button onclick="fetch('${data.endpoints.followUrl}', { method: 'POST' })">Follow</button>
+  `;
+
+  // 2. Render Photos Grid with Likes & Comments
+  document.getElementById('gallery').innerHTML = data.posts.map(post => `
+    <article style="border: 1px solid #ccc; margin: 12px 0; padding: 12px;">
+      <img src="${post.thumbnailUrl}" alt="${post.caption}" style="max-width: 100%;" />
+      <p>${post.caption}</p>
+      <button onclick="fetch('${post.actions.likeUrl}', { method: 'POST' })">
+        ⚡ ${post.likes} Likes
+      </button>
+      <div>Comments: ${(post.comments || []).length}</div>
+    </article>
+  `).join('');
+}
+loadCustomGallery();
+</script>
+```
 
 ## 🚀 Local Development Setup
 

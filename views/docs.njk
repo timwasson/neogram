@@ -108,6 +108,16 @@
 
           <button
             type="button"
+            id="tabBtn-headless"
+            class="docs-topic-btn {% if activeTopic == 'headless' %}is-active{% endif %}"
+            onclick="switchDocTopic('headless')"
+          >
+            <span>⚡ Headless API &amp; JSON</span>
+            <span class="text-xxs">›</span>
+          </button>
+
+          <button
+            type="button"
             id="tabBtn-pipeline"
             class="docs-topic-btn {% if activeTopic == 'pipeline' %}is-active{% endif %}"
             onclick="switchDocTopic('pipeline')"
@@ -488,6 +498,17 @@
               </p>
             </div>
 
+            <!-- Headless Mode Callout -->
+            <div class="docs-callout docs-callout--tip flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <strong>⚡ LOOKING FOR SELF-HOSTED JSON FEEDS?</strong>
+                <div class="text-xs text-muted mt-0.5">Neogram can publish JSON feeds (<code>feed.json</code> &amp; <code>posts.json</code>) directly to your Neocities account without any HTML!</div>
+              </div>
+              <button type="button" class="pixel-btn pixel-btn--green pixel-btn--sm text-xs font-bold py-1 px-3" onclick="switchDocTopic('headless')">
+                <span>⚡ Headless API Guide &amp; Code →</span>
+              </button>
+            </div>
+
             <!-- Headless JSONFeed 1.1 -->
             <div class="retro-card p-4 m-0 flex flex-col gap-2">
               <div class="flex items-center justify-between">
@@ -863,6 +884,317 @@ body.neogram-site {
                   <span>👥 Explore Cyberspace Directory :&gt;</span>
                 </a>
               </div>
+            </div>
+
+          </section>
+
+          <!-- ========================================================= -->
+          <!-- TOPIC 9: HEADLESS SELF-HOSTED API & CUSTOM JAVASCRIPT APP -->
+          <!-- ========================================================= -->
+          <section id="docSection-headless" class="docs-section-pane flex flex-col gap-6 {% if activeTopic != 'headless' %}hidden{% endif %}">
+            
+            <div class="border-b-2 border-main pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">⚡</span>
+                <h1 class="text-base font-bold text-prompt m-0 uppercase">Headless Self-Hosted API &amp; Custom Frontend</h1>
+              </div>
+              <p class="text-xs text-muted mt-1 m-0">
+                Transform Neogram into a headless photo publishing pipeline. Publish only JSON feeds and media to your Neocities site, and build your own custom display with Vanilla JavaScript.
+              </p>
+            </div>
+
+            <!-- Concept Overview Box -->
+            <div class="p-3 bg-black border border-main text-xs space-y-2">
+              <div class="text-prompt font-bold uppercase tracking-wider text-xxs">HEADLESS ARCHITECTURE &amp; ZERO-HTML PIPELINE</div>
+              <p class="text-muted text-xs m-0 leading-relaxed">
+                When you snap or upload a photo, Neogram automatically handles the heavy lifting: EXIF auto-rotation, 1200px WebP optimization, 400px thumbnail generation, and comments synchronization. In <strong>Headless Mode</strong>, Neogram suppresses HTML generation entirely—uploading strictly <code>feed.json</code>, <code>posts.json</code>, and your optimized media directly to your Neocities site.
+              </p>
+              <div class="flex items-center gap-3 text-xxs text-prompt pt-1 border-t border-main flex-wrap font-bold">
+                <span>📁 ZERO HTML GENERATED</span>
+                <span>📡 HOSTED ON YOUR OWN NEOCITIES DOMAIN</span>
+                <span>⚡ COMPLETE DESIGN FREEDOM</span>
+              </div>
+            </div>
+
+            <!-- How to Enable Opt-Out Setting -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-2">
+              <h3 class="font-bold text-xs uppercase text-prompt m-0">1. Enabling Headless Mode in Settings</h3>
+              <p class="text-xs text-muted m-0 leading-relaxed">
+                Headless mode is <strong>opt-out</strong> (enabled with full HTML generation by default). To switch to Headless API mode:
+              </p>
+              <ol class="text-xs text-muted m-0 pl-4 space-y-1">
+                <li>Click <strong>⚙️ Settings</strong> in the top navigation bar of your Neogram Workstation.</li>
+                <li>Under <strong>DEPLOYMENT INTEGRATION</strong>, find the <strong>📄 Generate Static HTML Pages</strong> checkbox.</li>
+                <li><strong>Uncheck</strong> the box.</li>
+                <li>Click <strong>💾 SAVE SETTINGS :&gt;</strong>.</li>
+              </ol>
+              <p class="text-xs text-prompt m-0 mt-1">
+                Neogram will immediately clean any previously compiled HTML templates from your static bundle and publish only <code>feed.json</code>, <code>posts.json</code>, and your media.
+              </p>
+            </div>
+
+            <!-- JSON Endpoints on Neocities -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-2">
+              <h3 class="font-bold text-xs uppercase text-mac m-0">2. Self-Hosted JSON Feeds on Your Site</h3>
+              <p class="text-xs text-muted m-0">
+                Once published, your JSON feeds are permanently hosted on your own Neocities space. Because Neocities serves static assets with CORS headers, you can fetch them from any origin or domain:
+              </p>
+              <div class="bg-black p-3 border border-main text-xs font-mono space-y-1">
+                <div><span class="text-prompt font-bold">Master Feed URL:</span> <code class="text-yellow-300 select-all">https://{{ stationHandle }}.neocities.org/{{ deployPath }}/feed.json</code></div>
+                <div><span class="text-prompt font-bold">Posts Array URL:</span> <code class="text-yellow-300 select-all">https://{{ stationHandle }}.neocities.org/{{ deployPath }}/posts.json</code></div>
+                <div><span class="text-prompt font-bold">Relative Fetch (Same Site):</span> <code class="text-cyan-300 select-all">fetch('./{{ deployPath }}/feed.json')</code></div>
+              </div>
+            </div>
+
+            <!-- Feed JSON Schema Reference -->
+            <div class="docs-code-card">
+              <div class="docs-code-header">
+                <span class="font-bold text-prompt">FEED.JSON SCHEMA SPECIFICATION</span>
+                <button
+                  type="button"
+                  id="btnCopyJsonSchema"
+                  class="pixel-btn pixel-btn--blue pixel-btn--sm text-xxs font-bold"
+                  onclick="copyDocSnippet('btnCopyJsonSchema', 'codeJsonSchema')"
+                >
+                  📋 COPY SCHEMA
+                </button>
+              </div>
+              <pre class="docs-code-pre" id="codeJsonSchema">{
+  "version": "neogram-api-v1",
+  "generatedAt": "2026-10-24T18:00:00.000Z",
+  "user": {
+    "id": "uuid-node-id",
+    "uin": {{ stationUin }},
+    "handle": "{{ stationHandle }}",
+    "author": "{{ stationHandle }}",
+    "avatarUrl": "{{ appUrl }}/icons/default-avatar.svg",
+    "siteUrl": "https://{{ stationHandle }}.neocities.org",
+    "deployPath": "{{ deployPath }}",
+    "fullSiteUrl": "https://{{ stationHandle }}.neocities.org/{{ deployPath }}",
+    "statusMessage": "Surfing cyberspace"
+  },
+  "endpoints": {
+    "apiUrl": "{{ appUrl }}",
+    "followUrl": "{{ appUrl }}/api/users/{{ stationHandle }}/follow",
+    "unfollowUrl": "{{ appUrl }}/api/users/{{ stationHandle }}/follow",
+    "guestbookUrl": "{{ appUrl }}/api/guestbook/{{ stationUin }}",
+    "counterUrl": "{{ appUrl }}/counter/{{ stationHandle }}.svg",
+    "feedUrl": "https://{{ stationHandle }}.neocities.org/{{ deployPath }}/feed.json"
+  },
+  "posts": [
+    {
+      "id": "4587aa36-b626-4ebb-b6f1-1e9fbd1481e3",
+      "caption": "Sunset from the roof garden with CRT phosphor shader.",
+      "imageUrl": "https://{{ stationHandle }}.neocities.org/{{ deployPath }}/uploads/img_123.webp",
+      "thumbnailUrl": "https://{{ stationHandle }}.neocities.org/{{ deployPath }}/uploads/img_123_thumb.webp",
+      "imagePath": "uploads/img_123.webp",
+      "thumbnailPath": "uploads/img_123_thumb.webp",
+      "filterApplied": "crt-green",
+      "mood": "Radical",
+      "location": "Tokyo",
+      "likes": 12,
+      "createdAt": "2026-10-24T17:30:00.000Z",
+      "commentsCount": 2,
+      "comments": [
+        {
+          "id": "c_1",
+          "author": "pixel_surfer",
+          "avatar": "💬",
+          "text": "Awesome capture!",
+          "timestamp": "2026-10-24T17:45:00.000Z"
+        }
+      ],
+      "actions": {
+        "likeUrl": "{{ appUrl }}/api/posts/4587aa36-b626-4ebb-b6f1-1e9fbd1481e3/like",
+        "commentUrl": "{{ appUrl }}/api/posts/4587aa36-b626-4ebb-b6f1-1e9fbd1481e3/comments"
+      }
+    }
+  ]
+}</pre>
+            </div>
+
+            <!-- Full JavaScript Implementation Example -->
+            <div class="docs-code-card">
+              <div class="docs-code-header">
+                <span class="font-bold text-prompt">SAMPLE JAVASCRIPT: BUILD YOUR OWN APP FROM SCRATCH</span>
+                <button
+                  type="button"
+                  id="btnCopySampleJs"
+                  class="pixel-btn pixel-btn--blue pixel-btn--sm text-xxs font-bold"
+                  onclick="copyDocSnippet('btnCopySampleJs', 'codeSampleJs')"
+                >
+                  📋 COPY FULL JAVASCRIPT APP
+                </button>
+              </div>
+              <pre class="docs-code-pre" id="codeSampleJs">&lt;!-- Drop this into index.html on your Neocities or personal static website --&gt;
+&lt;div id="app"&gt;
+  &lt;div id="profile-container"&gt;&lt;/div&gt;
+  &lt;div id="gallery-container"&gt;Loading photos from self-hosted feed...&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;style&gt;
+  #app { font-family: monospace; max-width: 900px; margin: 0 auto; padding: 20px; }
+  .profile-header { display: flex; align-items: center; gap: 16px; border: 2px solid #000; padding: 16px; background: #ffffcc; margin-bottom: 24px; }
+  .profile-avatar { width: 64px; height: 64px; border: 2px solid #000; image-rendering: pixelated; }
+  .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+  .photo-card { border: 2px solid #000; box-shadow: 4px 4px 0 #000; background: #fff; display: flex; flex-col; overflow: hidden; }
+  .photo-img { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; border-bottom: 2px solid #000; }
+  .photo-body { padding: 12px; font-size: 13px; }
+  .action-btn { background: #ffff00; border: 2px solid #000; padding: 4px 10px; font-weight: bold; cursor: pointer; font-family: monospace; }
+  .action-btn:hover { background: #00ff66; }
+  .comments-list { margin-top: 8px; border-top: 1px dashed #ccc; padding-top: 8px; font-size: 11px; }
+  .comment-input { width: 100%; box-sizing: border-box; padding: 4px; font-family: monospace; margin-top: 4px; border: 1px solid #000; }
+&lt;/style&gt;
+
+&lt;script&gt;
+// Replace with your self-hosted feed URL or relative path if hosted on the same site:
+const FEED_URL = 'https://{{ stationHandle }}.neocities.org/{{ deployPath }}/feed.json';
+
+async function initNeogramApp() {
+  const profileEl = document.getElementById('profile-container');
+  const galleryEl = document.getElementById('gallery-container');
+
+  try {
+    const res = await fetch(FEED_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' loading feed');
+    const data = await res.json();
+
+    // 1. Render User Profile Header
+    profileEl.innerHTML = `
+      &lt;div class="profile-header"&gt;
+        &lt;img src="${data.user.avatarUrl}" alt="${data.user.handle}" class="profile-avatar" /&gt;
+        &lt;div&gt;
+          &lt;h2 style="margin: 0;"&gt;@${data.user.handle} &lt;span style="font-size: 12px; color: #666;"&gt;[#${data.user.uin || 'NODE'}]&lt;/span&gt;&lt;/h2&gt;
+          &lt;p style="margin: 4px 0; color: #444;"&gt;${data.user.statusMessage || ''}&lt;/p&gt;
+          &lt;button class="action-btn" onclick="followStation('${data.endpoints.followUrl}')"&gt;➕ Add Friend&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    `;
+
+    // 2. Render Photos Grid
+    if (!data.posts || data.posts.length === 0) {
+      galleryEl.innerHTML = '&lt;p&gt;No transmissions found in self-hosted feed.&lt;/p&gt;';
+      return;
+    }
+
+    galleryEl.innerHTML = `
+      &lt;div class="photo-grid"&gt;
+        ${data.posts.map(post =&gt; `
+          &lt;div class="photo-card" id="card-${post.id}"&gt;
+            &lt;img src="${post.thumbnailUrl}" alt="${post.caption || 'Photo'}" class="photo-img" loading="lazy" /&gt;
+            &lt;div class="photo-body"&gt;
+              &lt;p style="margin: 0 0 8px 0; font-weight: bold;"&gt;${post.caption || ':&gt; Snapshot'}&lt;/p&gt;
+              &lt;div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 8px;"&gt;
+                &lt;span&gt;📅 ${new Date(post.createdAt).toLocaleDateString()}&lt;/span&gt;
+                &lt;button class="action-btn" id="like-btn-${post.id}" onclick="likePhoto('${post.id}', '${post.actions.likeUrl}')"&gt;
+                  ⚡ &lt;span id="likes-count-${post.id}"&gt;${post.likes}&lt;/span&gt; Likes
+                &lt;/button&gt;
+              &lt;/div&gt;
+
+              &lt;!-- Comments Ledger --&gt;
+              &lt;details&gt;
+                &lt;summary style="cursor: pointer; font-size: 11px;"&gt;💬 Comments (${(post.comments || []).length})&lt;/summary&gt;
+                &lt;div class="comments-list" id="comments-${post.id}"&gt;
+                  ${(post.comments || []).map(c =&gt; `&lt;div&gt;&lt;strong&gt;@${c.author}:&lt;/strong&gt; ${c.text}&lt;/div&gt;`).join('')}
+                &lt;/div&gt;
+                &lt;form onsubmit="submitComment(event, '${post.id}', '${post.actions.commentUrl}')" style="margin-top: 6px;"&gt;
+                  &lt;input type="text" placeholder="Your name" class="comment-input" required /&gt;
+                  &lt;input type="text" placeholder="Write a comment..." class="comment-input" required /&gt;
+                  &lt;button type="submit" class="action-btn" style="margin-top: 4px; width: 100%;"&gt;Post Comment&lt;/button&gt;
+                &lt;/form&gt;
+              &lt;/details&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+        `).join('')}
+      &lt;/div&gt;
+    `;
+  } catch (err) {
+    galleryEl.innerHTML = `&lt;p style="color: red;"&gt;Failed to load self-hosted feed: ${err.message}&lt;/p&gt;`;
+  }
+}
+
+// 3. Like Photo Action
+async function likePhoto(postId, likeUrl) {
+  const countEl = document.getElementById('likes-count-' + postId);
+  const current = parseInt(countEl.textContent, 10) || 0;
+  countEl.textContent = current + 1; // Optimistic bump
+
+  try {
+    const res = await fetch(likeUrl, { method: 'POST' });
+    const json = await res.json();
+    if (json.likes) countEl.textContent = json.likes;
+  } catch (err) {
+    console.warn('Like failed:', err);
+  }
+}
+
+// 4. Submit Comment Action
+async function submitComment(event, postId, commentUrl) {
+  event.preventDefault();
+  const form = event.target;
+  const authorInput = form.elements[0];
+  const textInput = form.elements[1];
+
+  const author = authorInput.value.trim();
+  const body = textInput.value.trim();
+  if (!author || !body) return;
+
+  const commentsList = document.getElementById('comments-' + postId);
+  const tempComment = document.createElement('div');
+  tempComment.innerHTML = `&lt;strong&gt;@${author}:&lt;/strong&gt; ${body} &lt;em style="color: #888;"&gt;(sending...)&lt;/em&gt;`;
+  commentsList.appendChild(tempComment);
+
+  try {
+    const res = await fetch(commentUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ author: author, body: body })
+    });
+    if (res.ok) {
+      tempComment.querySelector('em').remove();
+      form.reset();
+    } else {
+      tempComment.style.color = 'red';
+      tempComment.innerHTML += ' (failed)';
+    }
+  } catch (err) {
+    tempComment.style.color = 'red';
+    tempComment.innerHTML += ' (error)';
+  }
+}
+
+// 5. Follow Station Action
+async function followStation(followUrl) {
+  try {
+    const res = await fetch(followUrl, { method: 'POST', credentials: 'include' });
+    const json = await res.json();
+    if (res.ok) {
+      alert('✓ Successfully added to your Cyberspace Friends Network!');
+    } else {
+      alert(json.error || 'Please log in to Neogram to follow this station.');
+    }
+  } catch (err) {
+    alert('Network error connecting to station.');
+  }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', initNeogramApp);
+&lt;/script&gt;</pre>
+            </div>
+
+            <!-- Quick Link Return Button -->
+            <div class="flex items-center gap-3 pt-2">
+              <a href="/#settings" class="pixel-btn pixel-btn--green text-xs font-bold py-1.5 px-3">
+                <span>⚙️ Configure Headless Setting in Dashboard :&gt;</span>
+              </a>
+              <button
+                type="button"
+                class="pixel-btn pixel-btn--yellow text-xs font-bold py-1.5 px-3"
+                onclick="switchDocTopic('feeds')"
+              >
+                <span>📡 View Widgets &amp; Embeds :&gt;</span>
+              </button>
             </div>
 
           </section>

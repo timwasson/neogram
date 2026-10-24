@@ -256,3 +256,98 @@ Neogram provides an embed script (`/embed/embed.js`) and matching stylesheet (`/
 <!-- Automatically renders your photo feed -->
 <div data-neogram-widget="feed" data-user-id="your_handle"></div>
 ```
+
+---
+
+## 6. Headless Self-Hosted API Mode (JSON Feeds & Custom JavaScript)
+
+For creators who want to use Neogram purely as a photo processing engine and static JSON API for their website:
+
+### How to Enable Headless Mode:
+1. Open **Settings** on your Neogram workstation dashboard.
+2. Under **DEPLOYMENT INTEGRATION**, uncheck **[ ] Generate Static HTML Pages**.
+3. Save settings.
+
+Neogram will automatically clean up all HTML files from your static directory and upload **only** your media and JSON feeds:
+- `feed.json`: Master feed containing station node metadata, user profile, action endpoints, and photo array.
+- `posts.json`: Direct array of published photo objects with action endpoints.
+- `<image>.comments.json`: Self-hosted comments files per photo.
+
+### Feed JSON Schema (`feed.json`):
+```json
+{
+  "version": "neogram-api-v1",
+  "generatedAt": "2026-10-24T18:00:00.000Z",
+  "user": {
+    "id": "uuid",
+    "uin": 100109,
+    "handle": "your_handle",
+    "author": "your_handle",
+    "avatarUrl": "https://neogram.club/icons/default-avatar.svg",
+    "siteUrl": "https://your_handle.neocities.org",
+    "deployPath": "neogram",
+    "fullSiteUrl": "https://your_handle.neocities.org/neogram",
+    "statusMessage": "Surfing cyberspace"
+  },
+  "endpoints": {
+    "apiUrl": "https://neogram.club",
+    "followUrl": "https://neogram.club/api/users/your_handle/follow",
+    "unfollowUrl": "https://neogram.club/api/users/your_handle/follow",
+    "guestbookUrl": "https://neogram.club/api/guestbook/100109",
+    "counterUrl": "https://neogram.club/counter/your_handle.svg",
+    "feedUrl": "https://your_handle.neocities.org/neogram/feed.json"
+  },
+  "posts": [
+    {
+      "id": "4587aa36-b626-4ebb-b6f1-1e9fbd1481e3",
+      "caption": "Sunset from the rooftop",
+      "imageUrl": "https://your_handle.neocities.org/neogram/uploads/img.webp",
+      "thumbnailUrl": "https://your_handle.neocities.org/neogram/uploads/img_thumb.webp",
+      "imagePath": "uploads/img.webp",
+      "thumbnailPath": "uploads/img_thumb.webp",
+      "filterApplied": "crt-green",
+      "likes": 12,
+      "createdAt": "2026-10-24T17:30:00.000Z",
+      "commentsCount": 2,
+      "comments": [
+        {
+          "id": "c_1",
+          "author": "visitor",
+          "avatar": "💬",
+          "text": "Great photo!",
+          "timestamp": "2026-10-24T17:45:00.000Z"
+        }
+      ],
+      "actions": {
+        "likeUrl": "https://neogram.club/api/posts/4587aa36-b626-4ebb-b6f1-1e9fbd1481e3/like",
+        "commentUrl": "https://neogram.club/api/posts/4587aa36-b626-4ebb-b6f1-1e9fbd1481e3/comments"
+      }
+    }
+  ]
+}
+```
+
+### Building Your Own Custom Display with Vanilla JS:
+```html
+<div id="gallery">Loading photos...</div>
+
+<script>
+  async function loadFeed() {
+    const res = await fetch('./neogram/feed.json');
+    const data = await res.json();
+    const container = document.getElementById('gallery');
+    
+    container.innerHTML = data.posts.map(p => `
+      <article style="border: 2px solid #000; margin-bottom: 16px; padding: 12px;">
+        <img src="${p.thumbnailUrl}" alt="${p.caption}" style="max-width: 100%; display: block;" />
+        <p><strong>${p.caption}</strong></p>
+        <button onclick="fetch('${p.actions.likeUrl}', { method: 'POST' })">
+          ⚡ ${p.likes} Likes
+        </button>
+      </article>
+    `).join('');
+  }
+  loadFeed();
+</script>
+```
+

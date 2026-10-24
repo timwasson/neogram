@@ -60,6 +60,35 @@ class BuildQueue {
 export const buildQueue = new BuildQueue();
 
 /**
+ * Cleans up HTML, CSS, and JS static site bundle assets from the output directory
+ * when running in Headless API mode. Strictly preserves uploads/ and data/ directories.
+ */
+async function cleanHtmlArtifacts(dir: string): Promise<void> {
+  const itemsToRemove = [
+    'index.html',
+    'friends',
+    'photos',
+    'css',
+    'js',
+    'embed',
+    'icons',
+    'embed.js',
+    'neogram-embed.css',
+    'id',
+    '800',
+  ];
+
+  for (const item of itemsToRemove) {
+    const itemPath = path.join(dir, item);
+    try {
+      if (existsSync(itemPath)) {
+        await fs.rm(itemPath, { recursive: true, force: true });
+      }
+    } catch (_err) {}
+  }
+}
+
+/**
  * Executes a static 11ty gallery compilation.
  * Internal worker function dispatched exclusively through buildQueue.
  */
@@ -197,30 +226,48 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
       comments: commentsByPost[post.id] || [],
     }));
 
-    // 3. Update site.json metadata for this specific user's compilation
+    // 3. User metadata & Headless API configuration
+    let author = 'user';
+    let authorUin: number | undefined = undefined;
+    let baseSiteUrl = 'https://user.neocities.org';
+    let rawDeployPath = 'neogram';
+    let fullSiteUrl = `${baseSiteUrl}/${rawDeployPath}`;
+    let avatarUrl = '/icons/default-avatar.svg';
+    let statusMessage = 'Surfing cyberspace';
+    let customCssUrl: string | null = null;
+    let shouldBuildHtml = true;
     let pathPrefix = '/';
+
     if (userId) {
-      const userRes = await query('SELECT id, email, handle, site_url, deploy_path, avatar_path, custom_css_url FROM users WHERE id = $1', [userId]);
+      const userRes = await query(
+        'SELECT id, email, handle, uin, site_url, deploy_path, avatar_path, custom_css_url, build_html, status_message FROM users WHERE id = $1',
+        [userId]
+      );
       if (userRes.rows.length > 0) {
         const u = userRes.rows[0];
-        const author = u.handle || u.email.split('@')[0];
-        const rawDeployPath = u.deploy_path !== null && u.deploy_path !== undefined
+        author = u.handle || u.email.split('@')[0];
+        authorUin = u.uin ? parseInt(u.uin, 10) : undefined;
+        rawDeployPath = u.deploy_path !== null && u.deploy_path !== undefined
           ? String(u.deploy_path).trim().replace(/^\/+|\/+$/g, '')
           : 'neogram';
         pathPrefix = rawDeployPath ? `/${rawDeployPath}/` : '/';
-        const baseSiteUrl = u.site_url ? u.site_url.replace(/\/+$/, '') : `https://${author}.neocities.org`;
-        const fullSiteUrl = rawDeployPath ? `${baseSiteUrl}/${rawDeployPath}` : baseSiteUrl;
+        baseSiteUrl = u.site_url ? u.site_url.replace(/\/+$/, '') : `https://${author}.neocities.org`;
+        fullSiteUrl = rawDeployPath ? `${baseSiteUrl}/${rawDeployPath}` : baseSiteUrl;
+        avatarUrl = u.avatar_path || '/icons/default-avatar.svg';
+        statusMessage = u.status_message || 'Surfing cyberspace';
+        customCssUrl = u.custom_css_url || null;
+        shouldBuildHtml = u.build_html !== false;
 
         const siteData = {
           title: `@${author.toUpperCase()}'S STATIC PHOTO STREAM`,
           author: author,
-          avatarUrl: u.avatar_path || '/icons/default-avatar.svg',
+          avatarUrl: avatarUrl,
           description: `Personal 90s retro static photo stream published via Neogram`,
           neocitiesUrl: fullSiteUrl,
           pathPrefix: pathPrefix,
           apiUrl: config.appUrl || 'http://localhost:4000',
           systemMood: '[:> SURFING THE RETRO STATIC WEBRING]',
-          customCssUrl: u.custom_css_url || null,
+          customCssUrl: customCssUrl,
         };
         const siteJsonPath = path.join(process.cwd(), 'eleventy/src/_data/site.json');
         await fs.writeFile(siteJsonPath, JSON.stringify(siteData, null, 2), 'utf-8');
@@ -292,30 +339,126 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
     const postsDataPath = path.join(process.cwd(), 'eleventy/src/_data/posts.json');
     await fs.writeFile(postsDataPath, JSON.stringify(posts, null, 2), 'utf-8');
 
-    // 5. Invoke Eleventy builder strictly to this user's isolated output directory
-    const inputDir = path.join(process.cwd(), 'eleventy/src');
-    const configPath = path.join(process.cwd(), 'eleventy/eleventy.config.js');
+    // 6. Build Comprehensive JSON Feeds for Self-Hosted Static API
+    const baseNeogramUrl = config.appUrl || 'http://localhost:4000';
+    let fullAvatarUrl = avatarUrl;
+    if (fullAvatarUrl && !fullAvatarUrl.startsWith('http://') && !fullAvatarUrl.startsWith('https://')) {
+      fullAvatarUrl = `${baseNeogramUrl}${fullAvatarUrl.startsWith('/') ? '' : '/'}${fullAvatarUrl}`;
+    }
 
-    await fs.mkdir(targetOutputDir, { recursive: true });
-    process.env.ELEVENTY_OUTPUT_DIR = path.relative(process.cwd(), targetOutputDir);
-    process.env.ELEVENTY_PATH_PREFIX = pathPrefix;
+    const formattedPosts = posts.map((post) => {
+      let imageUrl = post.imagePath;
+      let thumbnailUrl = post.thumbnailPath;
+      if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+        imageUrl = `${fullSiteUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+      }
+      if (thumbnailUrl && !thumbnailUrl.startsWith('http://') && !thumbnailUrl.startsWith('https://')) {
+        thumbnailUrl = `${fullSiteUrl}${thumbnailUrl.startsWith('/') ? '' : '/'}${thumbnailUrl}`;
+      }
 
-    const elev = new Eleventy(inputDir, targetOutputDir, {
-      configPath: configPath,
-      pathPrefix: pathPrefix,
+      return {
+        id: post.id,
+        userId: post.userId,
+        caption: post.caption,
+        imagePath: post.imagePath,
+        thumbnailPath: post.thumbnailPath,
+        imageUrl: imageUrl,
+        thumbnailUrl: thumbnailUrl,
+        filterApplied: post.filterApplied || 'none',
+        mood: post.mood || null,
+        webring: post.webring || null,
+        location: post.location || null,
+        likes: parseInt(post.likes, 10) || 0,
+        createdAt: post.createdAt,
+        commentsCount: (post.comments || []).length,
+        comments: post.comments || [],
+        commentsUrl: getCommentsRelativePath(post.imagePath),
+        actions: {
+          likeUrl: `${baseNeogramUrl}/api/posts/${post.id}/like`,
+          commentUrl: `${baseNeogramUrl}/api/posts/${post.id}/comments`,
+        },
+      };
     });
 
-    await elev.write();
-
-    const durationMs = Date.now() - startTime;
-    console.log(`[:> 11ty] Static gallery compiled: ${posts.length} photos in ${durationMs}ms -> ${targetOutputDir}`);
-
-    return {
-      ok: true,
-      postsCount: posts.length,
-      outputDir: targetOutputDir,
-      durationMs,
+    const feedData = {
+      version: 'neogram-api-v1',
+      generatedAt: new Date().toISOString(),
+      user: {
+        id: userId || 'station',
+        uin: authorUin,
+        handle: author,
+        author: author,
+        avatarUrl: fullAvatarUrl,
+        siteUrl: baseSiteUrl,
+        deployPath: rawDeployPath,
+        fullSiteUrl: fullSiteUrl,
+        statusMessage: statusMessage,
+        customCssUrl: customCssUrl,
+      },
+      endpoints: {
+        apiUrl: baseNeogramUrl,
+        followUrl: `${baseNeogramUrl}/api/users/${author}/follow`,
+        unfollowUrl: `${baseNeogramUrl}/api/users/${author}/follow`,
+        guestbookUrl: `${baseNeogramUrl}/api/guestbook/${authorUin || author}`,
+        counterUrl: `${baseNeogramUrl}/api/counter/${author}.svg`,
+        feedUrl: `${fullSiteUrl}/feed.json`,
+      },
+      posts: formattedPosts,
+      friends: friendsPosts,
     };
+
+    await fs.mkdir(targetOutputDir, { recursive: true });
+    const feedJsonOutPath = path.join(targetOutputDir, 'feed.json');
+    const postsJsonOutPath = path.join(targetOutputDir, 'posts.json');
+    await fs.writeFile(feedJsonOutPath, JSON.stringify(feedData, null, 2), 'utf-8');
+    await fs.writeFile(postsJsonOutPath, JSON.stringify(formattedPosts, null, 2), 'utf-8');
+
+    // 7. Invoke Eleventy builder or Headless API mode
+    if (shouldBuildHtml) {
+      const inputDir = path.join(process.cwd(), 'eleventy/src');
+      const configPath = path.join(process.cwd(), 'eleventy/eleventy.config.js');
+
+      process.env.ELEVENTY_OUTPUT_DIR = path.relative(process.cwd(), targetOutputDir);
+      process.env.ELEVENTY_PATH_PREFIX = pathPrefix;
+
+      const elev = new Eleventy(inputDir, targetOutputDir, {
+        configPath: configPath,
+        pathPrefix: pathPrefix,
+      });
+
+      await elev.write();
+
+      // Re-ensure self-hosted feed.json and posts.json are preserved in targetOutputDir
+      await fs.writeFile(feedJsonOutPath, JSON.stringify(feedData, null, 2), 'utf-8');
+      await fs.writeFile(postsJsonOutPath, JSON.stringify(formattedPosts, null, 2), 'utf-8');
+
+      const durationMs = Date.now() - startTime;
+      console.log(`[:> 11ty] Static gallery compiled (HTML + JSON): ${posts.length} photos in ${durationMs}ms -> ${targetOutputDir}`);
+
+      return {
+        ok: true,
+        postsCount: posts.length,
+        outputDir: targetOutputDir,
+        durationMs,
+      };
+    } else {
+      // Headless API mode: clean up HTML pages/assets, strictly preserving uploads/ and JSON feeds
+      await cleanHtmlArtifacts(targetOutputDir);
+
+      // Re-write feed.json and posts.json in targetOutputDir
+      await fs.writeFile(feedJsonOutPath, JSON.stringify(feedData, null, 2), 'utf-8');
+      await fs.writeFile(postsJsonOutPath, JSON.stringify(formattedPosts, null, 2), 'utf-8');
+
+      const durationMs = Date.now() - startTime;
+      console.log(`[:> STATIC-BUILD] Headless API mode active for ${userId || 'station'}: ${posts.length} photos in JSON feeds (${durationMs}ms) -> ${targetOutputDir} (HTML generation skipped)`);
+
+      return {
+        ok: true,
+        postsCount: posts.length,
+        outputDir: targetOutputDir,
+        durationMs,
+      };
+    }
   } catch (err: any) {
     console.error('[:> 11ty ERROR] Static build failed:', err);
     return {
