@@ -68,6 +68,16 @@
 
           <button
             type="button"
+            id="tabBtn-quickstart"
+            class="docs-topic-btn {% if activeTopic == 'quickstart' %}is-active{% endif %}"
+            onclick="switchDocTopic('quickstart')"
+          >
+            <span>⚡ Quickstart &amp; FAQs</span>
+            <span class="text-xxs">›</span>
+          </button>
+
+          <button
+            type="button"
             id="tabBtn-neocities"
             class="docs-topic-btn {% if activeTopic == 'neocities' %}is-active{% endif %}"
             onclick="switchDocTopic('neocities')"
@@ -182,6 +192,161 @@
 
         <!-- RIGHT COLUMN: Topic Content Panes -->
         <div class="docs-content">
+
+          <!-- ========================================================= -->
+          <!-- TOPIC 0: 5-MINUTE QUICKSTART & COMMON FAQS               -->
+          <!-- ========================================================= -->
+          <section id="docSection-quickstart" class="docs-section-pane flex flex-col gap-6 {% if activeTopic != 'quickstart' %}hidden{% endif %}">
+            
+            <div class="border-b-2 border-main pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">⚡</span>
+                <h1 class="text-base font-bold text-prompt m-0 uppercase">5-Minute Station Quickstart &amp; Cyberspace FAQs</h1>
+              </div>
+              <p class="text-xs text-muted mt-1 m-0">
+                New to Neogram or static publishing? Here is everything you need to know to get your photo gallery online and your widgets embedded in 5 minutes flat.
+              </p>
+            </div>
+
+            <!-- Quickstart Card -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-3">
+              <div class="window-header flex items-center justify-between">
+                <span>[:&gt; 5_MINUTE_QUICKSTART.BAT]</span>
+                <span class="text-xxs text-prompt">STEP-BY-STEP CHECKLIST</span>
+              </div>
+
+              <div class="flex flex-col gap-3 text-xs leading-relaxed">
+                <!-- Step 1 -->
+                <div class="p-3 bg-black border border-main flex items-start gap-3">
+                  <span class="docs-step-badge">1</span>
+                  <div>
+                    <h3 class="font-bold text-prompt m-0 uppercase text-xs">Claim Your Station Identity</h3>
+                    <p class="text-muted m-0 mt-1">
+                      Enter your email or phone on the login terminal to receive a 6-digit key. New stations are commissioned automatically with an immutable <strong>Node UIN</strong> (like an ICQ number) and a custom <strong>@handle</strong> call-sign.
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="p-3 bg-black border border-main flex items-start gap-3">
+                  <span class="docs-step-badge">2</span>
+                  <div>
+                    <h3 class="font-bold text-prompt m-0 uppercase text-xs">Connect Your Remote Neocities Site</h3>
+                    <p class="text-muted m-0 mt-1">
+                      Head to <strong>⚙ Settings</strong>. Paste your Neocities API key (found at <a href="https://neocities.org/settings#api_key" target="_blank" rel="noopener" class="text-mac underline font-bold">neocities.org/settings#api_key</a>). That's it! Neogram never asks for your main account password.
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="p-3 bg-black border border-main flex items-start gap-3">
+                  <span class="docs-step-badge">3</span>
+                  <div>
+                    <h3 class="font-bold text-prompt m-0 uppercase text-xs">Snap, Filter &amp; Transmit</h3>
+                    <p class="text-muted m-0 mt-1">
+                      In the <strong>↑ Upload Studio</strong>, snap a photo on your phone or upload an image. Pick an authentic retro filter (like <em>CRT Phosphor</em> or <em>16-Color VGA</em>), write a caption, and hit <strong>Transmit</strong>. Neogram automatically generates WebP assets and pushes your photo gallery to your Neocities host!
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="p-3 bg-black border border-main flex items-start gap-3">
+                  <span class="docs-step-badge">4</span>
+                  <div>
+                    <h3 class="font-bold text-prompt m-0 uppercase text-xs">Paste Hit Counter &amp; Guestbook Widgets</h3>
+                    <p class="text-muted m-0 mt-1">
+                      In the <strong>⎘ Embeds</strong> tab, pick your favorite glowing LED or Nixie hit counter style and copy the 1-line HTML tag. Paste it anywhere inside your site's <code>index.html</code>!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- FAQs Card: Addressing All Beginner Fears Directly -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-3">
+              <div class="window-header flex items-center justify-between">
+                <span>[:&gt; STATION_FAQ.HLP — Common Questions &amp; Safety Guarantees]</span>
+                <span class="text-xxs text-prompt">ZERO-STRESS INDIE WEB</span>
+              </div>
+
+              <div class="space-y-3 text-xs leading-relaxed">
+                <!-- Q1: Safety Guarantee -->
+                <div class="p-3 bg-black border border-green space-y-1">
+                  <div class="text-prompt font-bold flex items-center gap-2 text-xs">
+                    <span>🛡️</span>
+                    <span>Q: Will Neogram overwrite or delete my existing Neocities website?</span>
+                  </div>
+                  <p class="text-muted m-0 pl-5">
+                    <strong>Never!</strong> Neogram operates under a strict <strong>Root Site Non-Destruction Invariant</strong>. By default, it publishes strictly inside an isolated subfolder (<code>/neogram/</code>). Your existing homepage (<code>index.html</code>), custom styling, blog posts, fan pages, and images are 100% untouched.
+                  </p>
+                </div>
+
+                <!-- Q2: Mobile Camera -->
+                <div class="p-3 bg-black border border-main space-y-1">
+                  <div class="text-mac font-bold flex items-center gap-2 text-xs">
+                    <span>📱</span>
+                    <span>Q: Can I snap and publish photos directly from my mobile phone?</span>
+                  </div>
+                  <p class="text-muted m-0 pl-5">
+                    <strong>Yes!</strong> Neogram is a full Progressive Web App (PWA). You can open it in Safari or Chrome on iOS or Android, or tap <strong>[💾 INSTALL APP]</strong> in the top navigation bar to add it to your home screen. Tap the camera button to snap directly from your phone.
+                  </p>
+                </div>
+
+                <!-- Q3: Coding requirements -->
+                <div class="p-3 bg-black border border-main space-y-1">
+                  <div class="text-mac font-bold flex items-center gap-2 text-xs">
+                    <span>💻</span>
+                    <span>Q: Do I have to know JavaScript or complex coding?</span>
+                  </div>
+                  <p class="text-muted m-0 pl-5">
+                    <strong>Not at all!</strong> If you know basic HTML, that's more than enough. Neogram builds the complete photo gallery HTML for you automatically. To add the hit counter or visitor guestbook to your own pages, just copy and paste the single provided <code>&lt;img&gt;</code> or <code>&lt;iframe&gt;</code> tag.
+                  </p>
+                </div>
+
+                <!-- Q4: Node UIN vs Handle -->
+                <div class="p-3 bg-black border border-main space-y-1">
+                  <div class="text-mac font-bold flex items-center gap-2 text-xs">
+                    <span>🔢</span>
+                    <span>Q: What is a Node UIN vs. my @handle?</span>
+                  </div>
+                  <p class="text-muted m-0 pl-5">
+                    Think of your Node UIN (#{{ stationUin }}) like your permanent ICQ number. It is an immutable numeric identity. Your hit counters and guestbooks use this permanent ID so that you can change your <code>@handle</code> call-sign anytime without breaking any widgets on your website.
+                  </p>
+                </div>
+
+                <!-- Q5: Data Ownership & Leaving -->
+                <div class="p-3 bg-black border border-main space-y-1">
+                  <div class="text-mac font-bold flex items-center gap-2 text-xs">
+                    <span>🔒</span>
+                    <span>Q: What happens if I ever stop using Neogram?</span>
+                  </div>
+                  <p class="text-muted m-0 pl-5">
+                    You own 100% of your data. The static HTML pages, WebP images, and comment files remain on your Neocities host forever. You are never locked into our servers, and Neogram stores zero photos permanently.
+                  </p>
+                </div>
+
+                <!-- Q6: Where to paste -->
+                <div class="p-3 bg-black border border-main space-y-1">
+                  <div class="text-mac font-bold flex items-center gap-2 text-xs">
+                    <span>📋</span>
+                    <span>Q: Where exactly do I paste the widget code on my site?</span>
+                  </div>
+                  <p class="text-muted m-0 pl-5">
+                    Log in to your Neocities dashboard, click <strong>Edit</strong> on your <code>index.html</code> (or any other page), scroll to where you want the widget to appear (for example, in your footer or right before <code>&lt;/body&gt;</code>), paste the snippet, and hit <strong>Save</strong>. It goes live immediately!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Jump to Technical Guides -->
+            <div class="p-3 bg-window border border-main text-xs flex items-center justify-between flex-wrap gap-2">
+              <span class="text-muted">Ready to dive deeper into custom styling or API configurations?</span>
+              <button type="button" class="pixel-btn pixel-btn--yellow text-xs font-bold py-1 px-3" onclick="switchDocTopic('neocities')">
+                <span>🚀 Neocities Setup Guide →</span>
+              </button>
+            </div>
+
+          </section>
 
           <!-- ========================================================= -->
           <!-- TOPIC 1: NEOCITIES SETUP GUIDE                            -->

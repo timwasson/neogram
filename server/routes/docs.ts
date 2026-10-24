@@ -20,7 +20,7 @@ docsRouter.get('/docs', (req: Request, res: Response) => {
     ? String(currentUser.deploy_path).trim().replace(/^\/+|\/+$/g, '')
     : 'neogram';
 
-  const requestedTopic = (req.query.topic as string) || 'neocities';
+  const requestedTopic = (req.query.topic as string) || 'quickstart';
 
   res.render('docs', {
     title: 'Neogram - Documentation Center & Embed Manual',

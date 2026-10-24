@@ -68,7 +68,7 @@
           NEOGRAM NETWORK TERMINAL
         </div>
         <div class="text-xs text-muted leading-normal">
-          Passwordless social publishing engine. Enter your credential below to transmit a 6-digit carrier authorization key.
+          [:&gt; STATION REGISTRATION &amp; LOGIN]: Enter your email or phone below to transmit a 6-digit carrier authorization key. New stations will be commissioned automatically upon first login.
         </div>
       </div>
 
@@ -84,7 +84,7 @@
             name="identifier"
             required
             autocomplete="username"
-            placeholder="e.g. root@neogram.retro or (555) 019-1996"
+            placeholder="e.g. operator@your-email.com or (555) 019-1996"
             class="retro-input"
             autofocus
           />
@@ -223,7 +223,11 @@
   }
 
   function handleWindowControlClick(action) {
-    showAlert('error', 'SECURITY LOCK ACTIVE: Cannot ' + action + ' authentication daemon during protocol handshake.', '[!] SYSTEM LOCK:');
+    if (action === 'close') {
+      showAlert('info', 'Terminal session active. Click [About Neogram] in the top bar to return to the public deck, or transmit your key to authenticate.', '[:> NOTICE]:');
+    } else {
+      showAlert('info', 'Window geometry locked to fixed terminal dimensions during carrier handshake.', '[:> DISPLAY]:');
+    }
   }
 
   // Baud Rate Step Controller (0 to 7)

@@ -38,6 +38,17 @@
                 Welcome to Neogram! Under our <strong>Zero-Retention Policy</strong>, your photos are never permanently stored on Neogram servers—they publish directly to your personal static site. Complete the steps below to start publishing:
               </p>
 
+              <!-- Reassuring Safety Invariant Banner -->
+              <div class="p-2.5 bg-black border border-green text-xs font-mono mb-3 flex items-start gap-2">
+                <span class="text-sm shrink-0">🛡️</span>
+                <div>
+                  <span class="text-prompt font-bold block uppercase tracking-wider text-xxs">[:&gt; ROOT SITE NON-DESTRUCTION GUARANTEE]:</span>
+                  <span class="text-muted leading-relaxed">
+                    Neogram strictly publishes into your isolated subfolder (e.g. <code>/neogram/</code>). Your existing homepage (<code>index.html</code>), custom CSS styling, and blog files on Neocities are <strong>100% safe and will never be overwritten or deleted</strong>.
+                  </span>
+                </div>
+              </div>
+
               <div class="flex flex-col gap-2 mb-3">
                 <!-- Step 1: Identity -->
                 <div class="p-2 bg-black border border-main flex items-center justify-between text-xs">
@@ -573,15 +584,20 @@
                   </div>
 
                   <!-- Permanent Node UIN (ICQ Protocol) -->
-                  <div class="p-3 bg-black border border-main mb-2 flex items-center justify-between">
-                    <div>
-                      <span class="text-3xs text-muted font-mono block uppercase">Permanent Node UIN (Immutable Identity):</span>
-                      <span class="font-bold text-prompt font-pixel text-base tracking-widest">#{{ currentUser.uin or '100101' }}</span>
+                  <div class="p-3 bg-black border border-main mb-2">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <span class="text-3xs text-muted font-mono block uppercase">Permanent Node UIN (Immutable Identity):</span>
+                        <span class="font-bold text-prompt font-pixel text-base tracking-widest">#{{ currentUser.uin or '100101' }}</span>
+                      </div>
+                      <div class="text-right">
+                        <span class="text-3xs text-muted font-mono block">ANCHOR</span>
+                        <span class="text-xs text-mac font-bold font-mono">ICQ-STATIC-NODE</span>
+                      </div>
                     </div>
-                    <div class="text-right">
-                      <span class="text-3xs text-muted font-mono block">ANCHOR</span>
-                      <span class="text-xs text-mac font-bold font-mono">ICQ-STATIC-NODE</span>
-                    </div>
+                    <span class="text-3xs text-muted font-mono block mt-1.5 pt-1.5 border-t border-main">
+                      💡 <strong>Station Tip:</strong> Think of your Node UIN like your permanent ICQ number: your site hit counters and guestbooks stay permanently tied to this number even if you change your @handle call-sign later.
+                    </span>
                   </div>
 
                   <!-- Call-Sign / Handle Input -->
@@ -633,6 +649,17 @@
                 <div id="settingsAlert" class="retro-alert hidden mb-3">
                   <span id="settingsAlertTag" class="retro-alert__tag"></span>
                   <span id="settingsAlertMsg"></span>
+                </div>
+
+                <!-- Reassuring Safety Protocol Banner -->
+                <div class="p-2.5 bg-black border border-green text-xs font-mono mb-3 flex items-start gap-2">
+                  <span class="text-sm shrink-0">🛡️</span>
+                  <div>
+                    <span class="text-prompt font-bold block uppercase tracking-wider text-xxs">[:&gt; ROOT PROTECTION PROTOCOL: ACTIVE]:</span>
+                    <span class="text-muted leading-relaxed">
+                      Files write strictly into your selected subfolder below (default: <code>/neogram/</code>). Your existing homepage (<code>index.html</code>), custom styling, and blog files are <strong>never overwritten or deleted</strong>.
+                    </span>
+                  </div>
                 </div>
 
                 <form id="settingsForm" onsubmit="handleSaveSettings(event)" class="space-y-4">
@@ -712,10 +739,21 @@
 
                   <!-- API Key -->
                   <div>
-                    <div class="flex items-center justify-between mb-1">
-                      <label for="settingsApiKey" class="text-xs font-bold">
-                        Neocities API Key:
-                      </label>
+                    <div class="flex items-center justify-between mb-1 flex-wrap gap-1">
+                      <div class="flex items-center gap-2">
+                        <label for="settingsApiKey" class="text-xs font-bold">
+                          Neocities API Key:
+                        </label>
+                        <a
+                          href="https://neocities.org/settings#api_key"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="pixel-btn pixel-btn--sm pixel-btn--yellow text-3xs font-bold py-0.5 px-1.5"
+                          title="Open your Neocities API Key settings in new tab"
+                        >
+                          <span>🔑 GET KEY FROM NEOCITIES ↗</span>
+                        </a>
+                      </div>
                       <span id="keyStatusBadge" class="text-xs font-mono text-mac">Checking status...</span>
                     </div>
                     <div class="flex items-center gap-2">
@@ -760,24 +798,36 @@
                     </label>
                   </div>
 
-                  <!-- Generate Static HTML Pages Checkbox (Opt-Out for Headless API) -->
-                  <div class="border-2 border-main p-3 bg-card mt-2">
-                    <label class="flex items-start gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        id="settingsBuildHtml"
-                        name="buildHtml"
-                        class="mt-1"
-                        checked
-                      />
-                      <div class="text-xs">
-                        <span class="font-bold text-prompt block">📄 Generate Static HTML Pages</span>
-                        <span class="text-muted block">
-                          Compile 11ty static HTML gallery and photo pages. Uncheck for <strong>Headless API Mode</strong> (only JSON feeds, comments, and media will be generated and published, allowing you to build your own custom JavaScript frontend).
-                        </span>
+                  <!-- Advanced Developer Options (Collapsible) -->
+                  <details class="border-2 border-main p-3 bg-black mt-2 font-mono">
+                    <summary class="cursor-pointer font-bold text-xs text-prompt flex items-center justify-between">
+                      <span class="flex items-center gap-1.5">
+                        <span>⚙️</span>
+                        <span>ADVANCED / DEVELOPER OPTIONS (HEADLESS MODE)</span>
+                      </span>
+                      <span class="text-3xs text-muted">[CLICK TO TOGGLE]</span>
+                    </summary>
+                    <div class="pt-3 border-t border-main mt-2 space-y-2 text-xs">
+                      <label class="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          id="settingsBuildHtml"
+                          name="buildHtml"
+                          class="mt-1"
+                          checked
+                        />
+                        <div>
+                          <span class="font-bold text-prompt block">📄 Generate Static HTML Pages</span>
+                          <span class="text-muted block text-xs">
+                            <strong>Default (Recommended): Checked.</strong> Compiles your complete 11ty static HTML gallery and individual photo pages. (Uncheck only for <strong>Headless API Mode</strong> if you are a programmer writing custom JavaScript to consume raw JSON feeds).
+                          </span>
+                        </div>
+                      </label>
+                      <div class="text-3xs text-muted leading-relaxed pt-1 border-t border-main">
+                        💡 <em>Note for developers:</em> When Headless API Mode is enabled, HTML compilation is bypassed and strictly <code>feed.json</code>, <code>posts.json</code>, per-photo comments JSONs, and WebP media are published to your Neocities host.
                       </div>
-                    </label>
-                  </div>
+                    </div>
+                  </details>
 
                   <!-- Action Buttons -->
                   <div class="flex items-center gap-3 pt-2">
@@ -1118,8 +1168,13 @@
 
                 <!-- Embed Snippet Box -->
                 <div class="font-mono text-xs">
-                  <label class="block font-bold mb-1">HTML EMBED SNIPPET:</label>
-                  <pre id="counterCodeSnippet" class="p-2 bg-window border border-main text-xs font-mono overflow-x-auto select-all mb-2">&lt;div class="neogram-counter"&gt;
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="font-bold">HTML EMBED SNIPPET:</label>
+                    <span class="text-3xs text-muted font-mono">PASTE IN YOUR HTML (E.G. BEFORE &lt;/BODY&gt;)</span>
+                  </div>
+                  <pre id="counterCodeSnippet" class="p-2 bg-window border border-main text-xs font-mono overflow-x-auto select-all mb-2">&lt;!-- Neogram Dynamic Web Hit Counter --&gt;
+&lt;!-- Paste anywhere inside your page's HTML (e.g. before &lt;/body&gt;) --&gt;
+&lt;div class="neogram-counter"&gt;
   &lt;img src="http://localhost:4000/counter/{{ currentUser.handle }}.svg?style=green_led" alt="Visitor Counter" /&gt;
 &lt;/div&gt;</pre>
                   <button
@@ -1193,22 +1248,52 @@
                   :&gt; Drop your public guestbook onto your Neocities page with an iframe or link. Manage and moderate signatures below.
                 </p>
 
-                <div class="flex items-center gap-2 mb-3 flex-wrap">
-                  <a
-                    href="/embed/guestbook/{{ currentUser.handle }}"
-                    target="_blank"
-                    class="pixel-btn pixel-btn--yellow font-bold text-xs"
-                  >
-                    <span>🌐 Open Live Guestbook :&gt;</span>
-                  </a>
-                  <button
-                    type="button"
-                    id="btnCopyGuestbookIframe"
-                    onclick="copyGuestbookIframe()"
-                    class="pixel-btn font-bold text-xs"
-                  >
-                    <span>📋 Copy Iframe Code</span>
-                  </button>
+                <!-- Guestbook Style Palette Selector -->
+                <div class="mb-3 font-mono">
+                  <label class="block text-xs font-bold mb-1">GUESTBOOK STYLE SKIN:</label>
+                  <div class="grid grid-cols-2 gap-2 text-xs">
+                    <button type="button" id="btnGbDark" onclick="selectGuestbookSkin('dark')" class="pixel-btn pixel-btn--yellow text-xs py-1">
+                      📟 CRT Green Phosphor
+                    </button>
+                    <button type="button" id="btnGbWin95" onclick="selectGuestbookSkin('win95')" class="pixel-btn text-xs py-1">
+                      🖥️ Classic Gray Win95
+                    </button>
+                    <button type="button" id="btnGbAmber" onclick="selectGuestbookSkin('amber')" class="pixel-btn text-xs py-1">
+                      🟠 Amber Phosphor
+                    </button>
+                    <button type="button" id="btnGbClean" onclick="selectGuestbookSkin('clean')" class="pixel-btn text-xs py-1">
+                      ✨ Clean Frameless
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Guestbook HTML Embed Snippet Box -->
+                <div class="font-mono text-xs mb-3">
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="font-bold">IFRAME EMBED SNIPPET:</label>
+                    <span class="text-3xs text-muted font-mono">PASTE IN YOUR HTML</span>
+                  </div>
+                  <pre id="guestbookCodeSnippet" class="p-2 bg-window border border-main text-xs font-mono overflow-x-auto select-all mb-2">&lt;!-- Neogram Public Visitor Guestbook --&gt;
+&lt;!-- Paste anywhere inside your HTML --&gt;
+&lt;iframe src="http://localhost:4000/embed/guestbook/{{ currentUser.handle }}" width="100%" height="550" frameborder="0" style="border: 2px solid #00ff00; background: #000;"&gt;&lt;/iframe&gt;</pre>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      id="btnCopyGuestbookIframe"
+                      onclick="copyGuestbookIframe()"
+                      class="pixel-btn pixel-btn--blue font-bold text-xs"
+                    >
+                      <span>📋 Copy Iframe Code</span>
+                    </button>
+                    <a
+                      id="btnOpenGuestbookLink"
+                      href="/embed/guestbook/{{ currentUser.handle }}"
+                      target="_blank"
+                      class="pixel-btn pixel-btn--yellow font-bold text-xs"
+                    >
+                      <span>🌐 Open Live Guestbook :&gt;</span>
+                    </a>
+                  </div>
                 </div>
 
                 <!-- Signatures Moderation List -->
@@ -1294,11 +1379,14 @@
             <a href="/directory" class="pixel-btn text-xs font-bold py-2 px-3" onclick="if(window.retroAudio) retroAudio.playClick();">
               <span>👥</span> <span>Browse Station Directory :&gt;</span>
             </a>
-            <a href="/embed/embed.js" target="_blank" class="pixel-btn text-xs font-bold py-2 px-3" onclick="if(window.retroAudio) retroAudio.playClick();">
-              <span>💾</span> <span>Explore Live Embed Specs</span>
+            <a href="/docs#counter" class="pixel-btn text-xs font-bold py-2 px-3" onclick="if(window.retroAudio) retroAudio.playClick();">
+              <span>🔢</span> <span>Live Widgets &amp; Embed Specs :&gt;</span>
+            </a>
+            <a href="https://neogramtest.neocities.org/neogram/" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--green text-xs font-bold py-2 px-3" onclick="if(window.retroAudio) retroAudio.playClick();">
+              <span>🌐</span> <span>View Live Static Demo Gallery ↗</span>
             </a>
             <span class="text-xs text-muted font-mono">
-              (Free &amp; open for indie web explorers. No password needed—just a quick email code.)
+              (Free &amp; open for indie web explorers. No password needed—just a quick carrier code.)
             </span>
           </div>
         </div>
@@ -1374,6 +1462,76 @@
             </div>
           </div>
 
+        </div>
+
+        <!-- Visual Showcase / Live Sample Viewport Card -->
+        <div class="pixel-box mb-6 bg-window">
+          <div class="window-header flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span>🖼️</span>
+              <span class="font-bold text-xs uppercase">[:&gt; GALLERY_SAMPLE_VIEWPORT.SYS — What Your Site Will Look Like]</span>
+            </div>
+            <span class="pixel-badge pixel-badge--green text-xxs font-bold">11TY STATIC PREVIEW</span>
+          </div>
+
+          <div class="p-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+            <!-- Left: Sample Photo Card (7 cols) -->
+            <div class="md:col-span-7 border-2 border-main bg-black p-3 text-xs font-mono">
+              <div class="flex items-center justify-between pb-1.5 mb-2 border-b border-main text-xxs text-muted">
+                <span>@retro_explorer</span>
+                <span class="text-prompt">SHADER: CRT-PHOSPHOR</span>
+              </div>
+              <div class="relative overflow-hidden border border-main bg-card mb-2 preview-viewport crt-scanlines" style="max-height: 220px;">
+                <img
+                  src="/icons/default-avatar.svg"
+                  alt="Retro Sample Snapshot"
+                  class="w-full h-44 object-cover filter-crt"
+                  style="filter: sepia(0.6) hue-rotate(80deg) saturate(1.8) contrast(1.1);"
+                />
+                <div class="absolute bottom-2 right-2 bg-black border border-main px-1.5 py-0.5 text-3xs text-prompt">
+                  [320×240 SCANLINES]
+                </div>
+              </div>
+              <p class="text-xs text-main m-0 leading-relaxed">
+                "Sunset over cyberspace. Snapped on mobile, deployed straight to my Neocities gallery with zero coding!"
+              </p>
+              <div class="flex items-center justify-between mt-2 pt-2 border-t border-main text-xxs text-muted">
+                <span>📍 Earth // 28.8K V.34</span>
+                <span class="text-crimson font-bold">♥ 42 LIKES</span>
+              </div>
+            </div>
+
+            <!-- Right: Widgets & Explanation (5 cols) -->
+            <div class="md:col-span-5 flex flex-col gap-3 font-mono text-xs">
+              <div class="p-2.5 bg-black border border-main space-y-1">
+                <span class="text-3xs text-muted uppercase font-bold block">1. DROP-IN VISITOR COUNTER</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">🔢</span>
+                  <div class="p-1 border border-main bg-black inline-block">
+                    <span class="font-pixel text-prompt text-sm tracking-widest px-1">004819</span>
+                  </div>
+                  <span class="text-xxs text-muted">DYNAMIC SVG</span>
+                </div>
+              </div>
+
+              <div class="p-2.5 bg-black border border-main space-y-1">
+                <span class="text-3xs text-muted uppercase font-bold block">2. PUBLIC VISITOR SIGNATURE</span>
+                <p class="text-xxs text-prompt m-0">
+                  "Coolest personal site I've seen in years! — cyber_surfer" 😎
+                </p>
+              </div>
+
+              <a
+                href="https://neogramtest.neocities.org/neogram/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="pixel-btn pixel-btn--yellow font-bold text-xs py-2 text-center"
+                onclick="if(window.retroAudio) retroAudio.playClick();"
+              >
+                <span>🌐 Open Full Live Gallery on Neocities ↗</span>
+              </a>
+            </div>
+          </div>
         </div>
 
         <!-- The Indie Web Handshake / Trust Promise -->
@@ -1681,7 +1839,7 @@
         throw new Error(data.error || 'Carrier transmission failed.');
       }
 
-      await logStep('[:> commit_post: written to PostgreSQL node // status 201 [CONFIRMED]]', 500);
+      await logStep('[:> TRANSMISSION SUCCESSFUL] Photo compiled and published live!', 500);
 
       try {
         if (window.retroAudio && typeof window.retroAudio.playSuccess === 'function') {
@@ -1689,16 +1847,27 @@
         }
       } catch(e) {}
 
-      var liveSiteUrl = '{{ currentUser.siteUrl or "" }}';
-      var actions = '<a href="/#edit" onclick="window.location.href=\'/#edit\'; window.location.reload();" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs">📂 View in Archive →</a>';
-      if (liveSiteUrl && liveSiteUrl.startsWith('http')) {
-        actions += ' <a href="' + liveSiteUrl + '" target="_blank" rel="noopener" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs">🌐 View on Neocities ↗</a>';
+      var baseSite = '{{ currentUser.siteUrl or "" }}';
+      var userHandle = '{{ currentUser.handle or "" }}';
+      var deployFolder = '{{ currentUser.deployPath or "neogram" }}';
+      var finalHost = baseSite || (userHandle ? ('https://' + userHandle + '.neocities.org') : '');
+      var photoUrl = (finalHost && data.post && data.post.id) ? (finalHost.replace(/\/+$/, '') + '/' + deployFolder + '/photos/' + data.post.id + '/') : '';
+      var galleryUrl = finalHost ? (finalHost.replace(/\/+$/, '') + '/' + deployFolder + '/') : '';
+
+      var actions = '<div class="flex items-center gap-2 flex-wrap mt-2">';
+      if (photoUrl) {
+        actions += '<a href="' + photoUrl + '" target="_blank" rel="noopener" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs">🌐 View Photo on Site ↗</a>';
+        actions += '<button type="button" onclick="navigator.clipboard?.writeText(\'' + photoUrl + '\'); this.innerHTML=\'<span>✓ Copied Link!</span>\';" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs">📋 Copy Photo Link</button>';
+      } else if (galleryUrl) {
+        actions += '<a href="' + galleryUrl + '" target="_blank" rel="noopener" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs">🌐 View Gallery on Site ↗</a>';
       }
+      actions += '<a href="/#edit" onclick="window.location.href=\'/#edit\'; window.location.reload();" class="pixel-btn pixel-btn--sm text-xs font-bold">📂 Open Archive →</a>';
+      actions += '</div>';
 
       showAlert(
         'success',
-        '[✓] CARRIER DISPATCH CONFIRMED:',
-        data.message || 'Photo processed by Sharp and committed to your static gallery!',
+        '[✓] 🎉 PHOTO PUBLISHED LIVE!',
+        data.message || 'Your photograph has been processed with authentic retro shaders and deployed live to your personal static website.',
         actions
       );
 
@@ -1873,7 +2042,7 @@
     if (img) img.src = url;
     if (label) label.textContent = '/counter/' + userHandle + '.svg?style=' + style;
     if (snippet) {
-      snippet.textContent = '<div class="neogram-counter">\n  <img src="' + fullUrl + '" alt="Visitor Counter" />\n</div>';
+      snippet.textContent = '<!-- Neogram Dynamic Web Hit Counter -->\n<!-- Paste anywhere inside your page\'s HTML (e.g. before </body>) -->\n<div class="neogram-counter">\n  <img src="' + fullUrl + '" alt="Visitor Counter" />\n</div>';
     }
   }
 
@@ -1973,10 +2142,34 @@
     }
   }
 
+  var currentGuestbookSkin = 'dark';
+  function selectGuestbookSkin(skin) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    currentGuestbookSkin = skin;
+    ['btnGbDark', 'btnGbWin95', 'btnGbAmber', 'btnGbClean'].forEach(function(id) {
+      var btn = document.getElementById(id);
+      if (btn) btn.classList.remove('pixel-btn--yellow');
+    });
+    var skinBtn = document.getElementById('btnGb' + skin.charAt(0).toUpperCase() + skin.slice(1));
+    if (skinBtn) skinBtn.classList.add('pixel-btn--yellow');
+
+    var snippet = document.getElementById('guestbookCodeSnippet');
+    var fullUrl = window.location.origin + '/embed/guestbook/' + userHandle + (skin !== 'dark' ? ('?skin=' + skin) : '');
+    var styleAttr = 'border: 2px solid #00ff00; background: #000;';
+    if (skin === 'win95') styleAttr = 'border: 3px outset #c0c0c0; background: #c0c0c0;';
+    if (skin === 'amber') styleAttr = 'border: 2px solid #ffb000; background: #000;';
+    if (skin === 'clean') styleAttr = 'border: 0; background: transparent;';
+
+    if (snippet) {
+      snippet.textContent = '<!-- Neogram Public Visitor Guestbook -->\n<!-- Paste anywhere inside your HTML -->\n<iframe src="' + fullUrl + '" width="100%" height="550" frameborder="0" style="' + styleAttr + '"></iframe>';
+    }
+  }
+
   function copyGuestbookIframe() {
     if (window.retroAudio) window.retroAudio.playClick();
-    var iframe = '<iframe src="' + window.location.origin + '/embed/guestbook/' + userHandle + '" width="100%" height="500" frameborder="0"></iframe>';
-    navigator.clipboard?.writeText(iframe);
+    var snippet = document.getElementById('guestbookCodeSnippet');
+    var iframeText = snippet ? snippet.textContent : ('<iframe src="' + window.location.origin + '/embed/guestbook/' + userHandle + '" width="100%" height="550" frameborder="0"></iframe>');
+    navigator.clipboard?.writeText(iframeText);
     var btn = document.getElementById('btnCopyGuestbookIframe');
     if (btn) {
       var old = btn.innerHTML;
@@ -2125,12 +2318,21 @@
     }
   }
 
-  function appendTelemetryLog(text, isError) {
+  function appendTelemetryLog(text, isError, linkUrl) {
     var consoleEl = document.getElementById('telemetryConsole');
     if (!consoleEl) return;
     var line = document.createElement('div');
     if (isError) line.className = 'text-crimson font-bold';
     line.textContent = '[:> ' + new Date().toLocaleTimeString() + '] ' + text;
+    if (linkUrl) {
+      var a = document.createElement('a');
+      a.href = linkUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.className = 'text-yellow font-bold underline ml-1 hover:text-white';
+      a.textContent = '[LAUNCH GALLERY ↗]';
+      line.appendChild(a);
+    }
     consoleEl.appendChild(line);
     consoleEl.scrollTop = consoleEl.scrollHeight;
   }
@@ -2509,7 +2711,13 @@
       if (!res.ok || !data.ok) throw new Error(data.error || 'Neocities deployment rejected.');
 
       appendTelemetryLog('[✓ SUCCESS] ' + data.filesCount + ' files uploaded to Neocities in ' + data.durationMs + 'ms!');
-      appendTelemetryLog('Live static gallery deployed to ' + (data.siteUrl || 'Neocities'));
+      var livePreviewEl = document.getElementById('deployUrlPreview');
+      var liveUrl = data.siteUrl || (livePreviewEl ? livePreviewEl.textContent.trim() : '');
+      if (liveUrl) {
+        appendTelemetryLog('[:> LIVE GALLERY] Synced and online: ' + liveUrl + ' ', false, liveUrl);
+      } else {
+        appendTelemetryLog('Live static gallery deployed to Neocities static host.');
+      }
       durationLabel.textContent = 'DEPLOYED (' + data.durationMs + 'ms)';
 
       if (window.retroAudio) window.retroAudio.playSuccess();
