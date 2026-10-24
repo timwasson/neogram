@@ -395,12 +395,12 @@ postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next
 
     // Resolve clean root site URL for commenter
     let cleanCommenterSiteUrl: string | undefined = undefined;
-    if (user.site_url && user.site_url.trim()) {
+    if (user.siteUrl && user.siteUrl.trim()) {
       try {
-        const parsed = new URL(user.site_url);
+        const parsed = new URL(user.siteUrl);
         cleanCommenterSiteUrl = `${parsed.protocol}//${parsed.host}`;
       } catch (_e) {
-        cleanCommenterSiteUrl = user.site_url.replace(/\/+$/, '');
+        cleanCommenterSiteUrl = user.siteUrl.replace(/\/+$/, '');
       }
     } else if (user.handle) {
       cleanCommenterSiteUrl = `https://${user.handle}.neocities.org`;
