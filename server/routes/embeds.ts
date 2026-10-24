@@ -478,8 +478,146 @@ embedsRouter.get('/api/network/users', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/users/:handle/follow
- * Follow a user
+ * Helper to trigger background static rebuild & deploy for follower
+ */
+async function syncFollowerStaticSite(userId: string) {
+  try {
+    const { buildQueue, buildStaticGallery } = await import('../services/staticBuilder');
+    buildQueue.enqueue(`FollowerSync:${userId}`, async () => {
+      const credsRes = await query(
+        'SELECT deployment_type, deployment_credentials, auto_deploy FROM users WHERE id = $1',
+        [userId]
+      );
+      const u = credsRes.rows[0];
+      const hasApiKey = u && u.deployment_type === 'neocities' && !!u.deployment_credentials;
+
+      if (hasApiKey) {
+        const { deployToNeocities } = await import('../services/neocitiesPublisher');
+        await deployToNeocities(userId);
+      } else {
+        await buildStaticGallery({ userId });
+      }
+    }).catch((err) => {
+      console.warn(`[:> FOLLOWER SYNC ERROR] Rebuild failed for follower ${userId}:`, err);
+    });
+  } catch (err) {
+    console.error('[:> SYNC FOLLOWER QUEUE ERROR]', err);
+  }
+}
+
+/**
+ * GET /api/users/:identifier/friend-status
+ * Query friendship status between logged-in user and target station
+ */
+embedsRouter.get('/api/users/:identifier/friend-status', async (req: Request, res: Response) => {
+  try {
+    const currentUser = await getAuthUser(req);
+    const targetUser = await findUserByHandleOrId(req.params.identifier);
+    if (!targetUser) {
+      res.status(404).json({ ok: false, error: 'Target user not found' });
+      return;
+    }
+
+    let isFriend = false;
+    if (currentUser) {
+      const followRes = await query(
+        'SELECT 1 FROM follows WHERE follower_id = $1 AND following_id = $2',
+        [currentUser.id, targetUser.id]
+      );
+      isFriend = followRes.rows.length > 0;
+    }
+
+    const countsRes = await query(`
+      SELECT 
+        (SELECT COUNT(*) FROM follows WHERE following_id = $1) as "followersCount",
+        (SELECT COUNT(*) FROM follows WHERE follower_id = $1) as "followingCount"
+    `, [targetUser.id]);
+
+    res.json({
+      ok: true,
+      isFriend,
+      isSelf: currentUser ? currentUser.id === targetUser.id : false,
+      followersCount: parseInt(countsRes.rows[0].followersCount, 10),
+      followingCount: parseInt(countsRes.rows[0].followingCount, 10),
+    });
+  } catch (err: any) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/friends
+ * Returns current user's friends list and friends' latest photos feed
+ */
+embedsRouter.get('/api/friends', async (req: Request, res: Response) => {
+  try {
+    const currentUser = await getAuthUser(req);
+    if (!currentUser) {
+      res.status(401).json({ ok: false, error: 'Authentication required' });
+      return;
+    }
+
+    const friendsRes = await query(`
+      SELECT 
+        u.id, 
+        u.email, 
+        COALESCE(u.handle, split_part(u.email, '@', 1)) as handle,
+        u.uin,
+        u.avatar_path as "avatarPath",
+        u.status_message as "statusMessage",
+        u.is_away as "isAway",
+        u.site_url as "siteUrl",
+        u.deploy_path as "deployPath",
+        f.created_at as "friendedAt",
+        (SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id) as "postCount"
+      FROM follows f
+      JOIN users u ON f.following_id = u.id
+      WHERE f.follower_id = $1
+      ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC
+    `, [currentUser.id]);
+
+    const postsRes = await query(`
+      SELECT 
+        p.id,
+        p.user_id as "userId",
+        p.image_path as "imagePath",
+        p.thumbnail_path as "thumbnailPath",
+        p.caption,
+        p.filter_applied as "filterApplied",
+        p.mood,
+        p.webring,
+        p.location,
+        p.likes_count as "likes",
+        p.created_at as "createdAt",
+        u.email,
+        u.handle,
+        u.uin,
+        u.avatar_path as "avatarPath",
+        u.site_url as "siteUrl",
+        u.deploy_path as "deployPath",
+        COALESCE(u.handle, split_part(u.email, '@', 1)) as author,
+        (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
+      FROM posts p
+      JOIN follows f ON p.user_id = f.following_id
+      JOIN users u ON p.user_id = u.id
+      WHERE f.follower_id = $1
+      ORDER BY p.created_at DESC
+      LIMIT 100
+    `, [currentUser.id]);
+
+    res.json({
+      ok: true,
+      friends: friendsRes.rows,
+      posts: postsRes.rows,
+    });
+  } catch (err: any) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/users/:identifier/follow
+ * Follow / Add Friend
  */
 embedsRouter.post('/api/users/:identifier/follow', async (req: Request, res: Response) => {
   try {
@@ -496,7 +634,7 @@ embedsRouter.post('/api/users/:identifier/follow', async (req: Request, res: Res
     }
 
     if (currentUser.id === targetUser.id) {
-      res.status(400).json({ ok: false, error: 'Cannot follow yourself' });
+      res.status(400).json({ ok: false, error: 'Cannot add yourself as a friend' });
       return;
     }
 
@@ -507,15 +645,29 @@ embedsRouter.post('/api/users/:identifier/follow', async (req: Request, res: Res
       [currentUser.id, targetUser.id]
     );
 
-    res.json({ ok: true, following: true, targetHandle: targetUser.handle || targetUser.email.split('@')[0] });
+    // 1. Rebuild & deploy follower's static site so /friends/ page updates
+    syncFollowerStaticSite(currentUser.id);
+
+    // 2. Refresh NIM buddy list in real-time
+    try {
+      const { refreshUserBuddyList } = await import('../services/chatSocket');
+      await refreshUserBuddyList(currentUser.id);
+    } catch (_wsErr) {}
+
+    res.json({
+      ok: true,
+      following: true,
+      isFriend: true,
+      targetHandle: targetUser.handle || targetUser.email.split('@')[0],
+    });
   } catch (err: any) {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
 
 /**
- * DELETE /api/users/:handle/follow
- * Unfollow a user
+ * DELETE /api/users/:identifier/follow
+ * Unfollow / Remove Friend
  */
 embedsRouter.delete('/api/users/:identifier/follow', async (req: Request, res: Response) => {
   try {
@@ -537,7 +689,21 @@ embedsRouter.delete('/api/users/:identifier/follow', async (req: Request, res: R
       [currentUser.id, targetUser.id]
     );
 
-    res.json({ ok: true, following: false, targetHandle: targetUser.handle || targetUser.email.split('@')[0] });
+    // 1. Rebuild & deploy follower's static site so /friends/ page updates
+    syncFollowerStaticSite(currentUser.id);
+
+    // 2. Refresh NIM buddy list in real-time
+    try {
+      const { refreshUserBuddyList } = await import('../services/chatSocket');
+      await refreshUserBuddyList(currentUser.id);
+    } catch (_wsErr) {}
+
+    res.json({
+      ok: true,
+      following: false,
+      isFriend: false,
+      targetHandle: targetUser.handle || targetUser.email.split('@')[0],
+    });
   } catch (err: any) {
     res.status(500).json({ ok: false, error: err.message });
   }

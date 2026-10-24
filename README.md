@@ -13,9 +13,10 @@
 - **Design System:** Zero Tailwind. Pure Vanilla CSS compiled from Dart Sass (`public/css/neogram.css`). Dual-layer styling: workstation UI uses modular utility classes; static gallery output delivered to Neocities/GitHub Pages uses strict BEM classes for 1-click end-user CSS overrides
 - **Audio Engine:** Web Audio API synthesized 8-bit clicks, camera shutters, success chimes, and dial-up tones
 - **Social & Widgets:** Dynamic SVG hit counters (`/counter/:handle.svg`), public station cyber-profiles (`/user/:id`), visitor guestbook, and JSONFeed 1.1 feeds
+- **Friends & Static Follow Grid:** Dedicated workstation `/friends` page, static `/friends/` photo gallery grid on Neocities, cascading follower rebuilds on post publication, and 1-click "Add Friend" on profiles and static site banners
 - **User Directory & Presence:** Cyberspace white-pages directory (`/directory` & `/api/directory`) with presence categorization (Active, Away, Inactive), search filtering, and profile linking
 - **Documentation Center:** Complete user guides and interactive embed manual (`/docs` & `docs/`) with step-by-step setup guides, sample embed codes for hit counters and guestbooks, and publishing pipeline deep-dives
-- **Instant Messenger:** WebSockets (`/ws/chat`) with ephemeral offline queue, client-side retention, and Manifest V3 browser extension
+- **Instant Messenger:** WebSockets (`/ws/chat`) with ephemeral offline queue, client-side retention, categorized online/offline Friends and Cyberspace Stations buddy list, and Manifest V3 browser extension
 
 ---
 
@@ -26,9 +27,10 @@
 3. **Non-Destructive Deletion Invariant:** Remote deletions to Neocities are strictly restricted to `uploads/` matching the user's `deploy_path`. Non-Neogram files cannot be deleted.
 4. **Permanent Node UIN (ICQ-Style):** Accounts receive an immutable numeric node ID (`users.uin`, sequence starting at `#100101`). Creators can freely edit their `@handle` without breaking third-party static site embeds or counters.
 5. **Semantic BEM Static Deliverables & Custom CSS:** The Eleventy static site engine compiles galleries using pure BEM markup (`.neogram-*`) with zero inline utility classes. Static site owners can link custom stylesheets (`users.custom_css_url`) or inject custom CSS on Neocities to effortlessly override any component's look without fighting specificity or needing `!important`.
-6. **Public Station Cyber-Identity (`/user/:id`):** Public station profiles resolve by UUID, `@handle`, or immutable `#uin`. Features avatar, live hit counter, status broadcast, photo stream, and clean links directly to the creator's root personal website without subdirectories.
+6. **Public Station Cyber-Identity (`/user/:id`):** Public station profiles resolve by UUID, `@handle`, or immutable `#uin`. Features avatar, live hit counter, status broadcast, photo stream, reciprocal "Add Friend" action, and clean links directly to the creator's root personal website without subdirectories.
 7. **Cyberspace Station Directory & Presence Categorization (`/directory`):** Public station white-pages listing all registered nodes in hierarchical carrier order: Active transmitters first (🟢), then "Away" stations (🟡), then Inactive nodes (⚪). Each sub-category is strictly ordered alphabetically by handle, displaying handle, numeric UID (`#uin`), small thumbnail, and link to profile. Real-time client-side instant filtering enables rapid searching by `@handle` or `#UID`, with instant access from the top navigation bar and user account menu.
 8. **Cyberspace Documentation Center & Interactive Manual (`/docs`):** Complete self-hosted guides and embed manual covering Neocities setup, dynamic SVG hit counters, guestbook ledgers, Sharp processing pipeline, and BEM theming. Interpolates active creator credentials and immutable numeric UINs directly into embed snippets for 1-click deployment.
+9. **Friends Network & Static Follow Grid (`/friends` & static `/friends/`):** Connect with fellow creators using simple "Friends". View a creator's profile or static site banner to add them as a friend. Features a dedicated workstation `/friends` page to browse friends' photo feeds and manage connections, a static `/friends/` photo grid on your personal Neocities site, NIM buddy list prioritization (Friends at the top), and automatic cascading FIFO background rebuilds across all follower static sites whenever a friend broadcasts a new photograph.
 
 ---
 

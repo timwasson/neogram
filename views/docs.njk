@@ -136,6 +136,16 @@
             <span class="text-xxs">›</span>
           </button>
 
+          <button
+            type="button"
+            id="tabBtn-friends"
+            class="docs-topic-btn {% if activeTopic == 'friends' %}is-active{% endif %}"
+            onclick="switchDocTopic('friends')"
+          >
+            <span>🤝 Friends &amp; Static Grid</span>
+            <span class="text-xxs">›</span>
+          </button>
+
           <!-- Raw Markdown Files Box -->
           <div class="mt-4 p-3 bg-window border border-main text-xs flex flex-col gap-2">
             <span class="font-bold text-xxs uppercase tracking-wider text-muted">DOCUMENTATION REPO FILES:</span>
@@ -145,6 +155,7 @@
               <a href="/docs/publishing-pipeline.md" class="text-mac underline truncate">📄 publishing-pipeline.md</a>
               <a href="/docs/custom-styling.md" class="text-mac underline truncate">📄 custom-styling.md</a>
               <a href="/docs/buddylist-chat.md" class="text-mac underline truncate">📄 buddylist-chat.md</a>
+              <a href="/docs/friends.md" class="text-mac underline truncate">📄 friends.md</a>
             </div>
           </div>
         </aside>
@@ -773,6 +784,84 @@ body.neogram-site {
               <div class="p-2 bg-surface-sunken border border-muted font-mono text-xs text-prompt">
                 npm run extension:sync    # Syncs latest CSS and Audio to extension/shared/<br />
                 npm run extension:package # Syncs and packages into neogram-aim-extension.zip
+              </div>
+            </div>
+
+          </section>
+
+          <!-- ========================================================= -->
+          <!-- TOPIC 8: FRIENDS NETWORK & STATIC FOLLOW GRID             -->
+          <!-- ========================================================= -->
+          <section id="docSection-friends" class="docs-section-pane flex flex-col gap-6 {% if activeTopic != 'friends' %}hidden{% endif %}">
+            
+            <div class="border-b-2 border-main pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">🤝</span>
+                <h1 class="text-base font-bold text-prompt m-0 uppercase">Cyberspace Friends Network &amp; Static Grid</h1>
+              </div>
+              <p class="text-xs text-muted mt-1 m-0">
+                Connect with fellow static web creators using simple "Friends". View feeds of friends' photographs in your workstation and automatically publish a static friends gallery to your Neocities site.
+              </p>
+            </div>
+
+            <!-- Overview Window -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-3">
+              <h3 class="font-bold text-xs uppercase text-mac m-0">1. How Friends Work on Neogram</h3>
+              <p class="text-xs text-muted m-0 leading-relaxed">
+                Neogram adopts the classic 90s webring and buddy list philosophy: you can add any registered cyberspace station as a <strong>Friend</strong> with a single click. When you add a friend:
+              </p>
+              <ul class="list-disc list-inside text-xs space-y-1 text-muted pl-2">
+                <li>They appear at the top of your <strong>NIM (Neogram Instant Messenger)</strong> buddy list under <code>🤝 Friends</code>.</li>
+                <li>Their published photographs stream live into your personal workstation <strong>Friends</strong> feed (<code>/friends</code>).</li>
+                <li>Your static Neocities website compiles a dedicated <strong>Friends Photo Grid</strong> at <code>/friends/</code> (e.g. <code>https://{{ stationHandle }}.neocities.org/{{ deployPath }}/friends/</code>).</li>
+                <li>Whenever a friend broadcasts a new photo, Neogram automatically triggers an isolated background rebuild of your static site!</li>
+              </ul>
+            </div>
+
+            <!-- 1-Click Add Friend Buttons -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-3">
+              <h3 class="font-bold text-xs uppercase text-mac m-0">2. Adding Friends Across Cyberspace</h3>
+              <p class="text-xs text-muted m-0 leading-relaxed">
+                Friends can be added from two primary locations:
+              </p>
+              <ol class="list-decimal list-inside text-xs space-y-2 text-muted pl-2">
+                <li>
+                  <strong>Public Station Profiles (<code>/user/:identifier</code>):</strong> When logged in, click the green <code>[🤝 Add Friend]</code> button on any creator's profile page.
+                </li>
+                <li>
+                  <strong>Static Neocities Gallery Header (<code>index.html</code>):</strong> Every static Neogram gallery banner features a <code>[🤝 Add Friend]</code> button. If you've connected your Cyber-Pass, 1-click adds that creator as a friend directly from their Neocities site!
+                </li>
+              </ol>
+            </div>
+
+            <!-- Cascading FIFO Rebuild Architecture -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-3">
+              <h3 class="font-bold text-xs uppercase text-mac m-0">3. Concurrency-Safe Cascading Rebuilds</h3>
+              <p class="text-xs text-muted m-0 leading-relaxed">
+                When a creator publishes a photo, every friend who follows them needs their static site updated. Neogram processes these through the sequential FIFO <code>BuildQueue</code>:
+              </p>
+              <div class="p-3 bg-black border border-main text-xxs font-mono text-prompt space-y-1">
+                <div>[1] Creator publishes photo -> Sharp compresses WebP -> Posts to PostgreSQL</div>
+                <div>[2] Creator's static site is built and deployed live to Neocities</div>
+                <div>[3] System discovers all followers: SELECT follower_id FROM follows WHERE following_id = creator</div>
+                <div>[4] Follower rebuilds are enqueued sequentially: CascadeFollower:&lt;followerId&gt;</div>
+                <div>[5] Each follower's /friends/index.html compiles one at a time (preventing CPU and rate-limit spikes)</div>
+              </div>
+            </div>
+
+            <!-- Static Navigation & URL Resolution -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-3">
+              <h3 class="font-bold text-xs uppercase text-mac m-0">4. Static Site Deliverable Contract</h3>
+              <p class="text-xs text-muted m-0 leading-relaxed">
+                In strict compliance with our safe subdirectory invariant, your static friends page lives inside your designated <code>deploy_path</code> (e.g. <code>/neogram/friends/index.html</code>). All friend photo URLs are resolved to absolute URLs so your visitors never encounter 404 image errors.
+              </p>
+              <div class="flex items-center gap-2 pt-1">
+                <a href="/friends" class="pixel-btn pixel-btn--green text-xs font-bold py-1 px-3">
+                  <span>🤝 Open Workstation Friends Console :&gt;</span>
+                </a>
+                <a href="/directory" class="pixel-btn pixel-btn--yellow text-xs font-bold py-1 px-3">
+                  <span>👥 Explore Cyberspace Directory :&gt;</span>
+                </a>
               </div>
             </div>
 

@@ -1,0 +1,137 @@
+---
+layout: layouts/base.njk
+title: Friends Static Photo Grid
+permalink: "friends/index.html"
+---
+
+<!-- ==============================================================
+     FRIENDS STATIC STREAM BANNER
+     ============================================================== -->
+<section class="neogram-banner">
+  <div class="neogram-banner__header">
+    <div class="neogram-banner__title">
+      <span>🤝</span>
+      <span>[:> @{{ site.author | upper }}'S FRIENDS STATIC STREAM]</span>
+    </div>
+    <div class="neogram-banner__status">
+      <span>● FRIENDS CARRIER NETWORK</span>
+    </div>
+  </div>
+
+  <div class="neogram-banner__body">
+    <div class="neogram-banner__info">
+      <p class="neogram-banner__desc">
+        Transmissions published by friends and followed stations on the Neogram cyberspace network.
+      </p>
+      <p class="neogram-banner__node">
+        Network relay: <code>{{ site.neocitiesUrl }}/friends/</code> · Synchronized via Neogram Build Queue
+      </p>
+    </div>
+
+    <div class="neogram-banner__actions">
+      <span class="neogram-badge neogram-badge--cyan">{{ friendsPosts.length }} TRANSMISSIONS ARCHIVED</span>
+      <a href="{{ '/' | url }}" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
+        <span>← Back to My Gallery</span>
+      </a>
+      <a href="{{ site.apiUrl or 'http://localhost:4000' }}/friends" target="_blank" class="neogram-btn neogram-btn--green neogram-btn--sm">
+        <span>🤝 Manage Friends :&gt;</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ==============================================================
+     FRIENDS PHOTO GRID
+     ============================================================== -->
+{% if not friendsPosts or friendsPosts.length == 0 %}
+  <div class="neogram-empty">
+    <div class="neogram-empty__icon">📡</div>
+    <div class="neogram-empty__title">[:&gt; NO TRANSMISSIONS FROM FRIENDS YET]</div>
+    <p class="neogram-empty__desc">
+      Your static friends archive is empty. Add fellow cyberspace surfers as friends on Neogram to follow their broadcasted photographs in this static grid.
+    </p>
+    <div class="neogram-empty__action">
+      <a href="{{ site.apiUrl or 'http://localhost:4000' }}/directory" target="_blank" class="neogram-btn neogram-btn--green neogram-btn--lg">
+        <span>👥 Explore Cyberspace Directory</span>
+      </a>
+    </div>
+  </div>
+{% else %}
+  <div class="neogram-grid">
+    {% for post in friendsPosts %}
+      <article class="neogram-card">
+        <!-- Card Window Header -->
+        <div class="neogram-card__header">
+          <a
+            href="{{ post.profileUrl or ((site.apiUrl or 'http://localhost:4000') + '/user/@' + post.author) }}"
+            target="_blank"
+            class="neogram-card__author hover:underline"
+            title="View @{{ post.author }} on Neogram"
+          >
+            @{{ post.author }} {% if post.uin %}[#{{ post.uin }}]{% endif %}
+          </a>
+          <span class="neogram-card__shader">{{ post.filterApplied or 'RAW' }}</span>
+        </div>
+
+        <!-- Thumbnail Viewport with CRT & Filter Shaders -->
+        <a
+          href="{{ post.profileUrl or ((site.apiUrl or 'http://localhost:4000') + '/user/@' + post.author) }}"
+          target="_blank"
+          class="neogram-card__media"
+          title="View @{{ post.author }}'s profile"
+        >
+          <img
+            src="{{ post.thumbnailPath or post.imagePath }}"
+            alt="{{ post.caption }}"
+            class="neogram-card__image filter-{{ post.filterApplied or 'none' }}"
+            loading="lazy"
+          />
+          <div class="neogram-card__overlay">
+            <span class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn">
+              <span>👁️ VIEW PROFILE</span>
+            </span>
+          </div>
+        </a>
+
+        <!-- Metadata & Caption Card Body -->
+        <div class="neogram-card__body">
+          <div class="neogram-card__content">
+            <div class="neogram-card__meta">
+              <span class="neogram-card__location">{{ post.location or 'Earth // Cyberspace' }}</span>
+              <span class="neogram-card__date">{{ post.createdAt | formatDate }}</span>
+            </div>
+
+            <p class="neogram-card__caption">
+              {{ post.caption }}
+            </p>
+          </div>
+
+          <!-- Tags & Actions Footer -->
+          <div>
+            <div class="neogram-card__tags">
+              {% if post.mood %}
+                <span class="neogram-badge neogram-badge--cyan">{{ post.mood }}</span>
+              {% endif %}
+              {% if post.webring %}
+                <span class="neogram-badge neogram-badge--magenta">ring: {{ post.webring }}</span>
+              {% endif %}
+            </div>
+
+            <div class="neogram-card__footer">
+              <span class="neogram-card__likes">
+                ❤️ <strong>{{ post.likes or 0 }}</strong> likes
+              </span>
+              <a
+                href="{{ post.profileUrl or ((site.apiUrl or 'http://localhost:4000') + '/user/@' + post.author) }}"
+                target="_blank"
+                class="neogram-btn neogram-btn--yellow neogram-btn--sm"
+              >
+                <span>Station Node :&gt;</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+{% endif %}

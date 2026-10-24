@@ -215,10 +215,17 @@ export function initChatWebSocketServer(server: http.Server) {
 }
 
 /**
- * Sends initial handshake packet with online buddy states and user profile
+ * Sends initial handshake packet with online buddy states, user profile, and friend status
  */
 async function sendInitialState(ws: WebSocket, currentUserId: string) {
   try {
+    // Query users that currentUserId follows (Friends)
+    const friendsRes = await query(
+      'SELECT following_id FROM follows WHERE follower_id = $1',
+      [currentUserId]
+    );
+    const friendSet = new Set<string>(friendsRes.rows.map((r: any) => r.following_id));
+
     // Query all users
     const allUsers = await query(`
       SELECT 
@@ -242,6 +249,7 @@ async function sendInitialState(ws: WebSocket, currentUserId: string) {
         status: active ? active.status : 'offline',
         awayMessage: active ? active.awayMessage : (u.statusMessage || ''),
         isSelf: u.id === currentUserId,
+        isFriend: friendSet.has(u.id),
       };
     });
 
@@ -252,6 +260,16 @@ async function sendInitialState(ws: WebSocket, currentUserId: string) {
     }));
   } catch (err: any) {
     console.error('[:> INIT STATE ERROR]', err);
+  }
+}
+
+/**
+ * Pushes updated buddy list packet to an active user socket
+ */
+export async function refreshUserBuddyList(userId: string) {
+  const session = activeSockets.get(userId);
+  if (session && session.ws.readyState === WebSocket.OPEN) {
+    await sendInitialState(session.ws, userId);
   }
 }
 

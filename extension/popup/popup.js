@@ -678,58 +678,65 @@
 
     renderBuddies: function () {
       var self = this;
-      if (!this.onlineBuddiesEl || !this.offlineBuddiesEl) return;
+      var container = document.querySelector('.aim-window__buddies-container');
+      if (!container) return;
 
       var myHandle = this.currentUser ? (this.currentUser.handle || '').toLowerCase() : '';
-      var online = [];
-      var offline = [];
+      var friendsOnline = [];
+      var friendsOffline = [];
+      var othersOnline = [];
+      var othersOffline = [];
 
       this.buddies.forEach(function (b) {
         if ((b.handle || '').toLowerCase() === myHandle) return;
-        if (b.isOnline) online.push(b);
-        else offline.push(b);
+        if (b.isFriend) {
+          if (b.isOnline) friendsOnline.push(b);
+          else friendsOffline.push(b);
+        } else {
+          if (b.isOnline) othersOnline.push(b);
+          else othersOffline.push(b);
+        }
       });
 
-      var self = this;
-      // 1. Online
-      if (online.length === 0) {
-        this.onlineBuddiesEl.innerHTML = '<div class="text-xs text-muted p-1 italic">No buddies online.</div>';
+      var makeItem = function (b) {
+        var dot = b.isOnline ? (b.status === 'away' ? '🟡' : '🟢') : '⚪';
+        var note = b.awayMessage ? ' — "' + self.escapeHtml(b.awayMessage) + '"' : '';
+        var btnText = b.isOnline ? 'IM' : 'MSG';
+        var opacityClass = b.isOnline ? '' : ' opacity-70';
+        return '<div class="aim-window__buddy-item' + opacityClass + '" data-handle="' + self.escapeHtml(b.handle) + '">' +
+          '<div class="flex items-center gap-1.5 overflow-hidden">' +
+            '<span>' + dot + '</span>' +
+            '<span class="font-bold text-prompt">@' + self.escapeHtml(b.handle) + '</span>' +
+            '<span class="text-muted text-xs truncate">' + note + '</span>' +
+          '</div>' +
+          '<button type="button" class="aim-window__btn-sm">' + btnText + '</button>' +
+        '</div>';
+      };
+
+      var html = '';
+
+      // 1. FRIENDS SECTION
+      html += '<div class="aim-window__buddy-section-title">🤝 Friends (' + friendsOnline.length + ' Online / ' + friendsOffline.length + ' Offline)</div>';
+      if (friendsOnline.length === 0 && friendsOffline.length === 0) {
+        html += '<div class="text-xs text-muted p-1 italic">No friends added yet.</div>';
       } else {
-        var html = '';
-        online.forEach(function (b) {
-          var dot = b.status === 'away' ? '🟡' : '🟢';
-          var note = b.awayMessage ? ' — "' + self.escapeHtml(b.awayMessage) + '"' : '';
-          html += '<div class="aim-window__buddy-item" data-handle="' + self.escapeHtml(b.handle) + '">' +
-            '<div class="flex items-center gap-1.5 overflow-hidden">' +
-              '<span>' + dot + '</span>' +
-              '<span class="font-bold text-prompt">@' + self.escapeHtml(b.handle) + '</span>' +
-              '<span class="text-muted text-xs truncate">' + note + '</span>' +
-            '</div>' +
-            '<button type="button" class="aim-window__btn-sm">IM</button>' +
-          '</div>';
-        });
-        this.onlineBuddiesEl.innerHTML = html;
+        friendsOnline.forEach(function (b) { html += makeItem(b); });
+        friendsOffline.forEach(function (b) { html += makeItem(b); });
       }
 
-      // 2. Offline
-      if (offline.length === 0) {
-        this.offlineBuddiesEl.innerHTML = '<div class="text-xs text-muted p-1 italic">No offline buddies.</div>';
+      // 2. OTHER STATIONS SECTION
+      html += '<div class="aim-window__buddy-section-title">🌐 Other Stations (' + othersOnline.length + ' Online)</div>';
+      if (othersOnline.length === 0 && othersOffline.length === 0) {
+        html += '<div class="text-xs text-muted p-1 italic">No other stations online.</div>';
       } else {
-        var offHtml = '';
-        offline.forEach(function (b) {
-          offHtml += '<div class="aim-window__buddy-item opacity-70" data-handle="' + self.escapeHtml(b.handle) + '">' +
-            '<div class="flex items-center gap-1.5 overflow-hidden">' +
-              '<span>⚪</span>' +
-              '<span>@' + self.escapeHtml(b.handle) + '</span>' +
-            '</div>' +
-            '<button type="button" class="aim-window__btn-sm">MSG</button>' +
-          '</div>';
-        });
-        this.offlineBuddiesEl.innerHTML = offHtml;
+        othersOnline.forEach(function (b) { html += makeItem(b); });
+        othersOffline.forEach(function (b) { html += makeItem(b); });
       }
+
+      container.innerHTML = html;
 
       // Attach click events to buddy items
-      var items = this.buddiesView.querySelectorAll('.aim-window__buddy-item');
+      var items = container.querySelectorAll('.aim-window__buddy-item');
       items.forEach(function (el) {
         el.addEventListener('click', function () {
           var h = el.getAttribute('data-handle');

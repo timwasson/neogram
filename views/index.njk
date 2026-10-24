@@ -1925,9 +1925,9 @@
         if (u.isSelf) {
           actionBtn = '<span class="text-xs text-muted font-bold">[YOU]</span>';
         } else if (u.isFollowing) {
-          actionBtn = '<button type="button" onclick="toggleFollowUser(\'' + escapeHtml(u.handle) + '\', true)" class="pixel-btn pixel-btn--yellow text-xs py-0.5 px-2">✓ Following</button>';
+          actionBtn = '<button type="button" onclick="toggleFollowUser(\'' + escapeHtml(u.handle) + '\', true)" class="pixel-btn pixel-btn--yellow text-xs py-0.5 px-2">✓ Friends</button>';
         } else {
-          actionBtn = '<button type="button" onclick="toggleFollowUser(\'' + escapeHtml(u.handle) + '\', false)" class="pixel-btn text-xs py-0.5 px-2">+ Follow</button>';
+          actionBtn = '<button type="button" onclick="toggleFollowUser(\'' + escapeHtml(u.handle) + '\', false)" class="pixel-btn text-xs py-0.5 px-2">🤝 Add Friend</button>';
         }
 
         var safeSite = sanitizeUrl(u.siteUrl);

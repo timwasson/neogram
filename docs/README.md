@@ -45,6 +45,13 @@ Explore the topic guides below:
    - Zero server retention contract: 100% client storage (`localStorage` / `chrome.storage.local`)
    - Manifest V3 Chrome Extension installation and pairing
 
+6. **[Cyberspace Friends Network & Static Grid Guide](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/friends.md)**
+   - Connect with creators using simple "Friends"
+   - 1-click "Add Friend" on station profiles and static Neocities gallery headers
+   - Dedicated workstation Friends console (`/friends`) with buddy roster and photo feed
+   - Static photo grid compilation at `/friends/index.html` with cross-domain asset resolution
+   - Concurrency-safe cascading FIFO rebuild queue when friends broadcast new photographs
+
 ---
 
 ## Architectural Principles

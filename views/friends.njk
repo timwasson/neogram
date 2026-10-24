@@ -1,0 +1,315 @@
+{% extends "layouts/base.njk" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-4 md:p-6 w-full font-mono">
+
+  <!-- Top Breadcrumb / Return Navigation Bar -->
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-2 text-xs">
+    <div class="flex items-center gap-2 text-muted">
+      <a href="/" class="text-mac hover:underline font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">:&gt; WORKSTATION</a>
+      <span>/</span>
+      <span class="text-prompt font-bold">🤝 CYBERSPACE_FRIENDS.EXE</span>
+      <span>[#{{ currentUser.uin or '100101' }}]</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="/directory" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2.5" onclick="if(window.retroAudio) retroAudio.playClick();">
+        <span>[ 👥 Cyberspace Directory ]</span>
+      </a>
+      <a href="/" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2.5" onclick="if(window.retroAudio) retroAudio.playClick();">
+        <span>[ &lt; Workstation Studio ]</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Master Friends Overview Box -->
+  <section class="retro-card p-0 mb-6" aria-label="Friends Network Overview">
+    <div class="window-header flex items-center justify-between p-2 flex-wrap gap-2">
+      <div class="flex items-center gap-2">
+        <span>🤝</span>
+        <span class="font-bold text-xs">[:&gt; FRIENDS_NETWORK.SYS - Personal Follow Ledger &amp; Transmission Feed]</span>
+      </div>
+      <div class="flex items-center gap-2 text-xxs font-mono">
+        <span class="text-prompt">CARRIER: V.90 SYNC</span>
+        <span class="text-muted">|</span>
+        <span class="text-mac">NODE: #{{ currentUser.uin or '100101' }}</span>
+      </div>
+    </div>
+
+    <div class="p-4 flex flex-col gap-3">
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 class="text-base md:text-lg font-bold text-mac m-0 flex items-center gap-2">
+            <span>🤝 Cyberspace Friends</span>
+            <span class="text-xs text-muted font-normal">(@{{ currentUser.handle }})</span>
+          </h1>
+          <p class="text-xs text-muted mt-1 mb-0 leading-relaxed">
+            Followed stations across the Neogram cyberspace webring. Transmissions broadcasted by your friends automatically sync to your personal Neocities static site at <code>/friends/</code>.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="pixel-badge pixel-badge--cyan font-bold text-xs" id="totalFriendsBadge">
+            {{ friends.length }} FRIEND{% if friends.length != 1 %}S{% endif %}
+          </span>
+          <span class="pixel-badge pixel-badge--green font-bold text-xs">
+            {{ posts.length }} TRANSMISSION{% if posts.length != 1 %}S{% endif %}
+          </span>
+          <a href="/directory" class="pixel-btn pixel-btn--yellow pixel-btn--sm text-xs font-bold py-1 px-3" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>+ Find Friends :&gt;</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==============================================================
+       SECTION 1: FRIENDS ROSTER (Following List & Management)
+       ============================================================== -->
+  <section class="mb-8" aria-label="Friends Roster">
+    <div class="window-header flex items-center justify-between p-2 mb-3">
+      <div class="flex items-center gap-2">
+        <span>👥</span>
+        <span class="font-bold text-xs">[:&gt; FRIENDS_ROSTER.SYS - Active Buddy Connections ({{ friends.length }})]</span>
+      </div>
+      <span class="text-xxs text-muted uppercase font-mono">MANAGEMENT_CONSOLE</span>
+    </div>
+
+    {% if friends.length == 0 %}
+      <div class="retro-card p-6 text-center flex flex-col items-center gap-3">
+        <div class="text-3xl">📡</div>
+        <div class="text-sm font-bold text-mac">[:&gt; NO FRIENDS IN CARRIER DIRECTORY YET]</div>
+        <p class="text-xs text-muted max-w-md mx-auto leading-relaxed">
+          You haven't followed any station nodes yet. Browse the Cyberspace Directory or visit creator profiles to add friends and build your static webring.
+        </p>
+        <a href="/directory" class="pixel-btn pixel-btn--green font-bold text-xs py-1.5 px-4" onclick="if(window.retroAudio) retroAudio.playClick();">
+          <span>👥 Explore Cyberspace Directory →</span>
+        </a>
+      </div>
+    {% else %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" id="friendsRosterGrid">
+        {% for friend in friends %}
+          <article
+            class="retro-card p-3 flex flex-col justify-between border border-main text-xs relative"
+            id="friendCard-{{ friend.handle }}"
+          >
+            <!-- Friend Identity Top -->
+            <div class="flex items-start gap-2.5">
+              <a href="{{ friend.profileUrl }}" class="relative shrink-0" onclick="if(window.retroAudio) retroAudio.playClick();">
+                <img
+                  src="{{ friend.avatarPath }}"
+                  alt="@{{ friend.handle }} Avatar"
+                  class="w-12 h-12 pixel-box border-2 border-black object-cover bg-black"
+                />
+                <span
+                  class="directory-status-dot directory-status-dot--{{ friend.status }}"
+                  title="Status: {{ friend.status | upper }}"
+                ></span>
+              </a>
+
+              <div class="flex flex-col min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-1">
+                  <a
+                    href="{{ friend.profileUrl }}"
+                    class="text-mac font-bold hover:underline truncate"
+                    title="@{{ friend.handle }}"
+                    onclick="if(window.retroAudio) retroAudio.playClick();"
+                  >
+                    @{{ friend.handle }}
+                  </a>
+                  <span class="pixel-badge pixel-badge--cyan text-xxs font-bold shrink-0">
+                    #{{ friend.uin }}
+                  </span>
+                </div>
+
+                <div class="text-prompt text-xxs truncate mt-0.5" title="{{ friend.statusMessage }}">
+                  "{{ friend.statusMessage }}"
+                </div>
+
+                <div class="text-muted text-xxs mt-1">
+                  📷 {{ friend.postCount }} photo{% if friend.postCount != 1 %}s{% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Friend Actions Bottom -->
+            <div class="flex items-center justify-between gap-1 pt-2 border-t border-main mt-3 text-xxs">
+              <div class="flex items-center gap-1 truncate">
+                {% if friend.cleanRootSiteUrl %}
+                  <a
+                    href="{{ friend.cleanRootSiteUrl }}"
+                    target="_blank"
+                    rel="noopener"
+                    class="text-mac hover:underline font-bold"
+                    title="Visit {{ friend.cleanRootSiteUrl }}"
+                  >
+                    🌐 Site
+                  </a>
+                  <span class="text-muted">•</span>
+                {% endif %}
+                <a
+                  href="{{ friend.profileUrl }}"
+                  class="text-prompt hover:underline font-bold"
+                  onclick="if(window.retroAudio) retroAudio.playClick();"
+                >
+                  Profile :&gt;
+                </a>
+              </div>
+
+              <button
+                type="button"
+                onclick="handleUnfriend('{{ friend.handle }}')"
+                class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 text-crimson hover:bg-crimson hover:text-white"
+                title="Remove @{{ friend.handle }} from friends"
+              >
+                <span>✕ Unfriend</span>
+              </button>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- ==============================================================
+       SECTION 2: TRANSMISSIONS FEED (Photos from Friends)
+       ============================================================== -->
+  <section aria-label="Friends Photo Feed">
+    <div class="window-header flex items-center justify-between p-2 mb-3">
+      <div class="flex items-center gap-2">
+        <span>📸</span>
+        <span class="font-bold text-xs">[:&gt; BROADCAST_FEED.EXE - Synchronized Friends Stream ({{ posts.length }})]</span>
+      </div>
+      <span class="text-xxs text-muted uppercase font-mono">CHRONOLOGICAL_STREAM</span>
+    </div>
+
+    {% if posts.length == 0 %}
+      <div class="retro-card p-8 text-center flex flex-col items-center gap-3">
+        <div class="text-3xl">📷</div>
+        <div class="text-sm font-bold text-mac">[:&gt; NO TRANSMISSIONS RECORDED IN FEED YET]</div>
+        <p class="text-xs text-muted max-w-md mx-auto leading-relaxed">
+          Your followed friends haven't broadcasted any photographs yet. When they publish photos, they will stream here live and automatically compile into your static Neocities site.
+        </p>
+      </div>
+    {% else %}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="friendsPostsGrid">
+        {% for post in posts %}
+          <article class="retro-card p-0 flex flex-col justify-between" id="friendPost-{{ post.id }}">
+            <!-- Card Header -->
+            <div class="window-header flex items-center justify-between p-2 text-xs">
+              <a
+                href="/user/@{{ post.author }}"
+                class="flex items-center gap-1.5 font-bold text-mac hover:underline truncate"
+                onclick="if(window.retroAudio) retroAudio.playClick();"
+              >
+                <span>👾</span>
+                <span>@{{ post.author }}</span>
+                {% if post.uin %}<span class="text-muted font-normal text-xxs">[#{{ post.uin }}]</span>{% endif %}
+              </a>
+              <span class="pixel-badge pixel-badge--cyan text-xxs font-bold uppercase shrink-0">
+                {{ post.filterApplied or 'RAW' }}
+              </span>
+            </div>
+
+            <!-- Photo Viewport -->
+            <div class="relative bg-black border-b border-main overflow-hidden flex items-center justify-center crt-scanlines">
+              <a
+                href="/user/@{{ post.author }}"
+                class="block w-full"
+                onclick="if(window.retroAudio) retroAudio.playClick();"
+              >
+                <img
+                  src="{{ post.thumbnailPath or post.imagePath }}"
+                  alt="{{ post.caption }}"
+                  class="w-full h-64 object-cover filter-{{ post.filterApplied or 'none' }}"
+                  loading="lazy"
+                />
+              </a>
+            </div>
+
+            <!-- Body Details -->
+            <div class="p-3 flex flex-col gap-2 flex-1 justify-between">
+              <div>
+                <div class="flex items-center justify-between text-xxs text-muted mb-1.5 flex-wrap gap-1">
+                  <span>📍 {{ post.location or 'Cyberspace' }}</span>
+                  <span>🕒 {{ post.createdAt | formatDateTime }}</span>
+                </div>
+
+                <p class="text-xs text-main leading-relaxed m-0 whitespace-pre-wrap">
+                  {{ post.caption }}
+                </p>
+              </div>
+
+              <!-- Tags & Meta -->
+              <div class="pt-2 border-t border-main mt-2">
+                <div class="flex items-center gap-1 flex-wrap mb-2">
+                  {% if post.mood %}
+                    <span class="pixel-badge pixel-badge--cyan text-xxs">{{ post.mood }}</span>
+                  {% endif %}
+                  {% if post.webring %}
+                    <span class="pixel-badge pixel-badge--magenta text-xxs">ring: {{ post.webring }}</span>
+                  {% endif %}
+                </div>
+
+                <div class="flex items-center justify-between text-xs pt-1">
+                  <div class="flex items-center gap-2 text-muted text-xxs">
+                    <span>❤️ {{ post.likes or 0 }} likes</span>
+                    <span>💬 {{ post.commentCount or 0 }} comments</span>
+                  </div>
+
+                  <a
+                    href="/user/@{{ post.author }}"
+                    class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xxs font-bold py-0.5 px-2"
+                    onclick="if(window.retroAudio) retroAudio.playClick();"
+                  >
+                    <span>View Station :&gt;</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+</div>
+
+<!-- Unfriend Client Script -->
+<script>
+  async function handleUnfriend(handle) {
+    if (!confirm('[:> UNFRIEND CONFIRMATION]\nRemove @' + handle + ' from your friends roster?\nThis will remove their transmissions from your feed and update your static Neocities site.')) {
+      return;
+    }
+
+    if (window.retroAudio) window.retroAudio.playClick();
+
+    try {
+      var res = await fetch('/api/users/' + encodeURIComponent(handle) + '/follow', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      var data = await res.json();
+
+      if (data.ok) {
+        if (window.retroAudio) window.retroAudio.playSuccess();
+        // Remove friend card from UI smoothly
+        var card = document.getElementById('friendCard-' + handle);
+        if (card) {
+          card.style.opacity = '0.3';
+          setTimeout(function () {
+            card.remove();
+            // Update friends badge count
+            var remaining = document.querySelectorAll('#friendsRosterGrid > article').length;
+            var badge = document.getElementById('totalFriendsBadge');
+            if (badge) badge.textContent = remaining + ' FRIEND' + (remaining === 1 ? '' : 'S');
+          }, 300);
+        }
+      } else {
+        alert('[:> UNFRIEND FAULT] ' + (data.error || 'Could not unfriend user'));
+      }
+    } catch (e) {
+      alert('[:> NETWORK ERROR] ' + e.message);
+    }
+  }
+</script>
+{% endblock %}

@@ -69,6 +69,14 @@
             <span>👥</span> <span>Directory</span>
           </a>
           <a
+            href="/friends"
+            id="tabFriendsBtn"
+            class="pixel-btn font-bold text-xs {% if activeView == 'friends' %}pixel-btn--active{% endif %}"
+            onclick="if(window.retroAudio) retroAudio.playClick();"
+          >
+            <span>🤝</span> <span>Friends</span>
+          </a>
+          <a
             href="/#settings"
             id="tabSettingsBtn"
             class="pixel-btn font-bold text-xs"

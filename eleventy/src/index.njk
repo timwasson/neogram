@@ -30,6 +30,15 @@ title: Static Photo Stream
       <a href="{{ site.apiUrl or 'http://localhost:4000' }}" target="_blank" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
         <span>📸 Upload New Photo :&gt;</span>
       </a>
+      <button
+        type="button"
+        id="staticFriendBtn"
+        onclick="handleStaticFriendToggle()"
+        class="neogram-btn neogram-btn--green neogram-btn--sm"
+        style="display: none;"
+      >
+        <span id="staticFriendBtnText">🤝 Add Friend</span>
+      </button>
     </div>
   </div>
 </section>
@@ -113,3 +122,123 @@ title: Static Photo Stream
     {% endfor %}
   </div>
 {% endif %}
+
+<!-- Friend / Follow Static Bridge Script -->
+<script>
+  (function () {
+    var API_BASE = '{{ site.apiUrl or "http://localhost:4000" }}';
+    var STATION_AUTHOR = '{{ site.author }}';
+    var friendBtn = document.getElementById('staticFriendBtn');
+    var friendText = document.getElementById('staticFriendBtnText');
+    var isFriendState = false;
+
+    function getPass() {
+      try {
+        var raw = localStorage.getItem('neogram_pass');
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function checkFriendStatus() {
+      var pass = getPass();
+      if (!pass || !pass.handle) {
+        // Show "Add Friend" for logged out visitors (will open Cyber-Pass modal)
+        if (friendBtn) {
+          friendBtn.style.display = 'inline-flex';
+          friendText.textContent = '🤝 Add Friend';
+        }
+        return;
+      }
+
+      // If own station, do not show Add Friend
+      if (pass.handle.toLowerCase() === STATION_AUTHOR.toLowerCase()) {
+        if (friendBtn) friendBtn.style.display = 'none';
+        return;
+      }
+
+      if (friendBtn) friendBtn.style.display = 'inline-flex';
+
+      try {
+        var headers = {};
+        if (pass.token) headers['Authorization'] = 'Bearer ' + pass.token;
+        var res = await fetch(API_BASE + '/api/users/' + encodeURIComponent(STATION_AUTHOR) + '/friend-status', {
+          headers: headers,
+          credentials: 'omit'
+        });
+        var data = await res.json();
+        if (data.ok) {
+          isFriendState = !!data.isFriend;
+          updateButtonUI();
+        }
+      } catch (err) {
+        console.warn('[:> FRIEND STATUS CHECK]', err);
+      }
+    }
+
+    function updateButtonUI() {
+      if (!friendBtn || !friendText) return;
+      if (isFriendState) {
+        friendBtn.classList.remove('neogram-btn--green');
+        friendBtn.classList.add('neogram-btn--yellow');
+        friendText.textContent = '✓ Friends (Unfriend)';
+      } else {
+        friendBtn.classList.remove('neogram-btn--yellow');
+        friendBtn.classList.add('neogram-btn--green');
+        friendText.textContent = '🤝 Add Friend';
+      }
+    }
+
+    window.handleStaticFriendToggle = async function () {
+      if (window.retroAudio) window.retroAudio.playClick();
+      var pass = getPass();
+      if (!pass || !pass.token) {
+        // Pop up Cyber-Pass login modal
+        var origin = encodeURIComponent(window.location.origin);
+        var popupUrl = API_BASE + '/auth/connect?origin=' + origin;
+        window.open(popupUrl, 'neogram_auth', 'width=440,height=480,menubar=no,toolbar=no,location=no');
+        return;
+      }
+
+      var method = isFriendState ? 'DELETE' : 'POST';
+      try {
+        var res = await fetch(API_BASE + '/api/users/' + encodeURIComponent(STATION_AUTHOR) + '/follow', {
+          method: method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + pass.token
+          }
+        });
+        var data = await res.json();
+        if (data.ok) {
+          if (window.retroAudio) window.retroAudio.playSuccess();
+          isFriendState = !isFriendState;
+          updateButtonUI();
+        } else {
+          alert('[:> FRIEND FAULT] ' + (data.error || 'Could not update friend status'));
+        }
+      } catch (e) {
+        alert('[:> NETWORK ERROR] ' + e.message);
+      }
+    };
+
+    // Listen for Cyber-Pass handshake if opened in popup
+    window.addEventListener('message', function (e) {
+      if (e.data && (e.data.type === 'NEOGRAM_CYBER_PASS' || e.data.type === 'NEOGRAM_EXTENSION_PASS')) {
+        try {
+          localStorage.setItem('neogram_pass', JSON.stringify({
+            token: e.data.token,
+            handle: e.data.handle,
+            uin: e.data.uin,
+            avatar: e.data.avatar || '💬'
+          }));
+        } catch (_e) {}
+        checkFriendStatus();
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', checkFriendStatus);
+    checkFriendStatus();
+  })();
+</script>

@@ -273,6 +273,9 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
       await buildStaticGallery({ userId: user.id });
     }
 
+    // 6. Cascading rebuild of all friends/followers who follow this user
+    triggerFollowersCascade(user.id);
+
     res.status(201).json({
       ok: true,
       message: hasApiKey
@@ -686,6 +689,11 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
         .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
     }
 
+    // Cascading rebuild of all friends/followers who follow this user
+    if (user_id) {
+      triggerFollowersCascade(user_id);
+    }
+
     res.json({
       ok: true,
       message: 'Post deleted successfully from database and static archive.',
@@ -695,3 +703,45 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     next(err);
   }
 });
+
+/**
+ * Triggers sequential background static rebuilds & deploys for all users
+ * who follow the author whose post was created or deleted.
+ * All queued through the FIFO buildQueue one at a time.
+ */
+export async function triggerFollowersCascade(authorId: string) {
+  try {
+    const followersRes = await query(
+      'SELECT follower_id as "followerId" FROM follows WHERE following_id = $1',
+      [authorId]
+    );
+
+    if (followersRes.rows.length === 0) return;
+
+    const { buildQueue, buildStaticGallery } = await import('../services/staticBuilder');
+
+    for (const row of followersRes.rows) {
+      const followerId = row.followerId;
+      buildQueue.enqueue(`CascadeFollower:${followerId}`, async () => {
+        console.log(`[:> CASCADE QUEUE] Rebuilding static gallery for follower ${followerId}...`);
+        const userCreds = await query(
+          'SELECT deployment_type, deployment_credentials FROM users WHERE id = $1',
+          [followerId]
+        );
+        const u = userCreds.rows[0];
+        const hasApiKey = u && u.deployment_type === 'neocities' && !!u.deployment_credentials;
+
+        if (hasApiKey) {
+          const { deployToNeocities } = await import('../services/neocitiesPublisher');
+          await deployToNeocities(followerId);
+        } else {
+          await buildStaticGallery({ userId: followerId });
+        }
+      }).catch((err) => {
+        console.warn(`[:> CASCADE REBUILD ERROR] Failed rebuilding for follower ${followerId}:`, err);
+      });
+    }
+  } catch (err) {
+    console.error('[:> CASCADE REBUILD QUERY ERROR]', err);
+  }
+}

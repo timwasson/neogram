@@ -122,6 +122,30 @@
 
           <!-- Action Buttons / Links -->
           <div class="w-full flex flex-col gap-2 pt-2">
+            <!-- Friend / Follow Action -->
+            {% if currentUser and not isSelf %}
+              <button
+                type="button"
+                id="profileFriendBtn"
+                onclick="toggleProfileFriend('{{ profileUser.handle }}')"
+                class="pixel-btn {% if isFriend %}pixel-btn--yellow{% else %}pixel-btn--green{% endif %} text-xs font-bold py-2 w-full flex items-center justify-center gap-1.5"
+              >
+                <span id="profileFriendBtnIcon">{% if isFriend %}✓{% else %}🤝{% endif %}</span>
+                <span id="profileFriendBtnText">{% if isFriend %}Friends (Click to Unfriend){% else %}Add Friend{% endif %}</span>
+              </button>
+            {% elif isSelf %}
+              <div class="pixel-badge pixel-badge--cyan text-xxs font-bold py-1 px-2 text-center w-full">
+                👾 THIS IS YOUR STATION
+              </div>
+            {% else %}
+              <a
+                href="/#upload"
+                class="pixel-btn pixel-btn--green text-xs font-bold py-2 w-full flex items-center justify-center gap-1.5"
+              >
+                <span>🤝 Log In to Add Friend</span>
+              </a>
+            {% endif %}
+
             {% if profileUser.cleanRootSiteUrl %}
               <a
                 href="{{ profileUser.cleanRootSiteUrl }}"
@@ -270,4 +294,43 @@
   </div>
 
 </div>
+
+<script>
+  var isFriendProfile = {{ 'true' if isFriend else 'false' }};
+
+  async function toggleProfileFriend(handle) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var btn = document.getElementById('profileFriendBtn');
+    var icon = document.getElementById('profileFriendBtnIcon');
+    var text = document.getElementById('profileFriendBtnText');
+
+    var method = isFriendProfile ? 'DELETE' : 'POST';
+    try {
+      var res = await fetch('/api/users/' + encodeURIComponent(handle) + '/follow', {
+        method: method,
+        headers: { 'Content-Type': 'application/json' }
+      });
+      var data = await res.json();
+      if (data.ok) {
+        if (window.retroAudio) window.retroAudio.playSuccess();
+        isFriendProfile = !isFriendProfile;
+        if (isFriendProfile) {
+          btn.classList.remove('pixel-btn--green');
+          btn.classList.add('pixel-btn--yellow');
+          if (icon) icon.textContent = '✓';
+          if (text) text.textContent = 'Friends (Click to Unfriend)';
+        } else {
+          btn.classList.remove('pixel-btn--yellow');
+          btn.classList.add('pixel-btn--green');
+          if (icon) icon.textContent = '🤝';
+          if (text) text.textContent = 'Add Friend';
+        }
+      } else {
+        alert('[:> FRIEND ERROR] ' + (data.error || 'Could not update friend status'));
+      }
+    } catch (e) {
+      alert('[:> NETWORK FAULT] ' + e.message);
+    }
+  }
+</script>
 {% endblock %}

@@ -233,6 +233,109 @@ export function createApp(): Express {
     res.redirect('/login');
   });
 
+  app.get('/friends', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const currentUser = res.locals.currentUser;
+      if (!currentUser) {
+        res.redirect('/?login=required');
+        return;
+      }
+
+      const { query } = await import('./db');
+      const { activeSockets } = await import('./services/chatSocket');
+
+      // Fetch friends roster
+      const friendsRes = await query(`
+        SELECT 
+          u.id, 
+          u.email, 
+          COALESCE(u.handle, split_part(u.email, '@', 1)) as handle,
+          u.uin,
+          u.avatar_path as "avatarPath",
+          u.status_message as "statusMessage",
+          u.is_away as "isAway",
+          u.site_url as "siteUrl",
+          u.deploy_path as "deployPath",
+          f.created_at as "friendedAt",
+          (SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id) as "postCount"
+        FROM follows f
+        JOIN users u ON f.following_id = u.id
+        WHERE f.follower_id = $1
+        ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC
+      `, [currentUser.id]);
+
+      const friends = friendsRes.rows.map((r: any) => {
+        const active = activeSockets.get(r.id);
+        let status = 'inactive';
+        let statusMsg = r.statusMessage || 'Surfing cyberspace';
+        if (active) {
+          status = active.status;
+          if (active.awayMessage) statusMsg = active.awayMessage;
+        } else if (r.isAway) {
+          status = 'away';
+        }
+
+        let cleanRootSiteUrl = '';
+        if (r.siteUrl && r.siteUrl.trim()) {
+          try {
+            const parsed = new URL(r.siteUrl);
+            cleanRootSiteUrl = `${parsed.protocol}//${parsed.host}`;
+          } catch (_e) {
+            cleanRootSiteUrl = r.siteUrl.replace(/\/+$/, '');
+          }
+        }
+
+        return {
+          ...r,
+          status,
+          statusMessage: statusMsg,
+          avatarPath: r.avatarPath && r.avatarPath.trim() ? r.avatarPath : '/icons/default-avatar.svg',
+          profileUrl: `/user/@${encodeURIComponent(r.handle)}`,
+          cleanRootSiteUrl,
+        };
+      });
+
+      // Fetch friends' latest broadcasted photographs
+      const postsRes = await query(`
+        SELECT 
+          p.id,
+          p.user_id as "userId",
+          p.image_path as "imagePath",
+          p.thumbnail_path as "thumbnailPath",
+          p.caption,
+          p.filter_applied as "filterApplied",
+          p.mood,
+          p.webring,
+          p.location,
+          p.likes_count as "likes",
+          p.created_at as "createdAt",
+          u.email,
+          u.handle,
+          u.uin,
+          u.avatar_path as "avatarPath",
+          u.site_url as "siteUrl",
+          u.deploy_path as "deployPath",
+          COALESCE(u.handle, split_part(u.email, '@', 1)) as author,
+          (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
+        FROM posts p
+        JOIN follows f ON p.user_id = f.following_id
+        JOIN users u ON p.user_id = u.id
+        WHERE f.follower_id = $1
+        ORDER BY p.created_at DESC
+        LIMIT 100
+      `, [currentUser.id]);
+
+      res.render('friends', {
+        title: 'Neogram - Friends Roster & Live Network Feed',
+        activeView: 'friends',
+        friends,
+        posts: postsRes.rows,
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   app.get('/user/:identifier', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { identifier } = req.params;
@@ -291,9 +394,21 @@ export function createApp(): Express {
 
       const stationHandle = user.handle || user.email.split('@')[0] || 'surfer';
 
+      const currentUser = res.locals.currentUser;
+      let isFriend = false;
+      if (currentUser && currentUser.id !== user.id) {
+        const followRes = await query(
+          'SELECT 1 FROM follows WHERE follower_id = $1 AND following_id = $2',
+          [currentUser.id, user.id]
+        );
+        isFriend = followRes.rows.length > 0;
+      }
+
       res.render('user', {
         title: `Neogram - Station @${stationHandle} [#${user.uin}]`,
         activeView: 'profile',
+        isFriend,
+        isSelf: currentUser ? currentUser.id === user.id : false,
         profileUser: {
           id: user.id,
           handle: stationHandle,

@@ -227,7 +227,68 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
       }
     }
 
-    // 4. Write data to eleventy/src/_data/posts.json
+    // 4. Fetch friends' posts for static /friends/ grid
+    let friendsPosts: any[] = [];
+    if (userId) {
+      const friendsQuery = await query(`
+        SELECT 
+          p.id,
+          p.user_id as "userId",
+          p.image_path as "imagePath",
+          p.thumbnail_path as "thumbnailPath",
+          p.caption,
+          p.filter_applied as "filterApplied",
+          p.mood,
+          p.webring,
+          p.location,
+          p.likes_count as "likes",
+          p.created_at as "createdAt",
+          u.email,
+          u.handle,
+          u.uin,
+          u.avatar_path as "avatarPath",
+          u.site_url as "siteUrl",
+          u.deploy_path as "deployPath",
+          COALESCE(u.handle, split_part(u.email, '@', 1)) as author
+        FROM posts p
+        JOIN follows f ON p.user_id = f.following_id
+        JOIN users u ON p.user_id = u.id
+        WHERE f.follower_id = $1
+        ORDER BY p.created_at DESC
+      `, [userId]);
+
+      const baseNeogramUrl = config.appUrl || 'http://localhost:4000';
+      friendsPosts = friendsQuery.rows.map((row) => {
+        let imagePath = row.imagePath;
+        let thumbnailPath = row.thumbnailPath;
+        const authorSite = row.siteUrl ? row.siteUrl.replace(/\/+$/, '') : '';
+        const authorDeploy = (row.deployPath !== null && row.deployPath !== undefined)
+          ? String(row.deployPath).trim().replace(/^\/+|\/+$/g, '')
+          : 'neogram';
+        const authorBase = authorSite 
+          ? (authorDeploy ? `${authorSite}/${authorDeploy}` : authorSite)
+          : baseNeogramUrl;
+
+        if (imagePath && !imagePath.startsWith('http://') && !imagePath.startsWith('https://')) {
+          imagePath = `${authorBase}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+        }
+        if (thumbnailPath && !thumbnailPath.startsWith('http://') && !thumbnailPath.startsWith('https://')) {
+          thumbnailPath = `${authorBase}${thumbnailPath.startsWith('/') ? '' : '/'}${thumbnailPath}`;
+        }
+
+        return {
+          ...row,
+          imagePath,
+          thumbnailPath,
+          profileUrl: `${baseNeogramUrl}/user/@${encodeURIComponent(row.author)}`,
+        };
+      });
+    }
+
+    const friendsPostsPath = path.join(process.cwd(), 'eleventy/src/_data/friendsPosts.json');
+    await fs.writeFile(friendsPostsPath, JSON.stringify(friendsPosts, null, 2), 'utf-8');
+
+    // 5. Write data to eleventy/src/_data/posts.json
     const postsDataPath = path.join(process.cwd(), 'eleventy/src/_data/posts.json');
     await fs.writeFile(postsDataPath, JSON.stringify(posts, null, 2), 'utf-8');
 

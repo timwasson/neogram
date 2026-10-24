@@ -12,6 +12,7 @@
  */
 
 import fs from 'fs/promises';
+import { existsSync } from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import { query, initDatabase } from '../db';
@@ -454,9 +455,90 @@ async function runSmokeTests() {
     );
 
     // -------------------------------------------------------------------------
-    // TEST 14: Safe Post Purge & Clean Teardown
+    // TEST 14: Cyberspace Friends Network & Static Follow Grid
     // -------------------------------------------------------------------------
-    logHeader('14. SAFE PURGE & TEARDOWN');
+    logHeader('14. CYBERSPACE FRIENDS NETWORK & STATIC FOLLOW GRID');
+    
+    // 1. Verify GET /friends loads for authenticated user
+    const friendsPageRes = await fetch(`${API_BASE}/friends`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('GET /friends with session cookie returns HTTP 200', friendsPageRes.status === 200);
+    const friendsPageHtml = await friendsPageRes.text();
+    assertTest('Friends page contains CYBERSPACE_FRIENDS.EXE header',
+      friendsPageHtml.includes('CYBERSPACE_FRIENDS.EXE') && friendsPageHtml.includes('FRIENDS_ROSTER.SYS')
+    );
+    assertTest('Top navigation bar contains 🤝 Friends link',
+      friendsPageHtml.includes('href="/friends"') && friendsPageHtml.includes('Friends')
+    );
+
+    // 2. Add a target user as friend
+    const targetFriendUser = allSampleUsers.find(u => u.handle !== testUser.handle) || { handle: 'root' };
+    const followRes = await fetch(`${API_BASE}/api/users/${targetFriendUser.handle}/follow`, {
+      method: 'POST',
+      headers: {
+        'Cookie': sessionCookie,
+        'Authorization': `Bearer ${authToken}`,
+      },
+    });
+    assertTest('POST /api/users/:identifier/follow returns HTTP 200', followRes.status === 200);
+    const followData = await followRes.json();
+    assertTest('Follow response indicates isFriend = true', followData.ok === true && followData.isFriend === true);
+
+    // 3. Verify friend-status API endpoint
+    const friendStatusRes = await fetch(`${API_BASE}/api/users/${targetFriendUser.handle}/friend-status`, {
+      headers: {
+        'Cookie': sessionCookie,
+        'Authorization': `Bearer ${authToken}`,
+      },
+    });
+    assertTest('GET /api/users/:identifier/friend-status returns HTTP 200', friendStatusRes.status === 200);
+    const friendStatusData = await friendStatusRes.json();
+    assertTest('Friend status resolves target user as friend', friendStatusData.isFriend === true);
+
+    // 4. Verify GET /api/friends API
+    const friendsApiRes = await fetch(`${API_BASE}/api/friends`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('GET /api/friends returns HTTP 200', friendsApiRes.status === 200);
+    const friendsApiData = await friendsApiRes.json();
+    assertTest('Friends API contains followed station',
+      Array.isArray(friendsApiData.friends) && friendsApiData.friends.some((f: any) => f.handle === targetFriendUser.handle)
+    );
+
+    // 5. Verify static friends page was compiled by Eleventy
+    const friendsHtmlPath = path.join(userGalleryDir, 'friends', 'index.html');
+    assertTest('Static friends gallery (friends/index.html) created in isolated tenant folder', existsSync(friendsHtmlPath));
+    if (existsSync(friendsHtmlPath)) {
+      const friendsStaticHtml = await fs.readFile(friendsHtmlPath, 'utf-8');
+      assertTest('Static friends stream includes FRIENDS STATIC STREAM banner',
+        friendsStaticHtml.includes('FRIENDS STATIC STREAM') || friendsStaticHtml.includes('FRIENDS CARRIER NETWORK')
+      );
+    }
+
+    // 6. Unfriend / Unfollow user
+    const unfriendRes = await fetch(`${API_BASE}/api/users/${targetFriendUser.handle}/follow`, {
+      method: 'DELETE',
+      headers: {
+        'Cookie': sessionCookie,
+        'Authorization': `Bearer ${authToken}`,
+      },
+    });
+    assertTest('DELETE /api/users/:identifier/follow returns HTTP 200', unfriendRes.status === 200);
+    const unfriendData = await unfriendRes.json();
+    assertTest('Unfollow response indicates isFriend = false', unfriendData.ok === true && unfriendData.isFriend === false);
+
+    // 7. Verify updated friend status
+    const postUnfriendStatusRes = await fetch(`${API_BASE}/api/users/${targetFriendUser.handle}/friend-status`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    const postUnfriendStatusData = await postUnfriendStatusRes.json();
+    assertTest('Friend status updated to isFriend = false after unfriend', postUnfriendStatusData.isFriend === false);
+
+    // -------------------------------------------------------------------------
+    // TEST 15: Safe Post Purge & Clean Teardown
+    // -------------------------------------------------------------------------
+    logHeader('15. SAFE PURGE & TEARDOWN');
     // Delete post using authenticated session
     const deletePostRes = await fetch(`${API_BASE}/api/posts/${testPostId}`, {
       method: 'DELETE',

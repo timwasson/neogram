@@ -3185,3 +3185,209 @@ dialog.pixel-dialog[open] {
 .neogram-comments__submit {
   width: 100%;
 }
+
+/**
+ * _docs.scss: Styles for the Neogram Documentation Portal
+ */
+/* Master 2-Column Documentation Grid Layout */
+.docs-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+@media (min-width: 820px) {
+  .docs-layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 24px;
+    align-items: flex-start;
+  }
+}
+
+/* Sidebar Navigation Pane */
+.docs-sidebar {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+}
+@media (min-width: 820px) {
+  .docs-sidebar {
+    width: 240px;
+    position: sticky;
+    top: 60px;
+  }
+}
+
+/* Main Content Area */
+.docs-content {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-sizing: border-box;
+}
+
+/* Section Pane */
+.docs-section-pane {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Topic Selector Buttons */
+.docs-topic-btn {
+  width: 100%;
+  text-align: left;
+  border: 2px solid var(--border-main);
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: bold;
+  background-color: var(--surface-window);
+  color: var(--text-main);
+  cursor: pointer;
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 0.8);
+  transition: all 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+.docs-topic-btn:hover {
+  background-color: var(--accent-yellow);
+  color: #000000;
+}
+.docs-topic-btn.is-active {
+  background-color: var(--accent-prompt);
+  color: #000000;
+  box-shadow: inset 2px 2px 0px 0px rgba(0, 0, 0, 0.4);
+}
+
+/* Code Snippet Card */
+.docs-code-card {
+  background-color: #000000;
+  border: 2px solid var(--border-main);
+  box-shadow: inset 2px 2px 0px 0px rgba(0, 0, 0, 0.4);
+  position: relative;
+  margin-bottom: 1rem;
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.docs-code-header {
+  background-color: var(--surface-window);
+  border-bottom: 2px solid var(--border-main);
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  gap: 8px;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+}
+
+.docs-code-pre {
+  margin: 0;
+  padding: 12px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-code, #39ff14);
+  white-space: pre;
+  background: #000000;
+  box-sizing: border-box;
+}
+
+/* Step Badge Number */
+.docs-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: var(--accent-yellow);
+  color: #000000;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  border: 2px solid var(--border-main);
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 0.8);
+  flex-shrink: 0;
+}
+
+/* Callout Box */
+.docs-callout {
+  border: 2px solid var(--accent-mac);
+  background-color: var(--surface-sunken);
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  border-left-width: 6px;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.docs-callout--tip {
+  border-color: var(--accent-prompt);
+}
+
+.docs-callout--warn {
+  border-color: var(--accent-amber);
+}
+
+/* Hardware Palette Switcher Grid */
+.docs-palette-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+@media (min-width: 600px) {
+  .docs-palette-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Responsive 2-Column Grid for Docs Cards */
+.docs-grid-2-col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 680px) {
+  .docs-grid-2-col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* BEM Class Reference Table */
+.docs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.docs-table th {
+  background-color: var(--surface-window);
+  border-bottom: 2px solid var(--border-main);
+  padding: 8px;
+  text-align: left;
+  color: var(--text-main);
+  font-weight: bold;
+}
+.docs-table td {
+  border-bottom: 1px solid var(--border-main);
+  padding: 8px;
+  vertical-align: middle;
+}
+.docs-table tr:nth-child(even) td {
+  background-color: rgba(0, 0, 0, 0.15);
+}
