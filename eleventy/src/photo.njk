@@ -408,9 +408,9 @@ eleventyComputed:
         var safeAuthor = escapeHtml(c.author);
         var safeText = escapeHtml(c.text);
         var uinBadge = c.uin ? ' <span class="text-muted font-normal">[#' + c.uin + ']</span>' : '';
-        var profileUrl = API_BASE + '/user/' + (c.userId || encodeURIComponent(c.author));
-        var siteLinkHtml = c.siteUrl
-          ? ' <a href="' + escapeHtml(c.siteUrl) + '" target="_blank" rel="noopener" class="neogram-comments__site-link" title="Visit personal website">🌐</a>'
+        var isSafeUrl = c.siteUrl && /^https?:\/\//i.test(String(c.siteUrl).trim());
+        var siteLinkHtml = isSafeUrl
+          ? ' <a href="' + escapeHtml(String(c.siteUrl).trim()) + '" target="_blank" rel="noopener noreferrer" class="neogram-comments__site-link" title="Visit personal website">🌐</a>'
           : '';
         var authorLinkHtml = '<a href="' + escapeHtml(profileUrl) + '" target="_blank" class="neogram-comments__author-link" title="View @' + safeAuthor + ' on Neogram">@' + safeAuthor + '</a>';
 

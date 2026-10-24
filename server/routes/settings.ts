@@ -199,18 +199,44 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
 
     const encryptedCreds = encryptCredentials(creds);
 
-    const finalSiteUrl = siteUrl && typeof siteUrl === 'string'
-      ? siteUrl.trim()
-      : (creds.siteName ? `https://${creds.siteName}.neocities.org` : existingUser.site_url);
+    let finalSiteUrl = existingUser.site_url;
+    if (siteUrl && typeof siteUrl === 'string') {
+      const trimmed = siteUrl.trim();
+      if (trimmed.length > 0) {
+        if (!/^https?:\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=]+$/i.test(trimmed)) {
+          res.status(400).json({
+            ok: false,
+            error: 'Site URL must be a valid HTTP or HTTPS address (e.g. https://yoursite.neocities.org).',
+          });
+          return;
+        }
+        finalSiteUrl = trimmed.slice(0, 500);
+      }
+    } else if (creds.siteName) {
+      finalSiteUrl = `https://${creds.siteName}.neocities.org`;
+    }
 
     const finalDeployType = deploymentType || existingUser.deployment_type || 'neocities';
     const finalAutoDeploy = typeof autoDeploy === 'boolean' ? autoDeploy : !!existingUser.auto_deploy;
     const finalBuildHtml = typeof buildHtml === 'boolean' ? buildHtml : (existingUser.build_html !== false);
 
-    // Sanitize deploy_path (strip leading/trailing slashes, allow empty string for root)
-    const finalDeployPath = deployPath !== undefined && deployPath !== null
-      ? String(deployPath).trim().replace(/^\/+|\/+$/g, '')
-      : (existingUser.deploy_path !== null ? existingUser.deploy_path : 'neogram');
+    // Sanitize deploy_path (alphanumeric/hyphen/underscore whitelist, max 50 chars, or empty for root)
+    let finalDeployPath = existingUser.deploy_path !== null ? existingUser.deploy_path : 'neogram';
+    if (deployPath !== undefined && deployPath !== null) {
+      const cleanPath = String(deployPath).trim().replace(/^\/+|\/+$/g, '');
+      if (cleanPath.length > 0) {
+        if (!/^[a-zA-Z0-9_-]{1,50}$/.test(cleanPath)) {
+          res.status(400).json({
+            ok: false,
+            error: 'Target subfolder must only contain letters, numbers, underscores, and hyphens (max 50 chars).',
+          });
+          return;
+        }
+        finalDeployPath = cleanPath;
+      } else {
+        finalDeployPath = ''; // Root deploy
+      }
+    }
 
     await query(
       `UPDATE users

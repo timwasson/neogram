@@ -152,9 +152,11 @@ export async function deployToNeocities(userId: string): Promise<DeployResult> {
   for (const file of filesToUpload) {
     const fileBytes = await fs.readFile(file.absolutePath);
     const blob = new Blob([fileBytes]);
-    const remotePath = rawDeployPath
-      ? path.posix.join(rawDeployPath, file.relativePath)
-      : file.relativePath;
+    const sanitizedDeploy = rawDeployPath.replace(/[^a-zA-Z0-9_-]/g, '');
+    const cleanRel = path.posix.normalize(file.relativePath).replace(/^(\.\.(\/|\\|$))+/, '');
+    const remotePath = sanitizedDeploy
+      ? path.posix.join(sanitizedDeploy, cleanRel)
+      : cleanRel;
     formData.append(remotePath, blob, path.basename(remotePath));
   }
 

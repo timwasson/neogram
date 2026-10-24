@@ -2865,7 +2865,8 @@
         card.id = 'comment-card-' + c.id;
         var uinBadge = c.uin ? ' <span class="text-muted font-normal">[#' + c.uin + ']</span>' : '';
         var profileUrl = '/user/' + (c.userId || encodeURIComponent(c.author));
-        var siteLink = c.siteUrl ? ' <a href="' + escapeHtml(c.siteUrl) + '" target="_blank" rel="noopener" class="text-xs" title="Visit personal website">🌐</a>' : '';
+        var cleanSite = sanitizeUrl(c.siteUrl);
+        var siteLink = cleanSite ? ' <a href="' + escapeHtml(cleanSite) + '" target="_blank" rel="noopener noreferrer" class="text-xs" title="Visit personal website">🌐</a>' : '';
         var timeStr = '';
         if (c.timestamp) {
           try {

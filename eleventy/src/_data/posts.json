@@ -1,5 +1,83 @@
 [
   {
+    "id": "a869d038-1e71-4071-a99b-b3bd2262f9bb",
+    "userId": "34d59ecb-e391-4660-838c-9597bc78baf8",
+    "imagePath": "/uploads/images/1792871036400-3gegyeh.webp",
+    "thumbnailPath": "/uploads/thumbs/1792871036400-3gegyeh-thumb.webp",
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "scanlines",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-10-24T19:43:56.424Z",
+    "email": "qa_surfer_1792871035590@neogram.retro",
+    "handle": "qa_surfer_1792871035",
+    "author": "qa_surfer_1792871035",
+    "comments": [
+      {
+        "id": "8139a921-7a85-4a0a-9525-7d8fa67b2a34",
+        "postId": "a869d038-1e71-4071-a99b-b3bd2262f9bb",
+        "author": "qa_surfer_1792871035",
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-10-24T19:43:57.078Z"
+      }
+    ]
+  },
+  {
+    "id": "febd4c55-3921-4eaa-835c-1219c5bfe673",
+    "userId": "2107b9f0-badd-4c3a-8d81-e8f7301e0778",
+    "imagePath": "/uploads/images/1792866010387-zuvc4o8.webp",
+    "thumbnailPath": "/uploads/thumbs/1792866010387-zuvc4o8-thumb.webp",
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "scanlines",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-10-24T18:20:10.407Z",
+    "email": "qa_surfer_1792866009524@neogram.retro",
+    "handle": "qa_surfer_1792866009",
+    "author": "qa_surfer_1792866009",
+    "comments": [
+      {
+        "id": "6d6b91ad-daf1-4e8b-aeb2-4e8d855a6654",
+        "postId": "febd4c55-3921-4eaa-835c-1219c5bfe673",
+        "author": "qa_surfer_1792866009",
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-10-24T18:20:11.152Z"
+      }
+    ]
+  },
+  {
+    "id": "5b22b83d-fa03-4841-ae91-198c72a22ef9",
+    "userId": "b67886a3-9083-4650-907b-b51219910bb4",
+    "imagePath": "/uploads/images/1792865992324-hu0uxd6.webp",
+    "thumbnailPath": "/uploads/thumbs/1792865992324-hu0uxd6-thumb.webp",
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "scanlines",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-10-24T18:19:52.346Z",
+    "email": "qa_surfer_1792865991493@neogram.retro",
+    "handle": "qa_surfer_1792865991",
+    "author": "qa_surfer_1792865991",
+    "comments": [
+      {
+        "id": "a240e6cb-fc8c-49b7-890c-5dbadf919fc0",
+        "postId": "5b22b83d-fa03-4841-ae91-198c72a22ef9",
+        "author": "qa_surfer_1792865991",
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-10-24T18:19:52.952Z"
+      }
+    ]
+  },
+  {
     "id": "7d661a8c-30dd-467a-989a-d6371df05e9e",
     "userId": "90811a09-edbc-420f-83ae-f3351d007abe",
     "imagePath": "/uploads/images/1792635760719-ugl333e.webp",

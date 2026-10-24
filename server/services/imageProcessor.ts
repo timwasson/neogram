@@ -108,9 +108,13 @@ export async function processBase64Image(
 
   // Handle local uploaded file paths (e.g. /uploads/images/xyz.webp or http://localhost:4000/uploads/...)
   if (source.includes('/uploads/')) {
-    const relativePath = source.substring(source.indexOf('/uploads/'));
-    const diskPath = path.join(process.cwd(), 'public', relativePath);
-    if (fs.existsSync(diskPath)) {
+    const rawRel = source.substring(source.indexOf('/uploads/')).replace(/^\/+/, '');
+    const cleanRel = path.normalize(rawRel).replace(/^(\.\.(\/|\\|$))+/, '');
+    const safeUploadsRoot = path.resolve(process.cwd(), 'public', 'uploads');
+    const diskPath = path.resolve(process.cwd(), 'public', cleanRel);
+
+    // Verify resolved path strictly resides within the public/uploads boundary
+    if (diskPath.startsWith(safeUploadsRoot) && fs.existsSync(diskPath)) {
       buffer = await fs.promises.readFile(diskPath);
       return processImageBuffer(buffer, filterName, targetUploadsDir);
     }

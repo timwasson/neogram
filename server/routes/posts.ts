@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
+import rateLimit from 'express-rate-limit';
 import { query } from '../db';
 import { COOKIE_NAME, verifySessionToken, extractToken } from '../auth/jwt';
 import { getUserById } from '../auth/service';
@@ -184,6 +185,17 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
     }
 
     const { caption, filterApplied, mood, webring, location, imageBase64 } = req.body;
+    const allowedFilters = ['none', 'crt', 'sepia', 'vga', 'gameboy', 'cyberpunk', 'lofi'];
+    const safeFilter = typeof filterApplied === 'string' && allowedFilters.includes(filterApplied.toLowerCase())
+      ? filterApplied.toLowerCase()
+      : 'none';
+    const safeCaption = typeof caption === 'string' && caption.trim()
+      ? caption.trim().slice(0, 1000)
+      : ':> Snapshot transmitted via Neogram workstation.';
+    const safeMood = typeof mood === 'string' && mood.trim() ? mood.trim().slice(0, 50) : null;
+    const safeWebring = typeof webring === 'string' && webring.trim() ? webring.trim().slice(0, 50) : null;
+    const safeLocation = typeof location === 'string' && location.trim() ? location.trim().slice(0, 100) : null;
+
     let processed;
 
     // 2. Ephemeral staging directly in the user's isolated static build directory
@@ -193,10 +205,14 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
 
     if (req.file) {
       // Multipart file upload from disk or mobile camera
-      processed = await processImageBuffer(req.file.buffer, filterApplied, targetUploadsDir);
+      processed = await processImageBuffer(req.file.buffer, safeFilter, targetUploadsDir);
     } else if (imageBase64) {
-      // Base64 data URL from canvas or preset sprites
-      processed = await processBase64Image(imageBase64, filterApplied, targetUploadsDir);
+      // Base64 data URL from canvas or preset sprites (limit max base64 length to prevent memory attacks: 35MB)
+      if (typeof imageBase64 !== 'string' || imageBase64.length > 35 * 1024 * 1024) {
+        res.status(400).json({ ok: false, error: 'Base64 image payload exceeds size limits.' });
+        return;
+      }
+      processed = await processBase64Image(imageBase64, safeFilter, targetUploadsDir);
     } else {
       res.status(400).json({ ok: false, error: 'No image provided. Please select an image or photo.' });
       return;
@@ -231,11 +247,11 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
         user.id,
         finalImagePath,
         finalThumbPath,
-        caption || ':> Snapshot transmitted via Neogram workstation.',
-        filterApplied || 'none',
-        mood || null,
-        webring || null,
-        location || null,
+        safeCaption,
+        safeFilter,
+        safeMood,
+        safeWebring,
+        safeLocation,
       ]
     );
 
@@ -374,30 +390,21 @@ postsRouter.post('/posts/:id/like', async (req: Request, res: Response, next) =>
   }
 });
 
-// In-memory rate limiting map for comments (max 10 comments per 5 minutes per IP)
-const commentRateLimits = new Map<string, number[]>();
-const COMMENT_LIMIT_WINDOW_MS = 5 * 60 * 1000;
-const MAX_COMMENT_REQUESTS = 10;
-
-function checkCommentRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const timestamps = (commentRateLimits.get(ip) || []).filter((ts) => now - ts < COMMENT_LIMIT_WINDOW_MS);
-  if (timestamps.length >= MAX_COMMENT_REQUESTS) return false;
-  timestamps.push(now);
-  commentRateLimits.set(ip, timestamps);
-  return true;
-}
+// Rate limiting for comments (max 15 comments per 5 minutes per IP)
+const commentRateLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Carrier busy: Too many comments submitted. Please wait 5 minutes.' },
+  skip: (req) => (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test',
+});
 
 /**
  * 5. POST /api/posts/:id/comments - Post a comment to self-hosted comments.json on static host
  */
-postsRouter.post('/posts/:id/comments', async (req: Request, res: Response, next) => {
+postsRouter.post('/posts/:id/comments', commentRateLimiter, async (req: Request, res: Response, next) => {
   try {
-    const ip = req.ip || req.socket.remoteAddress || 'unknown-ip';
-    if (!checkCommentRateLimit(ip)) {
-      res.status(429).json({ ok: false, error: 'Too many comments submitted. Please wait 5 minutes.' });
-      return;
-    }
 
     const { id } = req.params;
     const { text } = req.body;

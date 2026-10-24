@@ -27,7 +27,7 @@ export const config: AppConfig = {
   encryptionSecret: process.env.ENCRYPTION_SECRET || 'neogram_retro_aes256_vault_key_1996_master_secret',
   storageDir: process.env.STORAGE_DIR || path.resolve(process.cwd(), 'public/uploads'),
   appUrl: process.env.APP_URL || 'http://localhost:4000',
-  enableMemoryDbFallback: process.env.USE_MEMORY_DB === 'true' || !process.env.DATABASE_URL,
+  enableMemoryDbFallback: process.env.NODE_ENV !== 'production' && (process.env.USE_MEMORY_DB === 'true' || !process.env.DATABASE_URL),
   resendApiKey: process.env.RESEND_API_KEY,
   emailFrom: process.env.EMAIL_FROM || 'Neogram <auth@neogram.retro>',
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID,
@@ -35,12 +35,24 @@ export const config: AppConfig = {
   twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER,
 };
 
-// Security hygiene check for production environments
+// Strict security hygiene validation for production environments
 if (config.env === 'production') {
-  if (config.jwtSecret === 'neogram_retro_super_secret_jwt_key_1996') {
-    console.warn('\x1b[31m[:> SECURITY WARNING] JWT_SECRET is using the public default key in production! Set a custom JWT_SECRET in your production .env\x1b[0m');
+  if (
+    !process.env.JWT_SECRET ||
+    config.jwtSecret === 'neogram_retro_super_secret_jwt_key_1996' ||
+    config.jwtSecret.length < 32
+  ) {
+    throw new Error(
+      '[:> FATAL SECURITY ERROR] Refusing to start in production: JWT_SECRET must be set to a secure custom secret of at least 32 characters in production .env'
+    );
   }
-  if (config.encryptionSecret === 'neogram_retro_aes256_vault_key_1996_master_secret') {
-    console.warn('\x1b[31m[:> SECURITY WARNING] ENCRYPTION_SECRET is using the public default key in production! Set a custom ENCRYPTION_SECRET in your production .env\x1b[0m');
+  if (
+    !process.env.ENCRYPTION_SECRET ||
+    config.encryptionSecret === 'neogram_retro_aes256_vault_key_1996_master_secret' ||
+    config.encryptionSecret.length < 32
+  ) {
+    throw new Error(
+      '[:> FATAL SECURITY ERROR] Refusing to start in production: ENCRYPTION_SECRET must be set to a secure custom secret of at least 32 characters in production .env'
+    );
   }
 }

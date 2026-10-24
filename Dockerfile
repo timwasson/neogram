@@ -27,7 +27,9 @@ USER node
 ENV NODE_ENV=production
 ENV PORT=4000
 
-EXPOSE 4000
+# Health check probe
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:4000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
 # Start server using tsx
 CMD ["npx", "tsx", "server/index.ts"]

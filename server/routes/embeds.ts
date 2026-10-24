@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import rateLimit from 'express-rate-limit';
 import { query } from '../db';
 import { generateCounterSvg, CounterStyle } from '../services/counterSvg';
 import { COOKIE_NAME, verifySessionToken, extractToken } from '../auth/jwt';
@@ -239,32 +240,22 @@ embedsRouter.get('/api/guestbook/:identifier', async (req: Request, res: Respons
   }
 });
 
-// In-memory rate limiting map for guestbook submissions (max 6 per 5 min per IP)
-const guestbookRateLimits = new Map<string, number[]>();
-const GB_LIMIT_WINDOW_MS = 5 * 60 * 1000;
-const MAX_GB_REQUESTS = 6;
-
-function checkGbRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const timestamps = (guestbookRateLimits.get(ip) || []).filter((ts) => now - ts < GB_LIMIT_WINDOW_MS);
-  if (timestamps.length >= MAX_GB_REQUESTS) return false;
-  timestamps.push(now);
-  guestbookRateLimits.set(ip, timestamps);
-  return true;
-}
+// Rate limiting for guestbook signatures (max 10 signatures per 5 minutes per IP)
+const guestbookRateLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Carrier busy: Too many signatures submitted. Please wait 5 minutes.' },
+  skip: (req) => (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test',
+});
 
 /**
  * POST /api/guestbook/:handle
  * Verified signature submission to a user's self-hosted visitor ledger on static host
  */
-embedsRouter.post('/api/guestbook/:identifier', async (req: Request, res: Response) => {
+embedsRouter.post('/api/guestbook/:identifier', guestbookRateLimiter, async (req: Request, res: Response) => {
   try {
-    const ip = req.ip || req.socket.remoteAddress || 'unknown-ip';
-    if (!checkGbRateLimit(ip)) {
-      res.status(429).json({ ok: false, error: 'Carrier busy: Too many signatures submitted. Please wait 5 minutes.' });
-      return;
-    }
-
     // Require verified Neogram user
     const visitorUser = await getAuthUser(req);
     if (!visitorUser) {
@@ -288,11 +279,11 @@ embedsRouter.post('/api/guestbook/:identifier', async (req: Request, res: Respon
       return;
     }
 
-    // Strictly validate website protocol: only http:// and https:// allowed
+    // Strictly validate website protocol: only valid http:// and https:// allowed
     let cleanWebsite: string | null = null;
     if (visitorWebsite && typeof visitorWebsite === 'string') {
       const trimmed = visitorWebsite.trim();
-      if (/^https?:\/\//i.test(trimmed) && trimmed !== 'http://' && trimmed !== 'https://') {
+      if (/^https?:\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=]+$/i.test(trimmed)) {
         cleanWebsite = trimmed.slice(0, 500);
       }
     }

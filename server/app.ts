@@ -3,6 +3,8 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import nunjucks from 'nunjucks';
 import path from 'path';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { requestLogger } from './middleware/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { apiRouter } from './routes/api';
@@ -15,6 +17,9 @@ import { config } from './config';
 
 export function createApp(): Express {
   const app = express();
+
+  // Trust Caddy/Nginx reverse proxy headers (e.g. X-Forwarded-For) so req.ip reflects real visitor IPs
+  app.set('trust proxy', 1);
 
   // 1. Template Engine (Nunjucks)
   const viewsPath = path.resolve(process.cwd(), 'views');
@@ -59,6 +64,14 @@ export function createApp(): Express {
   app.set('view engine', 'njk');
 
   // 2. Security Headers & Clickjacking Protections
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // Custom CSP below handles widget framing dynamically
+      crossOriginEmbedderPolicy: false,
+      frameguard: false, // Custom frame-ancestors logic below protects dashboard from clickjacking
+    })
+  );
+
   app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -113,10 +126,21 @@ export function createApp(): Express {
     })
   );
 
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: '15mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '15mb' }));
   app.use(cookieParser());
   app.use(requestLogger);
+
+  // Global API rate limiting: 180 requests per minute per IP
+  const globalApiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 180,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { ok: false, error: 'Carrier busy: Global rate limit exceeded. Please throttle requests.' },
+    skip: (req) => (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test',
+  });
+  app.use('/api', globalApiLimiter);
 
   // 3. Static Assets
   app.use(express.static(path.resolve(process.cwd(), 'public')));
@@ -279,9 +303,11 @@ export function createApp(): Express {
         if (r.siteUrl && r.siteUrl.trim()) {
           try {
             const parsed = new URL(r.siteUrl);
-            cleanRootSiteUrl = `${parsed.protocol}//${parsed.host}`;
+            if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+              cleanRootSiteUrl = `${parsed.protocol}//${parsed.host}`;
+            }
           } catch (_e) {
-            cleanRootSiteUrl = r.siteUrl.replace(/\/+$/, '');
+            cleanRootSiteUrl = '';
           }
         }
 
@@ -368,9 +394,11 @@ export function createApp(): Express {
       if (user.site_url && user.site_url.trim()) {
         try {
           const parsed = new URL(user.site_url);
-          cleanRootSiteUrl = `${parsed.protocol}//${parsed.host}`;
+          if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+            cleanRootSiteUrl = `${parsed.protocol}//${parsed.host}`;
+          }
         } catch (_err) {
-          cleanRootSiteUrl = user.site_url.replace(/\/+$/, '');
+          cleanRootSiteUrl = '';
         }
       } else if (user.handle) {
         cleanRootSiteUrl = `https://${user.handle}.neocities.org`;

@@ -53,6 +53,16 @@ async function bootstrap() {
 
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
+
+  // Crash and resilience handlers: Log and trigger supervisor auto-restart
+  process.on('unhandledRejection', (reason) => {
+    console.error('[:> PROCESS UNHANDLED REJECTION]', reason);
+  });
+
+  process.on('uncaughtException', (err) => {
+    console.error('[:> PROCESS UNCAUGHT EXCEPTION - RESTARTING WORKSTATION]', err);
+    process.exit(1);
+  });
 }
 
 bootstrap().catch((err) => {

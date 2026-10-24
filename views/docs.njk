@@ -156,6 +156,16 @@
             <span class="text-xxs">›</span>
           </button>
 
+          <button
+            type="button"
+            id="tabBtn-security"
+            class="docs-topic-btn {% if activeTopic == 'security' %}is-active{% endif %}"
+            onclick="switchDocTopic('security')"
+          >
+            <span>🛡️ Cyberspace Security</span>
+            <span class="text-xxs">›</span>
+          </button>
+
           <!-- Raw Markdown Files Box -->
           <div class="mt-4 p-3 bg-window border border-main text-xs flex flex-col gap-2">
             <span class="font-bold text-xxs uppercase tracking-wider text-muted">DOCUMENTATION REPO FILES:</span>
@@ -1195,6 +1205,109 @@ document.addEventListener('DOMContentLoaded', initNeogramApp);
               >
                 <span>📡 View Widgets &amp; Embeds :&gt;</span>
               </button>
+            </div>
+
+          </section>
+
+          <!-- SECTION 9: CYBERSPACE SECURITY & PRIVACY ARCHITECTURE -->
+          <section id="docSection-security" class="docs-section-pane {% if activeTopic != 'security' %}hidden{% endif %} flex flex-col gap-4">
+
+            <div class="p-3 bg-window border border-main text-xs flex flex-col gap-2">
+              <div class="flex items-center justify-between text-muted text-xxs font-bold uppercase tracking-wider">
+                <span>SECURITY ARCHITECTURE &amp; DATA PRIVACY MANIFESTO</span>
+                <span class="pixel-badge pixel-badge--green text-xxs font-bold">MIL-SPEC AES-256-GCM</span>
+              </div>
+              <h2 class="text-sm font-bold text-prompt m-0">🛡️ Cyberspace Security &amp; Static Isolation Protocols</h2>
+              <p class="text-muted leading-relaxed m-0">
+                Neogram was engineered from day one on the core principles of the early decentralized web: <strong>you own your data, your personal static website is sacred, and server storage is kept to an absolute minimum</strong>. We combine 90s aesthetic nostalgia with modern, hardened cybersecurity defenses.
+              </p>
+            </div>
+
+            <!-- Security Grid Features -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div class="p-3 bg-window border border-main text-xs space-y-1.5">
+                <div class="font-bold text-prompt flex items-center gap-1.5">
+                  <span>🔒</span>
+                  <span>Zero Server Media Retention</span>
+                </div>
+                <p class="text-muted leading-relaxed m-0 text-xxs">
+                  Neogram stores <strong>0 MB of your permanent photos or chat logs</strong> on our servers. When you publish, media is immediately compiled and uploaded to your personal static host (Neocities), then purged from local workstation disk.
+                </p>
+              </div>
+
+              <div class="p-3 bg-window border border-main text-xs space-y-1.5">
+                <div class="font-bold text-mac flex items-center gap-1.5">
+                  <span>🛡️</span>
+                  <span>Non-Destructive Root Protection</span>
+                </div>
+                <p class="text-muted leading-relaxed m-0 text-xxs">
+                  Your Neocities homepage (<code>index.html</code>), blog, styling, and custom files are <strong>never overwritten or touched</strong>. All Neogram assets compile strictly inside your designated subfolder (e.g. <code>/neogram/</code>). Remote deletions outside <code>uploads/</code> are refused.
+                </p>
+              </div>
+
+              <div class="p-3 bg-window border border-main text-xs space-y-1.5">
+                <div class="font-bold text-amber flex items-center gap-1.5">
+                  <span>🔐</span>
+                  <span>Hardware-Grade Credential Vault</span>
+                </div>
+                <p class="text-muted leading-relaxed m-0 text-xxs">
+                  Hosting API keys and static deployment credentials are encrypted at rest in PostgreSQL using authenticated <strong>AES-256-GCM with unique initialization vectors</strong>. Your keys are never rendered in client DOM or plaintext logs.
+                </p>
+              </div>
+
+              <div class="p-3 bg-window border border-main text-xs space-y-1.5">
+                <div class="font-bold text-green flex items-center gap-1.5">
+                  <span>⏱️</span>
+                  <span>Dial-Up Anti-Brute-Force &amp; Code Burning</span>
+                </div>
+                <p class="text-muted leading-relaxed m-0 text-xxs">
+                  Passwordless authentication uses single-use 6-digit OTP codes. Codes automatically burn after <strong>10 minutes or 5 invalid attempts</strong>. Multi-layered IP and identifier rate limiting thwarts automated credential stuffing and carrier-spam bots.
+                </p>
+              </div>
+            </div>
+
+            <!-- In-Depth Technical Security Invariants -->
+            <div class="p-3 bg-window border border-main text-xs space-y-3">
+              <span class="font-bold text-xs uppercase text-prompt block">TECHNICAL DEFENSE LAYERS:</span>
+
+              <div class="space-y-2 text-xxs leading-relaxed">
+                <div class="p-2 bg-black border border-main text-white space-y-1">
+                  <div class="text-prompt font-bold">1. Stored XSS Elimination &amp; URL Protocol Whitelisting</div>
+                  <p class="text-muted m-0">
+                    External visitors can interact with your embeds across domains. Neogram eliminates Stored Cross-Site Scripting (XSS) by running all user-generated strings through HTML entity encoding and strictly enforcing <code>http://</code> and <code>https://</code> protocols on all personal website links. Malicious schemes like <code>javascript:</code> are blocked at validation and ignored during rendering.
+                  </p>
+                </div>
+
+                <div class="p-2 bg-black border border-main text-white space-y-1">
+                  <div class="text-prompt font-bold">2. Path Traversal &amp; Filesystem Boundary Shields</div>
+                  <p class="text-muted m-0">
+                    Image processing and file compilation resolve strictly within isolated workspace boundaries. Directory escape patterns (e.g. <code>../</code>) in subfolder configurations or image URLs are automatically trapped and sanitized before touching disk.
+                  </p>
+                </div>
+
+                <div class="p-2 bg-black border border-main text-white space-y-1">
+                  <div class="text-prompt font-bold">3. Memory-Safe Rate Limiting &amp; DDoS Resistance</div>
+                  <p class="text-muted m-0">
+                    Every API route is fortified by adaptive rate limiting to resist denial-of-service floods. WebSocket frames are capped at 64KB to prevent memory exhaustion, and reverse-proxy trust ensures genuine client IP tracking without accidental global rate lockouts.
+                  </p>
+                </div>
+
+                <div class="p-2 bg-black border border-main text-white space-y-1">
+                  <div class="text-prompt font-bold">4. Ephemeral Chat Invariant (Zero Archival)</div>
+                  <p class="text-muted m-0">
+                    Direct messages in the Neogram Instant Messenger (NIM) stream live in-memory between active WebSockets. If a recipient is offline, the message is temporarily staged in an ephemeral queue and <strong>hard-deleted the instant the recipient connects</strong>. Chat transcripts reside 100% on client devices.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-2 border-t border-main flex-wrap">
+              <a href="/privacy" class="pixel-btn pixel-btn--blue text-xs font-bold py-1.5 px-3">
+                <span>📜 Privacy Policy</span>
+              </a>
+              <a href="/terms" class="pixel-btn text-xs font-bold py-1.5 px-3">
+                <span>⚖️ Terms of Service</span>
+              </a>
             </div>
 
           </section>

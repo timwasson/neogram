@@ -27,7 +27,11 @@ export async function initDatabase(): Promise<{ isMemory: boolean; connected: bo
     try {
       const pool = new Pool({
         connectionString: config.databaseUrl,
-        connectionTimeoutMillis: 3000,
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000,
+        statement_timeout: 5000,
+        query_timeout: 5000,
       });
 
       // Test probe

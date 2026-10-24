@@ -358,11 +358,14 @@ CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read, cr
   - **Burnout Invariant:** Stored OTP records self-destruct after 5 consecutive failed verification attempts.
   - **Sliding-Window Verification Limiter:** `POST /api/auth/verify-otp` enforces a sliding-window rate limit of maximum 10 attempts per 5 minutes per IP and identifier.
   - **Restricted Test Suite Bypass:** The `x-test-suite: true` rate limit bypass header is strictly ignored when `NODE_ENV === 'production'`.
-  - **Production Secrets Enforcement:** Production boot logs warnings if fallback development secrets are detected for `JWT_SECRET` or `ENCRYPTION_SECRET`.
-- **API Resource Protection & Multi-Tenant Data Isolation:**
-  - **Multi-Tenant Archive Isolation:** The authenticated workstation archive (`GET /`) queries posts filtered strictly by `currentUser.id`.
-  - **Static Builder Protection:** `POST /api/build-static` requires an active authenticated session to prevent unauthenticated CPU/disk resource exhaustion.
-  - **Public Form Bounds & Throttling:** Comments (`POST /api/posts/:id/comments`) allow max 10 submissions per 5 min per IP (author $\le$ 50 chars, body $\le$ 1000 chars); guestbook submissions allow max 6 submissions per 5 min per IP.
+  - **Strict Production Secrets Enforcement:** Production boot immediately throws a fatal exception and aborts process execution if `JWT_SECRET` or `ENCRYPTION_SECRET` is unset, uses default development placeholders, or is shorter than 32 characters. In-memory database fallback (`pg-mem`) is strictly forbidden in production.
+  - **Reverse Proxy Trust (`trust proxy`):** Express configures `app.set('trust proxy', 1)` so that Caddy reverse-proxy client IP headers (`X-Forwarded-For`) are accurately attributed, preventing shared IP lockout bugs under rate limits.
+  - **Comprehensive Multi-Tier Rate Limiting (`express-rate-limit`):** All endpoints are protected by memory-safe, auto-pruning rate limiters: global API (180 req/min), OTP requests (6 per 15 min), OTP verification (12 per 5 min), comment submissions (15 per 5 min), and guestbook signatures (10 per 5 min).
+  - **Filesystem Boundary Shields & Path Traversal Prevention:** `processBase64Image` resolves upload paths strictly within the `public/uploads` directory boundary. User-configured `deploy_path` strictly enforces an alphanumeric/hyphen/underscore whitelist (`^[a-zA-Z0-9_-]{0,50}$`), preventing directory breakout during static builds and remote Neocities uploads.
+  - **Universal URL Protocol Whitelisting (Stored XSS Elimination):** User-supplied website links (`site_url` in profile and settings, `visitorWebsite` in guestbooks, `c.siteUrl` in comment streams) are validated against strict `^https?://` whitelists on both backend endpoints and template/client rendering. Potentially malicious schemes (`javascript:`, `data:`, `vbscript:`) are rejected.
+  - **Database Connection Caps & Statement Timeouts:** The PostgreSQL pool configures `max: 10`, `idleTimeoutMillis: 30000`, and `statement_timeout: 5000` (5-second hard cap), guaranteeing runaway or unindexed queries cannot deadlock database connections.
+  - **WebSocket DoS Guard:** The `/ws/chat` server sets `maxPayload: 64 * 1024` (64KB frame ceiling), preventing giant frame floods and memory exhaustion.
+  - **Process Crash Traps & Liveness Monitoring:** `server/index.ts` attaches `uncaughtException` and `unhandledRejection` traps to trigger clean restarts under process supervisors. `Dockerfile` defines a Docker `HEALTHCHECK` probing `/api/health`, and `docker-compose.yml` allocates a 700MB container memory ceiling.
 - **Production Container Hardening (Non-Root Execution):**
   - The production `Dockerfile` runs as non-root user `node` (UID 1000) with `/app` and subdirectories recursively owned by `node:node`, preventing container breakout.
 

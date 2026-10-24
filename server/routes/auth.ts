@@ -1,48 +1,61 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import rateLimit from 'express-rate-limit';
 import { requestOtp, verifyOtp, getUserById } from '../auth/service';
 import { signSessionToken, setSessionCookie, clearSessionCookie, verifySessionToken, extractToken, COOKIE_NAME } from '../auth/jwt';
 
 export const authRouter = Router();
 
-// In-memory rate limiting map for OTP requests: max 4 requests per 15 minutes per IP/target
-interface RateLimitRecord {
-  timestamps: number[];
-}
-const otpRateLimits = new Map<string, RateLimitRecord>();
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const MAX_REQUESTS_PER_WINDOW = 4;
+// 1. IP-level rate limiting via express-rate-limit
+const otpRequestLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 6, // max 6 OTP requests per 15 minutes per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    ok: false,
+    error: 'Carrier busy: Too many OTP dispatch requests. Please wait 15 minutes before requesting another code.',
+  },
+  skip: (req) => (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test',
+});
 
-const verifyRateLimits = new Map<string, RateLimitRecord>();
-const VERIFY_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
-const MAX_VERIFY_REQUESTS = 10;
+const otpVerifyLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 12, // max 12 verification attempts per 5 minutes per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    ok: false,
+    error: 'Too many verification attempts. Please wait 5 minutes before trying again.',
+  },
+  skip: (req) => (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test',
+});
 
-function checkVerifyRateLimit(key: string): boolean {
+// 2. Memory-safe identifier-level rate limiting (bounded Map with LRU/expiry sweep)
+const idRateLimits = new Map<string, number[]>();
+const MAX_ID_MAP_ENTRIES = 2000;
+
+function checkIdentifierRateLimit(id: string, maxAttempts: number, windowMs: number): boolean {
   const now = Date.now();
-  const record = verifyRateLimits.get(key) || { timestamps: [] };
-  const recent = record.timestamps.filter((ts) => now - ts < VERIFY_LIMIT_WINDOW_MS);
-  if (recent.length >= MAX_VERIFY_REQUESTS) {
+  // Self-cleaning sweep if map grows large to prevent memory leaks
+  if (idRateLimits.size > MAX_ID_MAP_ENTRIES) {
+    for (const [key, timestamps] of idRateLimits.entries()) {
+      if (!timestamps.some((ts) => now - ts < windowMs)) {
+        idRateLimits.delete(key);
+      }
+    }
+  }
+
+  const timestamps = (idRateLimits.get(id) || []).filter((ts) => now - ts < windowMs);
+  if (timestamps.length >= maxAttempts) {
     return false;
   }
-  recent.push(now);
-  verifyRateLimits.set(key, { timestamps: recent });
-  return true;
-}
-
-function checkOtpRateLimit(key: string): boolean {
-  const now = Date.now();
-  const record = otpRateLimits.get(key) || { timestamps: [] };
-  // Filter out expired timestamps
-  const recent = record.timestamps.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
-  if (recent.length >= MAX_REQUESTS_PER_WINDOW) {
-    return false;
-  }
-  recent.push(now);
-  otpRateLimits.set(key, { timestamps: recent });
+  timestamps.push(now);
+  idRateLimits.set(id, timestamps);
   return true;
 }
 
 // 1. Request OTP Code
-authRouter.post('/request-otp', async (req: Request, res: Response, next: NextFunction) => {
+authRouter.post('/request-otp', otpRequestLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { identifier } = req.body;
     if (!identifier || typeof identifier !== 'string') {
@@ -51,15 +64,13 @@ authRouter.post('/request-otp', async (req: Request, res: Response, next: NextFu
     }
 
     const cleanId = identifier.trim().toLowerCase();
-    const ip = req.ip || req.socket.remoteAddress || 'unknown-ip';
-    // Only allow test-suite header bypass in non-production environments
     const isTestSuite = (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test';
 
-    // Check rate limit on target identifier (always) and client IP (in production)
-    if (!checkOtpRateLimit(`id:${cleanId}`) || (!isTestSuite && !checkOtpRateLimit(`ip:${ip}`))) {
+    // Check rate limit on target identifier (max 4 per 15 minutes)
+    if (!isTestSuite && !checkIdentifierRateLimit(`req:${cleanId}`, 4, 15 * 60 * 1000)) {
       res.status(429).json({
         ok: false,
-        error: 'Carrier busy: Too many OTP dispatch requests. Please wait 15 minutes before requesting another code.',
+        error: 'Carrier busy: Too many OTP dispatch requests for this destination. Please wait 15 minutes.',
       });
       return;
     }
@@ -79,7 +90,7 @@ authRouter.post('/request-otp', async (req: Request, res: Response, next: NextFu
 });
 
 // 2. Verify OTP & Establish Session
-authRouter.post('/verify-otp', async (req: Request, res: Response, next: NextFunction) => {
+authRouter.post('/verify-otp', otpVerifyLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { identifier, code } = req.body;
     if (!identifier || !code) {
@@ -88,9 +99,10 @@ authRouter.post('/verify-otp', async (req: Request, res: Response, next: NextFun
     }
 
     const cleanId = String(identifier).trim().toLowerCase();
-    const ip = req.ip || req.socket.remoteAddress || 'unknown-ip';
-    if (!checkVerifyRateLimit(`verify:ip:${ip}`) || !checkVerifyRateLimit(`verify:id:${cleanId}`)) {
-      res.status(429).json({ ok: false, error: 'Too many verification attempts. Please wait 5 minutes before trying again.' });
+    const isTestSuite = (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test';
+
+    if (!isTestSuite && !checkIdentifierRateLimit(`verify:${cleanId}`, 10, 5 * 60 * 1000)) {
+      res.status(429).json({ ok: false, error: 'Too many verification attempts for this account. Please wait 5 minutes.' });
       return;
     }
 

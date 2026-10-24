@@ -154,6 +154,9 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
   const user = res.rows[0];
 
   if (!user.auth_token || user.auth_token !== code.trim()) {
+    if (failedOtpAttempts.size > 2000) {
+      failedOtpAttempts.clear();
+    }
     const attempts = (failedOtpAttempts.get(user.id) || 0) + 1;
     if (attempts >= 5) {
       // Invalidate code after 5 failed attempts to prevent brute force

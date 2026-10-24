@@ -10,13 +10,17 @@ services:
       NODE_ENV: production
       APP_URL: ${APP_URL:-http://localhost:4000}
       DATABASE_URL: postgres://${POSTGRES_USER:-neogram}:${POSTGRES_PASSWORD:-neogram_secret}@postgres:5432/${POSTGRES_DB:-neogram_db}
-      JWT_SECRET: ${JWT_SECRET:-neogram_retro_super_secret_jwt_key_1996}
-      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET:-neogram_retro_aes256_vault_key_1996_master_secret}
+      JWT_SECRET: ${JWT_SECRET:-}
+      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
       TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-}
+    deploy:
+      resources:
+        limits:
+          memory: 700M
     depends_on:
       postgres:
         condition: service_healthy

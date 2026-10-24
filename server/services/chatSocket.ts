@@ -36,7 +36,11 @@ export function broadcast(payload: any, excludeUserId?: string) {
  * Initializes the WebSocket server attached to the HTTP server
  */
 export function initChatWebSocketServer(server: http.Server) {
-  const wss = new WebSocketServer({ server, path: '/ws/chat' });
+  const wss = new WebSocketServer({
+    server,
+    path: '/ws/chat',
+    maxPayload: 64 * 1024, // 64KB max WebSocket frame size to prevent DoS memory attacks
+  });
 
   console.log('[:> WEBSOCKET] Chat & Presence engine initialized at /ws/chat');
 
@@ -329,6 +333,13 @@ const MAX_CHAT_MSGS = 30;
 
 function checkChatRateLimit(userId: string): boolean {
   const now = Date.now();
+  if (chatMsgLimits.size > 2000) {
+    for (const [key, ts] of chatMsgLimits.entries()) {
+      if (!ts.some((t) => now - t < CHAT_MSG_WINDOW_MS)) {
+        chatMsgLimits.delete(key);
+      }
+    }
+  }
   const timestamps = (chatMsgLimits.get(userId) || []).filter((ts) => now - ts < CHAT_MSG_WINDOW_MS);
   if (timestamps.length >= MAX_CHAT_MSGS) return false;
   timestamps.push(now);
