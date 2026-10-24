@@ -44,3 +44,22 @@ body {
   background: #30363d;
   border: 2px solid #58a6ff;
 }
+
+/* Prevent mobile browser zoom on input focus (iOS Safari & Mobile WebKit require >= 16px) */
+@media screen and (max-width: 768px), screen and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="range"]):not(.retro-input--otp),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Optimize touch interactions without double-tap delay or gesture zooming */
+input,
+textarea,
+select,
+button,
+a {
+  touch-action: manipulation;
+}
+

@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>{{ title | default('Neogram - 90s Retro Social Publishing Engine') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -90,13 +90,10 @@
             <span>💾</span> <span>About Neogram</span>
           </a>
           <a href="/directory" class="pixel-btn {% if activeView == 'directory' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>👥</span> <span>User Directory</span>
+            <span>👥</span> <span>Directory</span>
           </a>
-          <a href="/embed/embed.js" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>💻</span> <span>Embed Specs</span>
-          </a>
-          <a href="/api/health" target="_blank" class="pixel-btn" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>📡</span> <span>Network Status</span>
+          <a href="/docs" class="pixel-btn {% if activeView == 'docs' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>📖</span> <span>Docs</span>
           </a>
         {% endif %}
       </nav>
@@ -252,17 +249,12 @@
         <a href="/login" class="pixel-btn pixel-btn--sm bg-black text-prompt" onclick="if(window.retroAudio) retroAudio.playClick();">
           <span>:&gt; EXEC</span>
         </a>
-        <a
-          href="/directory"
-          class="retro-taskbar__panel text-xs"
-          title="Open Cyberspace User Directory"
-          onclick="if(window.retroAudio) retroAudio.playClick();"
-        >
+        <div class="retro-taskbar__panel text-xs">
           <span>VIEW:</span>
-          <span class="font-bold text-mac uppercase hover:underline">
-            DIRECTORY
+          <span class="font-bold text-mac uppercase">
+            {{ activeView | default('LOGIN') }}
           </span>
-        </a>
+        </div>
         <div class="retro-taskbar__panel text-xs">
           <span>PORT:</span>
           <span class="font-bold">4000 (SECURE)</span>

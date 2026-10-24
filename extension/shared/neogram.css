@@ -100,6 +100,23 @@ body {
   border: 2px solid #58a6ff;
 }
 
+/* Prevent mobile browser zoom on input focus (iOS Safari & Mobile WebKit require >= 16px) */
+@media screen and (max-width: 768px), screen and (pointer: coarse) {
+  input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=range]):not(.retro-input--otp),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+/* Optimize touch interactions without double-tap delay or gesture zooming */
+input,
+textarea,
+select,
+button,
+a {
+  touch-action: manipulation;
+}
+
 /**
  * _utilities.scss: Modular Utility Classes
  * Zero-dependency layout, spacing, typography, and color utilities.
@@ -1132,6 +1149,11 @@ body {
   box-shadow: inset 2px 2px 0px 0px rgba(0, 0, 0, 0.4);
   transition: all 0.15s ease;
 }
+@media (max-width: 768px), (pointer: coarse) {
+  .retro-input {
+    font-size: 16px;
+  }
+}
 .retro-input::placeholder {
   color: var(--text-muted);
   font-weight: 400;
@@ -1505,6 +1527,11 @@ body {
   background: var(--surface-card);
   border: 2px solid var(--border-main);
   padding: 2px 8px;
+  color: inherit;
+  text-decoration: none;
+}
+.retro-taskbar__panel:hover {
+  border-color: var(--accent-prompt);
 }
 .retro-taskbar__tray-btn {
   display: inline-flex;
@@ -2108,6 +2135,160 @@ dialog.pixel-dialog[open] {
   border: 2px solid var(--border-main);
   background-color: var(--surface-window);
   color: var(--text-main);
+}
+@media (max-width: 768px), (pointer: coarse) {
+  .aim-window__input-row input {
+    font-size: 16px;
+  }
+}
+
+/**
+ * _directory.scss: Cyberspace Station User Directory
+ * Retro 90s white-pages / station node directory styling.
+ */
+/* Responsive Directory Grid */
+.directory-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .directory-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .directory-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Individual Station Directory Card */
+.directory-card {
+  background-color: var(--surface-window);
+  border: 3px solid var(--border-main);
+  box-shadow: 3px 3px 0px 0px rgba(0, 0, 0, 0.9);
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 0.1s ease, border-color 0.1s ease;
+  text-decoration: none;
+  color: inherit;
+}
+.dark .directory-card {
+  box-shadow: 3px 3px 0px 0px #000000;
+}
+.directory-card:hover {
+  border-color: var(--accent-prompt);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.9);
+}
+.dark .directory-card:hover {
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+.directory-card {
+  /* Modifiers for Status Accent Borders */
+}
+.directory-card--active {
+  border-left: 5px solid var(--accent-prompt);
+}
+.directory-card--away {
+  border-left: 5px solid var(--accent-amber);
+}
+.directory-card--inactive {
+  border-left: 5px solid #6b7280;
+  opacity: 0.85;
+}
+.directory-card--inactive:hover {
+  opacity: 1;
+}
+
+/* Thumbnail Frame with Retro Borders */
+.directory-avatar-frame {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+}
+
+.directory-avatar-img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  background-color: #000000;
+  border: 2px solid var(--border-main);
+  box-sizing: border-box;
+}
+
+/* Status Indicator Dot Overlay */
+.directory-status-dot {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #000000;
+  box-sizing: border-box;
+}
+.directory-status-dot--active {
+  background-color: #39ff14;
+  box-shadow: 0 0 4px #39ff14;
+}
+.directory-status-dot--away {
+  background-color: #ffb000;
+  box-shadow: 0 0 4px #ffb000;
+}
+.directory-status-dot--inactive {
+  background-color: #8b949e;
+}
+
+/* Category Window Section */
+.directory-section {
+  background-color: var(--surface-card);
+  border: 3px solid var(--border-main);
+  margin-bottom: 20px;
+}
+
+.directory-section-header {
+  background: var(--surface-title);
+  color: #ffffff;
+  padding: 8px 12px;
+  font-weight: bold;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 3px solid var(--border-main);
+  user-select: none;
+}
+
+/* Search Bar Container */
+.directory-search-box {
+  background-color: #000000;
+  border: 2px solid var(--border-main);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.directory-search-box input {
+  background: transparent;
+  border: none;
+  color: var(--accent-prompt);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  width: 100%;
+  outline: none;
+}
+@media (max-width: 768px), (pointer: coarse) {
+  .directory-search-box input {
+    font-size: 16px;
+  }
+}
+.directory-search-box input::placeholder {
+  color: rgba(57, 255, 20, 0.4);
 }
 
 /**
@@ -2914,6 +3095,28 @@ dialog.pixel-dialog[open] {
 .neogram-comments__item-author {
   font-weight: 700;
 }
+.neogram-comments__author-link {
+  color: var(--accent-prompt, #00ff66);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 700;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.neogram-comments__author-link:hover {
+  color: #ffffff;
+  background-color: #000000;
+}
+.neogram-comments__site-link {
+  display: inline-block;
+  margin-left: 2px;
+  text-decoration: none;
+  font-size: 11px;
+  vertical-align: middle;
+  transition: transform 0.15s ease;
+}
+.neogram-comments__site-link:hover {
+  transform: scale(1.25);
+}
 .neogram-comments__item-time {
   color: var(--text-muted, #555555);
   font-size: 10px;
@@ -2949,6 +3152,11 @@ dialog.pixel-dialog[open] {
   font-weight: 700;
   outline: none;
   box-shadow: inset 1px 1px 0px 0px rgba(0, 0, 0, 0.3);
+}
+@media (max-width: 768px), (pointer: coarse) {
+  .neogram-comments__input {
+    font-size: 16px;
+  }
 }
 .neogram-comments__input::placeholder {
   color: var(--text-muted, #888888);

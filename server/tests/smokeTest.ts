@@ -354,11 +354,11 @@ async function runSmokeTests() {
     assertTest('Directory HTML contains Active, Away, and Inactive sub-categories', activeIdx !== -1 && awayIdx !== -1 && inactiveIdx !== -1);
     assertTest('Directory renders sub-categories in order: Active first, then Away, then Inactive', activeIdx < awayIdx && awayIdx < inactiveIdx);
 
-    // Verify taskbar footer contains Directory link
+    // Verify navigation contains Directory link
     const homeRes = await fetch(`${API_BASE}/`);
     const homeHtml = await homeRes.text();
-    assertTest('Taskbar footer panel links to /directory with "VIEW: DIRECTORY"',
-      homeHtml.includes('href="/directory"') && homeHtml.includes('DIRECTORY')
+    assertTest('Navigation links to /directory',
+      homeHtml.includes('href="/directory"') && homeHtml.includes('Directory')
     );
 
     // API Directory check

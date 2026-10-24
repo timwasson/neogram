@@ -145,6 +145,10 @@
     width: 100%;
     outline: none;
 
+    @media (max-width: 768px), (pointer: coarse) {
+      font-size: 16px;
+    }
+
     &::placeholder {
       color: rgba(57, 255, 20, 0.4);
     }

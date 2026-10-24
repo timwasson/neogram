@@ -981,6 +981,10 @@
     outline: none;
     box-shadow: inset 1px 1px 0px 0px rgba(0, 0, 0, 0.3);
 
+    @media (max-width: 768px), (pointer: coarse) {
+      font-size: 16px;
+    }
+
     &::placeholder {
       color: var(--text-muted, #888888);
       font-weight: normal;
