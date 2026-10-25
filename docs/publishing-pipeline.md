@@ -20,7 +20,7 @@ This document details the internal architecture of Neogram's **Publishing & Imag
   └── 4. Square WebP Thumbnail Generation (400x400px)
                        │
                        ▼
-[ Ephemeral Staging Directory: dist/static-galleries/<userId>/uploads/ ]
+[ Ephemeral Staging Directory: dist/static-galleries/<siteId>/uploads/ ]
                        │
                        ▼
 [ FIFO Sequential BuildQueue (buildQueue.enqueue) ]
@@ -141,11 +141,12 @@ export default function (eleventyConfig) {
 }
 ```
 
-### 4. Semantic BEM HTML Output
+### 4. Semantic BEM HTML Output & Multi-Site Isolation
 Eleventy renders:
 - `index.html`: Responsive photo gallery grid using standard BEM classes (`.neogram-site`, `.neogram-grid`, `.neogram-card`)
 - `photos/<id>/index.html`: Deep photo detail view with live comment ledger and reaction counters
-- Embed assets passthrough: Copies `embed/` scripts and styles into `dist/static-galleries/<userId>/embed/`
+- Multi-site isolation: Compiles bundles isolated into `dist/static-galleries/<siteId>/`, allowing multiple targets per creator
+- Embed assets passthrough: Copies `embed/` scripts and styles into `dist/static-galleries/<siteId>/embed/`
 
 ---
 
@@ -156,16 +157,16 @@ Eleventy renders:
 > The Neogram server is **not a media host**. It does not retain or hoard your personal photos in local disk storage buckets or databases.
 
 ```typescript
-// server/services/neocitiesPublisher.ts (lines 178-185)
+// server/services/neocitiesPublisher.ts
 const uploadsDir = path.join(userOutputDir, 'uploads');
 try {
   await fs.rm(uploadsDir, { recursive: true, force: true });
-  console.log(`[:> ZERO-RETENTION PIPELINE] Purged local uploads directory for user ${userId}.`);
+  console.log(`[:> ZERO-RETENTION PIPELINE] Purged local uploads directory for site ${siteId}.`);
 } catch (_rmErr) { ... }
 ```
 
 ### How Zero Retention Works:
-1. When you transmit a photo, files stage ephemerally in `dist/static-galleries/<userId>/uploads/`.
+1. When you transmit a photo, files stage ephemerally in `dist/static-galleries/<siteId>/uploads/`.
 2. Neocities deployment adapter uploads the multipart archive to `POST https://neocities.org/api/upload`.
 3. The instant Neocities responds with `result: "success"`, the entire `uploads/` directory is **immediately wiped from the local hard drive**.
 4. Local server media storage returns to **0 bytes**.

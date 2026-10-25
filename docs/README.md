@@ -17,14 +17,22 @@ Explore the topic guides below:
    - Auto-deploy vs. manual compilation triggers
    - Troubleshooting and roadmap for upcoming static hosts (GitHub Pages, Nekoweb, SFTP)
 
-2. **[Static Site Embeds & Retro Widgets Manual](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/embeds.md)**
+2. **[Multi-Site Architecture & Target Switching Guide](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/multi-site-setup.md)**
+   - The 1 User : N Sites paradigm (decoupling identity from static hosts)
+   - Provisioning secondary static site targets in Settings
+   - Instant 1-click active target switching via desktop taskbar
+   - Targeting specific sites during mobile and desktop uploads
+   - Per-site dynamic hit counters, guestbooks, and JSON feeds
+   - Safe unmounting, primary default selection, and CASCADE safeguards
+
+3. **[Static Site Embeds & Retro Widgets Manual](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/embeds.md)**
    - **Dynamic SVG Web Hit Counter**: Hardware palettes (`green_led`, `red_nixie`, `odometer`, `blue_vfd`), zero-tracking dynamic SVG tags, and permanent UIN anchors
    - **Public Visitor Guestbook Ledger**: Embeddable iframes, owner moderation, spam rate limits, and self-hosted JSON storage
    - **Headless JSONFeed 1.1 & Photo Feeds**: Consuming public feeds in vanilla JS, 11ty, Jekyll, or Hugo
    - **Photo Comments & Reactions**: Cyber-Pass popup handshake SSO and self-hosted comments
    - **Vanilla JS Client SDK (`embed.js`)**: Declarative `[data-neogram-widget]` integration
 
-3. **[Publishing & Image Processing Pipeline](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/publishing-pipeline.md)**
+4. **[Publishing & Image Processing Pipeline](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/publishing-pipeline.md)**
    - Ingestion: Native mobile camera snaps (`capture="environment"`) & 25MB file size streaming
    - High-performance Sharp image processing: EXIF auto-orientation (`.rotate()`), 1200px bounds, 400x400 square thumbnails, and WebP compression
    - Retro filter shaders: CRT Phosphor, Sepia 1999, Matrix Green, Scanlines, Glitch, Cyberpunk
@@ -32,27 +40,27 @@ Explore the topic guides below:
    - FIFO sequential BuildQueue serialization (race condition prevention)
    - Zero-Retention Local Media Storage Policy: Ephemeral staging followed by immediate post-deploy disk wipe (0 bytes server retention)
 
-4. **[Semantic BEM Theming & Custom CSS Guide](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/custom-styling.md)**
+5. **[Semantic BEM Theming & Custom CSS Guide](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/custom-styling.md)**
    - Dual styling strategy: Workstation utility classes vs. static deliverable BEM
    - BEM class hierarchy (`.neogram-site`, `.neogram-grid`, `.neogram-card`, `.neogram-detail`, `.neogram-comments`, `.neogram-btn`)
    - Custom CSS injection (`custom_css_url` in Settings)
    - Drop-in stylesheet templates (Neon Cyberpunk, Windows 95 Silver, Apple System 7 Platinum)
 
-5. **[Neogram Instant Messenger (NIM) & WebExtension MV3](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/buddylist-chat.md)**
+6. **[Neogram Instant Messenger (NIM) & WebExtension MV3](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/buddylist-chat.md)**
    - AIM/ICQ-style floating chat window and buddy list
    - WebSockets `/ws/chat` router with presence telemetry
    - Ephemeral store-and-forward queue with immediate hard-deletion upon delivery
    - Zero server retention contract: 100% client storage (`localStorage` / `chrome.storage.local`)
    - Manifest V3 Chrome Extension installation and pairing
 
-6. **[Cyberspace Friends Network & Static Grid Guide](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/friends.md)**
+7. **[Cyberspace Friends Network & Static Grid Guide](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/friends.md)**
    - Connect with creators using simple "Friends"
    - 1-click "Add Friend" on station profiles and static Neocities gallery headers
    - Dedicated workstation Friends console (`/friends`) with buddy roster and photo feed
    - Static photo grid compilation at `/friends/index.html` with cross-domain asset resolution
    - Concurrency-safe cascading FIFO rebuild queue when friends broadcast new photographs
 
-7. **[Cyber Notification Dispatcher & Alert Protocols](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/notifications.md)**
+8. **[Cyber Notification Dispatcher & Alert Protocols](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/notifications.md)**
    - Configurable event matrix across 8 retro-social triggers
    - User preferences dashboard (`[:> NOTIFICATION_DISPATCHER.CFG]`) in Workstation Settings
    - 8-bit Web Audio alert chimes & native desktop/PWA push permission request

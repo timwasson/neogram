@@ -61,6 +61,14 @@ When you hit **"TRANSMIT PHOTO"**:
    ```
 4. Click **`[ 💾 SAVE HOSTING CONFIG ]`** to encrypt and commit your credentials to PostgreSQL.
 
+### Step 5: Connecting Additional Neocities Sites (Multi-Site Targets)
+Have multiple Neocities sites (e.g. `main.neocities.org` and `shrine.neocities.org`)?
+1. In **Settings**, locate **`[:> SITES_MANAGER.SYS — Mounted Static Targets]`**.
+2. Click **`[ ➕ PROVISION NEW STATIC SITE TARGET ]`**.
+3. Enter your secondary site name, unique slug (`shrine`), and paste that site's unique API key.
+4. Click **`[ 🚀 PROVISION TARGET ]`**.
+5. You can now toggle between both Neocities sites in 1 click from the desktop navigation bar without logging out! See the [Multi-Site Architecture Guide](multi-site-setup.md) for full details.
+
 ---
 
 ## 3. The Safe Subdirectory Invariant (`deploy_path`)

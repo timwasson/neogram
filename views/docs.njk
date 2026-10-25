@@ -88,6 +88,16 @@
 
           <button
             type="button"
+            id="tabBtn-sites"
+            class="docs-topic-btn {% if activeTopic == 'sites' %}is-active{% endif %}"
+            onclick="switchDocTopic('sites')"
+          >
+            <span>💾 Multi-Site Targets</span>
+            <span class="text-xxs">›</span>
+          </button>
+
+          <button
+            type="button"
             id="tabBtn-counter"
             class="docs-topic-btn {% if activeTopic == 'counter' %}is-active{% endif %}"
             onclick="switchDocTopic('counter')"
@@ -181,6 +191,7 @@
             <span class="font-bold text-xxs uppercase tracking-wider text-muted">DOCUMENTATION REPO FILES:</span>
             <div class="flex flex-col gap-1 text-xxs">
               <a href="/docs/neocities-setup.md" class="text-mac underline truncate">📄 neocities-setup.md</a>
+              <a href="/docs/multi-site-setup.md" class="text-mac underline truncate">📄 multi-site-setup.md</a>
               <a href="/docs/embeds.md" class="text-mac underline truncate">📄 embeds.md</a>
               <a href="/docs/publishing-pipeline.md" class="text-mac underline truncate">📄 publishing-pipeline.md</a>
               <a href="/docs/custom-styling.md" class="text-mac underline truncate">📄 custom-styling.md</a>
@@ -335,6 +346,17 @@
                     Log in to your Neocities dashboard, click <strong>Edit</strong> on your <code>index.html</code> (or any other page), scroll to where you want the widget to appear (for example, in your footer or right before <code>&lt;/body&gt;</code>), paste the snippet, and hit <strong>Save</strong>. It goes live immediately!
                   </p>
                 </div>
+
+                <!-- Q7: Multi-Site Management -->
+                <div class="p-3 bg-black border border-main space-y-1">
+                  <div class="text-mac font-bold flex items-center gap-2 text-xs">
+                    <span>💾</span>
+                    <span>Q: Can I publish to multiple different websites or Neocities accounts?</span>
+                  </div>
+                  <p class="text-muted m-0 pl-5">
+                    <strong>Yes!</strong> Neogram supports full <strong>Multi-Site Architecture</strong>. You can mount as many independent static sites as you like from the Settings tab. Each site has its own API key, deploy folder, and separate hit counters and guestbooks. You can switch between them in 1 click from the top taskbar without logging out.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -446,6 +468,151 @@
               <p class="text-muted m-0">
                 Neogram's modular static publisher architecture is designed to support <strong>GitHub Pages (Git PAT commits)</strong>, <strong>Nekoweb API</strong>, and universal <strong>SFTP / SSH</strong> in upcoming releases.
               </p>
+            </div>
+
+          </section>
+
+          <!-- ========================================================= -->
+          <!-- TOPIC 1.5: MULTI-SITE ARCHITECTURE (1 USER : N SITES)      -->
+          <!-- ========================================================= -->
+          <section id="docSection-sites" class="docs-section-pane flex flex-col gap-6 {% if activeTopic != 'sites' %}hidden{% endif %}">
+            
+            <div class="border-b-2 border-main pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">💾</span>
+                <h1 class="text-base font-bold text-prompt m-0 uppercase">Multi-Site Architecture (1 User : N Sites)</h1>
+              </div>
+              <p class="text-xs text-muted mt-1 m-0">
+                Publish to multiple independent static targets (e.g. personal homepages, fan shrines, art blogs, retro portfolios) from a single authenticated creator identity without logging out.
+              </p>
+            </div>
+
+            <!-- Conceptual Architecture Card -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-3">
+              <div class="window-header flex items-center justify-between">
+                <span>[:&gt; IDENTITY_DECOUPLING.SYS — 1 USER : N SITES]</span>
+                <span class="text-xxs text-prompt">CORE ARCHITECTURE</span>
+              </div>
+
+              <p class="text-xs leading-relaxed text-main m-0">
+                In classic platforms, managing separate sites requires creating multiple accounts with separate emails and passwords. Neogram solves this with <strong>Identity Decoupling</strong>:
+              </p>
+
+              <div class="grid-2-col gap-3 font-mono text-xs">
+                <div class="p-3 bg-black border border-main flex flex-col gap-1.5">
+                  <span class="text-prompt font-bold uppercase text-xxs">🌐 Creator Identity (Global)</span>
+                  <div class="text-muted text-xxs space-y-1">
+                    <div>• <strong>Handle:</strong> @{{ stationHandle }}</div>
+                    <div>• <strong>Permanent Node UIN:</strong> #{{ stationUin }}</div>
+                    <div>• <strong>Login:</strong> One single session passwordless OTP</div>
+                    <div>• <strong>Community:</strong> Friends Network &amp; NIM Chat</div>
+                  </div>
+                </div>
+
+                <div class="p-3 bg-black border border-main flex flex-col gap-1.5">
+                  <span class="text-mac font-bold uppercase text-xxs">💾 Mounted Site Targets (1 to N)</span>
+                  <div class="text-muted text-xxs space-y-1">
+                    <div>• <strong>Independent Slugs:</strong> (e.g. <code>main</code>, <code>shrine</code>, <code>blog</code>)</div>
+                    <div>• <strong>Isolated API Keys:</strong> Separate Neocities or hosts</div>
+                    <div>• <strong>Dedicated Paths:</strong> e.g. <code>/neogram/</code> vs <code>/photos/</code></div>
+                    <div>• <strong>Per-Site Widgets:</strong> Isolated hit counters &amp; guestbooks</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- How to Use Multi-Site Guide -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-4">
+              <div class="window-header flex items-center justify-between">
+                <span>[:&gt; WORKSTATION_WORKFLOW.BAT — STEP-BY-STEP]</span>
+                <span class="text-xxs text-prompt">HOW TO MANAGE SITES</span>
+              </div>
+
+              <div class="docs-step-card">
+                <div class="flex items-center gap-2">
+                  <span class="docs-step-badge">1</span>
+                  <h3 class="font-bold text-xs uppercase text-prompt m-0">Provision New Static Site Targets</h3>
+                </div>
+                <p class="text-xs leading-relaxed text-main m-0">
+                  Open the <strong>⚙ Settings</strong> tab and find <strong>[:&gt; SITES_MANAGER.SYS]</strong>. Click <strong>[ ➕ PROVISION NEW STATIC SITE TARGET ]</strong>. Enter a human-readable name, unique slug (e.g. <code>shrine</code>), host provider, Neocities API key, and target deploy folder.
+                </p>
+              </div>
+
+              <div class="docs-step-card">
+                <div class="flex items-center gap-2">
+                  <span class="docs-step-badge">2</span>
+                  <h3 class="font-bold text-xs uppercase text-prompt m-0">1-Click Target Switching in Navigation</h3>
+                </div>
+                <p class="text-xs leading-relaxed text-main m-0">
+                  In the top desktop navigation bar, click the <strong>Mounted Target Site</strong> dropdown (marked with 💾). Switching targets instantly switches your active workstation context without requiring re-authentication.
+                </p>
+              </div>
+
+              <div class="docs-step-card">
+                <div class="flex items-center gap-2">
+                  <span class="docs-step-badge">3</span>
+                  <h3 class="font-bold text-xs uppercase text-prompt m-0">Target-Specific Photo Uploads</h3>
+                </div>
+                <p class="text-xs leading-relaxed text-main m-0">
+                  In the <strong>↑ Studio</strong>, the top target bar displays which site will receive the photo. Click <strong>[ ⇄ Switch Target ]</strong> to direct your photo to a different site before transmitting.
+                </p>
+              </div>
+
+              <div class="docs-step-card">
+                <div class="flex items-center gap-2">
+                  <span class="docs-step-badge">4</span>
+                  <h3 class="font-bold text-xs uppercase text-prompt m-0">Isolated Feeds, Hit Counters &amp; Guestbooks</h3>
+                </div>
+                <p class="text-xs leading-relaxed text-main m-0">
+                  Each site target maintains isolated widget tracking. For example, your primary homepage and your fan shrine track visits independently and maintain separate guestbook visitor ledgers.
+                </p>
+              </div>
+            </div>
+
+            <!-- Per-Site Snippets Box -->
+            <div class="docs-code-card">
+              <div class="docs-code-header">
+                <span class="font-bold text-prompt">PER-SITE SVG HIT COUNTER (TARGET: {{ activeSiteSlug or 'shrine' }})</span>
+                <button
+                  type="button"
+                  id="btnCopySiteCounter"
+                  class="pixel-btn pixel-btn--blue pixel-btn--sm text-xxs font-bold"
+                  onclick="copyDocSnippet('btnCopySiteCounter', 'codeSiteCounter')"
+                >
+                  📋 COPY CODE
+                </button>
+              </div>
+              <pre class="docs-code-pre" id="codeSiteCounter">&lt;!-- Per-Site Dynamic Hit Counter (Anchored by UIN + Slug) --&gt;
+&lt;div class="neogram-counter"&gt;
+  &lt;img 
+    src="{{ appUrl }}/counter/{{ stationUin }}/{{ activeSiteSlug or 'shrine' }}.svg?style=green_led" 
+    alt="Site Visitor Count" 
+  /&gt;
+&lt;/div&gt;</pre>
+            </div>
+
+            <!-- Per-Site Guestbook Box -->
+            <div class="docs-code-card">
+              <div class="docs-code-header">
+                <span class="font-bold text-prompt">PER-SITE GUESTBOOK IFRAME (TARGET: {{ activeSiteSlug or 'shrine' }})</span>
+                <button
+                  type="button"
+                  id="btnCopySiteGb"
+                  class="pixel-btn pixel-btn--blue pixel-btn--sm text-xxs font-bold"
+                  onclick="copyDocSnippet('btnCopySiteGb', 'codeSiteGb')"
+                >
+                  📋 COPY CODE
+                </button>
+              </div>
+              <pre class="docs-code-pre" id="codeSiteGb">&lt;!-- Per-Site Embedded Guestbook Ledger --&gt;
+&lt;iframe
+  src="{{ appUrl }}/embed/guestbook/{{ stationHandle }}/{{ activeSiteSlug or 'shrine' }}"
+  width="100%"
+  height="650"
+  frameborder="0"
+  style="border: 3px solid #000000; box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.9); background: #161b22;"
+  title="Visitor Guestbook Ledger"
+&gt;&lt;/iframe&gt;</pre>
             </div>
 
           </section>
@@ -570,6 +737,28 @@
 &lt;/a&gt;</pre>
             </div>
 
+            <!-- Code Snippet Box 4: Multi-Site Target Counter -->
+            <div class="docs-code-card">
+              <div class="docs-code-header">
+                <span class="font-bold text-prompt">PER-SITE TARGET COUNTER (SLUG: {{ activeSiteSlug or 'shrine' }})</span>
+                <button
+                  type="button"
+                  id="btnCopyCounterSlug"
+                  class="pixel-btn pixel-btn--blue pixel-btn--sm text-xxs font-bold"
+                  onclick="copyDocSnippet('btnCopyCounterSlug', 'codeCounterSlug')"
+                >
+                  📋 COPY CODE
+                </button>
+              </div>
+              <pre class="docs-code-pre" id="codeCounterSlug">&lt;!-- Per-Site Hit Counter for specific target (isolated visits) --&gt;
+&lt;div class="neogram-counter"&gt;
+  &lt;img 
+    src="{{ appUrl }}/counter/{{ stationUin }}/{{ activeSiteSlug or 'shrine' }}.svg?style=green_led" 
+    alt="Target Site Visitor Count" 
+  /&gt;
+&lt;/div&gt;</pre>
+            </div>
+
             <!-- Technical Invariants Callout -->
             <div class="docs-callout docs-callout--tip">
               <strong>NO CACHE INVARIANT:</strong> All counter SVGs return <code>Cache-Control: no-cache, no-store, must-revalidate</code> headers. Browsers and proxies will not cache stale hit counts.
@@ -647,6 +836,30 @@
 &lt;/a&gt;</pre>
             </div>
 
+            <!-- Per-Site Guestbook Code Box -->
+            <div class="docs-code-card">
+              <div class="docs-code-header">
+                <span class="font-bold text-prompt">PER-SITE GUESTBOOK (SLUG: {{ activeSiteSlug or 'shrine' }})</span>
+                <button
+                  type="button"
+                  id="btnCopyGbSlug"
+                  class="pixel-btn pixel-btn--blue pixel-btn--sm text-xxs font-bold"
+                  onclick="copyDocSnippet('btnCopyGbSlug', 'codeGbSlug')"
+                >
+                  📋 COPY CODE
+                </button>
+              </div>
+              <pre class="docs-code-pre" id="codeGbSlug">&lt;!-- Per-Site Guestbook for secondary target --&gt;
+&lt;iframe
+  src="{{ appUrl }}/embed/guestbook/{{ stationHandle }}/{{ activeSiteSlug or 'shrine' }}"
+  width="100%"
+  height="650"
+  frameborder="0"
+  style="border: 3px solid #000000; box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.9); background: #161b22;"
+  title="Public Visitor Guestbook — {{ activeSiteName or 'Site Target' }}"
+&gt;&lt;/iframe&gt;</pre>
+            </div>
+
             <!-- Moderation & Spam Protection -->
             <div class="retro-card p-4 m-0 flex flex-col gap-2">
               <h3 class="font-bold text-xs uppercase text-prompt m-0">Moderation &amp; Spam Protection</h3>
@@ -690,9 +903,12 @@
                 <h3 class="font-bold text-xs uppercase text-prompt m-0">JSONFeed 1.1 Specification</h3>
                 <span class="pixel-badge pixel-badge--cyan text-xxs font-bold">STANDARDIZED API</span>
               </div>
-              <p class="text-xs text-muted m-0">
-                Neogram exposes a compliant JSONFeed at:
+                Neogram exposes compliant JSONFeeds for your static sites:
+                <br />
+                <span class="text-xxs text-muted block mt-1">• Primary Default Site:</span>
                 <code class="text-prompt select-all">{{ appUrl }}/api/users/{{ stationHandle }}/feed.json</code>
+                <span class="text-xxs text-muted block mt-1">• Specific Mounted Target (e.g. {{ activeSiteSlug or 'shrine' }}):</span>
+                <code class="text-prompt select-all">{{ appUrl }}/api/users/{{ stationHandle }}/feed.json?siteSlug={{ activeSiteSlug or 'shrine' }}</code>
               </p>
             </div>
 

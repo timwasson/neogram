@@ -13,12 +13,21 @@ docsRouter.get('/docs', (req: Request, res: Response) => {
 
   const stationHandle = currentUser ? currentUser.handle : 'your_handle';
   const stationUin = currentUser && currentUser.uin ? currentUser.uin : 100101;
-  const stationSiteUrl = currentUser && currentUser.site_url
-    ? currentUser.site_url
-    : `https://${stationHandle}.neocities.org`;
-  const deployPath = currentUser && currentUser.deploy_path !== null && currentUser.deploy_path !== undefined
-    ? String(currentUser.deploy_path).trim().replace(/^\/+|\/+$/g, '')
-    : 'neogram';
+  const userSites = res.locals.userSites || [];
+  const activeSite = res.locals.activeSite || (userSites.length > 0 ? userSites[0] : null);
+
+  const stationSiteUrl = activeSite && activeSite.site_url
+    ? activeSite.site_url
+    : (currentUser && currentUser.site_url ? currentUser.site_url : `https://${stationHandle}.neocities.org`);
+
+  const deployPath = activeSite && activeSite.deploy_path !== null && activeSite.deploy_path !== undefined
+    ? String(activeSite.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+    : (currentUser && currentUser.deploy_path !== null && currentUser.deploy_path !== undefined
+      ? String(currentUser.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+      : 'neogram');
+
+  const activeSiteSlug = activeSite ? activeSite.slug : 'main';
+  const activeSiteName = activeSite ? activeSite.name : 'Primary Site';
 
   const requestedTopic = (req.query.topic as string) || 'quickstart';
 
@@ -30,6 +39,10 @@ docsRouter.get('/docs', (req: Request, res: Response) => {
     stationUin,
     stationSiteUrl,
     deployPath,
+    userSites,
+    activeSite,
+    activeSiteSlug,
+    activeSiteName,
     activeTopic: requestedTopic,
     isAuthenticated: !!currentUser,
   });

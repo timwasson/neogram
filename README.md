@@ -130,8 +130,8 @@ npm run dev
 ```bash
 npm test
 ```
-- Runs 132 automated end-to-end integration tests in ~2.5 seconds.
-- Validates OTP dispatch, sliding rate limiting, session auth, Sharp WebP compression, isolated 11ty static builds, dynamic SVG hit counters, self-hosted comments & Cyber-Pass handshake, JSONFeed 1.1, Cyberspace User Directory presence categorization & ordering, Cyberspace Documentation Center & embed snippets, Cyberspace Friends follow grid & cascading rebuilds, notification preferences & suppression, real-time WebSocket dispatches, and safe post purge.
+- Runs 219 automated end-to-end integration tests in ~2.5 seconds.
+- Validates OTP dispatch, sliding rate limiting, session auth, multi-site target provisioning and 1-click switching, Sharp WebP compression, isolated 11ty static builds, dynamic SVG hit counters (handle, UIN, and per-site slug), self-hosted comments & Cyber-Pass handshake, per-site guestbook ledgers, JSONFeed 1.1, Cyberspace User Directory presence categorization & ordering, Cyberspace Documentation Center & embed snippets, Cyberspace Friends follow grid & cascading rebuilds, notification preferences & suppression, real-time WebSocket dispatches, and safe post purge.
 
 ---
 
