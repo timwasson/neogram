@@ -213,6 +213,30 @@
         </div>
 
         <div class="p-4">
+          {% if sites and sites.length > 1 %}
+            <div class="flex items-center gap-1.5 mb-3 flex-wrap text-xs font-mono bg-black p-2 border border-main">
+              <span class="text-muted text-xxs uppercase font-bold">FILTER TRANSMISSIONS:</span>
+              <button
+                type="button"
+                id="userFilterAllBtn"
+                class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-3xs py-0.5 px-2"
+                onclick="filterUserPosts('all')"
+              >
+                ALL SITES ({{ posts.length }})
+              </button>
+              {% for s in sites %}
+                <button
+                  type="button"
+                  id="userFilterBtn-{{ s.id }}"
+                  class="pixel-btn pixel-btn--sm text-3xs py-0.5 px-2"
+                  onclick="filterUserPosts('{{ s.id }}')"
+                >
+                  💾 {{ s.name }}
+                </button>
+              {% endfor %}
+            </div>
+          {% endif %}
+
           {% if not posts or posts.length == 0 %}
             <!-- Empty State -->
             <div class="p-8 border-2 border-dashed border-main text-center bg-black text-prompt space-y-2">
@@ -224,9 +248,9 @@
             </div>
           {% else %}
             <!-- Transmissions Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="userPostsGrid">
               {% for post in posts %}
-                <div class="retro-card p-2 flex flex-col gap-2 bg-window border border-main">
+                <div class="retro-card p-2 flex flex-col gap-2 bg-window border border-main" data-user-post data-site-id="{{ post.siteId or '' }}">
                   
                   <!-- Thumbnail Viewport with Filter Tag -->
                   <div class="relative bg-black border border-main overflow-hidden group">
@@ -261,6 +285,13 @@
 
                   <!-- Caption & Metadata -->
                   <div class="flex flex-col gap-1 flex-1">
+                    {% if post.siteName %}
+                      <div>
+                        <span class="pixel-badge pixel-badge--yellow font-bold text-3xs">
+                          💾 {{ post.siteName }}
+                        </span>
+                      </div>
+                    {% endif %}
                     <p class="text-xs font-mono line-clamp-2 leading-relaxed m-0 text-main">
                       {{ post.caption }}
                     </p>
@@ -297,6 +328,30 @@
 
 <script>
   var isFriendProfile = {{ 'true' if isFriend else 'false' }};
+
+  function filterUserPosts(siteId) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var allBtn = document.getElementById('userFilterAllBtn');
+    if (allBtn) {
+      if (siteId === 'all') allBtn.classList.add('pixel-btn--yellow');
+      else allBtn.classList.remove('pixel-btn--yellow');
+    }
+    document.querySelectorAll('[id^="userFilterBtn-"]').forEach(function(btn) {
+      if (btn.id === 'userFilterBtn-' + siteId) btn.classList.add('pixel-btn--yellow');
+      else btn.classList.remove('pixel-btn--yellow');
+    });
+
+    var cards = document.querySelectorAll('#userPostsGrid [data-site-id]');
+    cards.forEach(function(card) {
+      var itemSiteId = card.getAttribute('data-site-id');
+      if (siteId === 'all' || itemSiteId === siteId) {
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+  }
+  window.filterUserPosts = filterUserPosts;
 
   async function toggleProfileFriend(handle) {
     if (window.retroAudio) window.retroAudio.playClick();

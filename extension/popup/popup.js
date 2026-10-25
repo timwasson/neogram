@@ -5,7 +5,9 @@
 (function () {
   'use strict';
 
-  var DEFAULT_SERVER = 'http://localhost:4000';
+  var DEFAULT_SERVER = (typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1'))
+    ? 'http://localhost:4000'
+    : 'https://neogram.club';
 
   var ExtApp = {
     serverUrl: DEFAULT_SERVER,

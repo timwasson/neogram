@@ -5,6 +5,7 @@ import { postsRouter } from './posts';
 import { settingsRouter } from './settings';
 import { directoryRouter } from './directory';
 import { notificationsRouter } from './notifications';
+import { sitesRouter } from './sites';
 import { query } from '../db';
 
 export const apiRouter = Router();
@@ -13,6 +14,7 @@ apiRouter.use(healthRouter);
 apiRouter.use('/auth', authRouter);
 apiRouter.use(postsRouter);
 apiRouter.use(settingsRouter);
+apiRouter.use(sitesRouter);
 apiRouter.use(directoryRouter);
 apiRouter.use(notificationsRouter);
 

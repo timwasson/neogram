@@ -64,10 +64,10 @@ authRouter.post('/request-otp', otpRequestLimiter, async (req: Request, res: Res
     }
 
     const cleanId = identifier.trim().toLowerCase();
-    const isTestSuite = (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test';
+    const isTestBypass = (req.headers['x-test-suite'] === 'true' && !cleanId.startsWith('spam_test_') && req.headers['x-test-rate-limit'] !== 'true' && process.env.NODE_ENV !== 'production');
 
     // Check rate limit on target identifier (max 4 per 15 minutes)
-    if (!isTestSuite && !checkIdentifierRateLimit(`req:${cleanId}`, 4, 15 * 60 * 1000)) {
+    if (!isTestBypass && !checkIdentifierRateLimit(`req:${cleanId}`, 4, 15 * 60 * 1000)) {
       res.status(429).json({
         ok: false,
         error: 'Carrier busy: Too many OTP dispatch requests for this destination. Please wait 15 minutes.',

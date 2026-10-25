@@ -182,6 +182,71 @@
             </div>
           </div>
 
+          <!-- Retro Active Site / Mounted Target Selector -->
+          <div class="retro-site-menu" id="retroSiteMenu">
+            <button
+              type="button"
+              id="siteMenuBtn"
+              class="pixel-btn pixel-btn--sm flex items-center gap-1 font-bold text-xs"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-controls="siteDropdownMenu"
+              title="Mounted Target Site: {{ activeSite.name if activeSite else 'Default' }}"
+            >
+              <span>💾</span>
+              <span id="navActiveSiteName" class="truncate max-w-24 sm:max-w-36 font-mono text-prompt">
+                {{ activeSite.name if activeSite else 'Default Site' }}
+              </span>
+              <span class="text-xs" id="siteMenuCaret">▾</span>
+            </button>
+
+            <!-- Dropdown Menu Window -->
+            <div
+              id="siteDropdownMenu"
+              class="retro-site-dropdown pixel-box hidden"
+              role="region"
+              aria-label="Mounted static targets"
+            >
+              <div class="window-header flex items-center justify-between text-xs py-1 px-2.5">
+                <div class="flex items-center gap-1.5">
+                  <span>💾</span>
+                  <span class="font-bold uppercase tracking-wider text-xs">MOUNTED TARGET SITES</span>
+                </div>
+                <span class="text-3xs text-muted font-mono">{{ userSites.length or 1 }} SITES</span>
+              </div>
+              <div class="p-2 flex flex-col gap-1 max-h-60 overflow-y-auto text-xs font-mono" id="navSiteList">
+                {% if userSites and userSites.length > 0 %}
+                  {% for s in userSites %}
+                    <button
+                      type="button"
+                      class="pixel-btn pixel-btn--sm text-left flex items-center justify-between w-full {% if activeSite and activeSite.id == s.id %}pixel-btn--yellow font-bold{% endif %}"
+                      onclick="handleNavSwitchSite('{{ s.id }}')"
+                    >
+                      <div class="flex items-center gap-1.5 truncate">
+                        <span>{% if activeSite and activeSite.id == s.id %}▶{% else %}○{% endif %}</span>
+                        <span class="truncate">{{ s.name }}</span>
+                      </div>
+                      {% if s.is_default %}
+                        <span class="text-3xs text-prompt shrink-0">[DEFAULT]</span>
+                      {% endif %}
+                    </button>
+                  {% endfor %}
+                {% else %}
+                  <div class="text-xs text-muted p-2">Default Station Target</div>
+                {% endif %}
+              </div>
+              <div class="p-2 border-t border-main bg-black flex items-center justify-between text-3xs font-mono">
+                <a
+                  href="/#settings"
+                  onclick="if(typeof switchDashboardTab==='function'){switchDashboardTab('settings', event);} toggleSiteMenu(false);"
+                  class="text-mac hover:underline font-bold"
+                >
+                  ⚙️ Manage &amp; Add Sites :&gt;
+                </a>
+              </div>
+            </div>
+          </div>
+
           <!-- User Station Account Menu Dropdown -->
           <div class="retro-user-menu" id="retroUserMenu">
             <button
@@ -236,18 +301,27 @@
                   </span>
                 </div>
 
+                <!-- Active Target Site -->
+                <div class="flex flex-col gap-0.5">
+                  <span class="text-muted text-xxs uppercase tracking-wider">ACTIVE TARGET SITE:</span>
+                  <div class="text-prompt font-bold flex items-center justify-between text-xs">
+                    <span class="truncate">💾 {{ activeSite.name if activeSite else 'Default Site' }}</span>
+                    <span class="pixel-badge pixel-badge--yellow text-3xs font-bold uppercase">{{ activeSite.deploymentType or 'neocities' }}</span>
+                  </div>
+                </div>
+
                 <!-- Static Host -->
                 <div class="flex flex-col gap-0.5">
                   <span class="text-muted text-xxs uppercase tracking-wider">STATIC HOST:</span>
                   <a
-                    href="{{ currentUser.siteUrl or 'https://' + currentUser.handle + '.neocities.org' }}"
+                    href="{{ activeSite.siteUrl if activeSite and activeSite.siteUrl else (currentUser.siteUrl or 'https://' + currentUser.handle + '.neocities.org') }}"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="text-mac hover:underline truncate select-all flex items-center gap-1 font-bold"
                     id="dropdownSiteUrl"
                     title="Open host in new window"
                   >
-                    <span class="truncate">{{ currentUser.siteUrl or 'https://' + currentUser.handle + '.neocities.org' }}</span>
+                    <span class="truncate">{{ activeSite.siteUrl if activeSite and activeSite.siteUrl else (currentUser.siteUrl or 'https://' + currentUser.handle + '.neocities.org') }}</span>
                     <span class="text-xxs shrink-0">↗</span>
                   </a>
                 </div>
@@ -507,6 +581,70 @@
           }
         });
       })();
+
+      // Site Target Dropdown Controller
+      (function() {
+        var menuBtn = document.getElementById('siteMenuBtn');
+        var dropdown = document.getElementById('siteDropdownMenu');
+        var caret = document.getElementById('siteMenuCaret');
+        if (!menuBtn || !dropdown) return;
+
+        function toggleMenu(force) {
+          var isCurrentlyOpen = !dropdown.classList.contains('hidden');
+          var shouldOpen = typeof force === 'boolean' ? force : !isCurrentlyOpen;
+
+          if (shouldOpen) {
+            dropdown.classList.remove('hidden');
+            menuBtn.setAttribute('aria-expanded', 'true');
+            menuBtn.classList.add('pixel-btn--active');
+            if (caret) caret.textContent = '▴';
+          } else {
+            dropdown.classList.add('hidden');
+            menuBtn.setAttribute('aria-expanded', 'false');
+            menuBtn.classList.remove('pixel-btn--active');
+            if (caret) caret.textContent = '▾';
+          }
+        }
+
+        window.toggleSiteMenu = toggleMenu;
+
+        menuBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (window.retroAudio) window.retroAudio.playClick();
+          toggleMenu();
+        });
+
+        document.addEventListener('click', function(e) {
+          if (!dropdown.classList.contains('hidden')) {
+            if (!dropdown.contains(e.target) && !menuBtn.contains(e.target)) {
+              toggleMenu(false);
+            }
+          }
+        });
+
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) {
+            toggleMenu(false);
+            menuBtn.focus();
+          }
+        });
+      })();
+
+      async function handleNavSwitchSite(siteId) {
+        try {
+          if (window.retroAudio) window.retroAudio.playClick();
+          var res = await fetch('/api/sites/' + encodeURIComponent(siteId) + '/switch', { method: 'POST' });
+          var data = await res.json();
+          if (data.ok) {
+            window.location.reload();
+          } else {
+            alert(data.error || 'Failed to switch target site.');
+          }
+        } catch(e) {
+          alert('Network fault switching site: ' + e.message);
+        }
+      }
+      window.handleNavSwitchSite = handleNavSwitchSite;
     </script>
     {% endif %}
 

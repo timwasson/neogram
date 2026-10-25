@@ -97,40 +97,65 @@ async function getFilesRecursively(
 /**
  * Builds the user's static 11ty gallery and deploys all files directly to their Neocities site.
  */
-export async function deployToNeocities(userId: string): Promise<DeployResult> {
+export async function deployToNeocities(targetId: string, isSiteId: boolean = false): Promise<DeployResult> {
   const startTime = Date.now();
 
-  // 1. Fetch user and encrypted credentials from database
-  const userRes = await query(
-    `SELECT id, email, handle, site_url, deployment_type, deployment_credentials, auto_deploy, deploy_path
-     FROM users
-     WHERE id = $1`,
-    [userId]
+  // 1. Fetch site or user and encrypted credentials from database
+  let site: any = null;
+  let user: any = null;
+
+  const siteRes = await query(
+    `SELECT s.*, u.id as user_owner_id, u.email, u.handle
+     FROM sites s
+     JOIN users u ON s.user_id = u.id
+     WHERE s.id = $1`,
+    [targetId]
   );
 
-  if (userRes.rows.length === 0) {
-    throw new Error('User node not found in database.');
+  if (siteRes.rows.length > 0) {
+    site = siteRes.rows[0];
+    user = { id: site.user_owner_id, email: site.email, handle: site.handle };
+  } else {
+    // Fallback: targetId was a userId
+    const userRes = await query(
+      `SELECT id, email, handle, site_url, deployment_type, deployment_credentials, auto_deploy, deploy_path
+       FROM users
+       WHERE id = $1`,
+      [targetId]
+    );
+
+    if (userRes.rows.length === 0) {
+      throw new Error('User node or site target not found in database.');
+    }
+
+    user = userRes.rows[0];
+    const { getDefaultSite } = await import('./siteService');
+    site = await getDefaultSite(user.id);
   }
 
-  const user = userRes.rows[0];
-  const creds = decryptCredentials<NeocitiesCredentials>(user.deployment_credentials);
+  const creds = decryptCredentials<NeocitiesCredentials>(site.deployment_credentials || user.deployment_credentials);
 
   if (!creds || !creds.apiKey || !creds.apiKey.trim()) {
     throw new Error(
-      'No Neocities API key configured for your account. Please set up your key in Settings & Deploy.'
+      `No Neocities API key configured for site "${site.name || 'Personal Site'}". Please set up your key in Settings & Deploy.`
     );
   }
 
   const apiKey = creds.apiKey.trim();
-  const userOutputDir = path.join(process.cwd(), 'dist/static-galleries', user.id);
-  const rawDeployPath = user.deploy_path !== null && user.deploy_path !== undefined
-    ? String(user.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+  const fsSync = await import('fs');
+  const siteDir = path.join(process.cwd(), 'dist/static-galleries', site.id);
+  const userDir = path.join(process.cwd(), 'dist/static-galleries', user.id);
+  const userOutputDir = fsSync.existsSync(siteDir) ? siteDir : (fsSync.existsSync(userDir) ? userDir : siteDir);
+
+  const rawDeployPath = site.deploy_path !== null && site.deploy_path !== undefined
+    ? String(site.deploy_path).trim().replace(/^\/+|\/+$/g, '')
     : 'neogram';
 
-  console.log(`[:> NEOCITIES DEPLOY] Initiating deployment for @${user.handle || user.email} (target folder: "${rawDeployPath || 'root'}")...`);
+  console.log(`[:> NEOCITIES DEPLOY] Initiating deployment for @${user.handle || user.email} (site: "${site.name}", target folder: "${rawDeployPath || 'root'}")...`);
 
-  // 2. Compile user's static gallery via 11ty
+  // 2. Compile static gallery via 11ty
   const buildResult = await buildStaticGallery({
+    siteId: site.id,
     userId: user.id,
     outputDir: userOutputDir,
   });
@@ -172,6 +197,13 @@ export async function deployToNeocities(userId: string): Promise<DeployResult> {
   const data = (await res.json()) as any;
 
   if (!res.ok || data.result !== 'success') {
+    const msg = (data.message || '').toLowerCase();
+    if (res.status === 429 || msg.includes('rate limit') || msg.includes('too many')) {
+      throw new Error('Neocities API rate limit reached. Please wait a few minutes before deploying again.');
+    }
+    if (res.status === 413 || msg.includes('quota') || msg.includes('storage') || msg.includes('space') || msg.includes('limit')) {
+      throw new Error('Neocities storage quota exceeded (1GB limit on free accounts). Please remove unused files from your Neocities account dashboard.');
+    }
     throw new Error(data.message || `Neocities upload rejected (HTTP ${res.status}).`);
   }
 
@@ -192,11 +224,18 @@ export async function deployToNeocities(userId: string): Promise<DeployResult> {
 
   // 7. Record last deployment in database
   await query(
+    `UPDATE sites
+     SET last_deployed_at = NOW(),
+         updated_at = NOW()
+     WHERE id = $1`,
+    [site.id]
+  );
+  await query(
     `UPDATE users
      SET last_deployed_at = NOW(),
          updated_at = NOW()
      WHERE id = $1`,
-    [userId]
+    [user.id]
   );
 
   const baseSiteUrl = user.site_url ? user.site_url.replace(/\/+$/, '') : `https://${user.handle || 'user'}.neocities.org`;
@@ -231,22 +270,36 @@ export async function deployToNeocities(userId: string): Promise<DeployResult> {
  * Deletes remote files from the user's Neocities site (e.g. when a post is deleted).
  * Strictly non-destructive: only permits purging files inside uploads/ and matching deploy_path.
  */
-export async function deleteFromNeocities(userId: string, filenames: string[]): Promise<boolean> {
+export async function deleteFromNeocities(targetId: string, filenames: string[]): Promise<boolean> {
   if (!filenames || filenames.length === 0) return true;
 
   try {
-    const userRes = await query(
-      `SELECT deployment_credentials, deploy_path FROM users WHERE id = $1`,
-      [userId]
-    );
-    if (userRes.rows.length === 0) return false;
+    let credsRaw: any;
+    let rawDeployPath: any;
 
-    const user = userRes.rows[0];
-    const creds = decryptCredentials<NeocitiesCredentials>(user.deployment_credentials);
+    const siteRes = await query(
+      `SELECT deployment_credentials, deploy_path FROM sites WHERE id = $1`,
+      [targetId]
+    );
+
+    if (siteRes.rows.length > 0) {
+      credsRaw = siteRes.rows[0].deployment_credentials;
+      rawDeployPath = siteRes.rows[0].deploy_path;
+    } else {
+      const userRes = await query(
+        `SELECT deployment_credentials, deploy_path FROM users WHERE id = $1`,
+        [targetId]
+      );
+      if (userRes.rows.length === 0) return false;
+      credsRaw = userRes.rows[0].deployment_credentials;
+      rawDeployPath = userRes.rows[0].deploy_path;
+    }
+
+    const creds = decryptCredentials<NeocitiesCredentials>(credsRaw);
     if (!creds || !creds.apiKey) return false;
 
-    const rawDeployPath = user.deploy_path !== null && user.deploy_path !== undefined
-      ? String(user.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+    const cleanDeployPath = rawDeployPath !== null && rawDeployPath !== undefined
+      ? String(rawDeployPath).trim().replace(/^\/+|\/+$/g, '')
       : 'neogram';
 
     const formData = new FormData();
@@ -262,8 +315,8 @@ export async function deleteFromNeocities(userId: string, filenames: string[]): 
         console.warn(`[:> NEOCITIES DELETE REFUSED] Unsafe deletion path rejected (not in uploads/): ${cleanPath}`);
         continue;
       }
-      if (rawDeployPath && !cleanPath.startsWith(rawDeployPath + '/')) {
-        console.warn(`[:> NEOCITIES DELETE REFUSED] Unsafe path rejected (outside deploy directory ${rawDeployPath}): ${cleanPath}`);
+      if (cleanDeployPath && !cleanPath.startsWith(cleanDeployPath + '/')) {
+        console.warn(`[:> NEOCITIES DELETE REFUSED] Unsafe path rejected (outside deploy directory ${cleanDeployPath}): ${cleanPath}`);
         continue;
       }
 
@@ -285,7 +338,7 @@ export async function deleteFromNeocities(userId: string, filenames: string[]): 
     });
 
     const data = (await res.json()) as any;
-    console.log(`[:> NEOCITIES DELETE] Remote purge for user ${userId} (${validCount} files):`, data.message || data.result);
+    console.log(`[:> NEOCITIES DELETE] Remote purge for target ${targetId} (${validCount} files):`, data.message || data.result);
     return data.result === 'success';
   } catch (err: any) {
     console.warn(`[:> NEOCITIES DELETE ERROR] Failed to purge remote files:`, err.message);
@@ -294,13 +347,30 @@ export async function deleteFromNeocities(userId: string, filenames: string[]): 
 }
 
 /**
- * Triggers automated background deployment if the user has auto_deploy enabled.
+ * Triggers automated background deployment if the target has auto_deploy enabled.
  */
-export async function triggerAutoDeployIfEnabled(userId: string): Promise<void> {
+export async function triggerAutoDeployIfEnabled(targetId: string): Promise<void> {
   try {
+    const siteRes = await query(
+      `SELECT id, auto_deploy, deployment_credentials FROM sites WHERE id = $1`,
+      [targetId]
+    );
+
+    if (siteRes.rows.length > 0) {
+      const site = siteRes.rows[0];
+      if (!site.auto_deploy) return;
+      const creds = decryptCredentials<NeocitiesCredentials>(site.deployment_credentials);
+      if (!creds || !creds.apiKey) return;
+      console.log(`[:> AUTO-DEPLOY] Auto-deploy triggered for site ${site.id}. Processing in background...`);
+      deployToNeocities(site.id, true)
+        .then((res) => console.log(`[:> AUTO-DEPLOY FINISHED] Deployed ${res.filesCount} files in ${res.durationMs}ms.`))
+        .catch((err) => console.error('[:> AUTO-DEPLOY ERROR]', err.message));
+      return;
+    }
+
     const userRes = await query(
       `SELECT id, auto_deploy, deployment_credentials FROM users WHERE id = $1`,
-      [userId]
+      [targetId]
     );
 
     if (userRes.rows.length === 0) return;
@@ -311,8 +381,8 @@ export async function triggerAutoDeployIfEnabled(userId: string): Promise<void> 
     const creds = decryptCredentials<NeocitiesCredentials>(user.deployment_credentials);
     if (!creds || !creds.apiKey) return;
 
-    console.log(`[:> AUTO-DEPLOY] Auto-deploy triggered for user ${userId}. Processing in background...`);
-    deployToNeocities(userId)
+    console.log(`[:> AUTO-DEPLOY] Auto-deploy triggered for user ${targetId}. Processing in background...`);
+    deployToNeocities(targetId)
       .then((res) => {
         console.log(`[:> AUTO-DEPLOY FINISHED] Deployed ${res.filesCount} files in ${res.durationMs}ms.`);
       })

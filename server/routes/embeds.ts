@@ -55,9 +55,10 @@ export async function findUserByHandleOrId(identifier: string) {
  * Serves a dynamic SVG hit counter, increments hits in web_counters,
  * and sets no-cache headers.
  */
-embedsRouter.get('/counter/:identifier.svg', async (req: Request, res: Response) => {
+embedsRouter.get(['/counter/:identifier.svg', '/counter/:identifier/:slug.svg'], async (req: Request, res: Response) => {
   try {
     const identifier = req.params.identifier;
+    const rawSlug = req.params.slug ? req.params.slug.replace(/\.svg$/i, '') : '';
     const requestedStyle = (req.query.style as string) || '';
 
     const user = await findUserByHandleOrId(identifier);
@@ -65,14 +66,19 @@ embedsRouter.get('/counter/:identifier.svg', async (req: Request, res: Response)
     let style = requestedStyle || 'green_led';
 
     if (user) {
-      // Upsert hit counter
+      const { getDefaultSite, getSiteBySlug } = await import('../services/siteService');
+      const site = rawSlug
+        ? ((await getSiteBySlug(user.id, rawSlug)) || (await getDefaultSite(user.id)))
+        : (await getDefaultSite(user.id));
+
+      // Upsert hit counter for this site
       const updateRes = await query(
-        `INSERT INTO web_counters (user_id, hits, style, updated_at)
-         VALUES ($1, 1, $2, CURRENT_TIMESTAMP)
-         ON CONFLICT (user_id) 
+        `INSERT INTO web_counters (site_id, user_id, hits, style, updated_at)
+         VALUES ($1, $2, 1, $3, CURRENT_TIMESTAMP)
+         ON CONFLICT (site_id) 
          DO UPDATE SET hits = web_counters.hits + 1, updated_at = CURRENT_TIMESTAMP
          RETURNING hits, style`,
-        [user.id, requestedStyle || 'green_led']
+        [site.id, user.id, requestedStyle || 'green_led']
       );
 
       hits = parseInt(updateRes.rows[0].hits, 10);
@@ -104,7 +110,7 @@ embedsRouter.get('/counter/:identifier.svg', async (req: Request, res: Response)
 
 /**
  * GET /api/counter
- * Retrieves authenticated user's counter stats and embed codes
+ * Retrieves authenticated user's counter stats and embed codes (per site)
  */
 embedsRouter.get('/api/counter', async (req: Request, res: Response) => {
   try {
@@ -114,22 +120,34 @@ embedsRouter.get('/api/counter', async (req: Request, res: Response) => {
       return;
     }
 
-    let counterRes = await query('SELECT hits, style FROM web_counters WHERE user_id = $1', [user.id]);
+    const { getDefaultSite, getSiteById } = await import('../services/siteService');
+    const reqSiteId = (req.query.siteId as string) || (req.query.site as string);
+    const site = reqSiteId
+      ? ((await getSiteById(reqSiteId, user.id)) || (await getDefaultSite(user.id)))
+      : (await getDefaultSite(user.id));
+
+    let counterRes = await query('SELECT hits, style FROM web_counters WHERE site_id = $1', [site.id]);
     if (counterRes.rows.length === 0) {
+      // Check legacy user_id counter for migration
+      const legacyRes = await query('SELECT hits, style FROM web_counters WHERE user_id = $1 AND site_id IS NULL', [user.id]);
+      const initialHits = legacyRes.rows.length > 0 ? parseInt(legacyRes.rows[0].hits, 10) : 42;
+      const initialStyle = legacyRes.rows.length > 0 ? legacyRes.rows[0].style : 'green_led';
       await query(
-        'INSERT INTO web_counters (user_id, hits, style) VALUES ($1, 42, $2) ON CONFLICT DO NOTHING',
-        [user.id, 'green_led']
+        'INSERT INTO web_counters (site_id, user_id, hits, style) VALUES ($1, $2, $3, $4) ON CONFLICT (site_id) DO NOTHING',
+        [site.id, user.id, initialHits, initialStyle]
       );
-      counterRes = await query('SELECT hits, style FROM web_counters WHERE user_id = $1', [user.id]);
+      counterRes = await query('SELECT hits, style FROM web_counters WHERE site_id = $1', [site.id]);
     }
 
-    const row = counterRes.rows[0];
+    const row = counterRes.rows[0] || { hits: 42, style: 'green_led' };
     const handle = user.handle || user.email.split('@')[0];
     const hits = parseInt(row.hits, 10);
     const style = row.style || 'green_led';
 
     const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const counterUrl = `${baseUrl}/counter/${handle}.svg?style=${style}`;
+    const siteCounterUrl = `${baseUrl}/counter/${handle}/${site.slug}.svg?style=${style}`;
+    const defaultCounterUrl = `${baseUrl}/counter/${handle}.svg?style=${style}`;
+    const counterUrl = site.isDefault ? defaultCounterUrl : siteCounterUrl;
     const embedHtml = `<div class="neogram-counter">\n  <img src="${counterUrl}" alt="You are visitor number" />\n</div>`;
 
     res.json({
@@ -138,7 +156,12 @@ embedsRouter.get('/api/counter', async (req: Request, res: Response) => {
         hits,
         style,
         handle,
+        siteId: site.id,
+        siteName: site.name,
+        siteSlug: site.slug,
         counterUrl,
+        siteCounterUrl,
+        defaultCounterUrl,
         embedHtml,
       },
     });
@@ -149,7 +172,7 @@ embedsRouter.get('/api/counter', async (req: Request, res: Response) => {
 
 /**
  * PUT /api/counter
- * Updates authenticated user's preferred counter style or simulates hits
+ * Updates authenticated user's preferred counter style or simulates hits for active site
  */
 embedsRouter.put('/api/counter', async (req: Request, res: Response) => {
   try {
@@ -159,37 +182,42 @@ embedsRouter.put('/api/counter', async (req: Request, res: Response) => {
       return;
     }
 
-    const { style, action, amount } = req.body;
+    const { style, action, amount, siteId } = req.body;
+    const { getDefaultSite, getSiteById } = await import('../services/siteService');
+    const site = siteId
+      ? ((await getSiteById(siteId, user.id)) || (await getDefaultSite(user.id)))
+      : (await getDefaultSite(user.id));
 
     if (action === 'reset') {
       await query(
-        `INSERT INTO web_counters (user_id, hits, style, updated_at)
-         VALUES ($1, 1, $2, CURRENT_TIMESTAMP)
-         ON CONFLICT (user_id) DO UPDATE SET hits = 1, updated_at = CURRENT_TIMESTAMP`,
-        [user.id, style || 'green_led']
+        `INSERT INTO web_counters (site_id, user_id, hits, style, updated_at)
+         VALUES ($1, $2, 1, $3, CURRENT_TIMESTAMP)
+         ON CONFLICT (site_id) DO UPDATE SET hits = 1, updated_at = CURRENT_TIMESTAMP`,
+        [site.id, user.id, style || 'green_led']
       );
     } else if (action === 'increment') {
       const inc = parseInt(amount, 10) || 1;
       await query(
-        `INSERT INTO web_counters (user_id, hits, style, updated_at)
-         VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-         ON CONFLICT (user_id) DO UPDATE SET hits = web_counters.hits + $2, updated_at = CURRENT_TIMESTAMP`,
-        [user.id, inc, style || 'green_led']
+        `INSERT INTO web_counters (site_id, user_id, hits, style, updated_at)
+         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+         ON CONFLICT (site_id) DO UPDATE SET hits = web_counters.hits + $3, updated_at = CURRENT_TIMESTAMP`,
+        [site.id, user.id, inc, style || 'green_led']
       );
     } else if (style) {
       await query(
-        `INSERT INTO web_counters (user_id, hits, style, updated_at)
-         VALUES ($1, 42, $2, CURRENT_TIMESTAMP)
-         ON CONFLICT (user_id) DO UPDATE SET style = $2, updated_at = CURRENT_TIMESTAMP`,
-        [user.id, style]
+        `INSERT INTO web_counters (site_id, user_id, hits, style, updated_at)
+         VALUES ($1, $2, 42, $3, CURRENT_TIMESTAMP)
+         ON CONFLICT (site_id) DO UPDATE SET style = $3, updated_at = CURRENT_TIMESTAMP`,
+        [site.id, user.id, style]
       );
     }
 
-    const updated = await query('SELECT hits, style FROM web_counters WHERE user_id = $1', [user.id]);
+    const updated = await query('SELECT hits, style FROM web_counters WHERE site_id = $1', [site.id]);
     res.json({
       ok: true,
       hits: parseInt(updated.rows[0].hits, 10),
       style: updated.rows[0].style,
+      siteId: site.id,
     });
   } catch (err: any) {
     res.status(500).json({ ok: false, error: err.message });
@@ -204,35 +232,44 @@ embedsRouter.put('/api/counter', async (req: Request, res: Response) => {
  * GET /api/guestbook/:handle
  * Returns guestbook signatures for a user from self-hosted data/guestbook.json
  */
-embedsRouter.get('/api/guestbook/:identifier', async (req: Request, res: Response) => {
+embedsRouter.get(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:slug'], async (req: Request, res: Response) => {
   try {
-    const user = await findUserByHandleOrId(req.params.identifier);
-    if (!user) {
+    const hostUser = await findUserByHandleOrId(req.params.identifier);
+    if (!hostUser) {
       res.status(404).json({ ok: false, error: 'User node not found' });
       return;
     }
 
+    const rawSlug = req.params.slug ? req.params.slug.trim() : '';
+    const { getDefaultSite, getSiteBySlug } = await import('../services/siteService');
+    const targetSite = rawSlug
+      ? ((await getSiteBySlug(hostUser.id, rawSlug)) || (await getDefaultSite(hostUser.id)))
+      : (await getDefaultSite(hostUser.id));
+
     const { readRemoteJson, getGuestbookRelativePath } = await import('../services/staticStorage');
-    const gbData = await readRemoteJson<any>(user, getGuestbookRelativePath(), { entries: [] });
+    const gbData = await readRemoteJson<any>(targetSite, getGuestbookRelativePath(), { entries: [] });
     let entries = Array.isArray(gbData.entries) ? gbData.entries : [];
 
-    // Fallback to legacy SQL records if self-hosted file not populated yet
+    // Fallback to SQL records if self-hosted file not populated yet
     if (entries.length === 0) {
       const entriesRes = await query(
         `SELECT id, visitor_name as "visitorName", visitor_website as "visitorWebsite", 
                 visitor_location as "visitorLocation", mood_icon as "moodIcon", 
                 message, is_moderated as "isModerated", created_at as "createdAt"
          FROM guestbook_entries
-         WHERE user_id = $1
+         WHERE site_id = $1 OR (user_id = $2 AND site_id IS NULL)
          ORDER BY created_at DESC`,
-        [user.id]
+        [targetSite.id, hostUser.id]
       );
       entries = entriesRes.rows;
     }
 
     res.json({
       ok: true,
-      handle: user.handle || user.email.split('@')[0],
+      handle: hostUser.handle || hostUser.email.split('@')[0],
+      siteId: targetSite.id,
+      siteName: targetSite.name,
+      siteSlug: targetSite.slug,
       entries,
     });
   } catch (err: any) {
@@ -251,10 +288,10 @@ const guestbookRateLimiter = rateLimit({
 });
 
 /**
- * POST /api/guestbook/:handle
+ * POST /api/guestbook/:handle (and /api/guestbook/:handle/:slug)
  * Verified signature submission to a user's self-hosted visitor ledger on static host
  */
-embedsRouter.post('/api/guestbook/:identifier', guestbookRateLimiter, async (req: Request, res: Response) => {
+embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:slug'], guestbookRateLimiter, async (req: Request, res: Response) => {
   try {
     // Require verified Neogram user
     const visitorUser = await getAuthUser(req);
@@ -271,6 +308,12 @@ embedsRouter.post('/api/guestbook/:identifier', guestbookRateLimiter, async (req
       res.status(404).json({ ok: false, error: 'User node not found' });
       return;
     }
+
+    const rawSlug = req.params.slug ? req.params.slug.trim() : '';
+    const { getDefaultSite, getSiteBySlug } = await import('../services/siteService');
+    const targetSite = rawSlug
+      ? ((await getSiteBySlug(hostUser.id, rawSlug)) || (await getDefaultSite(hostUser.id)))
+      : (await getDefaultSite(hostUser.id));
 
     const { visitorLocation, visitorWebsite, moodIcon, message } = req.body;
 
@@ -289,7 +332,7 @@ embedsRouter.post('/api/guestbook/:identifier', guestbookRateLimiter, async (req
     }
 
     const { appendGuestbookEntry } = await import('../services/staticStorage');
-    const entry = await appendGuestbookEntry(hostUser, {
+    const entry = await appendGuestbookEntry(targetSite, {
       visitorName: visitorUser.handle || visitorUser.email.split('@')[0],
       uin: visitorUser.uin,
       visitorLocation: visitorLocation || 'Cyberspace',
@@ -298,13 +341,14 @@ embedsRouter.post('/api/guestbook/:identifier', guestbookRateLimiter, async (req
       message: message.trim(),
     });
 
-    // Mirror to database table for backwards compatibility
+    // Mirror to database table with site_id for backwards compatibility & audit
     await query(
-      `INSERT INTO guestbook_entries (id, user_id, visitor_name, visitor_website, visitor_location, mood_icon, message)
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
+      `INSERT INTO guestbook_entries (id, user_id, site_id, visitor_name, visitor_website, visitor_location, mood_icon, message)
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT DO NOTHING`,
       [
         hostUser.id,
+        targetSite.id,
         visitorUser.handle || 'visitor',
         cleanWebsite ? cleanWebsite.slice(0, 500) : null,
         (visitorLocation || 'Cyberspace').trim().slice(0, 200),
@@ -320,7 +364,7 @@ embedsRouter.post('/api/guestbook/:identifier', guestbookRateLimiter, async (req
           userId: hostUser.id,
           actorId: visitorUser.id,
           type: 'guestbook',
-          title: `@${visitorUser.handle || 'visitor'} signed your guestbook!`,
+          title: `@${visitorUser.handle || 'visitor'} signed your guestbook (${targetSite.name})!`,
           body: message.trim().slice(0, 150),
           linkUrl: `/docs?topic=guestbook`,
           icon: '📖',
@@ -331,6 +375,9 @@ embedsRouter.post('/api/guestbook/:identifier', guestbookRateLimiter, async (req
     res.status(201).json({
       ok: true,
       message: 'Signature committed to self-hosted ledger on static host!',
+      siteId: targetSite.id,
+      siteName: targetSite.name,
+      siteSlug: targetSite.slug,
       entry,
     });
   } catch (err: any) {
@@ -383,24 +430,51 @@ embedsRouter.get(['/api/users/:identifier/feed.json', '/feed/:identifier.json'],
     const handle = user.handle || user.email.split('@')[0];
     const baseUrl = `${req.protocol}://${req.get('host')}`;
 
-    const postsRes = await query(
-      `SELECT 
-        p.id,
-        p.image_path as "imagePath",
-        p.thumbnail_path as "thumbnailPath",
-        p.caption,
-        p.filter_applied as "filterApplied",
-        p.mood,
-        p.webring,
-        p.location,
-        p.likes_count as "likes",
-        p.created_at as "createdAt",
-        (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
-       FROM posts p
-       WHERE p.user_id = $1
-       ORDER BY p.created_at DESC`,
-      [user.id]
-    );
+    const { getDefaultSite, getSiteById, getSiteBySlug } = await import('../services/siteService');
+    const reqSiteId = req.query.siteId as string;
+    const reqSiteSlug = req.query.siteSlug as string;
+
+    let targetSite: any = null;
+    if (reqSiteId) {
+      targetSite = await getSiteById(reqSiteId, user.id);
+    } else if (reqSiteSlug) {
+      targetSite = await getSiteBySlug(user.id, reqSiteSlug);
+    }
+
+    const postsSql = targetSite
+      ? `SELECT 
+          p.id,
+          p.image_path as "imagePath",
+          p.thumbnail_path as "thumbnailPath",
+          p.caption,
+          p.filter_applied as "filterApplied",
+          p.mood,
+          p.webring,
+          p.location,
+          p.likes_count as "likes",
+          p.created_at as "createdAt",
+          (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
+         FROM posts p
+         WHERE p.user_id = $1 AND p.site_id = $2
+         ORDER BY p.created_at DESC`
+      : `SELECT 
+          p.id,
+          p.image_path as "imagePath",
+          p.thumbnail_path as "thumbnailPath",
+          p.caption,
+          p.filter_applied as "filterApplied",
+          p.mood,
+          p.webring,
+          p.location,
+          p.likes_count as "likes",
+          p.created_at as "createdAt",
+          (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
+         FROM posts p
+         WHERE p.user_id = $1
+         ORDER BY p.created_at DESC`;
+
+    const postsParams = targetSite ? [user.id, targetSite.id] : [user.id];
+    const postsRes = await query(postsSql, postsParams);
 
     const posts = postsRes.rows.map((p) => ({
       id: p.id,
@@ -417,14 +491,17 @@ embedsRouter.get(['/api/users/:identifier/feed.json', '/feed/:identifier.json'],
       createdAt: p.createdAt,
     }));
 
+    const feedTitle = targetSite ? `${handle}'s ${targetSite.name} Photo Feed` : `${handle}'s Neogram Photo Feed`;
+    const homeUrl = targetSite && targetSite.siteUrl ? targetSite.siteUrl : (user.site_url || `${baseUrl}/embed/feed/${handle}`);
+
     res.json({
       version: 'https://jsonfeed.org/version/1.1',
-      title: `${handle}'s Neogram Photo Feed`,
-      home_page_url: user.site_url || `${baseUrl}/embed/feed/${handle}`,
-      feed_url: `${baseUrl}/api/users/${handle}/feed.json`,
+      title: feedTitle,
+      home_page_url: homeUrl,
+      feed_url: `${baseUrl}/api/users/${handle}/feed.json${targetSite ? `?siteSlug=${targetSite.slug}` : ''}`,
       author: {
         name: `@${handle}`,
-        url: user.site_url || `${baseUrl}/embed/feed/${handle}`,
+        url: homeUrl,
       },
       items: posts,
     });
@@ -736,7 +813,7 @@ embedsRouter.delete('/api/users/:identifier/follow', async (req: Request, res: R
  * GET /embed/guestbook/:handle
  * Standalone embeddable guestbook page styled for iframe embedding
  */
-embedsRouter.get('/embed/guestbook/:identifier', async (req: Request, res: Response) => {
+embedsRouter.get(['/embed/guestbook/:identifier', '/embed/guestbook/:identifier/:slug'], async (req: Request, res: Response) => {
   try {
     const user = await findUserByHandleOrId(req.params.identifier);
     if (!user) {
@@ -745,21 +822,30 @@ embedsRouter.get('/embed/guestbook/:identifier', async (req: Request, res: Respo
     }
 
     const handle = user.handle || user.email.split('@')[0];
+    const rawSlug = req.params.slug ? req.params.slug.trim() : '';
+
+    const { getDefaultSite, getSiteBySlug } = await import('../services/siteService');
+    const targetSite = rawSlug
+      ? ((await getSiteBySlug(user.id, rawSlug)) || (await getDefaultSite(user.id)))
+      : (await getDefaultSite(user.id));
 
     const entriesRes = await query(
       `SELECT id, visitor_name as "visitorName", visitor_website as "visitorWebsite", 
               visitor_location as "visitorLocation", mood_icon as "moodIcon", 
               message, created_at as "createdAt"
        FROM guestbook_entries
-       WHERE user_id = $1
+       WHERE site_id = $1 OR (user_id = $2 AND site_id IS NULL)
        ORDER BY created_at DESC`,
-      [user.id]
+      [targetSite.id, user.id]
     );
 
     res.render('embeds/guestbook', {
-      title: `${handle}'s Public Guestbook — Neogram`,
+      title: `${handle}'s Public Guestbook (${targetSite.name}) — Neogram`,
       handle,
       userId: user.id,
+      siteId: targetSite.id,
+      siteSlug: targetSite.slug,
+      siteName: targetSite.name,
       entries: entriesRes.rows,
     });
   } catch (err: any) {

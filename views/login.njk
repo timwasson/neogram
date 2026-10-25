@@ -68,7 +68,7 @@
           NEOGRAM NETWORK TERMINAL
         </div>
         <div class="text-xs text-muted leading-normal">
-          [:&gt; STATION REGISTRATION &amp; LOGIN]: Enter your email or phone below to transmit a 6-digit carrier authorization key. New stations will be commissioned automatically upon first login.
+          [:&gt; STATION REGISTRATION &amp; LOGIN]: Enter your email address or mobile phone number below to transmit a 6-digit carrier authorization key. New stations will be commissioned automatically upon first login.
         </div>
       </div>
 
@@ -76,7 +76,7 @@
       <form id="step1Form" onsubmit="handleRequestOtp(event)">
         <div class="mb-4">
           <label for="identifierInput" class="block text-xs font-bold mb-2 tracking-wide">
-            Email address or phone number:
+            Email address or mobile phone number:
           </label>
           <input
             type="text"
@@ -84,7 +84,7 @@
             name="identifier"
             required
             autocomplete="username"
-            placeholder="e.g. operator@your-email.com or (555) 019-1996"
+            placeholder="e.g. operator@email.com or (555) 019-1996"
             class="retro-input"
             autofocus
           />

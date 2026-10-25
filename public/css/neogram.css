@@ -1381,18 +1381,21 @@ a {
    Retro User Station Account Dropdown Menu
    ------------------------------------------------------------- */
 .retro-user-menu,
-.retro-notify-menu {
+.retro-notify-menu,
+.retro-site-menu {
   position: relative;
   display: inline-flex;
   align-items: center;
 }
 .retro-user-menu .pixel-btn,
-.retro-notify-menu .pixel-btn {
+.retro-notify-menu .pixel-btn,
+.retro-site-menu .pixel-btn {
   height: 30px;
 }
 
 .retro-user-dropdown,
-.retro-notify-dropdown {
+.retro-notify-dropdown,
+.retro-site-dropdown {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
@@ -1405,11 +1408,13 @@ a {
   animation: dropdown-pop 0.12s ease-out;
 }
 .dark .retro-user-dropdown,
-.dark .retro-notify-dropdown {
+.dark .retro-notify-dropdown,
+.dark .retro-site-dropdown {
   box-shadow: 4px 4px 0px 0px #000000;
 }
 .retro-user-dropdown__header,
-.retro-notify-dropdown__header {
+.retro-notify-dropdown__header,
+.retro-site-dropdown__header {
   background: var(--surface-title);
   color: #ffffff;
   user-select: none;

@@ -93,8 +93,43 @@
             </div>
           {% endif %}
 
+          <!-- Active Mounted Target Site Bar -->
+          <div class="p-2.5 bg-black border-2 border-main mb-4 flex items-center justify-between flex-wrap gap-2 text-xs font-mono">
+            <div class="flex items-center gap-2">
+              <span class="text-base">💾</span>
+              <div>
+                <span class="text-muted text-3xs block uppercase tracking-wider">TARGET STATIC SITE:</span>
+                <span class="text-prompt font-bold text-xs" id="uploadActiveSiteLabel">
+                  {{ activeSite.name if activeSite else 'Primary Site' }}
+                  {% if activeSite and activeSite.siteUrl %}<span class="text-muted text-xxs font-normal">({{ activeSite.siteUrl }}{% if activeSite.deployPath %}/{{ activeSite.deployPath }}/{% else %}/{% endif %})</span>{% endif %}
+                </span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              {% if userSites and userSites.length > 1 %}
+                <button
+                  type="button"
+                  onclick="toggleSiteMenu()"
+                  class="pixel-btn pixel-btn--sm pixel-btn--yellow text-3xs font-bold py-1 px-2.5"
+                  title="Switch to another mounted site target"
+                >
+                  <span>⇄ SWITCH TARGET</span>
+                </button>
+              {% endif %}
+              <button
+                type="button"
+                onclick="switchDashboardTab('settings', event)"
+                class="pixel-btn pixel-btn--sm text-3xs font-bold py-1 px-2.5"
+                title="Manage site credentials and provision new sites"
+              >
+                <span>⚙️ MANAGE SITES</span>
+              </button>
+            </div>
+          </div>
+
           <!-- 2-Column Publishing Grid -->
           <form id="publishForm" onsubmit="handlePublishPost(event)">
+            <input type="hidden" name="siteId" id="uploadSiteId" value="{{ activeSite.id if activeSite else '' }}">
             <div class="flex-responsive">
             
             <!-- LEFT COLUMN: Image Source & Filter Shader -->
@@ -297,6 +332,30 @@
             <span id="rebuildAlertMsg"></span>
           </div>
 
+          {% if userSites and userSites.length > 1 %}
+            <div class="flex items-center gap-1.5 mb-3 flex-wrap text-xs font-mono bg-black p-2 border border-main">
+              <span class="text-muted text-xxs uppercase font-bold">FILTER BY TARGET:</span>
+              <button
+                type="button"
+                id="filterSiteAllBtn"
+                class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-3xs py-0.5 px-2"
+                onclick="filterManagePosts('all')"
+              >
+                ALL SITES ({{ posts.length }})
+              </button>
+              {% for s in userSites %}
+                <button
+                  type="button"
+                  id="filterSiteBtn-{{ s.id }}"
+                  class="pixel-btn pixel-btn--sm text-3xs py-0.5 px-2"
+                  onclick="filterManagePosts('{{ s.id }}')"
+                >
+                  💾 {{ s.name }}
+                </button>
+              {% endfor %}
+            </div>
+          {% endif %}
+
           {% if not posts or posts.length == 0 %}
             <div class="pixel-box p-6 text-center bg-window">
               <div class="text-2xl mb-2">📁</div>
@@ -311,7 +370,7 @@
           {% else %}
             <div class="flex flex-col gap-4" id="managePostsList">
               {% for post in posts %}
-                <div class="pixel-box p-3 bg-window border-2 border-main" id="manage-post-{{ post.id }}">
+                <div class="pixel-box p-3 bg-window border-2 border-main" id="manage-post-{{ post.id }}" data-site-id="{{ post.siteId or '' }}">
                   <div class="flex flex-col sm:flex-row gap-4 items-start">
                     
                     <!-- Thumbnail Viewport with Active Filter Shader -->
@@ -338,6 +397,11 @@
                         </p>
 
                         <div class="flex flex-wrap gap-1 mb-2 text-xs">
+                          {% if post.siteName %}
+                          <span class="pixel-badge pixel-badge--yellow font-bold" id="manage-site-{{ post.id }}" title="Target: {{ post.siteName }}">
+                            💾 {{ post.siteName }}
+                          </span>
+                          {% endif %}
                           {% if post.mood %}
                           <span class="pixel-badge pixel-badge--cyan font-bold" id="manage-mood-{{ post.id }}">
                             {{ post.mood }}
@@ -636,12 +700,216 @@
                 </form>
               </div>
 
+              <!-- SITES_MANAGER.SYS: Multi-Site Targets Hub -->
+              <div class="retro-card p-4 m-0">
+                <div class="window-header mb-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span>💾</span>
+                    <span class="font-bold">[:&gt; SITES_MANAGER.SYS — Mounted Static Targets]</span>
+                  </div>
+                  <span class="text-xs font-mono text-prompt font-bold">[{{ userSites.length or 1 }} MOUNTED]</span>
+                </div>
+
+                <div id="sitesManagerAlert" class="retro-alert hidden mb-3">
+                  <span id="sitesManagerAlertTag" class="retro-alert__tag"></span>
+                  <span id="sitesManagerAlertMsg"></span>
+                </div>
+
+                <p class="text-xs text-muted mb-3 leading-relaxed font-mono">
+                  Publish to multiple static sites (Neocities, Nekoweb, GitHub Pages, SFTP) under your single <strong>@{{ currentUser.handle }}</strong> identity. Switch targets anytime without logging out.
+                </p>
+
+                <!-- Provision New Site Target Drawer (Toggleable) -->
+                <div class="mb-4">
+                  <button
+                    type="button"
+                    id="toggleProvisionFormBtn"
+                    onclick="toggleProvisionForm()"
+                    class="pixel-btn pixel-btn--yellow font-bold text-xs py-1.5 px-3 w-full flex items-center justify-center gap-1.5"
+                  >
+                    <span>➕ PROVISION NEW STATIC SITE TARGET</span>
+                    <span id="provisionFormCaret">▾</span>
+                  </button>
+
+                  <div id="provisionFormContainer" class="hidden p-3 bg-black border-2 border-main mt-2 font-mono text-xs">
+                    <form id="provisionSiteForm" onsubmit="handleProvisionSite(event)" class="space-y-3">
+                      <div>
+                        <label class="block font-bold text-mac mb-1">Target Site Name:</label>
+                        <input
+                          type="text"
+                          id="newSiteName"
+                          placeholder="e.g. Cyber-Shrine or Photo Blog"
+                          required
+                          class="retro-input text-xs"
+                          oninput="autoGenerateSlug(this.value)"
+                        />
+                      </div>
+
+                      <div class="grid grid-cols-2 gap-2">
+                        <div>
+                          <label class="block font-bold mb-1">Subdomain / Slug:</label>
+                          <input
+                            type="text"
+                            id="newSiteSlug"
+                            placeholder="e.g. cyber-shrine"
+                            required
+                            pattern="[a-z0-9_-]{2,50}"
+                            class="retro-input text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label class="block font-bold mb-1">Host Provider:</label>
+                          <select id="newSiteDeployType" class="retro-input text-xs">
+                            <option value="neocities" selected>Neocities</option>
+                            <option value="none">Cold-Start / Sandbox</option>
+                            <option value="nekoweb" disabled>Nekoweb (v1.1)</option>
+                            <option value="github" disabled>GitHub Pages (v1.1)</option>
+                            <option value="sftp" disabled>SFTP (v1.1)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label class="block font-bold mb-1">Target Site URL:</label>
+                        <input
+                          type="url"
+                          id="newSiteUrl"
+                          placeholder="https://yoursite.neocities.org"
+                          class="retro-input text-xs"
+                        />
+                      </div>
+
+                      <div class="grid grid-cols-2 gap-2">
+                        <div>
+                          <label class="block font-bold mb-1">Publish Subfolder:</label>
+                          <input
+                            type="text"
+                            id="newSiteDeployPath"
+                            value="neogram"
+                            placeholder="neogram"
+                            class="retro-input text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label class="block font-bold mb-1">Neocities API Key:</label>
+                          <input
+                            type="password"
+                            id="newSiteApiKey"
+                            placeholder="Optional API Key"
+                            class="retro-input text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div class="space-y-1 pt-1 border-t border-main">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" id="newSiteIsDefault" />
+                          <span class="text-xs">★ Set as Primary Default Site</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" id="newSiteAutoDeploy" checked />
+                          <span class="text-xs">⚡ Auto-deploy on photo upload</span>
+                        </label>
+                      </div>
+
+                      <div class="flex items-center justify-end gap-2 pt-2">
+                        <button type="button" onclick="toggleProvisionForm(false)" class="pixel-btn text-xs">
+                          Cancel
+                        </button>
+                        <button type="submit" id="btnSubmitNewSite" class="pixel-btn pixel-btn--green font-bold text-xs py-1 px-3">
+                          <span>🚀 PROVISION TARGET :&gt;</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <!-- Configured Sites Roster -->
+                <div class="flex flex-col gap-2" id="configuredSitesList">
+                  {% if userSites and userSites.length > 0 %}
+                    {% for s in userSites %}
+                      <div class="p-3 bg-black border-2 border-main flex flex-col gap-2 font-mono text-xs {% if activeSite and activeSite.id == s.id %}border-yellow-400{% endif %}" id="site-card-{{ s.id }}">
+                        <div class="flex items-center justify-between flex-wrap gap-1">
+                          <div class="flex items-center gap-1.5">
+                            <span class="text-prompt font-bold text-sm">💾 {{ s.name }}</span>
+                            <span class="text-3xs text-muted">({{ s.slug }})</span>
+                          </div>
+                          <div class="flex items-center gap-1">
+                            {% if s.is_default %}
+                              <span class="pixel-badge pixel-badge--cyan font-bold text-3xs">[★ PRIMARY]</span>
+                            {% endif %}
+                            {% if activeSite and activeSite.id == s.id %}
+                              <span class="pixel-badge pixel-badge--yellow font-bold text-3xs">[ACTIVE]</span>
+                            {% endif %}
+                            <span class="pixel-badge text-3xs uppercase">{{ s.deployment_type or 'neocities' }}</span>
+                          </div>
+                        </div>
+
+                        <div class="text-xxs text-muted flex flex-col gap-0.5">
+                          <div>URL: <a href="{{ s.site_url or '#' }}" target="_blank" class="text-mac hover:underline font-bold">{{ s.site_url or 'Not configured' }}</a></div>
+                          <div>Deploy Path: <code>/{{ s.deploy_path }}/</code> | Status: {% if s.has_api_key or s.deployment_credentials %}<span class="text-prompt">✓ Key Connected</span>{% else %}<span class="text-amber">No API Key</span>{% endif %}</div>
+                        </div>
+
+                        <div class="flex items-center gap-1.5 flex-wrap pt-1 border-t border-main mt-1">
+                          {% if not (activeSite and activeSite.id == s.id) %}
+                            <button
+                              type="button"
+                              onclick="handleNavSwitchSite('{{ s.id }}')"
+                              class="pixel-btn pixel-btn--sm pixel-btn--yellow text-3xs font-bold py-0.5 px-2"
+                              title="Switch active workstation session to this site"
+                            >
+                              <span>⇄ Switch Target</span>
+                            </button>
+                          {% endif %}
+                          {% if not s.is_default %}
+                            <button
+                              type="button"
+                              onclick="handleSetDefaultSite('{{ s.id }}')"
+                              class="pixel-btn pixel-btn--sm text-3xs py-0.5 px-2"
+                              title="Set as primary default target"
+                            >
+                              <span>★ Set Primary</span>
+                            </button>
+                          {% endif %}
+                          <button
+                            type="button"
+                            onclick="loadSiteIntoSettingsEditor('{{ s.id }}')"
+                            class="pixel-btn pixel-btn--sm text-3xs py-0.5 px-2"
+                            title="Edit credentials and paths in vault below"
+                          >
+                            <span>✏️ Edit Config</span>
+                          </button>
+                          <button
+                            type="button"
+                            onclick="deploySiteDirectly('{{ s.id }}')"
+                            class="pixel-btn pixel-btn--sm pixel-btn--cyan text-3xs font-bold py-0.5 px-2"
+                            title="Build and publish to remote host"
+                          >
+                            <span>🚀 Deploy</span>
+                          </button>
+                          {% if userSites.length > 1 %}
+                            <button
+                              type="button"
+                              onclick="handleDeleteSite('{{ s.id }}', '{{ s.name }}')"
+                              class="pixel-btn pixel-btn--sm pixel-btn--danger text-3xs py-0.5 px-2 ml-auto"
+                              title="Unmount and delete this site target"
+                            >
+                              <span>✕ Delete</span>
+                            </button>
+                          {% endif %}
+                        </div>
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+                </div>
+              </div>
+
               <!-- Neocities Hosting Vault Card -->
               <div class="retro-card p-4 m-0">
                 <div class="window-header mb-3 flex items-center justify-between">
                   <div class="flex items-center gap-2">
                     <span>🔐</span>
-                    <span class="font-bold">[:&gt; NEOCITIES_CREDENTIALS.SYS - Encrypted at Rest]</span>
+                    <span class="font-bold">[:&gt; TARGET_VAULT_CREDENTIALS.SYS - Encrypted at Rest]</span>
                   </div>
                   <span class="text-xs font-mono text-prompt font-bold">[AES-256-GCM]</span>
                 </div>
@@ -663,15 +931,33 @@
                 </div>
 
                 <form id="settingsForm" onsubmit="handleSaveSettings(event)" class="space-y-4">
+                  <!-- Target Site Selector in Config Form -->
+                  <div class="p-2 bg-black border border-main mb-2 flex items-center justify-between flex-wrap gap-2">
+                    <span class="text-xs font-bold text-mac uppercase font-mono">EDITING CONFIGURATION FOR:</span>
+                    <select
+                      id="settingsSiteSelector"
+                      onchange="loadSiteIntoSettingsEditor(this.value)"
+                      class="retro-input text-xs font-mono font-bold"
+                    >
+                      {% for s in userSites %}
+                        <option value="{{ s.id }}" {% if activeSite and activeSite.id == s.id %}selected{% endif %}>
+                          💾 {{ s.name }} ({{ s.slug }}) {% if s.is_default %}[★ Primary]{% endif %}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <input type="hidden" name="siteId" id="settingsSiteId" value="{{ activeSite.id if activeSite else '' }}">
+
                   <!-- Hosting Provider -->
                   <div>
                     <label class="block text-xs font-bold mb-1">
                       Target Hosting Provider:
                     </label>
                     <select id="settingsDeployType" name="deploymentType" class="retro-input text-xs">
-                      <option value="neocities" selected>Neocities (Direct REST API v1)</option>
-                      <option value="github" disabled>GitHub Pages (Git Commit Pipeline - Coming soon)</option>
-                      <option value="sftp" disabled>SFTP / SSH Static Sync (Coming soon)</option>
+                      <option value="neocities" selected>Neocities (Direct REST API v1.0 — Live)</option>
+                      <option value="nekoweb" disabled>Nekoweb (REST API v1 — Arriving in v1.1)</option>
+                      <option value="github" disabled>GitHub Pages (Git Commit Pipeline — Arriving in v1.1)</option>
+                      <option value="sftp" disabled>SFTP / SSH Static Sync — Arriving in v1.1</option>
                     </select>
                   </div>
 
@@ -848,6 +1134,51 @@
                     </button>
                   </div>
                 </form>
+              </div>
+
+              <!-- Data Sovereignty & Portability Card -->
+              <div class="retro-card p-4 m-0">
+                <div class="window-header mb-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span>📦</span>
+                    <span class="font-bold">[:&gt; DATA_SOVEREIGNTY.EXE — PORTABLE ARCHIVE]</span>
+                  </div>
+                  <span class="text-xs font-mono text-prompt">ZERO LOCK-IN</span>
+                </div>
+                <p class="text-xs text-muted mb-3 font-mono">
+                  Download a complete, offline JSON archive of your entire cyberspace station—including all photo records, captions, comments, guestbook signatures, and friend connections.
+                </p>
+                <div class="flex items-center justify-between gap-3">
+                  <a
+                    href="/api/settings/export-archive"
+                    class="pixel-btn pixel-btn--yellow font-bold text-xs py-2 px-3 flex-1 text-center"
+                    onclick="if(window.retroAudio) retroAudio.playClick();"
+                  >
+                    <span>📦 EXPORT STATION ARCHIVE (JSON) :&gt;</span>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Emergency Station Decommission Card -->
+              <div class="retro-card p-4 m-0 border-2 border-red-600 bg-[#120000]">
+                <div class="window-header mb-3 flex items-center justify-between bg-red-950 text-red-200">
+                  <div class="flex items-center gap-2">
+                    <span>⚠️</span>
+                    <span class="font-bold">[:&gt; DECOMMISSION_NODE.EXE — STATION WIPE]</span>
+                  </div>
+                  <span class="text-xs font-mono text-red-400 font-bold">DANGER ZONE</span>
+                </div>
+                <p class="text-xs text-red-200 mb-3 font-mono">
+                  Permanently purge your cyberspace station node. This cascades and deletes all posts, comments, guestbook entries, web counters, and removes your static cache from the server.
+                </p>
+                <button
+                  type="button"
+                  id="decommissionStationBtn"
+                  onclick="handleDecommissionAccount()"
+                  class="pixel-btn pixel-btn--danger font-bold text-xs py-2 px-3 w-full"
+                >
+                  <span>⚠️ PERMANENTLY DECOMMISSION STATION (NUKE)</span>
+                </button>
               </div>
 
               <!-- Station Notification Protocols Card -->
@@ -1069,6 +1400,38 @@
 
         <!-- TAB 4: EMBEDS & SOCIAL STUDIO SECTION -->
         <div id="embedsSection" class="hidden">
+          <!-- Embeds Target Site Selector -->
+          <div class="p-3 bg-black border-2 border-main mb-4 flex items-center justify-between flex-wrap gap-2 text-xs font-mono">
+            <div class="flex items-center gap-2">
+              <span class="text-base">⎘</span>
+              <div>
+                <span class="text-muted text-3xs uppercase font-bold tracking-wider">GENERATE EMBEDS FOR TARGET SITE:</span>
+                <span class="text-prompt font-bold text-xs" id="embedTargetLabel">
+                  {{ activeSite.name if activeSite else 'Primary Site' }}
+                </span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <label for="embedSiteSelect" class="text-muted text-xxs font-bold">SELECT SITE:</label>
+              <select
+                id="embedSiteSelect"
+                onchange="handleEmbedSiteChange(this.value)"
+                class="retro-input text-xs font-mono font-bold"
+              >
+                {% for s in userSites %}
+                  <option
+                    value="{{ s.id }}"
+                    data-slug="{{ s.slug }}"
+                    data-name="{{ s.name }}"
+                    {% if activeSite and activeSite.id == s.id %}selected{% endif %}
+                  >
+                    💾 {{ s.name }} (slug: {{ s.slug }}) {% if s.is_default %}[Primary]{% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
           <div class="grid-2-col items-start gap-4">
 
             <!-- LEFT COLUMN: Dynamic SVG Counter + Public JSON Feed -->
@@ -1821,6 +2184,11 @@
       formData.append('caption', caption);
       formData.append('filterApplied', currentFilter);
 
+      var uploadSiteIdInput = document.getElementById('uploadSiteId');
+      if (uploadSiteIdInput && uploadSiteIdInput.value) {
+        formData.append('siteId', uploadSiteIdInput.value);
+      }
+
       if (selectedFile) {
         formData.append('imageFile', selectedFile);
       } else {
@@ -1847,15 +2215,21 @@
         }
       } catch(e) {}
 
-      var baseSite = '{{ currentUser.siteUrl or "" }}';
+      var pubSite = data.site || null;
+      var baseSite = pubSite && pubSite.siteUrl ? pubSite.siteUrl : '{{ activeSite.siteUrl if activeSite and activeSite.siteUrl else (currentUser.siteUrl or "") }}';
       var userHandle = '{{ currentUser.handle or "" }}';
-      var deployFolder = '{{ currentUser.deployPath or "neogram" }}';
+      var deployFolder = pubSite && pubSite.deployPath !== undefined ? pubSite.deployPath : '{{ activeSite.deployPath if activeSite else (currentUser.deployPath or "neogram") }}';
+      var isSandbox = Boolean(data.isSandbox);
       var finalHost = baseSite || (userHandle ? ('https://' + userHandle + '.neocities.org') : '');
-      var photoUrl = (finalHost && data.post && data.post.id) ? (finalHost.replace(/\/+$/, '') + '/' + deployFolder + '/photos/' + data.post.id + '/') : '';
-      var galleryUrl = finalHost ? (finalHost.replace(/\/+$/, '') + '/' + deployFolder + '/') : '';
+      var photoUrl = (!isSandbox && finalHost && data.post && data.post.id) ? (finalHost.replace(/\/+$/, '') + (deployFolder ? ('/' + deployFolder) : '') + '/photos/' + data.post.id + '/') : '';
+      var galleryUrl = (!isSandbox && finalHost) ? (finalHost.replace(/\/+$/, '') + (deployFolder ? ('/' + deployFolder + '/') : '/')) : '';
+      var stationUrl = userHandle ? ('/user/' + userHandle) : '/user';
 
       var actions = '<div class="flex items-center gap-2 flex-wrap mt-2">';
-      if (photoUrl) {
+      if (isSandbox) {
+        actions += '<a href="' + stationUrl + '" target="_blank" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs">🌐 View Station Profile ↗</a>';
+        actions += '<button type="button" onclick="switchDashboardTab(\'settings\', event)" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs">⚙️ Connect Neocities</button>';
+      } else if (photoUrl) {
         actions += '<a href="' + photoUrl + '" target="_blank" rel="noopener" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs">🌐 View Photo on Site ↗</a>';
         actions += '<button type="button" onclick="navigator.clipboard?.writeText(\'' + photoUrl + '\'); this.innerHTML=\'<span>✓ Copied Link!</span>\';" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs">📋 Copy Photo Link</button>';
       } else if (galleryUrl) {
@@ -1866,7 +2240,7 @@
 
       showAlert(
         'success',
-        '[✓] 🎉 PHOTO PUBLISHED LIVE!',
+        isSandbox ? '[✓] 🎉 PHOTO TRANSMITTED TO YOUR STATION!' : '[✓] 🎉 PHOTO PUBLISHED LIVE!',
         data.message || 'Your photograph has been processed with authentic retro shaders and deployed live to your personal static website.',
         actions
       );
@@ -2033,14 +2407,44 @@
     });
   }
 
+  var currentEmbedSiteSlug = '{{ activeSite.slug if activeSite else "" }}';
+  var currentEmbedSiteId = '{{ activeSite.id if activeSite else "" }}';
+
+  function handleEmbedSiteChange(siteId) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var select = document.getElementById('embedSiteSelect');
+    if (!select) return;
+    var opt = select.options[select.selectedIndex];
+    var slug = opt ? opt.getAttribute('data-slug') : '';
+    var name = opt ? opt.getAttribute('data-name') : 'Primary Site';
+    currentEmbedSiteSlug = slug;
+    currentEmbedSiteId = siteId;
+
+    var targetLabel = document.getElementById('embedTargetLabel');
+    if (targetLabel) targetLabel.textContent = name;
+
+    updateCounterPreview(null, currentCounterStyle);
+    selectGuestbookSkin(currentGuestbookSkin);
+
+    var feedDisplay = document.getElementById('feedUrlDisplay');
+    var feedLink = document.getElementById('feedUrlLink');
+    var feedPath = '/api/users/' + userHandle + '/feed.json' + (slug ? ('?siteSlug=' + encodeURIComponent(slug)) : '');
+    if (feedDisplay) feedDisplay.textContent = feedPath;
+    if (feedLink) feedLink.href = feedPath;
+
+    loadGuestbookEntries();
+  }
+  window.handleEmbedSiteChange = handleEmbedSiteChange;
+
   function updateCounterPreview(hits, style) {
     var img = document.getElementById('counterLiveSvg');
     var label = document.getElementById('counterLiveUrlLabel');
     var snippet = document.getElementById('counterCodeSnippet');
-    var url = '/counter/' + userHandle + '.svg?style=' + style + '&t=' + Date.now();
-    var fullUrl = window.location.origin + '/counter/' + userHandle + '.svg?style=' + style;
+    var slugPart = currentEmbedSiteSlug ? ('/' + currentEmbedSiteSlug) : '';
+    var url = '/counter/' + userHandle + slugPart + '.svg?style=' + style + '&t=' + Date.now();
+    var fullUrl = window.location.origin + '/counter/' + userHandle + slugPart + '.svg?style=' + style;
     if (img) img.src = url;
-    if (label) label.textContent = '/counter/' + userHandle + '.svg?style=' + style;
+    if (label) label.textContent = '/counter/' + userHandle + slugPart + '.svg?style=' + style;
     if (snippet) {
       snippet.textContent = '<!-- Neogram Dynamic Web Hit Counter -->\n<!-- Paste anywhere inside your page\'s HTML (e.g. before </body>) -->\n<div class="neogram-counter">\n  <img src="' + fullUrl + '" alt="Visitor Counter" />\n</div>';
     }
@@ -2052,10 +2456,11 @@
     highlightActiveCounterStyle(style);
     updateCounterPreview(null, style);
     try {
-      await fetch('/api/counter', {
+      var queryParam = currentEmbedSiteId ? ('?siteId=' + encodeURIComponent(currentEmbedSiteId)) : '';
+      await fetch('/api/counter' + queryParam, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ style: style })
+        body: JSON.stringify({ style: style, siteId: currentEmbedSiteId })
       });
     } catch (e) {
       console.error(e);
@@ -2068,10 +2473,11 @@
       else window.retroAudio.playCounterTick();
     }
     try {
-      var res = await fetch('/api/counter', {
+      var queryParam = currentEmbedSiteId ? ('?siteId=' + encodeURIComponent(currentEmbedSiteId)) : '';
+      var res = await fetch('/api/counter' + queryParam, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'increment', amount: amount, style: currentCounterStyle })
+        body: JSON.stringify({ action: 'increment', amount: amount, style: currentCounterStyle, siteId: currentEmbedSiteId })
       });
       var data = await res.json();
       if (data.ok) {
@@ -2088,10 +2494,11 @@
     if (!confirm('Reset hit counter back to 000001?')) return;
     if (window.retroAudio) window.retroAudio.playClick();
     try {
-      var res = await fetch('/api/counter', {
+      var queryParam = currentEmbedSiteId ? ('?siteId=' + encodeURIComponent(currentEmbedSiteId)) : '';
+      var res = await fetch('/api/counter' + queryParam, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reset', style: currentCounterStyle })
+        body: JSON.stringify({ action: 'reset', style: currentCounterStyle, siteId: currentEmbedSiteId })
       });
       var data = await res.json();
       if (data.ok) {
@@ -2120,7 +2527,8 @@
 
   function copyFeedUrl() {
     if (window.retroAudio) window.retroAudio.playClick();
-    var fullUrl = window.location.origin + '/api/users/' + userHandle + '/feed.json';
+    var slugParam = currentEmbedSiteSlug ? ('?siteSlug=' + encodeURIComponent(currentEmbedSiteSlug)) : '';
+    var fullUrl = window.location.origin + '/api/users/' + userHandle + '/feed.json' + slugParam;
     navigator.clipboard?.writeText(fullUrl);
     var btn = document.getElementById('btnCopyFeedUrl');
     if (btn) {
@@ -2154,7 +2562,11 @@
     if (skinBtn) skinBtn.classList.add('pixel-btn--yellow');
 
     var snippet = document.getElementById('guestbookCodeSnippet');
-    var fullUrl = window.location.origin + '/embed/guestbook/' + userHandle + (skin !== 'dark' ? ('?skin=' + skin) : '');
+    var slugPart = currentEmbedSiteSlug ? ('/' + currentEmbedSiteSlug) : '';
+    var fullUrl = window.location.origin + '/embed/guestbook/' + userHandle + slugPart + (skin !== 'dark' ? ('?skin=' + skin) : '');
+    var openBtn = document.getElementById('btnOpenGuestbookLink');
+    if (openBtn) openBtn.href = '/embed/guestbook/' + userHandle + slugPart;
+
     var styleAttr = 'border: 2px solid #00ff00; background: #000;';
     if (skin === 'win95') styleAttr = 'border: 3px outset #c0c0c0; background: #c0c0c0;';
     if (skin === 'amber') styleAttr = 'border: 2px solid #ffb000; background: #000;';
@@ -2168,7 +2580,8 @@
   function copyGuestbookIframe() {
     if (window.retroAudio) window.retroAudio.playClick();
     var snippet = document.getElementById('guestbookCodeSnippet');
-    var iframeText = snippet ? snippet.textContent : ('<iframe src="' + window.location.origin + '/embed/guestbook/' + userHandle + '" width="100%" height="550" frameborder="0"></iframe>');
+    var slugPart = currentEmbedSiteSlug ? ('/' + currentEmbedSiteSlug) : '';
+    var iframeText = snippet ? snippet.textContent : ('<iframe src="' + window.location.origin + '/embed/guestbook/' + userHandle + slugPart + '" width="100%" height="550" frameborder="0"></iframe>');
     navigator.clipboard?.writeText(iframeText);
     var btn = document.getElementById('btnCopyGuestbookIframe');
     if (btn) {
@@ -2203,7 +2616,8 @@
     if (!container) return;
 
     try {
-      var res = await fetch('/api/guestbook/' + userHandle);
+      var slugPart = currentEmbedSiteSlug ? ('/' + encodeURIComponent(currentEmbedSiteSlug)) : '';
+      var res = await fetch('/api/guestbook/' + userHandle + slugPart);
       var data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to fetch');
 
@@ -2533,15 +2947,212 @@
       }
       if (s.avatarPath) {
         var avatarPreview = document.getElementById('settingsAvatarPreview');
+  // ============================================================================
+  // MULTI-SITE TARGETS & SITES MANAGER CONTROLLERS
+  // ============================================================================
+
+  function filterManagePosts(siteId) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var allBtn = document.getElementById('filterSiteAllBtn');
+    if (allBtn) {
+      if (siteId === 'all') allBtn.classList.add('pixel-btn--yellow');
+      else allBtn.classList.remove('pixel-btn--yellow');
+    }
+    document.querySelectorAll('[id^="filterSiteBtn-"]').forEach(function(btn) {
+      if (btn.id === 'filterSiteBtn-' + siteId) btn.classList.add('pixel-btn--yellow');
+      else btn.classList.remove('pixel-btn--yellow');
+    });
+
+    var postCards = document.querySelectorAll('#managePostsList [data-site-id]');
+    var visibleCount = 0;
+    postCards.forEach(function(card) {
+      var itemSiteId = card.getAttribute('data-site-id');
+      if (siteId === 'all' || itemSiteId === siteId) {
+        card.classList.remove('hidden');
+        visibleCount++;
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+
+    var totalCount = document.getElementById('manageTotalCount');
+    if (totalCount) totalCount.textContent = visibleCount;
+  }
+  window.filterManagePosts = filterManagePosts;
+
+  function toggleProvisionForm(force) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var container = document.getElementById('provisionFormContainer');
+    var caret = document.getElementById('provisionFormCaret');
+    if (!container) return;
+    var isOpen = !container.classList.contains('hidden');
+    var shouldOpen = typeof force === 'boolean' ? force : !isOpen;
+    if (shouldOpen) {
+      container.classList.remove('hidden');
+      if (caret) caret.textContent = '▴';
+      document.getElementById('newSiteName')?.focus();
+    } else {
+      container.classList.add('hidden');
+      if (caret) caret.textContent = '▾';
+    }
+  }
+  window.toggleProvisionForm = toggleProvisionForm;
+
+  function autoGenerateSlug(name) {
+    var slugInput = document.getElementById('newSiteSlug');
+    if (!slugInput || slugInput.dataset.manualEdited === 'true') return;
+    var slug = name.toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 30);
+    slugInput.value = slug;
+  }
+  window.autoGenerateSlug = autoGenerateSlug;
+
+  async function handleProvisionSite(e) {
+    e.preventDefault();
+    if (window.retroAudio) window.retroAudio.playClick();
+    var name = document.getElementById('newSiteName').value.trim();
+    var slug = document.getElementById('newSiteSlug').value.trim();
+    var deploymentType = document.getElementById('newSiteDeployType').value;
+    var siteUrl = document.getElementById('newSiteUrl').value.trim();
+    var deployPath = document.getElementById('newSiteDeployPath').value.trim();
+    var apiKey = document.getElementById('newSiteApiKey').value.trim();
+    var isDefault = document.getElementById('newSiteIsDefault').checked;
+    var autoDeploy = document.getElementById('newSiteAutoDeploy').checked;
+    var submitBtn = document.getElementById('btnSubmitNewSite');
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'PROVISIONING TARGET...';
+
+    var alertBox = document.getElementById('sitesManagerAlert');
+    var alertTag = document.getElementById('sitesManagerAlertTag');
+    var alertMsg = document.getElementById('sitesManagerAlertMsg');
+    if (alertBox) alertBox.classList.add('hidden');
+
+    try {
+      var res = await fetch('/api/sites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name,
+          slug: slug,
+          deploymentType: deploymentType,
+          siteUrl: siteUrl,
+          deployPath: deployPath,
+          apiKey: apiKey,
+          isDefault: isDefault,
+          autoDeploy: autoDeploy
+        })
+      });
+
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to provision site target.');
+
+      if (window.retroAudio) window.retroAudio.playSuccess();
+      window.location.reload();
+    } catch (err) {
+      if (window.retroAudio) window.retroAudio.playError();
+      if (alertBox) {
+        alertBox.className = 'retro-alert retro-alert--error mb-3';
+        if (alertTag) alertTag.textContent = '[:> ERROR]:';
+        if (alertMsg) alertMsg.textContent = err.message;
+        alertBox.classList.remove('hidden');
+      }
+      alert('Failed to provision site: ' + err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '🚀 PROVISION TARGET :>';
+    }
+  }
+  window.handleProvisionSite = handleProvisionSite;
+
+  async function handleSetDefaultSite(siteId) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    try {
+      var res = await fetch('/api/sites/' + encodeURIComponent(siteId) + '/default', { method: 'POST' });
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to set primary site.');
+      if (window.retroAudio) window.retroAudio.playSuccess();
+      window.location.reload();
+    } catch (err) {
+      if (window.retroAudio) window.retroAudio.playError();
+      alert(err.message);
+    }
+  }
+  window.handleSetDefaultSite = handleSetDefaultSite;
+
+  async function handleDeleteSite(siteId, siteName) {
+    if (!confirm('Are you sure you want to unmount and delete site target "' + siteName + '"? Photos published to this site will be removed.')) return;
+    if (window.retroAudio) window.retroAudio.playClick();
+    try {
+      var res = await fetch('/api/sites/' + encodeURIComponent(siteId), { method: 'DELETE' });
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to delete site.');
+      if (window.retroAudio) window.retroAudio.playSuccess();
+      window.location.reload();
+    } catch (err) {
+      if (window.retroAudio) window.retroAudio.playError();
+      alert(err.message);
+    }
+  }
+  window.handleDeleteSite = handleDeleteSite;
+
+  async function deploySiteDirectly(siteId) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    appendTelemetryLog('Triggering build and deployment for site ' + siteId + '...');
+    try {
+      var res = await fetch('/api/sites/' + encodeURIComponent(siteId) + '/deploy', { method: 'POST' });
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Deployment error.');
+      appendTelemetryLog('Deploy response: ' + (data.message || 'Deployed.'));
+      if (window.retroAudio) window.retroAudio.playSuccess();
+      alert(data.message || 'Site deployed successfully!');
+    } catch (err) {
+      appendTelemetryLog('Deploy failed: ' + err.message, true);
+      if (window.retroAudio) window.retroAudio.playError();
+      alert('Deploy failed: ' + err.message);
+    }
+  }
+  window.deploySiteDirectly = deploySiteDirectly;
+
+  async function loadSiteIntoSettingsEditor(siteId) {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var selector = document.getElementById('settingsSiteSelector');
+    if (selector && selector.value !== siteId) selector.value = siteId;
+    var hiddenId = document.getElementById('settingsSiteId');
+    if (hiddenId) hiddenId.value = siteId;
+    loadSettings(siteId);
+  }
+  window.loadSiteIntoSettingsEditor = loadSiteIntoSettingsEditor;
+
+  async function loadSettings(targetSiteId) {
+    try {
+      var queryUrl = targetSiteId ? ('/api/settings?siteId=' + encodeURIComponent(targetSiteId)) : '/api/settings';
+      var res = await fetch(queryUrl);
+      var data = await res.json();
+      if (!res.ok || !data.ok) return;
+
+      var s = data.settings;
+      var siteIdField = document.getElementById('settingsSiteId');
+      if (siteIdField && s.siteId) siteIdField.value = s.siteId;
+      var siteSelector = document.getElementById('settingsSiteSelector');
+      if (siteSelector && s.siteId && siteSelector.value !== s.siteId) {
+        siteSelector.value = s.siteId;
+      }
+
+      if (s.handle) {
+        document.getElementById('settingsHandleInput').value = s.handle;
+      }
+      if (s.avatarPath) {
+        var avatarPreview = document.getElementById('settingsAvatarPreview');
         if (avatarPreview) avatarPreview.src = s.avatarPath;
         var badge = document.getElementById('avatarStatusBadge');
         if (badge) badge.textContent = s.hasCustomAvatar ? 'CUSTOM' : 'DEFAULT';
       }
-      if (s.siteName) document.getElementById('settingsSiteName').value = s.siteName;
-      if (s.siteUrl) document.getElementById('settingsSiteUrl').value = s.siteUrl;
-      if (s.deployPath !== undefined && s.deployPath !== null) {
-        document.getElementById('settingsDeployPath').value = s.deployPath;
-      }
+      document.getElementById('settingsSiteName').value = s.siteName || '';
+      document.getElementById('settingsSiteUrl').value = s.siteUrl || '';
+      document.getElementById('settingsDeployPath').value = (s.deployPath !== undefined && s.deployPath !== null) ? s.deployPath : 'neogram';
       updateSiteUrlPreview();
       if (s.deploymentType) document.getElementById('settingsDeployType').value = s.deploymentType;
       document.getElementById('settingsAutoDeploy').checked = !!s.autoDeploy;
@@ -2580,6 +3191,7 @@
     e.preventDefault();
     if (window.retroAudio) window.retroAudio.playClick();
 
+    var siteId = document.getElementById('settingsSiteId') ? document.getElementById('settingsSiteId').value : undefined;
     var siteName = document.getElementById('settingsSiteName').value.trim();
     var siteUrl = document.getElementById('settingsSiteUrl').value.trim();
     var deployPath = document.getElementById('settingsDeployPath').value.trim();
@@ -2602,6 +3214,7 @@
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          siteId: siteId,
           siteName: siteName,
           siteUrl: siteUrl,
           deployPath: deployPath,
@@ -2620,9 +3233,9 @@
       alertMsg.textContent = 'Hosting credentials encrypted with AES-256-GCM and saved to PostgreSQL.';
       alertBox.classList.remove('hidden');
 
-      appendTelemetryLog('Saved deployment settings. Key encrypted in PostgreSQL database.');
+      appendTelemetryLog('Saved deployment settings for site. Key encrypted in PostgreSQL database.');
       if (window.retroAudio) window.retroAudio.playSuccess();
-      loadSettings();
+      loadSettings(siteId);
     } catch (err) {
       if (window.retroAudio) window.retroAudio.playError();
       alertBox.className = 'retro-alert retro-alert--error mb-3';
@@ -2730,6 +3343,31 @@
     } finally {
       deployBtn.disabled = false;
       deployBtn.textContent = '🚀 DEPLOY TO NEOCITIES NOW :>';
+    }
+  }
+
+  async function handleDecommissionAccount() {
+    if (window.retroAudio) window.retroAudio.playError();
+    var confirmed = confirm('⚠️ DANGER: Are you absolutely sure you want to permanently decommission your station? This will wipe your account, posts, web counters, and delete all records from the server.');
+    if (!confirmed) return;
+
+    var callsignPrompt = prompt('To confirm permanent deletion, enter your station callsign (@{{ currentUser.handle }}):');
+    if (!callsignPrompt || callsignPrompt.trim().replace(/^@/, '').toLowerCase() !== '{{ currentUser.handle }}'.toLowerCase()) {
+      alert('Decommission aborted. Station callsign did not match.');
+      return;
+    }
+
+    try {
+      var res = await fetch('/api/settings/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      var data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to decommission station.');
+      alert(data.message || 'Station decommissioned cleanly.');
+      window.location.href = '/login';
+    } catch (err) {
+      alert('Error decommissioning station: ' + err.message);
     }
   }
 

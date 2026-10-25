@@ -113,7 +113,8 @@
    Retro User Station Account Dropdown Menu
    ------------------------------------------------------------- */
 .retro-user-menu,
-.retro-notify-menu {
+.retro-notify-menu,
+.retro-site-menu {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -124,7 +125,8 @@
 }
 
 .retro-user-dropdown,
-.retro-notify-dropdown {
+.retro-notify-dropdown,
+.retro-site-dropdown {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;

@@ -142,8 +142,17 @@ You can manually recompile your entire static site at any time:
 - Make sure there are no accidental spaces before or after the key.
 - Verify that your Neocities account is active and verified.
 
+### Q: Can I use Neogram before setting up my Neocities API key? (Sandbox Mode)
+- **Yes!** Neogram features a **Zero-Barrier Sandbox Mode**. You can register, snap camera photos, experiment with vintage CRT/phosphor shaders, and publish immediately without supplying Neocities credentials. Your transmissions will be live and browseable on your central Cyberspace Station profile (`/user/:handle`). When you are ready to publish to your personal static site, simply enter your Neocities API key and click **Force Static Rebuild & Deploy**.
+
+### Q: Neocities returns "429 Too Many Requests" (Rate Limit)
+- Neocities protects its API against high-frequency automated uploads. If you or your followers broadcast multiple posts in rapid succession, Neogram automatically paces remote follower static grid updates with a 1.2-second safety buffer. If you trigger a manual sync too frequently, wait 60 seconds before initiating another rebuild.
+
+### Q: Neocities returns "413 Payload Too Large" or "Storage Quota Exceeded"
+- Free Neocities accounts come with 1 GB of storage. If your account reaches 100% capacity, Neocities rejects further file uploads. You can verify your usage at [neocities.org/dashboard](https://neocities.org/dashboard). Neogram's WebP compression produces lean 80–180 KB files, but if you exceed your host quota, upgrade to Neocities Supporter or prune older static files.
+
 ### Q: Images are not loading on my static site
-- Check that your Neocities storage quota is not full. Free Neocities accounts have 1 GB of storage. (Because Neogram converts all photos to highly compressed WebP files around 80–180 KB, a 1 GB account can comfortably store over 5,000 photos!).
+- Check that your Neocities storage quota is not full.
 - Verify that your `site_url` matches your actual Neocities address.
 
 ### Q: Can I use a custom domain with Neocities?
@@ -153,9 +162,9 @@ You can manually recompile your entire static site at any time:
 
 ## 8. Expanding to Other Hosting Providers (Roadmap)
 
-Neogram's deployment engine is built with a modular adapter interface (`StaticPublisherAdapter`). While Neocities is currently the primary supported automated API, the following static targets are planned:
+Neogram's deployment engine is built with a modular adapter interface (`StaticPublisherAdapter`). While Neocities is currently the primary supported automated API, the following static targets are planned for release in v1.1:
 
-- **GitHub Pages:** Automated Git commits pushed directly to a `gh-pages` branch or repository via GitHub Personal Access Token (PAT).
-- **Nekoweb API:** Direct uploads to Nekoweb personal web spaces.
-- **SFTP / SSH:** Universal publishing to any self-hosted Linux VPS, shared cPanel host, or Raspberry Pi static server.
+- **Nekoweb API (v1.1):** Direct REST API v1 upload integration to personal Nekoweb web spaces.
+- **GitHub Pages (v1.1):** Automated Git commit and tree push pipeline directly to a `gh-pages` branch or repository via GitHub Personal Access Token (PAT).
+- **SFTP / SSH Static Sync (v1.1):** Universal remote directory synchronization to any self-hosted Linux VPS, shared cPanel host, or Raspberry Pi static server.
 - **Local Bundle Export (Zip Archive):** Download a complete, self-contained static site ready to drop onto any static host.

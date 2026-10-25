@@ -1,7 +1,35 @@
 [
   {
+    "id": "672456cf-5dea-42b9-9306-6ae403215ee4",
+    "userId": "c118cbc7-e146-4845-8b48-020aeafdd412",
+    "siteId": "15118b64-009b-4038-9ced-80e39dbd19de",
+    "imagePath": "/uploads/images/1792940710070-qcwsh6c.webp",
+    "thumbnailPath": "/uploads/thumbs/1792940710070-qcwsh6c-thumb.webp",
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-10-25T15:05:10.175Z",
+    "email": "qa_surfer_1792940709130@neogram.retro",
+    "handle": "qa_surfer_1792940709",
+    "author": "qa_surfer_1792940709",
+    "comments": [
+      {
+        "id": "24017691-7157-4303-8177-8c01ae6d1d2a",
+        "postId": "672456cf-5dea-42b9-9306-6ae403215ee4",
+        "author": "qa_surfer_1792940709",
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-10-25T15:05:10.766Z"
+      }
+    ]
+  },
+  {
     "id": "a869d038-1e71-4071-a99b-b3bd2262f9bb",
     "userId": "34d59ecb-e391-4660-838c-9597bc78baf8",
+    "siteId": "e1ce2fd1-7d0c-4aca-8ea5-8dc9fa2d5c4a",
     "imagePath": "/uploads/images/1792871036400-3gegyeh.webp",
     "thumbnailPath": "/uploads/thumbs/1792871036400-3gegyeh-thumb.webp",
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
@@ -28,6 +56,7 @@
   {
     "id": "febd4c55-3921-4eaa-835c-1219c5bfe673",
     "userId": "2107b9f0-badd-4c3a-8d81-e8f7301e0778",
+    "siteId": "c2e52d81-e3db-4f74-8972-e06298f595e9",
     "imagePath": "/uploads/images/1792866010387-zuvc4o8.webp",
     "thumbnailPath": "/uploads/thumbs/1792866010387-zuvc4o8-thumb.webp",
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
@@ -54,6 +83,7 @@
   {
     "id": "5b22b83d-fa03-4841-ae91-198c72a22ef9",
     "userId": "b67886a3-9083-4650-907b-b51219910bb4",
+    "siteId": "d5a5dfd9-6cd1-43c7-9cea-8c18f4f32351",
     "imagePath": "/uploads/images/1792865992324-hu0uxd6.webp",
     "thumbnailPath": "/uploads/thumbs/1792865992324-hu0uxd6-thumb.webp",
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
@@ -80,6 +110,7 @@
   {
     "id": "7d661a8c-30dd-467a-989a-d6371df05e9e",
     "userId": "90811a09-edbc-420f-83ae-f3351d007abe",
+    "siteId": "8a79e3b8-d70b-4663-8a45-e92be394eba3",
     "imagePath": "/uploads/images/1792635760719-ugl333e.webp",
     "thumbnailPath": "/uploads/thumbs/1792635760719-ugl333e-thumb.webp",
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
@@ -97,6 +128,7 @@
   {
     "id": "5e5a825e-e0ae-4f69-9fd2-a18d5075c396",
     "userId": "08a2394b-bdfd-42bf-a5f6-44bbe565ee17",
+    "siteId": "296eec78-f498-4752-b281-59b6b2a40590",
     "imagePath": "/uploads/images/1792544470418-n58damm.webp",
     "thumbnailPath": "/uploads/thumbs/1792544470418-n58damm-thumb.webp",
     "caption": "yooooo",
@@ -114,6 +146,7 @@
   {
     "id": "04d1e552-8040-4981-a0cc-80b2a4e25c84",
     "userId": "08a2394b-bdfd-42bf-a5f6-44bbe565ee17",
+    "siteId": "296eec78-f498-4752-b281-59b6b2a40590",
     "imagePath": "https://picsum.photos/id/1062/800/800",
     "thumbnailPath": "https://picsum.photos/id/1062/400/400",
     "caption": "[:> ARCHIVE EDIT] Modified caption live from Neogram Archive Manager. Edited.",
@@ -131,6 +164,7 @@
   {
     "id": "807bf3dc-9722-4b95-b201-df3f966fdb26",
     "userId": "43eacf27-22f8-4557-9850-a68a8198c6e9",
+    "siteId": "db56d210-284b-4c35-86df-1c5c5239760e",
     "imagePath": "https://picsum.photos/id/96/800/800",
     "thumbnailPath": "https://picsum.photos/id/96/400/400",
     "caption": "Testing direct publishing from Creator Studio",
@@ -157,6 +191,7 @@
   {
     "id": "52c1e571-93aa-4f14-bc9e-0e41762d726d",
     "userId": "5c21e35c-a50a-4b0b-8364-7af48bfbdafe",
+    "siteId": "bec7a33f-8091-43f0-8254-ad095f651a11",
     "imagePath": "https://placebear.com/800/800",
     "thumbnailPath": "https://placebear.com/400/400",
     "caption": ":> Corner arcade down on 5th Street. The CRT scanlines on this cabinet are legendary. Dropped 4 quarters on 1UP high score.",
@@ -191,6 +226,7 @@
   {
     "id": "a39c594c-5374-414e-b673-ad70760ff1d7",
     "userId": "5c21e35c-a50a-4b0b-8364-7af48bfbdafe",
+    "siteId": "bec7a33f-8091-43f0-8254-ad095f651a11",
     "imagePath": "https://picsum.photos/id/338/800/800",
     "thumbnailPath": "https://picsum.photos/id/338/400/400",
     "caption": ":> Found my old 1996 mixtapes in a shoebox. Recorded off FM radio late at night. Rewound using a hexagon pencil.",
@@ -217,6 +253,7 @@
   {
     "id": "1b43b468-52d1-4c15-99c8-7826b069e92d",
     "userId": "5c21e35c-a50a-4b0b-8364-7af48bfbdafe",
+    "siteId": "bec7a33f-8091-43f0-8254-ad095f651a11",
     "imagePath": "https://picsum.photos/id/1/800/800",
     "thumbnailPath": "https://picsum.photos/id/1/400/400",
     "caption": ":> Neon dusk over Akihabara. Snapped with my low-res digital camera. Check the blinking radio tower beacon on the skyline.",
@@ -251,6 +288,7 @@
   {
     "id": "515d5215-0526-4462-bb0b-2524c05481a1",
     "userId": "5c21e35c-a50a-4b0b-8364-7af48bfbdafe",
+    "siteId": "bec7a33f-8091-43f0-8254-ad095f651a11",
     "imagePath": "https://picsum.photos/id/250/800/800",
     "thumbnailPath": "https://picsum.photos/id/250/400/400",
     "caption": ":> Booted custom BSD workstation. Check the pixel desk setup: large steaming coffee mug, compact keyboard, oversized mousepad, and potted cactus up on the top shelf. Blinking monitor & keyboard LEDs are soothing during late night dial-up compiles.",

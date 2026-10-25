@@ -22,9 +22,10 @@ The Neogram Web Hit Counter is a lightweight, dynamic SVG image that automatical
 ### Key Technical Properties:
 - **Zero Third-Party Trackers & Zero Cookies:** Privacy-friendly, pure vector graphic served as `image/svg+xml`.
 - **Instant Live Increments:** Configured with `Cache-Control: no-cache, no-store, must-revalidate` so every legitimate page view registers.
-- **Dual Identifier Resolution:** You can embed your counter using either your cyber call-sign (`@handle`) or your immutable numeric node ID (`UIN`).
-  - *Handle URL:* `https://neogram.club/counter/cyber_surfer.svg?style=green_led`
-  - *UIN URL:* `https://neogram.club/counter/100109.svg?style=green_led` *(Permanent anchor: will never break even if you change your handle!)*
+- **Dual Identifier & Per-Site Slug Resolution:** You can embed your counter using either your cyber call-sign (`@handle`) or your immutable numeric node ID (`UIN`), and optionally anchor it to a specific mounted site target (`slug`):
+  - *Handle URL (Default Site):* `https://neogram.club/counter/cyber_surfer.svg?style=green_led`
+  - *UIN URL (Default Site):* `https://neogram.club/counter/100109.svg?style=green_led` *(Permanent anchor: will never break even if you change your handle!)*
+  - *Per-Site Slug URL:* `https://neogram.club/counter/100109/shrine.svg?style=green_led` *(Tracks visits independently for that specific site target!)*
 
 ---
 
@@ -106,7 +107,7 @@ The Neogram Guestbook brings back the legendary 90s web tradition of visitor gue
 Add this iframe into your guestbook page (e.g. `guestbook.html` on Neocities):
 
 ```html
-<!-- Neogram Public Visitor Guestbook -->
+<!-- Neogram Public Visitor Guestbook (Default Site) -->
 <iframe
   src="https://neogram.club/embed/guestbook/your_handle"
   width="100%"
@@ -114,6 +115,16 @@ Add this iframe into your guestbook page (e.g. `guestbook.html` on Neocities):
   frameborder="0"
   style="border: 3px solid #000000; box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.9); background: #161b22;"
   title="Public Visitor Guestbook"
+></iframe>
+
+<!-- Per-Site Guestbook for Secondary Target (e.g. "shrine") -->
+<iframe
+  src="https://neogram.club/embed/guestbook/your_handle/shrine"
+  width="100%"
+  height="650"
+  frameborder="0"
+  style="border: 3px solid #000000; box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.9); background: #161b22;"
+  title="Public Visitor Guestbook — Cyber Shrine"
 ></iframe>
 ```
 
@@ -137,7 +148,8 @@ If you prefer not to embed an iframe, place a retro button linking to your live 
 Neogram exposes your photo transmissions through a compliant [JSONFeed 1.1](https://jsonfeed.org/version/1.1) endpoint. This allows you to fetch your latest photos from any static site generator (11ty, Jekyll, Hugo, Astro) or client-side JavaScript script.
 
 ### Endpoint URLs:
-- **JSON Feed:** `https://neogram.club/api/users/your_handle/feed.json`
+- **JSON Feed (Default Site):** `https://neogram.club/api/users/your_handle/feed.json`
+- **JSON Feed (Specific Site Target):** `https://neogram.club/api/users/your_handle/feed.json?siteSlug=shrine`
 - *(Shortcut):* `https://neogram.club/feed/your_handle.json`
 
 ### Example JSON Payload:
@@ -226,7 +238,9 @@ Neogram solves the hardest challenge of static websites: **interactive comments 
 ### How Comments Work:
 1. When visitors view a photo on your Neocities gallery (`photos/<id>/index.html`), the page displays an interactive comments ledger.
 2. If the visitor wants to comment, they click **"CONNECT WITH NEOGRAM CYBER-PASS"**.
-3. A lightweight popup opens (`/auth/connect`), authenticating their station identity and returning an ephemeral session token.
+3. **Mobile-Resilient Dual-Path SSO:**
+   - **Desktop Browsers:** Opens a lightweight modal popup (`/auth/connect`) that performs single-click identity verification and relays an ephemeral session token back via `postMessage`.
+   - **Mobile Browsers (iOS / Android) & Popup Blockers:** Automatically falls back to a clean full-page redirect to `/auth/connect?return_url=...`. Upon verification, the user is redirected back to the photo page with the ephemeral token in the URL hash fragment (`#neogram_pass=...`). The page reads and stores the token in `localStorage`, cleans the hash fragment from the address bar, and immediately unlocks the comment form—with zero cookie dependencies!
 4. The comment is submitted to `POST /api/posts/:id/comments`.
 5. **Static File Commit:** The comment is immediately saved into `uploads/images/<photo>.comments.json` directly on your Neocities static host, and an automated background 11ty static rebuild updates the static HTML page!
 6. **Zero Tracking:** No cookies, no ad retargeting, and no data harvesting.

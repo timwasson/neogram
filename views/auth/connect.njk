@@ -51,13 +51,17 @@
           };
           var targetOrigin = '{{ targetOrigin or "*" }}';
 
+          var returnUrl = '{{ returnUrl or "" }}';
+
           function dispatchPass() {
             if (window.retroAudio) window.retroAudio.playSuccess();
-            if (window.opener) {
+            if (window.opener && !window.opener.closed) {
               window.opener.postMessage(passData, targetOrigin === '*' ? '*' : targetOrigin);
               setTimeout(function () {
                 window.close();
               }, 300);
+            } else if (returnUrl) {
+              window.location.href = returnUrl + '#neogram_pass=' + encodeURIComponent(JSON.stringify(passData));
             } else {
               alert('[:> Cyber-Pass token active. You can return to the photo page.]');
             }
@@ -181,18 +185,24 @@
                 showStatus('[:> Cyber-Pass approved! Closing...]', false);
                 if (window.retroAudio) window.retroAudio.playSuccess();
 
-                if (window.opener) {
-                  window.opener.postMessage({
-                    type: 'NEOGRAM_CYBER_PASS',
-                    token: data.token,
-                    handle: data.user.handle,
-                    uin: data.user.uin,
-                    avatar: data.user.avatarPath || '💬'
-                  }, targetOrigin === '*' ? '*' : targetOrigin);
+                var returnUrl = '{{ returnUrl or "" }}';
+                var passPayload = {
+                  type: 'NEOGRAM_CYBER_PASS',
+                  token: data.token,
+                  handle: data.user.handle,
+                  uin: data.user.uin,
+                  avatar: data.user.avatarPath || '💬'
+                };
 
+                if (window.opener && !window.opener.closed) {
+                  window.opener.postMessage(passPayload, targetOrigin === '*' ? '*' : targetOrigin);
                   setTimeout(function () {
                     window.close();
                   }, 400);
+                } else if (returnUrl) {
+                  window.location.href = returnUrl + '#neogram_pass=' + encodeURIComponent(JSON.stringify(passPayload));
+                } else {
+                  showStatus('[:> Cyber-Pass active. You can return to the photo page.]', false);
                 }
               } else {
                 showStatus(data.error || 'Verification failed. Invalid code.', true);

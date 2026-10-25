@@ -160,6 +160,20 @@ export function createApp(): Express {
         if (payload) {
           const user = await getUserById(payload.userId);
           res.locals.currentUser = user;
+          if (user) {
+            const { getUserSites } = await import('./services/siteService');
+            const userSites = await getUserSites(user.id);
+            res.locals.userSites = userSites;
+
+            const requestedSiteId =
+              (req.cookies && req.cookies.neogram_active_site) ||
+              (req.query && (req.query.siteId as string));
+            let activeSite = userSites.find((s) => s.id === requestedSiteId);
+            if (!activeSite) {
+              activeSite = userSites.find((s) => s.isDefault) || userSites[0] || null;
+            }
+            res.locals.activeSite = activeSite;
+          }
         }
       }
     } catch {
@@ -179,6 +193,9 @@ export function createApp(): Express {
         SELECT 
           p.id,
           p.user_id as "userId",
+          p.site_id as "siteId",
+          s.name as "siteName",
+          s.slug as "siteSlug",
           p.image_path as "imagePath",
           p.thumbnail_path as "thumbnailPath",
           p.caption,
@@ -193,6 +210,7 @@ export function createApp(): Express {
           (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
         FROM posts p
         JOIN users u ON p.user_id = u.id
+        LEFT JOIN sites s ON p.site_id = s.id
         ORDER BY p.created_at DESC
       `);
 
@@ -209,6 +227,8 @@ export function createApp(): Express {
         activeView: 'dashboard',
         posts: userArchivePosts,
         allPosts: postsQuery.rows,
+        userSites: res.locals.userSites || [],
+        activeSite: res.locals.activeSite || null,
       });
     } catch (err) {
       next(err);
@@ -229,6 +249,7 @@ export function createApp(): Express {
   app.get('/auth/connect', (req: Request, res: Response) => {
     const rawOrigin = (req.query.origin as string) || '*';
     const targetOrigin = rawOrigin.replace(/[^\w.:\/-]/g, '');
+    const returnUrl = (req.query.return_url as string) || '';
     const user = res.locals.currentUser;
 
     if (user) {
@@ -243,11 +264,13 @@ export function createApp(): Express {
         user,
         token,
         targetOrigin,
+        returnUrl,
       });
     } else {
       res.render('auth/connect', {
         authenticated: false,
         targetOrigin,
+        returnUrl,
       });
     }
   });
@@ -378,14 +401,26 @@ export function createApp(): Express {
       }
 
       const { query } = await import('./db');
-      // Fetch public transmissions from this user
-      const postsRes = await query(
-        `SELECT id, image_path as "imagePath", thumbnail_path as "thumbnailPath", caption,
-                filter_applied as "filterApplied", mood, webring, location, likes_count as "likes",
-                created_at as "createdAt"
-         FROM posts
+      // Fetch public sites for this station node
+      const sitesRes = await query(
+        `SELECT id, name, slug, site_url as "siteUrl", deploy_path as "deployPath",
+                is_default as "isDefault", last_deployed_at as "lastDeployedAt"
+         FROM sites
          WHERE user_id = $1
-         ORDER BY created_at DESC`,
+         ORDER BY is_default DESC, created_at ASC`,
+        [user.id]
+      );
+
+      // Fetch public transmissions from this user with site metadata
+      const postsRes = await query(
+        `SELECT p.id, p.site_id as "siteId", s.name as "siteName", s.slug as "siteSlug",
+                p.image_path as "imagePath", p.thumbnail_path as "thumbnailPath", p.caption,
+                p.filter_applied as "filterApplied", mood, webring, location, likes_count as "likes",
+                p.created_at as "createdAt"
+         FROM posts p
+         LEFT JOIN sites s ON p.site_id = s.id
+         WHERE p.user_id = $1
+         ORDER BY p.created_at DESC`,
         [user.id]
       );
 
@@ -454,6 +489,7 @@ export function createApp(): Express {
           counterStyle,
           totalLikes,
         },
+        sites: sitesRes.rows,
         posts: postsRes.rows,
       });
     } catch (err) {

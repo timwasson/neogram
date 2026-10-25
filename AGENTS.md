@@ -20,6 +20,10 @@ It provides:
 7. **Interactive Cyberspace Documentation Center (`/docs`):** Complete user manuals, setup guides, and live session-interpolated embed snippets.
 8. **Configurable Cyberspace Notification Engine & In-App Alert Center (`[:> NOTIFY_CENTER.SYS]`):** Real-time WebSocket transmission alerts (`/ws/chat`), 8-bit synthesized audio chimes, native desktop/PWA service worker pushes, and a user dashboard configuration console (`[:> NOTIFICATION_DISPATCHER.CFG]`) to toggle delivery across 8 event types.
 9. **Headless Self-Hosted API & Static JSON Feeds:** Opt-out capability allowing users to disable 11ty static HTML generation (`users.build_html`) and compile/push strictly `feed.json`, `posts.json`, per-photo comment JSONs, and optimized media to their personal static host (Neocities), enabling custom bespoke frontends in Vanilla JavaScript, React, or Vue.
+10. **Cold-Start Sandbox Publishing Mode:** Instant photo snaps and publication directly to station profiles (`/user/:handle`) without requiring an external Neocities account or API key first, giving creators immediate gratification and zero-friction onboarding.
+11. **Mobile Cyber-Pass & Cross-Domain SSO:** 1-click cross-domain authentication for static sites supporting desktop pop-up postMessage and mobile return URL redirect with `#neogram_pass=` hash token ingestion.
+12. **Indie Web Data Sovereignty & Account Decommissioning:** 1-click JSON station archive export (`GET /api/settings/export-archive`) and self-serve station wipe (`DELETE /api/settings/account`) enforcing zero data lock-in.
+13. **Multi-Site Architecture (1 User : N Sites):** Complete decoupling of user login identity (callsign `@handle`, permanent numeric `#uin`) from static site deployments. A single authenticated creator can provision, manage, switch between, and deploy to multiple independent static targets (e.g. Neocities, Nekoweb, GitHub Pages), each with dedicated deploy paths, isolated photo streams, per-site SVG hit counters (`/counter/:uin/:slug.svg`), guestbooks (`/embed/guestbook/:handle/:slug`), and static feeds.
 
 ---
 
@@ -28,9 +32,9 @@ It provides:
 | Component | Technology | Rationale / Purpose |
 |---|---|---|
 | **Backend & Workstation Runtime** | **Node.js (Express)** on Port 4000 | Single-server decoupled monolith serving authenticated workstation, API, and static publishing pipeline |
-| **Database** | **PostgreSQL** (Docker / Native) | Relational integrity for users, posts, comments, follows, guestbook, counters |
+| **Database** | **PostgreSQL** (Docker / Native) | Relational integrity for users, sites, posts, comments, follows, guestbook, counters |
 | **Image Processing** | **Sharp** | High-performance image resizing (1200px), WebP compression, square thumbnailing (400px) |
-| **Static Site Generator** | **Eleventy (11ty v3)** | Compiles multi-tenant static photo galleries (`dist/static-galleries/<userId>`) via FIFO BuildQueue |
+| **Static Site Generator** | **Eleventy (11ty v3)** | Compiles multi-tenant static photo galleries (`dist/static-galleries/<siteId>`) via FIFO BuildQueue |
 | **Server Templating** | **Nunjucks** | Fast, secure server-rendered dashboard & embed markup templates |
 | **Styling & Design System** | **Dart Sass + Vanilla CSS (NO TAILWIND)** | Modular SCSS (`src/styles/`), CSS variables, BEM components (`pixel-box`, `pixel-btn`, `retro-alert`, `baud-progress-bar`), CRT phosphor glow, and utility classes. **Tailwind CSS is strictly prohibited.** |
 | **Static Deploy Pipeline** | **Neocities API / GitHub API / SFTP** | Automated pushes of generated 11ty HTML & media to the user's static host |
@@ -43,7 +47,7 @@ It provides:
 ## 3. Database Schema (PostgreSQL)
 
 ```sql
--- Users & Hosting Integration
+-- Users & Station Node Identity
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -52,13 +56,13 @@ CREATE TABLE users (
     auth_token VARCHAR(255),
     auth_token_expires_at TIMESTAMPTZ,
     site_url VARCHAR(500),
-    deploy_path VARCHAR(200) DEFAULT 'neogram', -- Safe target subfolder on static host (default: /neogram/)
+    deploy_path VARCHAR(200) DEFAULT 'neogram',
     deployment_type VARCHAR(50) DEFAULT 'none' CHECK (deployment_type IN ('neocities', 'github', 'sftp', 'none')),
     deployment_credentials BYTEA, -- Encrypted credentials (AES-256-GCM)
     custom_css_url VARCHAR(500),
     avatar_path VARCHAR(500), -- 128x128 WebP profile avatar
     auto_deploy BOOLEAN DEFAULT FALSE,
-    build_html BOOLEAN DEFAULT TRUE, -- When FALSE, suppresses HTML compilation and publishes JSON feeds only
+    build_html BOOLEAN DEFAULT TRUE,
     last_deployed_at TIMESTAMPTZ,
     status_message VARCHAR(150) DEFAULT 'Surfing cyberspace',
     is_away BOOLEAN DEFAULT FALSE,
@@ -66,10 +70,33 @@ CREATE TABLE users (
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Mounted Static Site Targets (1 User : N Sites)
+CREATE TABLE sites (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    slug VARCHAR(60) NOT NULL,
+    site_url VARCHAR(500),
+    deployment_type VARCHAR(50) DEFAULT 'neocities' CHECK (deployment_type IN ('neocities', 'nekoweb', 'github', 'sftp', 'none')),
+    deployment_credentials BYTEA, -- Encrypted credentials (AES-256-GCM)
+    deploy_path VARCHAR(200) DEFAULT 'neogram',
+    auto_deploy BOOLEAN DEFAULT FALSE,
+    build_html BOOLEAN DEFAULT TRUE,
+    custom_css_url VARCHAR(500),
+    is_default BOOLEAN DEFAULT FALSE,
+    last_deployed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, slug)
+);
+
+CREATE INDEX idx_sites_user_id ON sites(user_id);
+
 -- Posts Published to Static Sites & Social Feed
 CREATE TABLE posts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    site_id UUID REFERENCES sites(id) ON DELETE CASCADE,
     image_path VARCHAR(500) NOT NULL,
     thumbnail_path VARCHAR(500) NOT NULL,
     caption TEXT,
@@ -103,6 +130,7 @@ CREATE TABLE follows (
 CREATE TABLE guestbook_entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    site_id UUID REFERENCES sites(id) ON DELETE CASCADE,
     visitor_name VARCHAR(100) NOT NULL,
     visitor_website VARCHAR(500),
     visitor_location VARCHAR(200),
@@ -114,11 +142,14 @@ CREATE TABLE guestbook_entries (
 
 -- Dynamic Web Counters
 CREATE TABLE web_counters (
-    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    site_id UUID REFERENCES sites(id) ON DELETE CASCADE,
     hits BIGINT DEFAULT 0,
     style VARCHAR(50) DEFAULT 'green_led',
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
+CREATE UNIQUE INDEX idx_web_counters_site_id ON web_counters(site_id);
 
 -- Ephemeral Chat Store-and-Forward Queue (Offline Delivery ONLY)
 -- INVARIANT: Hard-deleted immediately upon transmission to recipient
@@ -514,9 +545,28 @@ Neogram features a centralized, real-time notification engine connecting social 
   - For NIM direct messages, notification records strictly persist sender metadata (e.g. `title: "New NIM Transmission"`, `body: "@handle sent you a transmission"`).
   - The message body text is **never stored in PostgreSQL**, fully preserving the 0-byte server chat retention invariant.
 
+### 4.28 Multi-Site Architecture & Target Routing (1 User : N Sites)
+
+Neogram fully decouples creator user identity (immutable numeric ICQ `#uin` and `@handle`) from static site deployments:
+
+- **Account Identity vs. Static Host Target Decoupling:**
+  - Authenticated creators maintain a single user record with an immutable numeric UIN (`users.uin`) and `@handle`.
+  - A user can provision N independent static site targets (`sites` table), each with its own name, unique slug (`/counter/:uin/:slug.svg`), target provider (`neocities`, `nekoweb`, `github`, `sftp`), encrypted deployment credentials, deploy subfolder (`deploy_path`), and styling.
+- **Active Workstation Target (`neogram_active_site`):**
+  - The workstation tracks the currently mounted site target via the `neogram_active_site` cookie.
+  - The top navigation bar features a prominent target switcher dropdown (`#retroSiteMenu`) allowing instant 1-click swapping between sites without re-authenticating.
+  - Dashboard panels (Studio upload, gallery filters, settings vault, and embed snippets) automatically synchronize to the active site target.
+- **Per-Site Widget Anchoring:**
+  - **Dynamic SVG Hit Counters:** Resolved via `/counter/:identifier/:slug.svg` (or default `/counter/:identifier.svg`). Hit tracking is isolated per `site_id` in `web_counters`.
+  - **Guestbook Ledgers:** Resolved via `/embed/guestbook/:identifier/:slug` and `/api/guestbook/:identifier/:slug`. Signatures append to the specific site's self-hosted `data/guestbook.json` and are mirrored with `site_id` in PostgreSQL.
+  - **Headless JSON Feeds:** Resolved via `/api/users/:identifier/feed.json?siteSlug=<slug>` or `?siteId=<id>`.
+- **Isolated Static Multi-Tenant Generation:**
+  - The static build pipeline compiles galleries isolated by `siteId` (`dist/static-galleries/<siteId>/`).
+  - Deployments push directly to the target host matching the specific site's credentials and deploy path.
+
 ---
 
-### 4.28 Consolidated Route & REST API Architecture Matrix
+### 4.29 Consolidated Route & REST API Architecture Matrix
 
 The following matrix documents all server routes, auth requirements, and functional behaviors in the Neogram monolith:
 
@@ -534,7 +584,15 @@ The following matrix documents all server routes, auth requirements, and functio
 | **Authentication** | `POST` | `/api/auth/verify-otp` | IP Rate Limited | Verifies OTP, auto-provisions station UIN if new, sets `neogram_session` cookie, and returns `{ success, token, user }`. |
 | **Authentication** | `GET` | `/api/auth/magic-login` | Query `?token=` | One-click magic URL authentication link. Sets cookie and redirects to `/`. |
 | **Authentication** | `GET` | `/api/auth/logout` | None | Clears `neogram_session` cookie and redirects to `/`. |
-| **Posts & Media** | `POST` | `/api/posts` | Bearer / Cookie | 25MB Multer upload. Sharp processes WebP full (1200px) & thumb (400px). Enqueues 11ty static build and triggers cascading follower rebuilds. |
+| **Site Targets** | `GET` | `/api/sites` | Bearer / Cookie | Retrieves all mounted static site targets for authenticated creator. |
+| **Site Targets** | `POST` | `/api/sites` | Bearer / Cookie | Provisions a new static site target (`name`, `slug`, `siteUrl`, `deploymentType`, `deployPath`, `apiKey`, `autoDeploy`, `buildHtml`, `customCssUrl`). |
+| **Site Targets** | `GET` | `/api/sites/:id` | Bearer / Cookie | Retrieves single site configuration (or `default` primary site). |
+| **Site Targets** | `PUT` | `/api/sites/:id` | Bearer / Cookie | Updates site target credentials, deploy path, auto-deploy, custom CSS, or slug. |
+| **Site Targets** | `DELETE` | `/api/sites/:id` | Bearer / Cookie | Unmounts and cascades site, cleans static cache. Refuses deletion if it's the station's only site. |
+| **Site Targets** | `POST` | `/api/sites/:id/deploy` | Bearer / Cookie | Triggers isolated static build and direct deployment to the target host. |
+| **Site Targets** | `POST` | `/api/sites/:id/default` | Bearer / Cookie | Designates site target as the primary station default. |
+| **Site Targets** | `POST` | `/api/sites/:id/switch` | Bearer / Cookie | Switches active workstation session target (`neogram_active_site` cookie). |
+| **Posts & Media** | `POST` | `/api/posts` | Bearer / Cookie | 25MB Multer upload. Sharp processes WebP full (1200px) & thumb (400px). Accepts target `siteId`. Enqueues 11ty static build and triggers cascading follower rebuilds. |
 | **Posts & Media** | `PUT` | `/api/posts/:id` | Bearer / Cookie | Updates caption, mood, webring, location, and filter. Triggers 11ty rebuild and auto-deploy. |
 | **Posts & Media** | `DELETE` | `/api/posts/:id` | Bearer / Cookie | Purges post from PostgreSQL, deletes remote image on Neocities (`deploy_path` safe), triggers cascading follower rebuilds. |
 | **Posts & Media** | `POST` | `/api/build-static` | Bearer / Cookie | Manual trigger for 11ty compilation and live Neocities deployment via `buildQueue`. |
@@ -555,11 +613,13 @@ The following matrix documents all server routes, auth requirements, and functio
 | **Settings & Profile** | `GET` | `/api/settings` | Bearer / Cookie | Returns station config: `handle`, `uin`, `siteUrl`, `deployPath`, `autoDeploy`, `hasApiKey`, `sitename`, `remoteViews`, `customCssUrl`. |
 | **Settings & Profile** | `PUT` | `/api/settings` | Bearer / Cookie | Updates site URL, deployment subfolder (`deploy_path`), Neocities API key (AES-256-GCM encrypted), auto-deploy, custom CSS URL. |
 | **Settings & Profile** | `PUT` | `/api/settings/profile` | Bearer / Cookie | Updates handle and processes custom 128x128 WebP avatar via Sharp `.rotate().resize(128, 128)`. |
-| **Widgets & Embeds** | `GET` | `/counter/:identifier.svg` | None (CORS: *) | Generates dynamic SVG web hit counter (Green LED, Red Nixie, Odometer, VFD). Resolves by `@handle` or `#uin`. |
-| **Widgets & Embeds** | `GET` | `/api/users/:handle/feed.json` | None (CORS: *) | JSONFeed 1.1 compliant feed of creator's published photos. |
-| **Widgets & Embeds** | `GET` | `/api/guestbook/:handle` | None (CORS: *) | Reads remote `data/guestbook.json` ledger. |
-| **Widgets & Embeds** | `POST` | `/api/guestbook/:handle` | IP Rate Limited | Stateless guestbook sign. Appends signature to remote `data/guestbook.json` with HTML escaping. Dispatches guestbook notification to station owner. |
-| **Widgets & Embeds** | `GET` | `/embed/guestbook/:handle` | None (Frame: *) | Retro iframe guestbook widget with visitor signature form and moderated entry list. |
+| **Settings & Profile** | `GET` | `/api/settings/export-archive` | Bearer / Cookie | Data sovereignty export: packages posts, captions, comments, guestbook, followers, and counters into a JSON attachment. |
+| **Settings & Profile** | `DELETE`| `/api/settings/account` | Bearer / Cookie | GDPR account deletion: wipes PostgreSQL records, removes static cache, and clears session cookie. |
+| **Widgets & Embeds** | `GET` | `/counter/:identifier.svg`, `/counter/:identifier/:slug.svg` | None (CORS: *) | Generates dynamic SVG web hit counter (Green LED, Red Nixie, Odometer, VFD). Resolves by `@handle` or `#uin`, and optional site slug. |
+| **Widgets & Embeds** | `GET` | `/api/users/:handle/feed.json` | None (CORS: *) | JSONFeed 1.1 compliant feed of creator's published photos (supports `?siteSlug=` or `?siteId=`). |
+| **Widgets & Embeds** | `GET` | `/api/guestbook/:handle`, `/api/guestbook/:handle/:slug` | None (CORS: *) | Reads remote `data/guestbook.json` ledger for default or slug-specified site. |
+| **Widgets & Embeds** | `POST` | `/api/guestbook/:handle`, `/api/guestbook/:handle/:slug` | IP Rate Limited | Stateless guestbook sign. Appends signature to remote `data/guestbook.json` with HTML escaping. Dispatches guestbook notification to station owner. |
+| **Widgets & Embeds** | `GET` | `/embed/guestbook/:handle`, `/embed/guestbook/:handle/:slug` | None (Frame: *) | Retro iframe guestbook widget with visitor signature form and moderated entry list. |
 | **Widgets & Embeds** | `GET` | `/embed/feed/:handle` | None (Frame: *) | Retro iframe photo stream embed card. |
 | **Real-Time WebSockets**| `WS` | `/ws/chat` | JWT Cookie / Param | In-memory NIM chat router and notification carrier. CSWSH origin validation, presence tracking, store-and-forward queue, zero database retention. |
 

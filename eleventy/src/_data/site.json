@@ -1,10 +1,13 @@
 {
-  "title": "@QA_SURFER_1792635870'S STATIC PHOTO STREAM",
-  "author": "qa_surfer_1792635870",
+  "title": "QA-STATION // @QA_SURFER_1792940709",
+  "siteName": "qa-station",
+  "siteSlug": "default",
+  "author": "qa_surfer_1792940709",
   "avatarUrl": "/icons/default-avatar.svg",
   "description": "Personal 90s retro static photo stream published via Neogram",
   "neocitiesUrl": "https://qa-station.neocities.org/photos",
   "pathPrefix": "/photos/",
-  "apiUrl": "http://localhost:4000",
-  "systemMood": "[:> SURFING THE RETRO STATIC WEBRING]"
+  "apiUrl": "http://127.0.0.1:4000",
+  "systemMood": "[:> SURFING THE RETRO STATIC WEBRING]",
+  "customCssUrl": null
 }

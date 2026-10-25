@@ -33,7 +33,7 @@ async function bootstrap() {
 
   const app = createApp();
 
-  const server = app.listen(config.port, async () => {
+  const server = app.listen(config.port, '0.0.0.0', async () => {
     console.log(`[:> SERVER] Running at http://localhost:${config.port}`);
     console.log(`[:> HEALTH] Probe ready at http://localhost:${config.port}/api/health`);
     console.log(`[:> STATS]  Database check at http://localhost:${config.port}/api/stats`);

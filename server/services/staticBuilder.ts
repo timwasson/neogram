@@ -7,6 +7,7 @@ import { config } from '../config';
 
 export interface StaticBuildOptions {
   userId?: string;
+  siteId?: string;
   outputDir?: string;
 }
 
@@ -98,22 +99,77 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
     // 0. Ensure database is connected
     await initDatabase();
 
-    const { userId } = options;
-    // Multi-tenant isolated output folder per user
+    const { userId, siteId } = options;
+    let targetSite: any = null;
+    let effectiveUserId = userId;
+
+    if (siteId) {
+      const siteRes = await query(
+        `SELECT s.*, u.id as user_owner_id, u.email, u.handle, u.uin, u.avatar_path, u.status_message
+         FROM sites s
+         JOIN users u ON s.user_id = u.id
+         WHERE s.id = $1`,
+        [siteId]
+      );
+      if (siteRes.rows.length > 0) {
+        targetSite = siteRes.rows[0];
+        effectiveUserId = targetSite.user_owner_id;
+      }
+    } else if (userId) {
+      const siteRes = await query(
+        `SELECT s.*, u.id as user_owner_id, u.email, u.handle, u.uin, u.avatar_path, u.status_message
+         FROM sites s
+         JOIN users u ON s.user_id = u.id
+         WHERE s.user_id = $1 AND s.is_default = TRUE
+         LIMIT 1`,
+        [userId]
+      );
+      if (siteRes.rows.length > 0) {
+        targetSite = siteRes.rows[0];
+      }
+    }
+
+    // Multi-tenant isolated output folder per site or user
     const targetOutputDir = options.outputDir || (
-      userId 
-        ? path.join(process.cwd(), 'dist/static-galleries', userId)
-        : path.join(process.cwd(), 'dist/static-galleries/default')
+      siteId
+        ? path.join(process.cwd(), 'dist/static-galleries', siteId)
+        : (userId 
+            ? path.join(process.cwd(), 'dist/static-galleries', userId)
+            : path.join(process.cwd(), 'dist/static-galleries/default'))
     );
 
-    // 1. Fetch posts from PostgreSQL (filtered by user if requested)
+    // 1. Fetch posts from PostgreSQL (filtered by site or user)
     let postsQuery;
-    if (userId) {
+    if (siteId) {
       postsQuery = await query(
-        `
-        SELECT 
+        `SELECT 
           p.id,
           p.user_id as "userId",
+          p.site_id as "siteId",
+          p.image_path as "imagePath",
+          p.thumbnail_path as "thumbnailPath",
+          p.caption,
+          p.filter_applied as "filterApplied",
+          p.mood,
+          p.webring,
+          p.location,
+          p.likes_count as "likes",
+          p.created_at as "createdAt",
+          u.email,
+          u.handle,
+          COALESCE(u.handle, split_part(u.email, '@', 1)) as author
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.site_id = $1
+        ORDER BY p.created_at DESC`,
+        [siteId]
+      );
+    } else if (userId) {
+      postsQuery = await query(
+        `SELECT 
+          p.id,
+          p.user_id as "userId",
+          p.site_id as "siteId",
           p.image_path as "imagePath",
           p.thumbnail_path as "thumbnailPath",
           p.caption,
@@ -129,8 +185,7 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
         FROM posts p
         JOIN users u ON p.user_id = u.id
         WHERE p.user_id = $1
-        ORDER BY p.created_at DESC
-      `,
+        ORDER BY p.created_at DESC`,
         [userId]
       );
     } else {
@@ -138,6 +193,7 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
         SELECT 
           p.id,
           p.user_id as "userId",
+          p.site_id as "siteId",
           p.image_path as "imagePath",
           p.thumbnail_path as "thumbnailPath",
           p.caption,
@@ -238,7 +294,36 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
     let shouldBuildHtml = true;
     let pathPrefix = '/';
 
-    if (userId) {
+    if (targetSite) {
+      author = targetSite.handle || targetSite.email.split('@')[0];
+      authorUin = targetSite.uin ? parseInt(targetSite.uin, 10) : undefined;
+      rawDeployPath = targetSite.deploy_path !== null && targetSite.deploy_path !== undefined
+        ? String(targetSite.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+        : 'neogram';
+      pathPrefix = rawDeployPath ? `/${rawDeployPath}/` : '/';
+      baseSiteUrl = targetSite.site_url ? targetSite.site_url.replace(/\/+$/, '') : `https://${author}.neocities.org`;
+      fullSiteUrl = rawDeployPath ? `${baseSiteUrl}/${rawDeployPath}` : baseSiteUrl;
+      avatarUrl = targetSite.avatar_path || '/icons/default-avatar.svg';
+      statusMessage = targetSite.status_message || 'Surfing cyberspace';
+      customCssUrl = targetSite.custom_css_url || null;
+      shouldBuildHtml = targetSite.build_html !== false;
+
+      const siteData = {
+        title: `${(targetSite.name || 'STATIC PHOTO STREAM').toUpperCase()} // @${author.toUpperCase()}`,
+        siteName: targetSite.name,
+        siteSlug: targetSite.slug,
+        author: author,
+        avatarUrl: avatarUrl,
+        description: `Personal 90s retro static photo stream published via Neogram`,
+        neocitiesUrl: fullSiteUrl,
+        pathPrefix: pathPrefix,
+        apiUrl: config.appUrl || 'http://localhost:4000',
+        systemMood: '[:> SURFING THE RETRO STATIC WEBRING]',
+        customCssUrl: customCssUrl,
+      };
+      const siteJsonPath = path.join(process.cwd(), 'eleventy/src/_data/site.json');
+      await fs.writeFile(siteJsonPath, JSON.stringify(siteData, null, 2), 'utf-8');
+    } else if (userId) {
       const userRes = await query(
         'SELECT id, email, handle, uin, site_url, deploy_path, avatar_path, custom_css_url, build_html, status_message FROM users WHERE id = $1',
         [userId]
@@ -276,7 +361,8 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
 
     // 4. Fetch friends' posts for static /friends/ grid
     let friendsPosts: any[] = [];
-    if (userId) {
+    const targetFollowerId = effectiveUserId || userId;
+    if (targetFollowerId) {
       const friendsQuery = await query(`
         SELECT 
           p.id,
@@ -477,6 +563,6 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
  * guarantee per-user directory isolation, and eliminate concurrency collisions.
  */
 export async function buildStaticGallery(options: StaticBuildOptions = {}): Promise<StaticBuildResult> {
-  const jobLabel = options.userId ? `User:${options.userId}` : 'Global';
+  const jobLabel = options.siteId ? `Site:${options.siteId}` : (options.userId ? `User:${options.userId}` : 'Global');
   return buildQueue.enqueue(jobLabel, () => executeStaticBuild(options));
 }

@@ -19,7 +19,7 @@ export interface AuthUser {
 
 export function normalizeIdentifier(input: string): string {
   const trimmed = input.trim();
-  if (trimmed.includes('@')) {
+  if (trimmed.includes('@') && !trimmed.startsWith('@')) {
     return trimmed.toLowerCase();
   }
   // Strip non-digits for phone numbers
@@ -27,8 +27,7 @@ export function normalizeIdentifier(input: string): string {
   if (digits.length >= 7) {
     return `${digits}@sms.neogram.local`;
   }
-  // Otherwise treat as handle/username
-  return `${trimmed.toLowerCase()}@user.neogram.local`;
+  return trimmed.toLowerCase();
 }
 
 export function extractDisplayHandle(email: string): string {
@@ -74,7 +73,23 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
     throw new Error('Please provide a valid email address or phone number.');
   }
 
-  const normalized = normalizeIdentifier(rawIdentifier);
+  const trimmed = rawIdentifier.trim();
+
+  // Reject @handle logins because handles are changeable and non-unique permanent identifiers
+  if (trimmed.startsWith('@')) {
+    throw new Error('Logging in with a @handle is not supported because callsigns can be changed. Please enter your email address or mobile phone number.');
+  }
+
+  const digits = trimmed.replace(/\D/g, '');
+  const isPhoneNumber = digits.length >= 7 && digits.length <= 15 && !trimmed.includes('@');
+  const isEmail = trimmed.includes('@') && trimmed.indexOf('@') > 0 && trimmed.indexOf('@') < trimmed.length - 1;
+
+  if (!isEmail && !isPhoneNumber) {
+    throw new Error('Please provide a valid email address or mobile phone number.');
+  }
+
+  const normalized = isEmail ? trimmed.toLowerCase() : `${digits}@sms.neogram.local`;
+  const dispatchTarget = isPhoneNumber ? digits : normalized;
 
   // 1. Check or create user
   const existing = await query('SELECT id, email, handle, uin FROM users WHERE email = $1', [normalized]);
@@ -115,14 +130,14 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
 
   console.log('====================================================');
   console.log(`[:> DIAL-UP CARRIER TRANSMISSION]`);
-  console.log(`[:> TARGET]: ${rawIdentifier} (${normalized})`);
+  console.log(`[:> TARGET]: ${dispatchTarget} (${normalized})`);
   console.log(`[:> NODE UIN]: #${userUin}`);
   console.log(`[:> 6-DIGIT OTP AUTH CODE]: ${code}`);
   console.log('====================================================');
 
   // 4. Dispatch notification via Email (Resend) or SMS (Twilio)
   const notifyResult = await sendOtpNotification({
-    destination: rawIdentifier,
+    destination: dispatchTarget,
     code,
     handle: userHandle,
     uin: userUin,
@@ -138,7 +153,10 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
 }
 
 export async function verifyOtp(rawIdentifier: string, code: string): Promise<AuthUser> {
-  const normalized = normalizeIdentifier(rawIdentifier);
+  const trimmed = rawIdentifier.trim();
+  const digits = trimmed.replace(/\D/g, '');
+  const isPhoneNumber = digits.length >= 7 && digits.length <= 15 && !trimmed.includes('@');
+  const normalized = isPhoneNumber ? `${digits}@sms.neogram.local` : trimmed.toLowerCase();
 
   const res = await query(
     `SELECT id, email, handle, uin, auth_token, auth_token_expires_at, site_url, deploy_path, deployment_type, avatar_path

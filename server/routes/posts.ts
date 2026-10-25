@@ -45,12 +45,26 @@ async function getSessionUser(req: Request) {
 /**
  * 1. GET /api/posts - Fetch all posts with user metadata & comments
  */
-postsRouter.get('/posts', async (_req: Request, res: Response, next) => {
+postsRouter.get('/posts', async (req: Request, res: Response, next) => {
   try {
+    const siteIdFilter = (req.query.siteId as string) || '';
+    const userIdFilter = (req.query.userId as string) || '';
+
+    let whereClause = '';
+    const params: any[] = [];
+    if (siteIdFilter) {
+      params.push(siteIdFilter);
+      whereClause = 'WHERE p.site_id = $1';
+    } else if (userIdFilter) {
+      params.push(userIdFilter);
+      whereClause = 'WHERE p.user_id = $1';
+    }
+
     const postsQuery = await query(`
       SELECT 
         p.id,
         p.user_id as "userId",
+        p.site_id as "siteId",
         p.image_path as "imagePath",
         p.thumbnail_path as "thumbnailPath",
         p.caption,
@@ -61,11 +75,16 @@ postsRouter.get('/posts', async (_req: Request, res: Response, next) => {
         p.likes_count as "likes",
         p.created_at as "createdAt",
         u.email,
-        split_part(u.email, '@', 1) as author
+        u.handle,
+        split_part(u.email, '@', 1) as author,
+        s.name as "siteName",
+        s.slug as "siteSlug"
       FROM posts p
       JOIN users u ON p.user_id = u.id
+      LEFT JOIN sites s ON p.site_id = s.id
+      ${whereClause}
       ORDER BY p.created_at DESC
-    `);
+    `, params);
 
     // Fetch comments for all posts
     const commentsQuery = await query(`
@@ -169,20 +188,15 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
       return;
     }
 
-    // 1. Check user static host configuration
-    const userDbRes = await query('SELECT deployment_credentials, site_url, handle, auto_deploy, deploy_path FROM users WHERE id = $1', [user.id]);
-    const userRow = userDbRes.rows[0];
-    const { decryptCredentials } = await import('../utils/crypto');
-    const creds = decryptCredentials<any>(userRow?.deployment_credentials);
-    const hasApiKey = !!(creds && creds.apiKey);
-
-    if (!hasApiKey && process.env.NODE_ENV === 'production') {
-      res.status(400).json({
-        ok: false,
-        error: 'Neocities host not connected. Please connect your Neocities API key in Settings so Neogram can publish your photos directly to your personal site.'
-      });
-      return;
+    // 1. Resolve target site configuration (from siteId parameter or user's default site)
+    const reqSiteId = req.body.siteId || (req.headers['x-neogram-site-id'] as string) || (req.query.siteId as string);
+    const { getDefaultSite, getSiteById } = await import('../services/siteService');
+    let targetSite = reqSiteId ? await getSiteById(reqSiteId, user.id) : null;
+    if (!targetSite) {
+      targetSite = await getDefaultSite(user.id);
     }
+
+    const hasApiKey = targetSite.hasApiKey;
 
     const { caption, filterApplied, mood, webring, location, imageBase64 } = req.body;
     const allowedFilters = ['none', 'crt', 'sepia', 'vga', 'gameboy', 'cyberpunk', 'lofi'];
@@ -198,9 +212,9 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
 
     let processed;
 
-    // 2. Ephemeral staging directly in the user's isolated static build directory
+    // 2. Ephemeral staging directly in the site's isolated static build directory
     const path = await import('path');
-    const userStaticDir = path.join(process.cwd(), 'dist', 'static-galleries', user.id);
+    const userStaticDir = path.join(process.cwd(), 'dist', 'static-galleries', targetSite.id);
     const targetUploadsDir = hasApiKey ? path.join(userStaticDir, 'uploads') : undefined;
 
     if (req.file) {
@@ -219,12 +233,12 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
     }
 
     // 3. Resolve live Neocities image URLs with deploy_path subdirectory if host connected
-    const siteBase = creds?.siteName
-      ? `https://${creds.siteName}.neocities.org`
-      : (userRow.site_url ? userRow.site_url.replace(/\/+$/, '') : `https://${user.handle || 'user'}.neocities.org`);
+    const siteBase = targetSite.siteName
+      ? `https://${targetSite.siteName}.neocities.org`
+      : (targetSite.siteUrl ? targetSite.siteUrl.replace(/\/+$/, '') : `https://${user.handle || 'user'}.neocities.org`);
 
-    const rawDeployPath = userRow?.deploy_path !== null && userRow?.deploy_path !== undefined
-      ? String(userRow.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+    const rawDeployPath = targetSite.deployPath !== null && targetSite.deployPath !== undefined
+      ? String(targetSite.deployPath).trim().replace(/^\/+|\/+$/g, '')
       : 'neogram';
     const deployPrefix = rawDeployPath ? `/${rawDeployPath}` : '';
 
@@ -239,12 +253,13 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
     // 4. Commit post record to PostgreSQL
     const insertResult = await query(
       `
-      INSERT INTO posts (user_id, image_path, thumbnail_path, caption, filter_applied, mood, webring, location)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO posts (user_id, site_id, image_path, thumbnail_path, caption, filter_applied, mood, webring, location)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `,
       [
         user.id,
+        targetSite.id,
         finalImagePath,
         finalThumbPath,
         safeCaption,
@@ -280,13 +295,11 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
     // 5. Build static gallery and deploy immediately to Neocities if connected
     if (hasApiKey) {
       const { deployToNeocities } = await import('../services/neocitiesPublisher');
-      // deployToNeocities automatically builds 11ty, uploads all assets (HTML, CSS, WebP images, comments JSON),
-      // and purges the local uploads directory upon confirmation!
-      await deployToNeocities(user.id);
-      console.log(`[:> ZERO-RETENTION PIPELINE] Deployed live to Neocities and purged local disk assets for user ${user.id}`);
+      await deployToNeocities(targetSite.id, true);
+      console.log(`[:> ZERO-RETENTION PIPELINE] Deployed live to Neocities for site ${targetSite.id} (user ${user.id})`);
     } else {
       const { buildStaticGallery } = await import('../services/staticBuilder');
-      await buildStaticGallery({ userId: user.id });
+      await buildStaticGallery({ siteId: targetSite.id, userId: user.id });
     }
 
     // 6. Cascading rebuild of all friends/followers who follow this user
@@ -318,10 +331,14 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
       ok: true,
       message: hasApiKey
         ? 'Photo published live to your Neocities site!'
-        : 'Photo published successfully via Neogram pipeline.',
+        : 'Photo published to your Cyberspace Station profile! (Connect Neocities in Settings whenever you want to sync live to your static site)',
+      isSandbox: !hasApiKey,
       post: {
         id: newPost.id,
         userId: newPost.user_id,
+        siteId: newPost.site_id,
+        siteName: targetSite.name,
+        siteSlug: targetSite.slug,
         imagePath: newPost.image_path,
         thumbnailPath: newPost.thumbnail_path,
         caption: newPost.caption,
@@ -331,7 +348,7 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
         location: newPost.location,
         likes: newPost.likes_count,
         createdAt: newPost.created_at,
-        author: user.email.split('@')[0],
+        author: user.handle || user.email.split('@')[0],
         comments: [],
       },
     });
@@ -642,7 +659,7 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
     const { id } = req.params;
 
     // Check post exists and verify ownership
-    const postCheck = await query('SELECT user_id FROM posts WHERE id = $1', [id]);
+    const postCheck = await query('SELECT user_id, site_id FROM posts WHERE id = $1', [id]);
     if (postCheck.rows.length === 0) {
       res.status(404).json({ ok: false, error: 'Post not found in terminal registry.' });
       return;
@@ -653,6 +670,7 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
       return;
     }
 
+    const postSiteId = postCheck.rows[0].site_id;
     const { caption, mood, webring, location, filterApplied } = req.body;
 
     const updateResult = await query(
@@ -674,12 +692,12 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
 
     // Trigger 11ty static rebuild so static gallery immediately reflects edits
     import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery({ userId: updated.user_id }))
+      .then((m) => m.buildStaticGallery({ siteId: postSiteId, userId: updated.user_id }))
       .catch((err) => console.error('[:> 11ty] Rebuild error after edit:', err));
 
     // Trigger auto-deploy if enabled
     import('../services/neocitiesPublisher')
-      .then((m) => m.triggerAutoDeployIfEnabled(updated.user_id))
+      .then((m) => m.triggerAutoDeployIfEnabled(postSiteId || updated.user_id))
       .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
 
     res.json({
@@ -717,13 +735,13 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     const { id } = req.params;
 
     // 1. Fetch post to verify ownership and get image and thumbnail paths for disk cleanup
-    const postQuery = await query('SELECT user_id, image_path, thumbnail_path FROM posts WHERE id = $1', [id]);
+    const postQuery = await query('SELECT user_id, site_id, image_path, thumbnail_path FROM posts WHERE id = $1', [id]);
     if (postQuery.rows.length === 0) {
       res.status(404).json({ ok: false, error: 'Post not found in terminal registry.' });
       return;
     }
 
-    const { user_id, image_path, thumbnail_path } = postQuery.rows[0];
+    const { user_id, site_id, image_path, thumbnail_path } = postQuery.rows[0];
 
     if (user_id !== user.id) {
       res.status(403).json({ ok: false, error: 'Access denied: You are not authorized to delete this station post.' });
@@ -742,7 +760,7 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
         thumbnail_path ? cleanRel(thumbnail_path) : null
       ].filter(Boolean) as string[];
 
-      deleteFromNeocities(user.id, filesToDelete).catch((err) => {
+      deleteFromNeocities(site_id || user.id, filesToDelete).catch((err) => {
         console.warn('[:> NEOCITIES DELETE] Warning: could not purge remote files:', err);
       });
     }
@@ -763,14 +781,14 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     // 4. Trigger 11ty static rebuild so the static gallery no longer contains the deleted post
     if (user_id) {
       import('../services/staticBuilder')
-        .then((m) => m.buildStaticGallery({ userId: user_id }))
+        .then((m) => m.buildStaticGallery({ siteId: site_id, userId: user_id }))
         .catch((err) => console.error('[:> 11ty] Rebuild error after delete:', err));
     }
 
     // Trigger auto-deploy if enabled
     if (user_id) {
       import('../services/neocitiesPublisher')
-        .then((m) => m.triggerAutoDeployIfEnabled(user_id))
+        .then((m) => m.triggerAutoDeployIfEnabled(site_id || user_id))
         .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
     }
 
@@ -810,15 +828,17 @@ export async function triggerFollowersCascade(authorId: string) {
       buildQueue.enqueue(`CascadeFollower:${followerId}`, async () => {
         console.log(`[:> CASCADE QUEUE] Rebuilding static gallery for follower ${followerId}...`);
         const userCreds = await query(
-          'SELECT deployment_type, deployment_credentials FROM users WHERE id = $1',
+          'SELECT deployment_type, deployment_credentials, auto_deploy FROM users WHERE id = $1',
           [followerId]
         );
         const u = userCreds.rows[0];
-        const hasApiKey = u && u.deployment_type === 'neocities' && !!u.deployment_credentials;
+        const shouldDeployRemote = u && u.deployment_type === 'neocities' && !!u.deployment_credentials && u.auto_deploy;
 
-        if (hasApiKey) {
+        if (shouldDeployRemote) {
           const { deployToNeocities } = await import('../services/neocitiesPublisher');
           await deployToNeocities(followerId);
+          // Pacing delay to prevent hammering Neocities API rate limits
+          await new Promise((resolve) => setTimeout(resolve, 1200));
         } else {
           await buildStaticGallery({ userId: followerId });
         }

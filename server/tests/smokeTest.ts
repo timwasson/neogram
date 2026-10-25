@@ -768,9 +768,270 @@ async function runSmokeTests() {
     assertTest('Workstation dashboard contains #settingsBuildHtml checkbox', dashHtml.includes('id="settingsBuildHtml"'));
 
     // -------------------------------------------------------------------------
-    // TEST 17: Safe Post Purge & Clean Teardown
+    // TEST 17: Data Sovereignty, Auth Validation & Station Decommissioning
     // -------------------------------------------------------------------------
-    logHeader('17. SAFE PURGE & TEARDOWN');
+    logHeader('17. DATA SOVEREIGNTY, AUTH VALIDATION & STATION DECOMMISSIONING');
+
+    // 1. Rejection of @handle login attempt (handles are mutable and not permanent login identifiers)
+    const handleRejectRes = await fetch(`${API_BASE}/api/auth/request-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Test-Suite': 'true' },
+      body: JSON.stringify({ identifier: `@${testUser.handle}` }),
+    });
+    assertTest('POST /api/auth/request-otp with @handle returns HTTP 400', handleRejectRes.status === 400);
+    const handleRejectData = await handleRejectRes.json() as any;
+    assertTest('Handle login returns explicit explanation that @handle login is not supported', handleRejectData.error && handleRejectData.error.includes('Logging in with a @handle is not supported'));
+
+    // 2. Mobile phone number login validation
+    const phoneRes = await fetch(`${API_BASE}/api/auth/request-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Test-Suite': 'true' },
+      body: JSON.stringify({ identifier: '(555) 019-1996' }),
+    });
+    assertTest('POST /api/auth/request-otp with valid phone number returns HTTP 200', phoneRes.status === 200);
+    const phoneData = await phoneRes.json() as any;
+    assertTest('Phone number auth resolves and dispatches OTP', phoneData.ok === true && phoneData.identifier.includes('@sms.neogram.local'));
+
+    // 3. Station Archive Export
+    const exportRes = await fetch(`${API_BASE}/api/settings/export-archive`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('GET /api/settings/export-archive returns HTTP 200', exportRes.status === 200);
+    const exportContentDisp = exportRes.headers.get('content-disposition') || '';
+    assertTest('Export contains attachment Content-Disposition header', exportContentDisp.includes('attachment') && exportContentDisp.includes('neogram-archive-'));
+    const archiveData = await exportRes.json() as any;
+    assertTest('Archive payload has version neogram-station-archive-v1', archiveData.version === 'neogram-station-archive-v1');
+    assertTest('Archive payload contains station metadata', archiveData.station && archiveData.station.handle === testUser.handle && archiveData.station.uin === testUser.uin);
+    assertTest('Archive payload contains posts with comments array', Array.isArray(archiveData.posts) && archiveData.posts.length > 0 && Array.isArray(archiveData.posts[0].comments));
+    assertTest('Archive payload contains guestbook ledger array', Array.isArray(archiveData.guestbook));
+    assertTest('Archive payload contains connections array', Array.isArray(archiveData.connections));
+
+    // 4. Station Account Decommissioning (Self-Serve Nuke) on a disposable user
+    const dispEmail = `disposable_decom_${timestamp}@neogram.retro`;
+    const dispReq = await fetch(`${API_BASE}/api/auth/request-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Test-Suite': 'true' },
+      body: JSON.stringify({ identifier: dispEmail }),
+    });
+    const dispReqData = await dispReq.json() as any;
+    const dispVerify = await fetch(`${API_BASE}/api/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Test-Suite': 'true' },
+      body: JSON.stringify({ identifier: dispEmail, code: dispReqData.demoCode }),
+    });
+    const dispCookie = dispVerify.headers.get('set-cookie')?.split(';')[0] || '';
+    const dispUserRes = await query('SELECT id FROM users WHERE email = $1', [dispEmail]);
+    assertTest('Disposable user provisioned in database for decommissioning test', dispUserRes.rows.length === 1);
+    const dispUserId = dispUserRes.rows[0].id;
+
+    // Call DELETE /api/settings/account
+    const decomRes = await fetch(`${API_BASE}/api/settings/account`, {
+      method: 'DELETE',
+      headers: { 'Cookie': dispCookie },
+    });
+    assertTest('DELETE /api/settings/account returns HTTP 200', decomRes.status === 200);
+    const decomData = await decomRes.json() as any;
+    assertTest('Decommission returns confirmation ok: true', decomData.ok === true);
+
+    // Verify database row is deleted
+    const checkDispDeleted = await query('SELECT id FROM users WHERE id = $1', [dispUserId]);
+    assertTest('Decommissioned user completely purged from PostgreSQL database', checkDispDeleted.rows.length === 0);
+
+    // Verify session cookie was cleared
+    const decomCookieHeader = decomRes.headers.get('set-cookie') || '';
+    assertTest('Decommission clears session cookie (Max-Age=0 or empty)', decomCookieHeader.includes('neogram_session=;') || decomCookieHeader.includes('Max-Age=0'));
+
+    // -------------------------------------------------------------------------
+    // TEST 18: Multi-Site Architecture (1 User : N Sites)
+    // -------------------------------------------------------------------------
+    logHeader('18. MULTI-SITE ARCHITECTURE (1 USER : N SITES)');
+
+    // 18a. Retrieve initial user sites (verify auto-provisioned primary site)
+    const initSitesRes = await fetch(`${API_BASE}/api/sites`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('GET /api/sites returns HTTP 200', initSitesRes.status === 200);
+    const initSitesData = await initSitesRes.json() as any;
+    assertTest('Initial sites array returned', initSitesData.ok === true && Array.isArray(initSitesData.sites));
+    assertTest('At least one primary site exists', initSitesData.sites.length >= 1);
+    const primarySite = initSitesData.sites[0];
+    assertTest('Primary site is marked as default', primarySite.isDefault === true);
+
+    // 18b. Provision secondary site
+    const createSiteRes = await fetch(`${API_BASE}/api/sites`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({
+        name: 'Cyber Shrine 99',
+        slug: 'shrine',
+        siteUrl: 'https://shrine.neocities.org',
+        deployPath: 'shrine',
+        deploymentType: 'none',
+      }),
+    });
+    assertTest('POST /api/sites returns HTTP 201 Created', createSiteRes.status === 201);
+    const createSiteData = await createSiteRes.json() as any;
+    assertTest('Provisioned site contains name', createSiteData.site?.name === 'Cyber Shrine 99');
+    assertTest('Provisioned site has slug "shrine"', createSiteData.site?.slug === 'shrine');
+    assertTest('Secondary site defaults to non-primary', createSiteData.site?.isDefault === false);
+    const secondarySiteId = createSiteData.site?.id;
+
+    // 18c. Test duplicate slug update rejection
+    const dupSlugRes = await fetch(`${API_BASE}/api/sites/${primarySite.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({ slug: 'shrine' }),
+    });
+    assertTest('PUT /api/sites/:id with colliding slug returns HTTP 400', dupSlugRes.status === 400);
+
+    // 18d. Switch active site in session
+    const switchSiteRes = await fetch(`${API_BASE}/api/sites/${secondarySiteId}/switch`, {
+      method: 'POST',
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('POST /api/sites/:id/switch returns HTTP 200', switchSiteRes.status === 200);
+    const switchCookie = switchSiteRes.headers.get('set-cookie') || '';
+    assertTest('Switch sets neogram_active_site cookie', switchCookie.includes('neogram_active_site='));
+
+    // 18e. Publish photo targeted specifically to secondary site
+    const secImageBuffer = await sharp({
+      create: {
+        width: 400,
+        height: 400,
+        channels: 4,
+        background: { r: 240, g: 20, b: 120, alpha: 1 },
+      },
+    })
+      .png()
+      .toBuffer();
+
+    const secFormData = new FormData();
+    secFormData.append('imageFile', new Blob([secImageBuffer], { type: 'image/png' }), 'shrine_photo.png');
+    secFormData.append('caption', '[:> Shrine Exclusive Cyber Photograph]');
+    secFormData.append('filterApplied', 'amber');
+    secFormData.append('siteId', secondarySiteId);
+
+    const secPostRes = await fetch(`${API_BASE}/api/posts`, {
+      method: 'POST',
+      headers: { 'Cookie': sessionCookie },
+      body: secFormData,
+    });
+    assertTest('POST /api/posts with siteId returns HTTP 201', secPostRes.status === 201);
+    const secPostData = await secPostRes.json() as any;
+    const secondaryPostId = secPostData.post?.id;
+    assertTest('Post record persisted with secondary site ID', secPostData.post?.siteId === secondarySiteId);
+
+    // 18f. Query posts filtered by siteId
+    const secPostsListRes = await fetch(`${API_BASE}/api/posts?siteId=${secondarySiteId}`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('GET /api/posts?siteId=secondary returns HTTP 200', secPostsListRes.status === 200);
+    const secPostsListData = await secPostsListRes.json() as any;
+    const hasSecPost = secPostsListData.posts.some((p: any) => p.id === secondaryPostId);
+    const hasPrimPostInSec = secPostsListData.posts.some((p: any) => p.id === testPostId);
+    assertTest('Secondary site stream contains secondary post', hasSecPost);
+    assertTest('Secondary site stream isolates from primary post', !hasPrimPostInSec);
+
+    const primPostsListRes = await fetch(`${API_BASE}/api/posts?siteId=${primarySite.id}`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    const primPostsListData = await primPostsListRes.json() as any;
+    const hasSecInPrim = primPostsListData.posts.some((p: any) => p.id === secondaryPostId);
+    assertTest('Primary site stream isolates from secondary post', !hasSecInPrim);
+
+    // 18g. Per-site SVG Hit Counter (anchored by UIN and slug)
+    const secCounterRes = await fetch(`${API_BASE}/counter/${testUser.uin}/shrine.svg?style=amber_crt`);
+    assertTest('GET /counter/:uin/:slug.svg returns HTTP 200', secCounterRes.status === 200);
+    assertTest('Per-site counter returns image/svg+xml', secCounterRes.headers.get('content-type')?.includes('image/svg+xml') === true);
+    const secCounterDb = await query('SELECT hits FROM web_counters WHERE site_id = $1', [secondarySiteId]);
+    assertTest('Secondary site hit counter persisted in database', secCounterDb.rows.length === 1 && parseInt(secCounterDb.rows[0].hits, 10) >= 1);
+
+    // 18h. Per-site Guestbook Ledger
+    const secGuestbookPostRes = await fetch(`${API_BASE}/api/guestbook/${testUser.handle}/shrine`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({
+        message: 'Visiting the cyber shrine!',
+        moodIcon: '⛩️',
+      }),
+    });
+    assertTest('POST /api/guestbook/:handle/:slug returns HTTP 201', secGuestbookPostRes.status === 201);
+    const secGbDb = await query('SELECT * FROM guestbook_entries WHERE site_id = $1', [secondarySiteId]);
+    assertTest('Guestbook entry anchored to secondary site in database', secGbDb.rows.length === 1 && secGbDb.rows[0].message === 'Visiting the cyber shrine!');
+
+    // 18i. Per-site JSON Feed
+    const secFeedRes = await fetch(`${API_BASE}/api/users/${testUser.handle}/feed.json?siteSlug=shrine`);
+    assertTest('GET /api/users/:handle/feed.json?siteSlug=shrine returns HTTP 200', secFeedRes.status === 200);
+    const secFeedData = await secFeedRes.json() as any;
+    assertTest('Feed title reflects secondary site name', secFeedData.title?.includes('Cyber Shrine 99') || secFeedData.home_page_url?.includes('shrine'));
+    const secFeedContainsSecPost = Array.isArray(secFeedData.items) && secFeedData.items.some((item: any) => item.id === secondaryPostId);
+    assertTest('Feed items contains secondary post', secFeedContainsSecPost);
+
+    // 18j. Set secondary site as primary default
+    const setDefRes = await fetch(`${API_BASE}/api/sites/${secondarySiteId}/default`, {
+      method: 'POST',
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('POST /api/sites/:id/default returns HTTP 200', setDefRes.status === 200);
+    const secDefDb = await query('SELECT is_default FROM sites WHERE id = $1', [secondarySiteId]);
+    const primDefDb = await query('SELECT is_default FROM sites WHERE id = $1', [primarySite.id]);
+    assertTest('Secondary site is now default in database', secDefDb.rows[0]?.is_default === true);
+    assertTest('Primary site is no longer default in database', primDefDb.rows[0]?.is_default === false);
+
+    // Restore primary site as default
+    await fetch(`${API_BASE}/api/sites/${primarySite.id}/default`, {
+      method: 'POST',
+      headers: { 'Cookie': sessionCookie },
+    });
+
+    // 18k. Workstation UI verification
+    const dashSitesRes = await fetch(`${API_BASE}/`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('Authenticated GET / returns HTTP 200', dashSitesRes.status === 200);
+    const dashSitesHtml = await dashSitesRes.text();
+    assertTest('Dashboard contains #retroSiteMenu switcher in nav', dashSitesHtml.includes('id="retroSiteMenu"'));
+    assertTest('Dashboard upload form contains #uploadSiteId input', dashSitesHtml.includes('id="uploadSiteId"'));
+    assertTest('Dashboard contains #toggleProvisionFormBtn', dashSitesHtml.includes('id="toggleProvisionFormBtn"'));
+    assertTest('Dashboard contains #settingsSiteSelector in settings', dashSitesHtml.includes('id="settingsSiteSelector"'));
+
+    // 18l. Public profile multi-site filter verification
+    const userProfileRes = await fetch(`${API_BASE}/user/${testUser.handle}`);
+    assertTest('Public GET /user/:handle returns HTTP 200', userProfileRes.status === 200);
+    const userProfileHtml = await userProfileRes.text();
+    assertTest('Public profile contains site filter chips', userProfileHtml.includes('filterUserPosts'));
+    assertTest('Public profile lists Cyber Shrine 99', userProfileHtml.includes('Cyber Shrine 99'));
+
+    // 18m. Unmount and delete secondary site
+    const deleteSiteRes = await fetch(`${API_BASE}/api/sites/${secondarySiteId}`, {
+      method: 'DELETE',
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('DELETE /api/sites/:id returns HTTP 200', deleteSiteRes.status === 200);
+    const checkSiteDeleted = await query('SELECT id FROM sites WHERE id = $1', [secondarySiteId]);
+    assertTest('Site deleted from PostgreSQL database', checkSiteDeleted.rows.length === 0);
+
+    // Verify CASCADE cleanup of secondary site post, counter, and guestbook
+    const checkSecPostDeleted = await query('SELECT id FROM posts WHERE id = $1', [secondaryPostId]);
+    assertTest('Secondary post cascade deleted with site', checkSecPostDeleted.rows.length === 0);
+    const checkSecGbDeleted = await query('SELECT id FROM guestbook_entries WHERE site_id = $1', [secondarySiteId]);
+    assertTest('Secondary guestbook cascade deleted with site', checkSecGbDeleted.rows.length === 0);
+    const checkSecCounterDeleted = await query('SELECT hits FROM web_counters WHERE site_id = $1', [secondarySiteId]);
+    assertTest('Secondary web counter cascade deleted with site', checkSecCounterDeleted.rows.length === 0);
+
+    // -------------------------------------------------------------------------
+    // TEST 19: Safe Post Purge & Clean Teardown
+    // -------------------------------------------------------------------------
+    logHeader('19. SAFE PURGE & TEARDOWN');
     // Delete post using authenticated session
     const deletePostRes = await fetch(`${API_BASE}/api/posts/${testPostId}`, {
       method: 'DELETE',

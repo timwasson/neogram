@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import { query } from '../db';
-import { COOKIE_NAME, verifySessionToken, extractToken, signSessionToken, setSessionCookie } from '../auth/jwt';
+import { COOKIE_NAME, verifySessionToken, extractToken, signSessionToken, setSessionCookie, clearSessionCookie } from '../auth/jwt';
 import { encryptCredentials, decryptCredentials, maskApiKey, NeocitiesCredentials } from '../utils/crypto';
 import { testNeocitiesConnection, deployToNeocities } from '../services/neocitiesPublisher';
 import { processAvatarBuffer } from '../services/imageProcessor';
@@ -50,12 +50,12 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
     }
 
     const user = userRes.rows[0];
-    const creds = decryptCredentials<NeocitiesCredentials>(user.deployment_credentials);
-
-    const hasApiKey = !!(creds && creds.apiKey);
-    const maskedKey = hasApiKey ? maskApiKey(creds!.apiKey) : '';
-    const siteName = creds?.siteName || (user.site_url ? user.site_url.replace(/https?:\/\//, '').replace(/\.neocities\.org.*$/, '') : (user.handle || ''));
-    const deployPath = user.deploy_path !== null && user.deploy_path !== undefined ? user.deploy_path : 'neogram';
+    const { getUserSites, getDefaultSite, getSiteById } = await import('../services/siteService');
+    const sites = await getUserSites(userId);
+    const reqSiteId = req.query.siteId as string;
+    const activeSite = reqSiteId
+      ? ((await getSiteById(reqSiteId, userId)) || (await getDefaultSite(userId)))
+      : (await getDefaultSite(userId));
 
     res.json({
       ok: true,
@@ -66,15 +66,19 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
         email: user.email,
         avatarPath: user.avatar_path || '/icons/default-avatar.svg',
         hasCustomAvatar: !!user.avatar_path,
-        siteUrl: user.site_url || `https://${user.handle || 'user'}.neocities.org`,
-        siteName: siteName,
-        deployPath: deployPath,
-        deploymentType: user.deployment_type || 'neocities',
-        hasApiKey,
-        maskedApiKey: maskedKey,
-        autoDeploy: !!user.auto_deploy,
-        buildHtml: user.build_html !== false,
-        lastDeployedAt: user.last_deployed_at,
+        siteId: activeSite.id,
+        siteSlug: activeSite.slug,
+        siteUrl: activeSite.siteUrl || `https://${user.handle || 'user'}.neocities.org`,
+        siteName: activeSite.name,
+        deployPath: activeSite.deployPath,
+        deploymentType: activeSite.deploymentType || 'neocities',
+        hasApiKey: activeSite.hasApiKey,
+        maskedApiKey: activeSite.maskedApiKey,
+        autoDeploy: activeSite.autoDeploy,
+        buildHtml: activeSite.buildHtml,
+        lastDeployedAt: activeSite.lastDeployedAt,
+        isDefault: activeSite.isDefault,
+        sites,
       },
     });
   } catch (err) {
@@ -251,25 +255,46 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
       [finalSiteUrl, finalDeployType, encryptedCreds, finalAutoDeploy, finalDeployPath, finalBuildHtml, userId]
     );
 
+    // Also synchronize corresponding site in sites table
+    const { getDefaultSite, getSiteById, updateSite, getUserSites } = await import('../services/siteService');
+    const targetSiteId = req.body.siteId as string;
+    const siteToUpdate = targetSiteId ? await getSiteById(targetSiteId, userId) : await getDefaultSite(userId);
+    let updatedSite: any = null;
+    if (siteToUpdate) {
+      updatedSite = await updateSite(siteToUpdate.id, userId, {
+        name: siteName || siteToUpdate.name,
+        siteUrl: finalSiteUrl,
+        deploymentType: finalDeployType,
+        deployPath: finalDeployPath,
+        apiKey: apiKey && !apiKey.startsWith('••••') ? apiKey : undefined,
+        siteName: creds.siteName,
+        autoDeploy: finalAutoDeploy,
+        buildHtml: finalBuildHtml,
+      });
+    }
+
     console.log(`[:> SETTINGS] Updated deployment settings for user ${userId} (deployPath: "${finalDeployPath}", buildHtml: ${finalBuildHtml})`);
 
     // Trigger static gallery rebuild in background with new settings
     import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery({ userId }))
+      .then((m) => m.buildStaticGallery({ siteId: updatedSite ? updatedSite.id : undefined, userId }))
       .catch((err) => console.error('[:> 11ty] Settings rebuild error:', err));
 
     res.json({
       ok: true,
       message: 'Deployment settings saved and encrypted in database.',
       settings: {
+        siteId: updatedSite ? updatedSite.id : undefined,
+        siteSlug: updatedSite ? updatedSite.slug : undefined,
         siteUrl: finalSiteUrl,
-        siteName: creds.siteName || '',
+        siteName: creds.siteName || (updatedSite ? updatedSite.name : ''),
         deployPath: finalDeployPath,
         deploymentType: finalDeployType,
         hasApiKey: !!creds.apiKey,
         maskedApiKey: maskApiKey(creds.apiKey),
         autoDeploy: finalAutoDeploy,
         buildHtml: finalBuildHtml,
+        sites: await getUserSites(userId),
       },
     });
   } catch (err) {
@@ -348,5 +373,101 @@ settingsRouter.post('/deploy/neocities', async (req: Request, res: Response, nex
       ok: false,
       error: err.message || 'Deployment to Neocities failed.',
     });
+  }
+});
+
+/**
+ * 5. GET /api/settings/export-archive - Data Portability / Export Station Archive (JSON)
+ */
+settingsRouter.get('/settings/export-archive', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.userId;
+
+    const userRes = await query('SELECT id, email, handle, uin, site_url, deploy_path, status_message, created_at FROM users WHERE id = $1', [userId]);
+    if (userRes.rows.length === 0) {
+      res.status(404).json({ ok: false, error: 'User node not found.' });
+      return;
+    }
+    const user = userRes.rows[0];
+
+    const postsRes = await query('SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
+    const commentsRes = await query(
+      `SELECT c.* FROM comments c
+       JOIN posts p ON c.post_id = p.id
+       WHERE p.user_id = $1
+       ORDER BY c.created_at ASC`,
+      [userId]
+    );
+
+    const commentsByPost: Record<string, any[]> = {};
+    for (const c of commentsRes.rows) {
+      if (!commentsByPost[c.post_id]) commentsByPost[c.post_id] = [];
+      commentsByPost[c.post_id].push(c);
+    }
+
+    const postsWithComments = postsRes.rows.map((p) => ({
+      ...p,
+      comments: commentsByPost[p.id] || [],
+    }));
+
+    const guestbookRes = await query('SELECT * FROM guestbook_entries WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
+    const followsRes = await query('SELECT * FROM follows WHERE follower_id = $1 OR following_id = $1', [userId]);
+    const counterRes = await query('SELECT hits, style FROM web_counters WHERE user_id = $1', [userId]);
+
+    const archive = {
+      version: 'neogram-station-archive-v1',
+      exportedAt: new Date().toISOString(),
+      station: {
+        id: user.id,
+        handle: user.handle,
+        uin: user.uin,
+        email: user.email,
+        siteUrl: user.site_url,
+        deployPath: user.deploy_path,
+        statusMessage: user.status_message,
+        registeredAt: user.created_at,
+        webCounter: counterRes.rows[0] || { hits: 0, style: 'green_led' },
+      },
+      posts: postsWithComments,
+      guestbook: guestbookRes.rows,
+      connections: followsRes.rows,
+    };
+
+    const cleanHandle = (user.handle || 'station').replace(/[^a-z0-9_-]/gi, '');
+    const filename = `neogram-archive-${cleanHandle}-${new Date().toISOString().split('T')[0]}.json`;
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(JSON.stringify(archive, null, 2));
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * 6. DELETE /api/settings/account - Self-Serve Account Decommissioning (GDPR Right to Be Forgotten)
+ */
+settingsRouter.delete('/settings/account', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.userId;
+
+    const path = await import('path');
+    const fs = await import('fs/promises');
+    const staticDir = path.join(process.cwd(), 'dist', 'static-galleries', userId);
+    try {
+      await fs.rm(staticDir, { recursive: true, force: true });
+    } catch (_rmErr) {}
+
+    // Cascade delete user and all related records from PostgreSQL
+    await query('DELETE FROM users WHERE id = $1', [userId]);
+
+    clearSessionCookie(res);
+
+    res.json({
+      ok: true,
+      message: 'Station decommissioned cleanly. All local credentials and database records permanently purged.',
+    });
+  } catch (err) {
+    next(err);
   }
 });

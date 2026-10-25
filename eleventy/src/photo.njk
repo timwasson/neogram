@@ -234,14 +234,23 @@ eleventyComputed:
   function openCyberPassModal() {
     if (window.retroAudio) window.retroAudio.playClick();
     var origin = encodeURIComponent(window.location.origin);
-    var popupUrl = API_BASE + '/auth/connect?origin=' + origin;
+    var returnUrl = encodeURIComponent(window.location.href);
+    var connectUrl = API_BASE + '/auth/connect?origin=' + origin + '&return_url=' + returnUrl;
+
+    var isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      window.location.href = connectUrl;
+      return;
+    }
+
     var popup = window.open(
-      popupUrl,
+      connectUrl,
       'neogram_auth',
-      'width=440,height=480,menubar=no,toolbar=no,location=no,status=no'
+      'width=440,height=520,menubar=no,toolbar=no,location=no,status=no'
     );
-    if (!popup) {
-      alert('[:> Pop-up blocked! Please allow pop-ups from this site to connect your Cyber-Pass.]');
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+      window.location.href = connectUrl;
     }
   }
 
@@ -464,6 +473,20 @@ eleventyComputed:
 
   // Initialize UI on load
   document.addEventListener('DOMContentLoaded', function () {
+    // Check for mobile redirect auth payload in URL hash
+    if (window.location.hash && window.location.hash.indexOf('neogram_pass=') !== -1) {
+      try {
+        var rawPass = decodeURIComponent(window.location.hash.split('neogram_pass=')[1]);
+        var parsed = JSON.parse(rawPass);
+        if (parsed && parsed.token && parsed.handle) {
+          setCyberPass(parsed);
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
+        }
+      } catch (_e) {}
+    }
+
     renderAuthUI();
     renderLikeUI();
     hydrateCommentsFromSelfHostedJson();
