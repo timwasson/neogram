@@ -220,6 +220,51 @@ export function createApp(): Express {
         ? postsQuery.rows.filter((p: any) => p.userId === currentUser.id)
         : postsQuery.rows;
 
+      // Query Follower Feed for authenticated user (transmissions from stations they follow)
+      let followerFeedPosts: any[] = [];
+      let followedCount = 0;
+      if (currentUser) {
+        const followsRes = await query(
+          'SELECT COUNT(*) as count FROM follows WHERE follower_id = $1',
+          [currentUser.id]
+        );
+        followedCount = parseInt(followsRes.rows[0]?.count || '0', 10);
+
+        const feedQuery = await query(`
+          SELECT 
+            p.id,
+            p.user_id as "userId",
+            p.site_id as "siteId",
+            s.name as "siteName",
+            s.slug as "siteSlug",
+            p.image_path as "imagePath",
+            p.thumbnail_path as "thumbnailPath",
+            p.caption,
+            p.filter_applied as "filterApplied",
+            p.mood,
+            p.webring,
+            p.location,
+            p.likes_count as "likes",
+            p.created_at as "createdAt",
+            u.email,
+            u.handle,
+            u.uin,
+            u.avatar_path as "avatarPath",
+            u.site_url as "siteUrl",
+            u.deploy_path as "deployPath",
+            COALESCE(u.handle, split_part(u.email, '@', 1)) as author,
+            (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
+          FROM posts p
+          JOIN follows f ON p.user_id = f.following_id
+          JOIN users u ON p.user_id = u.id
+          LEFT JOIN sites s ON p.site_id = s.id
+          WHERE f.follower_id = $1
+          ORDER BY p.created_at DESC
+          LIMIT 50
+        `, [currentUser.id]);
+        followerFeedPosts = feedQuery.rows;
+      }
+
       res.render('index', {
         title: 'Neogram - 90s Retro Social Publishing Engine',
         systemPrompt: ':> SYSTEM 7 WORKSTATION ONLINE',
@@ -227,6 +272,8 @@ export function createApp(): Express {
         activeView: 'dashboard',
         posts: userArchivePosts,
         allPosts: postsQuery.rows,
+        followerFeedPosts,
+        followedCount,
         userSites: res.locals.userSites || [],
         activeSite: res.locals.activeSite || null,
       });

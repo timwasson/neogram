@@ -347,12 +347,17 @@ CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read, cr
 - **Screen Space Recovery:** Desktop taskbar and redundant top navigation links are hidden on `< 768px`, recovering over 120px of vertical space. `<main>` enforces `padding-bottom: 74px` on mobile to prevent content clipping.
 - **Mobile NIM Drawer Sheet:** On mobile viewports, the NIM chat window (`.aim-window`) dynamically converts from a floating corner card to a centered slide-up drawer between the top header and bottom tab bar (`bottom: 58px; left: 8px; right: 8px; height: 75dvh`), preventing horizontal overflow.
 
-### 4.17 First-Run Station Onboarding Setup Wizard
-- **Guided Station Initialization (`[:> SETUP_WIZARD.EXE]`):** When a user logs in without a linked Neocities API key (`currentUser.hasApiKey == false`), the Upload Studio displays a 3-step retro checklist:
-  1. `[✓] STEP 1:` Station Identity provisioned (`@handle` and immutable `#UIN`).
-  2. `[●] STEP 2:` Connect remote Neocities API Key in Settings (`[ ⚙️ Connect in Settings :> ]`).
-  3. `[○] STEP 3:` Snap first photo and transmit to static host.
-- **Error Elimination:** Prevents 100% of first-run failed upload errors caused by creators attempting to transmit before linking credentials.
+### 4.17 Decoupled User Onboarding, Zero-Site Participation & "What's Next?" Flow
+- **Immediate Profile Completion:** When a new user registers via email/SMS OTP, their Neogram identity is 100% complete immediately (`@handle` and immutable `#UIN` assigned). No site mounting is required to be an active member of Cyberspace.
+- **Zero-Site Capabilities:** Users with 0 mounted static sites can immediately:
+  - Chat via NIM instant messaging (`/ws/chat`) with buddy list and away status.
+  - Sign retro guestbooks on remote member stations using 1-click Cyber-Pass SSO.
+  - Browse and search the public Station Directory (`/directory`).
+  - Follow other creator stations (`POST /api/users/:handle/follow`) and consume transmissions in their live Workstation Follower Feed (`[📰 Feed]` tab at `/#feed`).
+- **Welcoming Station Onboarding & "What's Next?":**
+  - **Station Welcome Card (`#welcomeStationCard`):** Displays `[PROFILE COMPLETE]`, welcoming the creator by handle and UIN, confirming their active capabilities.
+  - **"What's Next? — Unlock Creator Studio":** Contextual card explaining why a user would want to mount a static site target (enables photo transmissions, retro shaders, profile avatars, personal 11ty static photo grids, and SVG web hit counters) with a direct button `[ ➕ ADD A STATIC SITE TARGET :> ]` that opens the provisioning modal.
+  - **Zero-Site Creator Studio Guard (`#noSiteUploadBanner`):** When accessing Creator Studio (`#upload`), an informative banner guides the user to mount a site rather than throwing cryptic upload failures.
 
 ### 4.18 Archive Quick-Share Actions & Visual Filter Swatches
 - **One-Tap Static Sharing:** Every post card in the `#edit` archive ledger includes:

@@ -71,19 +71,23 @@ embedsRouter.get(['/counter/:identifier.svg', '/counter/:identifier/:slug.svg'],
         ? ((await getSiteBySlug(user.id, rawSlug)) || (await getDefaultSite(user.id)))
         : (await getDefaultSite(user.id));
 
-      // Upsert hit counter for this site
-      const updateRes = await query(
-        `INSERT INTO web_counters (site_id, user_id, hits, style, updated_at)
-         VALUES ($1, $2, 1, $3, CURRENT_TIMESTAMP)
-         ON CONFLICT (site_id) 
-         DO UPDATE SET hits = web_counters.hits + 1, updated_at = CURRENT_TIMESTAMP
-         RETURNING hits, style`,
-        [site.id, user.id, requestedStyle || 'green_led']
-      );
+      if (site) {
+        // Upsert hit counter for this site
+        const updateRes = await query(
+          `INSERT INTO web_counters (site_id, user_id, hits, style, updated_at)
+           VALUES ($1, $2, 1, $3, CURRENT_TIMESTAMP)
+           ON CONFLICT (site_id) 
+           DO UPDATE SET hits = web_counters.hits + 1, updated_at = CURRENT_TIMESTAMP
+           RETURNING hits, style`,
+          [site.id, user.id, requestedStyle || 'green_led']
+        );
 
-      hits = parseInt(updateRes.rows[0].hits, 10);
-      if (!requestedStyle) {
-        style = updateRes.rows[0].style || 'green_led';
+        hits = parseInt(updateRes.rows[0].hits, 10);
+        if (!requestedStyle) {
+          style = updateRes.rows[0].style || 'green_led';
+        }
+      } else {
+        hits = 42;
       }
     } else {
       // Fallback demo hits for unrecognized handles
@@ -120,11 +124,11 @@ embedsRouter.get('/api/counter', async (req: Request, res: Response) => {
       return;
     }
 
-    const { getDefaultSite, getSiteById } = await import('../services/siteService');
+    const { ensureDefaultSite, getSiteById } = await import('../services/siteService');
     const reqSiteId = (req.query.siteId as string) || (req.query.site as string);
     const site = reqSiteId
-      ? ((await getSiteById(reqSiteId, user.id)) || (await getDefaultSite(user.id)))
-      : (await getDefaultSite(user.id));
+      ? ((await getSiteById(reqSiteId, user.id)) || (await ensureDefaultSite(user.id)))
+      : (await ensureDefaultSite(user.id));
 
     let counterRes = await query('SELECT hits, style FROM web_counters WHERE site_id = $1', [site.id]);
     if (counterRes.rows.length === 0) {
@@ -183,10 +187,10 @@ embedsRouter.put('/api/counter', async (req: Request, res: Response) => {
     }
 
     const { style, action, amount, siteId } = req.body;
-    const { getDefaultSite, getSiteById } = await import('../services/siteService');
+    const { ensureDefaultSite, getSiteById } = await import('../services/siteService');
     const site = siteId
-      ? ((await getSiteById(siteId, user.id)) || (await getDefaultSite(user.id)))
-      : (await getDefaultSite(user.id));
+      ? ((await getSiteById(siteId, user.id)) || (await ensureDefaultSite(user.id)))
+      : (await ensureDefaultSite(user.id));
 
     if (action === 'reset') {
       await query(
@@ -241,10 +245,10 @@ embedsRouter.get(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:slu
     }
 
     const rawSlug = req.params.slug ? req.params.slug.trim() : '';
-    const { getDefaultSite, getSiteBySlug } = await import('../services/siteService');
+    const { ensureDefaultSite, getSiteBySlug } = await import('../services/siteService');
     const targetSite = rawSlug
-      ? ((await getSiteBySlug(hostUser.id, rawSlug)) || (await getDefaultSite(hostUser.id)))
-      : (await getDefaultSite(hostUser.id));
+      ? ((await getSiteBySlug(hostUser.id, rawSlug)) || (await ensureDefaultSite(hostUser.id)))
+      : (await ensureDefaultSite(hostUser.id));
 
     const { readRemoteJson, getGuestbookRelativePath } = await import('../services/staticStorage');
     const gbData = await readRemoteJson<any>(targetSite, getGuestbookRelativePath(), { entries: [] });
@@ -310,10 +314,10 @@ embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:sl
     }
 
     const rawSlug = req.params.slug ? req.params.slug.trim() : '';
-    const { getDefaultSite, getSiteBySlug } = await import('../services/siteService');
+    const { ensureDefaultSite, getSiteBySlug } = await import('../services/siteService');
     const targetSite = rawSlug
-      ? ((await getSiteBySlug(hostUser.id, rawSlug)) || (await getDefaultSite(hostUser.id)))
-      : (await getDefaultSite(hostUser.id));
+      ? ((await getSiteBySlug(hostUser.id, rawSlug)) || (await ensureDefaultSite(hostUser.id)))
+      : (await ensureDefaultSite(hostUser.id));
 
     const { visitorLocation, visitorWebsite, moodIcon, message } = req.body;
 
@@ -565,6 +569,13 @@ embedsRouter.get('/api/network/users', async (req: Request, res: Response) => {
  */
 async function syncFollowerStaticSite(userId: string) {
   try {
+    const { getUserSites } = await import('../services/siteService');
+    const sites = await getUserSites(userId);
+    if (!sites || sites.length === 0) {
+      // Follower has no mounted static site target; no static sync needed
+      return;
+    }
+
     const { buildQueue, buildStaticGallery } = await import('../services/staticBuilder');
     buildQueue.enqueue(`FollowerSync:${userId}`, async () => {
       const credsRes = await query(
@@ -824,10 +835,10 @@ embedsRouter.get(['/embed/guestbook/:identifier', '/embed/guestbook/:identifier/
     const handle = user.handle || user.email.split('@')[0];
     const rawSlug = req.params.slug ? req.params.slug.trim() : '';
 
-    const { getDefaultSite, getSiteBySlug } = await import('../services/siteService');
+    const { ensureDefaultSite, getSiteBySlug } = await import('../services/siteService');
     const targetSite = rawSlug
-      ? ((await getSiteBySlug(user.id, rawSlug)) || (await getDefaultSite(user.id)))
-      : (await getDefaultSite(user.id));
+      ? ((await getSiteBySlug(user.id, rawSlug)) || (await ensureDefaultSite(user.id)))
+      : (await ensureDefaultSite(user.id));
 
     const entriesRes = await query(
       `SELECT id, visitor_name as "visitorName", visitor_website as "visitorWebsite", 

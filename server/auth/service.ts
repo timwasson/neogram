@@ -108,7 +108,7 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
       `INSERT INTO users (email, handle, site_url, deployment_type)
        VALUES ($1, $2, $3, 'none')
        RETURNING id, email, handle, uin`,
-      [normalized, userHandle, `https://${userHandle}.neocities.org`]
+      [normalized, userHandle, null]
     );
     userId = newUser.rows[0].id;
     userUin = parseInt(newUser.rows[0].uin, 10);

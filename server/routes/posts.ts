@@ -196,6 +196,14 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
       targetSite = await getDefaultSite(user.id);
     }
 
+    if (!targetSite) {
+      res.status(400).json({
+        ok: false,
+        error: 'No static site target mounted. Please add a static site target in Settings to publish photos.',
+      });
+      return;
+    }
+
     const hasApiKey = targetSite.hasApiKey;
 
     const { caption, filterApplied, mood, webring, location, imageBase64 } = req.body;

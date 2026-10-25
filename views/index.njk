@@ -21,75 +21,300 @@
       <div class="p-5">
 
 
-        <!-- TAB 1: UPLOAD STUDIO SECTION -->
-        <div id="uploadStudioSection">
-          <!-- First-Run Station Onboarding Setup Wizard (Shown if no API key configured) -->
-          {% if not currentUser.hasApiKey %}
-            <div id="firstRunWizard" class="pixel-box p-4 mb-5 bg-window border-4 border-amber">
+        <!-- TAB 0: FOLLOWER FEED & CYBERSPACE BROADCAST STREAM -->
+        <div id="feedStudioSection">
+          <!-- Welcome & What's Next Onboarding Card (Shown prominently if user has no mounted site) -->
+          {% if not userSites or userSites.length == 0 %}
+            <div id="welcomeStationCard" class="pixel-box p-4 mb-5 bg-window border-4 border-cyan">
               <div class="window-header mb-3 flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <span>🚀</span>
-                  <span class="font-bold text-black font-mono">[:&gt; SETUP_WIZARD.EXE - Station Initialization Checklist]</span>
+                  <span>🛸</span>
+                  <span class="font-bold text-black font-mono">[:&gt; WELCOME_STATION.EXE - Account Active &amp; Node Online]</span>
                 </div>
-                <span class="text-xs font-mono font-bold text-black bg-amber px-1.5 py-0.5 border border-black">[ACTION REQUIRED]</span>
+                <span class="text-xs font-mono font-bold text-black bg-cyan px-1.5 py-0.5 border border-black">[PROFILE COMPLETE]</span>
               </div>
-              
-              <p class="text-xs text-main mb-3 leading-relaxed">
-                Welcome to Neogram! Under our <strong>Zero-Retention Policy</strong>, your photos are never permanently stored on Neogram servers—they publish directly to your personal static site. Complete the steps below to start publishing:
-              </p>
 
-              <!-- Reassuring Safety Invariant Banner -->
-              <div class="p-2.5 bg-black border border-green text-xs font-mono mb-3 flex items-start gap-2">
-                <span class="text-sm shrink-0">🛡️</span>
-                <div>
-                  <span class="text-prompt font-bold block uppercase tracking-wider text-xxs">[:&gt; ROOT SITE NON-DESTRUCTION GUARANTEE]:</span>
-                  <span class="text-muted leading-relaxed">
-                    Neogram strictly publishes into your isolated subfolder (e.g. <code>/neogram/</code>). Your existing homepage (<code>index.html</code>), custom CSS styling, and blog files on Neocities are <strong>100% safe and will never be overwritten or deleted</strong>.
+              <div class="p-3 bg-black border border-main text-xs font-mono mb-3">
+                <div class="flex items-center justify-between flex-wrap gap-2 mb-2 pb-2 border-b border-main">
+                  <div class="flex items-center gap-2">
+                    <span class="text-prompt text-base">🟢</span>
+                    <span class="text-mac font-bold text-sm">Welcome to Cyberspace, @{{ currentUser.handle }}!</span>
+                  </div>
+                  <span class="pixel-badge pixel-badge--cyan font-bold">NODE UIN: #{{ currentUser.uin or '100101' }}</span>
+                </div>
+                <p class="text-muted leading-relaxed m-0">
+                  Your Neogram station profile is fully provisioned and complete! You don't need a static website or Neocities account to participate in the retro cyberspace webring.
+                </p>
+              </div>
+
+              <!-- Station features available immediately -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4 text-xs font-mono">
+                <div class="p-2.5 bg-black border border-main flex items-start gap-2">
+                  <span class="text-base shrink-0">💬</span>
+                  <div>
+                    <span class="text-prompt font-bold block mb-0.5">Instant Messaging (NIM)</span>
+                    <span class="text-muted leading-relaxed block">
+                      Chat in real-time with buddy lists, sound chimes, away statuses, and offline store-and-forward queue.
+                    </span>
+                    <button type="button" onclick="if(window.AimClient) window.AimClient.open();" class="text-mac hover:underline font-bold mt-1 inline-block">
+                      Launch NIM Messenger ↗
+                    </button>
+                  </div>
+                </div>
+
+                <div class="p-2.5 bg-black border border-main flex items-start gap-2">
+                  <span class="text-base shrink-0">📝</span>
+                  <div>
+                    <span class="text-prompt font-bold block mb-0.5">1-Click Cyber-Pass</span>
+                    <span class="text-muted leading-relaxed block">
+                      Sign visitor guestbooks and post comments across any static website powered by Neogram with 1-click authentication.
+                    </span>
+                  </div>
+                </div>
+
+                <div class="p-2.5 bg-black border border-main flex items-start gap-2">
+                  <span class="text-base shrink-0">👥</span>
+                  <div>
+                    <span class="text-prompt font-bold block mb-0.5">Cyberspace Directory</span>
+                    <span class="text-muted leading-relaxed block">
+                      Explore registered stations, check real-time presence indicators, and follow your favorite web creators.
+                    </span>
+                    <a href="/directory" class="text-mac hover:underline font-bold mt-1 inline-block" onclick="if(window.retroAudio) retroAudio.playClick();">
+                      Open Station Directory ↗
+                    </a>
+                  </div>
+                </div>
+
+                <div class="p-2.5 bg-black border border-main flex items-start gap-2">
+                  <span class="text-base shrink-0">📰</span>
+                  <div>
+                    <span class="text-prompt font-bold block mb-0.5">Personal Follower Feed</span>
+                    <span class="text-muted leading-relaxed block">
+                      Follow stations across cyberspace to watch their photo transmissions and updates stream live in your feed below.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- WHAT'S NEXT: ADD A STATIC SITE -->
+              <div class="p-3 bg-desktop border-2 border-amber">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-base">🚀</span>
+                  <span class="font-bold text-xs uppercase tracking-wider text-amber font-mono">[:&gt; WHAT'S NEXT? — UNLOCK CREATOR STUDIO]:</span>
+                </div>
+                <p class="text-xs text-main leading-relaxed mb-3">
+                  Want to publish photographs, upload a profile avatar, and deploy to your own personal static website? Adding a static site target enables all creator studio features:
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3 text-xxs font-mono text-muted">
+                  <div class="p-2 bg-black border border-main">
+                    <span class="text-prompt font-bold block mb-0.5">📷 Photo Publishing</span>
+                    <span>Snap &amp; publish photos with authentic 90s CRT, VGA, and GameBoy shaders.</span>
+                  </div>
+                  <div class="p-2 bg-black border border-main">
+                    <span class="text-prompt font-bold block mb-0.5">🖼️ Profile Avatar</span>
+                    <span>Upload custom 128x128 WebP profile avatars for your station.</span>
+                  </div>
+                  <div class="p-2 bg-black border border-main">
+                    <span class="text-prompt font-bold block mb-0.5">💾 Static Deployments</span>
+                    <span>Push auto-compiled 11ty galleries to Neocities, Nekoweb, or GitHub Pages.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-main">
+                  <button
+                    type="button"
+                    onclick="switchDashboardTab('settings', event); setTimeout(function() { toggleProvisionForm(true); }, 150);"
+                    class="pixel-btn pixel-btn--yellow font-bold text-xs py-1.5 px-4"
+                  >
+                    <span>➕ ADD A STATIC SITE TARGET :&gt;</span>
+                  </button>
+                  <span class="text-xxs text-muted font-mono">
+                    Enables image uploads, custom avatar, hit counters &amp; static gallery builds.
                   </span>
                 </div>
               </div>
+            </div>
+          {% endif %}
 
-              <div class="flex flex-col gap-2 mb-3">
-                <!-- Step 1: Identity -->
-                <div class="p-2 bg-black border border-main flex items-center justify-between text-xs">
-                  <div class="flex items-center gap-2">
-                    <span class="text-prompt font-bold">✓ STEP 1:</span>
-                    <span>Station Identity provisioned (<strong>@{{ currentUser.handle }}</strong> / Node UIN: <strong>#{{ currentUser.uin or '100101' }}</strong>)</span>
-                  </div>
-                  <span class="pixel-badge pixel-badge--cyan font-bold">VERIFIED</span>
-                </div>
-
-                <!-- Step 2: Neocities Connection -->
-                <div class="p-2.5 bg-black border-2 border-amber flex items-center justify-between text-xs flex-wrap gap-2">
-                  <div class="flex items-center gap-2">
-                    <span class="text-amber font-bold animate-pulse">● STEP 2:</span>
-                    <span>Connect your remote Neocities API Key in Settings</span>
-                  </div>
-                  <a
-                    href="#settings"
-                    onclick="switchDashboardTab('settings', event)"
-                    class="pixel-btn pixel-btn--yellow text-xs font-bold py-1 px-3"
-                  >
-                    <span>⚙️ Connect in Settings :&gt;</span>
-                  </a>
-                </div>
-
-                <!-- Step 3: First Post -->
-                <div class="p-2 bg-black border border-main flex items-center justify-between text-xs opacity-60">
-                  <div class="flex items-center gap-2">
-                    <span class="text-muted font-bold">○ STEP 3:</span>
-                    <span>Snap your first photo and transmit to static host</span>
-                  </div>
-                  <span class="text-3xs text-muted font-mono">PENDING_STEP_2</span>
-                </div>
+          <!-- Master Feed Overview Box -->
+          <div class="p-3 bg-black border-2 border-main mb-4 flex items-center justify-between flex-wrap gap-2 text-xs font-mono">
+            <div class="flex items-center gap-2">
+              <span class="text-base">📰</span>
+              <div>
+                <span class="text-muted text-3xs block uppercase tracking-wider">CYBERSPACE BROADCAST STREAM:</span>
+                <span class="text-prompt font-bold text-xs">
+                  {{ followerFeedPosts.length or 0 }} TRANSMISSION{% if followerFeedPosts.length != 1 %}S{% endif %}
+                  <span class="text-muted text-xxs font-normal">({{ followedCount or 0 }} station{% if followedCount != 1 %}s{% endif %} followed)</span>
+                </span>
               </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <a href="/directory" class="pixel-btn pixel-btn--sm pixel-btn--yellow text-3xs font-bold py-1 px-2.5" onclick="if(window.retroAudio) retroAudio.playClick();">
+                <span>+ FIND CREATORS</span>
+              </a>
+              <a href="/friends" class="pixel-btn pixel-btn--sm text-3xs font-bold py-1 px-2.5" onclick="if(window.retroAudio) retroAudio.playClick();">
+                <span>🤝 BUDDY ROSTER</span>
+              </a>
+            </div>
+          </div>
 
-              <div class="text-xs text-muted flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-main">
-                <span>Don't have a static website yet?</span>
-                <a href="https://neocities.org" target="_blank" rel="noopener" class="text-prompt underline font-bold">
-                  Create free static host on Neocities.org ↗
+          <!-- Feed Transmissions Grid -->
+          {% if not followerFeedPosts or followerFeedPosts.length == 0 %}
+            <div class="retro-card p-6 text-center flex flex-col items-center gap-3">
+              <div class="text-3xl">📡</div>
+              <div class="text-sm font-bold text-mac">[:&gt; FOLLOWER FEED WAITING FOR TRANSMISSIONS]</div>
+              <p class="text-xs text-muted max-w-md mx-auto leading-relaxed">
+                {% if followedCount == 0 %}
+                  You aren't following any station nodes yet. Browse the Cyberspace Directory to discover retro static sites, follow creators, and their photos will appear right here in your live feed!
+                {% else %}
+                  You are following {{ followedCount }} station{% if followedCount != 1 %}s{% endif %}, but they haven't broadcasted any photographs yet. When they publish, their transmissions will stream here live.
+                {% endif %}
+              </p>
+              <div class="flex items-center gap-2 mt-2">
+                <a href="/directory" class="pixel-btn pixel-btn--green font-bold text-xs py-1.5 px-4" onclick="if(window.retroAudio) retroAudio.playClick();">
+                  <span>👥 Explore Cyberspace Directory →</span>
                 </a>
               </div>
+            </div>
+          {% else %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="workstationFeedGrid">
+              {% for post in followerFeedPosts %}
+                <article class="retro-card p-0 flex flex-col justify-between" id="feedPost-{{ post.id }}">
+                  <!-- Card Header -->
+                  <div class="window-header flex items-center justify-between p-2 text-xs">
+                    <a
+                      href="/user/@{{ post.author }}"
+                      class="flex items-center gap-1.5 font-bold text-mac hover:underline truncate"
+                      onclick="if(window.retroAudio) retroAudio.playClick();"
+                    >
+                      <span>👾</span>
+                      <span>@{{ post.author }}</span>
+                      {% if post.uin %}<span class="text-muted font-normal text-xxs">[#{{ post.uin }}]</span>{% endif %}
+                    </a>
+                    <span class="pixel-badge pixel-badge--cyan text-xxs font-bold uppercase shrink-0">
+                      {{ post.filterApplied or 'RAW' }}
+                    </span>
+                  </div>
+
+                  <!-- Photo Viewport -->
+                  <div class="relative bg-black border-b border-main overflow-hidden flex items-center justify-center crt-scanlines">
+                    <a
+                      href="/user/@{{ post.author }}"
+                      class="block w-full"
+                      onclick="if(window.retroAudio) retroAudio.playClick();"
+                    >
+                      <img
+                        src="{{ post.thumbnailPath or post.imagePath }}"
+                        alt="{{ post.caption }}"
+                        class="w-full h-56 object-cover filter-{{ post.filterApplied or 'none' }}"
+                        loading="lazy"
+                      />
+                    </a>
+                  </div>
+
+                  <!-- Body Details -->
+                  <div class="p-3 flex flex-col gap-2 flex-1 justify-between text-xs">
+                    <div>
+                      <div class="flex items-center justify-between text-xxs text-muted mb-1 flex-wrap gap-1">
+                        <span>📍 {{ post.location or 'Cyberspace' }}</span>
+                        <span>🕒 {{ post.createdAt | formatDateTime }}</span>
+                      </div>
+
+                      <p class="text-xs text-main leading-relaxed m-0 whitespace-pre-wrap">
+                        {{ post.caption }}
+                      </p>
+                    </div>
+
+                    <!-- Tags & Meta -->
+                    <div class="pt-2 border-t border-main mt-2">
+                      <div class="flex items-center gap-1 flex-wrap mb-2">
+                        {% if post.mood %}
+                          <span class="pixel-badge pixel-badge--cyan text-xxs">{{ post.mood }}</span>
+                        {% endif %}
+                        {% if post.webring %}
+                          <span class="pixel-badge pixel-badge--magenta text-xxs">ring: {{ post.webring }}</span>
+                        {% endif %}
+                      </div>
+
+                      <div class="flex items-center justify-between text-xs pt-1">
+                        <div class="flex items-center gap-2 text-muted text-xxs">
+                          <span>❤️ {{ post.likes or 0 }} likes</span>
+                          <span>💬 {{ post.commentCount or 0 }} comments</span>
+                        </div>
+
+                        <a
+                          href="/user/@{{ post.author }}"
+                          class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xxs font-bold py-0.5 px-2"
+                          onclick="if(window.retroAudio) retroAudio.playClick();"
+                        >
+                          <span>View Station :&gt;</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <!-- END TAB 0: FEED -->
+
+        <!-- TAB 1: UPLOAD STUDIO SECTION -->
+        <div id="uploadStudioSection" class="hidden">
+          <!-- No Mounted Static Site Notice (When user has 0 sites) -->
+          {% if not userSites or userSites.length == 0 %}
+            <div id="noSiteUploadBanner" class="pixel-box p-4 mb-5 bg-window border-4 border-amber">
+              <div class="window-header mb-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span>🔒</span>
+                  <span class="font-bold text-black font-mono">[:&gt; PUBLISHER_LOCKED.EXE - Static Site Target Required]</span>
+                </div>
+                <span class="text-xs font-mono font-bold text-black bg-amber px-1.5 py-0.5 border border-black">[SITE REQUIRED]</span>
+              </div>
+              
+              <p class="text-xs text-main mb-3 leading-relaxed">
+                Photo publishing in Neogram operates under our <strong>Zero-Retention Policy</strong>: your photos are never permanently stored on Neogram servers—they publish directly to your personal static site (Neocities, Nekoweb, or GitHub Pages).
+              </p>
+
+              <div class="p-3 bg-black border border-main text-xs font-mono text-muted mb-3 flex items-start gap-2.5">
+                <span class="text-base shrink-0">💡</span>
+                <div>
+                  <span class="text-prompt font-bold block mb-1">Why mount a static site target?</span>
+                  <span>Mounting a static site unlocks the full Creator Studio: snap photos with 90s CRT shaders, upload a profile avatar, and compile an authentic retro static gallery on your personal website!</span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-main">
+                <button
+                  type="button"
+                  onclick="switchDashboardTab('settings', event); setTimeout(function() { toggleProvisionForm(true); }, 150);"
+                  class="pixel-btn pixel-btn--yellow font-bold text-xs py-1.5 px-3"
+                >
+                  <span>➕ MOUNT A STATIC SITE TARGET :&gt;</span>
+                </button>
+                <button
+                  type="button"
+                  onclick="switchDashboardTab('feed', event);"
+                  class="pixel-btn font-bold text-xs py-1.5 px-3"
+                >
+                  <span>📰 Return to Follower Feed</span>
+                </button>
+              </div>
+            </div>
+          {% elif activeSite and not activeSite.hasApiKey %}
+            <div class="p-2.5 bg-black border border-amber text-xs font-mono mb-4 flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-amber font-bold">ℹ️ NOTE:</span>
+                <span class="text-muted">Target site "<strong>{{ activeSite.name }}</strong>" has no API key linked yet. Photos will save locally and auto-deploy once connected in Settings.</span>
+              </div>
+              <a
+                href="#settings"
+                onclick="switchDashboardTab('settings', event)"
+                class="pixel-btn pixel-btn--yellow text-3xs font-bold py-0.5 px-2"
+              >
+                <span>⚙️ Link Key :&gt;</span>
+              </a>
             </div>
           {% endif %}
 
@@ -900,6 +1125,21 @@
                         </div>
                       </div>
                     {% endfor %}
+                  {% else %}
+                    <div class="p-4 bg-black border-2 border-main text-center text-xs font-mono text-muted">
+                      <div class="text-2xl mb-1">💾</div>
+                      <div class="font-bold text-mac mb-1">[:&gt; NO STATIC SITES MOUNTED YET]</div>
+                      <p class="leading-relaxed mb-3 max-w-md mx-auto">
+                        You haven't mounted any static site targets yet. Add a static site (Neocities, Nekoweb, or GitHub Pages) whenever you want to enable photo publishing, custom station avatars, and embeddable widgets.
+                      </p>
+                      <button
+                        type="button"
+                        onclick="toggleProvisionForm(true)"
+                        class="pixel-btn pixel-btn--yellow text-xs font-bold py-1 px-3"
+                      >
+                        <span>➕ Mount First Static Site :&gt;</span>
+                      </button>
+                    </div>
                   {% endif %}
                 </div>
               </div>
@@ -930,6 +1170,12 @@
                   </div>
                 </div>
 
+                {% if not userSites or userSites.length == 0 %}
+                  <div class="p-4 bg-black border border-main text-xs font-mono text-muted text-center leading-relaxed">
+                    <span class="text-prompt font-bold block mb-1">[:&gt; TARGET VAULT UNINITIALIZED]</span>
+                    No static site targets currently mounted. Click <strong>"➕ PROVISION NEW STATIC SITE TARGET"</strong> above to mount a Neocities, Nekoweb, or GitHub Pages site and configure credentials.
+                  </div>
+                {% else %}
                 <form id="settingsForm" onsubmit="handleSaveSettings(event)" class="space-y-4">
                   <!-- Target Site Selector in Config Form -->
                   <div class="p-2 bg-black border border-main mb-2 flex items-center justify-between flex-wrap gap-2">
@@ -1134,6 +1380,7 @@
                     </button>
                   </div>
                 </form>
+                {% endif %}
               </div>
 
               <!-- Data Sovereignty & Portability Card -->
@@ -2290,36 +2537,46 @@
       }
     }
 
+    var feedSec = document.getElementById('feedStudioSection');
     var uploadSec = document.getElementById('uploadStudioSection');
     var manageSec = document.getElementById('manageGallerySection');
     var settingsSec = document.getElementById('settingsSection');
     var embedsSec = document.getElementById('embedsSection');
+    var feedBtn = document.getElementById('tabFeedBtn');
     var uploadBtn = document.getElementById('tabUploadBtn');
     var manageBtn = document.getElementById('tabManageBtn');
     var settingsBtn = document.getElementById('tabSettingsBtn');
     var embedsBtn = document.getElementById('tabEmbedsBtn');
 
+    var mobileFeedBtn = document.getElementById('mobileTabFeedBtn');
     var mobileUploadBtn = document.getElementById('mobileTabUploadBtn');
     var mobileManageBtn = document.getElementById('mobileTabManageBtn');
     var mobileSettingsBtn = document.getElementById('mobileTabSettingsBtn');
     var mobileEmbedsBtn = document.getElementById('mobileTabEmbedsBtn');
 
+    if (feedSec) feedSec.classList.add('hidden');
     if (uploadSec) uploadSec.classList.add('hidden');
     if (manageSec) manageSec.classList.add('hidden');
     if (settingsSec) settingsSec.classList.add('hidden');
     if (embedsSec) embedsSec.classList.add('hidden');
 
+    if (feedBtn) feedBtn.classList.remove('pixel-btn--yellow');
     if (uploadBtn) uploadBtn.classList.remove('pixel-btn--yellow');
     if (manageBtn) manageBtn.classList.remove('pixel-btn--yellow');
     if (settingsBtn) settingsBtn.classList.remove('pixel-btn--yellow');
     if (embedsBtn) embedsBtn.classList.remove('pixel-btn--yellow');
 
+    if (mobileFeedBtn) mobileFeedBtn.classList.remove('is-active');
     if (mobileUploadBtn) mobileUploadBtn.classList.remove('is-active');
     if (mobileManageBtn) mobileManageBtn.classList.remove('is-active');
     if (mobileSettingsBtn) mobileSettingsBtn.classList.remove('is-active');
     if (mobileEmbedsBtn) mobileEmbedsBtn.classList.remove('is-active');
 
-    if (tab === 'upload') {
+    if (tab === 'feed') {
+      if (feedSec) feedSec.classList.remove('hidden');
+      if (feedBtn) feedBtn.classList.add('pixel-btn--yellow');
+      if (mobileFeedBtn) mobileFeedBtn.classList.add('is-active');
+    } else if (tab === 'upload') {
       if (uploadSec) uploadSec.classList.remove('hidden');
       if (uploadBtn) uploadBtn.classList.add('pixel-btn--yellow');
       if (mobileUploadBtn) mobileUploadBtn.classList.add('is-active');
@@ -2344,7 +2601,9 @@
   // Handle URL hash on load & hash change
   function syncDashboardTabFromHash() {
     var hash = window.location.hash ? window.location.hash.replace('#', '') : '';
-    if (hash === 'edit' || hash === 'manage') {
+    if (hash === 'feed') {
+      switchDashboardTab('feed');
+    } else if (hash === 'edit' || hash === 'manage') {
       switchDashboardTab('manage');
     } else if (hash === 'settings') {
       switchDashboardTab('settings');
@@ -2352,6 +2611,9 @@
       switchDashboardTab('embeds');
     } else if (hash === 'upload') {
       switchDashboardTab('upload');
+    } else {
+      var defaultTab = {{ 'feed' if (not userSites or userSites.length == 0) else 'upload' | dump | safe }};
+      switchDashboardTab(defaultTab);
     }
   }
 

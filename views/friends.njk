@@ -43,7 +43,7 @@
             <span class="text-xs text-muted font-normal">(@{{ currentUser.handle }})</span>
           </h1>
           <p class="text-xs text-muted mt-1 mb-0 leading-relaxed">
-            Followed stations across the Neogram cyberspace webring. Transmissions broadcasted by your friends automatically sync to your personal Neocities static site at <code>/friends/</code>.
+            Followed stations across the Neogram cyberspace webring. Transmissions broadcasted by your friends stream here in real-time{% if userSites and userSites.length > 0 %} and automatically sync to your personal static site at <code>/friends/</code>{% endif %}.
           </p>
         </div>
 
@@ -187,7 +187,7 @@
         <div class="text-3xl">📷</div>
         <div class="text-sm font-bold text-mac">[:&gt; NO TRANSMISSIONS RECORDED IN FEED YET]</div>
         <p class="text-xs text-muted max-w-md mx-auto leading-relaxed">
-          Your followed friends haven't broadcasted any photographs yet. When they publish photos, they will stream here live and automatically compile into your static Neocities site.
+          Your followed friends haven't broadcasted any photographs yet. When they publish photos, they will stream here live{% if userSites and userSites.length > 0 %} and automatically compile into your static site{% endif %}.
         </p>
       </div>
     {% else %}
@@ -277,7 +277,7 @@
 <!-- Unfriend Client Script -->
 <script>
   async function handleUnfriend(handle) {
-    if (!confirm('[:> UNFRIEND CONFIRMATION]\nRemove @' + handle + ' from your friends roster?\nThis will remove their transmissions from your feed and update your static Neocities site.')) {
+    if (!confirm('[:> UNFRIEND CONFIRMATION]\nRemove @' + handle + ' from your friends roster?\nThis will remove their transmissions from your feed.')) {
       return;
     }
 

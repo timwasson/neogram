@@ -112,12 +112,6 @@ export async function getUserSites(userId: string): Promise<Site[]> {
     [userId]
   );
 
-  // If user has zero sites, auto-provision default site from users table
-  if (res.rows.length === 0) {
-    const defaultSite = await getDefaultSite(userId);
-    return [defaultSite];
-  }
-
   return res.rows.map(formatSiteRow);
 }
 
@@ -162,9 +156,9 @@ export async function getSiteBySlug(userId: string, slug: string): Promise<Site 
 }
 
 /**
- * Retrieve the user's default site (auto-creates one from user record if missing)
+ * Retrieve the user's default site (returns null if user has no sites mounted)
  */
-export async function getDefaultSite(userId: string): Promise<Site> {
+export async function getDefaultSite(userId: string): Promise<Site | null> {
   const res = await query(
     `SELECT s.*, (SELECT COUNT(*) FROM posts p WHERE p.site_id = s.id) as post_count
      FROM sites s
@@ -193,6 +187,16 @@ export async function getDefaultSite(userId: string): Promise<Site> {
     anySiteRes.rows[0].is_default = true;
     return formatSiteRow(anySiteRes.rows[0]);
   }
+
+  return null;
+}
+
+/**
+ * Ensure a default site exists for a user, provisioning from user profile if missing
+ */
+export async function ensureDefaultSite(userId: string): Promise<Site> {
+  const existing = await getDefaultSite(userId);
+  if (existing) return existing;
 
   // Auto-provision a default site from the users table
   const userRes = await query(
@@ -439,14 +443,7 @@ export async function deleteSite(siteId: string, userId: string): Promise<{ ok: 
 
   const site = siteRes.rows[0];
 
-  // Prevent deleting the only site
-  const countRes = await query('SELECT COUNT(*) as count FROM sites WHERE user_id = $1', [userId]);
-  const count = parseInt(countRes.rows[0].count, 10);
-  if (count <= 1) {
-    throw new Error('Cannot delete your only site target. A station must maintain at least one mounted site.');
-  }
-
-  // If this site was default, promote another site to default
+  // If this site was default, promote another site to default (if another exists)
   if (site.is_default) {
     await query(
       `UPDATE sites 

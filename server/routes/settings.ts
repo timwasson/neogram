@@ -66,18 +66,18 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
         email: user.email,
         avatarPath: user.avatar_path || '/icons/default-avatar.svg',
         hasCustomAvatar: !!user.avatar_path,
-        siteId: activeSite.id,
-        siteSlug: activeSite.slug,
-        siteUrl: activeSite.siteUrl || `https://${user.handle || 'user'}.neocities.org`,
-        siteName: activeSite.name,
-        deployPath: activeSite.deployPath,
-        deploymentType: activeSite.deploymentType || 'neocities',
-        hasApiKey: activeSite.hasApiKey,
-        maskedApiKey: activeSite.maskedApiKey,
-        autoDeploy: activeSite.autoDeploy,
-        buildHtml: activeSite.buildHtml,
-        lastDeployedAt: activeSite.lastDeployedAt,
-        isDefault: activeSite.isDefault,
+        siteId: activeSite ? activeSite.id : null,
+        siteSlug: activeSite ? activeSite.slug : null,
+        siteUrl: activeSite ? (activeSite.siteUrl || `https://${user.handle || 'user'}.neocities.org`) : (user.site_url || `https://${user.handle || 'user'}.neocities.org`),
+        siteName: activeSite ? activeSite.name : '',
+        deployPath: activeSite ? activeSite.deployPath : (user.deploy_path || 'neogram'),
+        deploymentType: activeSite ? (activeSite.deploymentType || 'neocities') : (user.deployment_type || 'none'),
+        hasApiKey: activeSite ? activeSite.hasApiKey : false,
+        maskedApiKey: activeSite ? activeSite.maskedApiKey : '',
+        autoDeploy: activeSite ? activeSite.autoDeploy : (user.auto_deploy || false),
+        buildHtml: activeSite ? activeSite.buildHtml : (user.build_html !== false),
+        lastDeployedAt: activeSite ? activeSite.lastDeployedAt : user.last_deployed_at,
+        isDefault: activeSite ? activeSite.isDefault : false,
         sites,
       },
     });
@@ -256,9 +256,9 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
     );
 
     // Also synchronize corresponding site in sites table
-    const { getDefaultSite, getSiteById, updateSite, getUserSites } = await import('../services/siteService');
+    const { getDefaultSite, getSiteById, updateSite, createSite, getUserSites } = await import('../services/siteService');
     const targetSiteId = req.body.siteId as string;
-    const siteToUpdate = targetSiteId ? await getSiteById(targetSiteId, userId) : await getDefaultSite(userId);
+    let siteToUpdate = targetSiteId ? await getSiteById(targetSiteId, userId) : await getDefaultSite(userId);
     let updatedSite: any = null;
     if (siteToUpdate) {
       updatedSite = await updateSite(siteToUpdate.id, userId, {
@@ -270,6 +270,19 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
         siteName: creds.siteName,
         autoDeploy: finalAutoDeploy,
         buildHtml: finalBuildHtml,
+      });
+    } else if (siteName || finalSiteUrl || creds.apiKey) {
+      // User is configuring their first static site target via settings
+      updatedSite = await createSite(userId, {
+        name: siteName || `${existingUser.handle ? existingUser.handle.toUpperCase() : 'Personal'} Site`,
+        siteUrl: finalSiteUrl,
+        deploymentType: finalDeployType,
+        deployPath: finalDeployPath,
+        apiKey: apiKey && !apiKey.startsWith('••••') ? apiKey : undefined,
+        siteName: creds.siteName,
+        autoDeploy: finalAutoDeploy,
+        buildHtml: finalBuildHtml,
+        isDefault: true,
       });
     }
 

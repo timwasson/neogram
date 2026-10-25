@@ -1029,9 +1029,86 @@ async function runSmokeTests() {
     assertTest('Secondary web counter cascade deleted with site', checkSecCounterDeleted.rows.length === 0);
 
     // -------------------------------------------------------------------------
-    // TEST 19: Safe Post Purge & Clean Teardown
+    // TEST 19: Decoupled New User Flow (Zero Sites, Follower Feed & Welcome Flow)
     // -------------------------------------------------------------------------
-    logHeader('19. SAFE PURGE & TEARDOWN');
+    logHeader('19. DECOUPLED NEW USER ONBOARDING & FOLLOWER FEED');
+    const newbieEmail = `newbie_${timestamp}@neogram.retro`;
+    const newbieReq = await fetch(`${API_BASE}/api/auth/request-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Test-Suite': 'true' },
+      body: JSON.stringify({ identifier: newbieEmail }),
+    });
+    const newbieReqData = await newbieReq.json() as any;
+    const newbieCode = newbieReqData.demoCode;
+
+    const newbieVerify = await fetch(`${API_BASE}/api/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: newbieEmail, code: newbieCode }),
+    });
+    assertTest('POST /api/auth/verify-otp for new user returns HTTP 200', newbieVerify.status === 200);
+    const newbieData = await newbieVerify.json() as any;
+    const newbieUser = newbieData.user;
+    const newbieCookie = newbieVerify.headers.get('set-cookie')?.split(';')[0] || `neogram_session=${newbieData.token}`;
+
+    assertTest('New user profile is complete with handle', !!newbieUser.handle);
+    assertTest('New user assigned permanent numeric ICQ-style UIN', !!newbieUser.uin);
+
+    // Verify brand new user starts with 0 mounted sites
+    const newbieSitesRes = await fetch(`${API_BASE}/api/sites`, {
+      headers: { 'Cookie': newbieCookie },
+    });
+    assertTest('GET /api/sites for new user returns HTTP 200', newbieSitesRes.status === 200);
+    const newbieSitesData = await newbieSitesRes.json() as any;
+    assertTest('New user starts with zero mounted sites (sites array empty)', Array.isArray(newbieSitesData.sites) && newbieSitesData.sites.length === 0);
+
+    // Verify GET / workstation dashboard renders Welcome Card and Feed tab
+    const newbieHomeRes = await fetch(`${API_BASE}/`, {
+      headers: { 'Cookie': newbieCookie },
+    });
+    assertTest('GET / for new user returns HTTP 200', newbieHomeRes.status === 200);
+    const newbieHomeHtml = await newbieHomeRes.text();
+    assertTest('Dashboard contains Welcome Station window card', newbieHomeHtml.includes('welcomeStationCard'));
+    assertTest('Dashboard contains [PROFILE COMPLETE] badge', newbieHomeHtml.includes('[PROFILE COMPLETE]'));
+    assertTest('Dashboard contains "Welcome to Cyberspace"', newbieHomeHtml.includes('Welcome to Cyberspace'));
+    assertTest('Dashboard contains "WHAT\'S NEXT? — UNLOCK CREATOR STUDIO"', newbieHomeHtml.includes("WHAT'S NEXT? — UNLOCK CREATOR STUDIO"));
+    assertTest('Dashboard contains "ADD A STATIC SITE TARGET" button', newbieHomeHtml.includes('ADD A STATIC SITE TARGET'));
+    assertTest('Dashboard contains #tabFeedBtn in navigation', newbieHomeHtml.includes('id="tabFeedBtn"'));
+    assertTest('Upload section contains #noSiteUploadBanner', newbieHomeHtml.includes('id="noSiteUploadBanner"'));
+
+    // Verify photo publishing is locked until a site target is mounted
+    const newbieUploadRes = await fetch(`${API_BASE}/api/posts`, {
+      method: 'POST',
+      headers: { 'Cookie': newbieCookie },
+      body: new FormData(),
+    });
+    assertTest('POST /api/posts without mounted site returns HTTP 400', newbieUploadRes.status === 400);
+    const newbieUploadData = await newbieUploadRes.json() as any;
+    assertTest('Upload error explains site target required', newbieUploadData.error && newbieUploadData.error.includes('static site'));
+
+    // Verify new user can follow other stations without having a site
+    const followRes2 = await fetch(`${API_BASE}/api/users/${testUser.handle}/follow`, {
+      method: 'POST',
+      headers: { 'Cookie': newbieCookie },
+    });
+    assertTest('POST /api/users/:handle/follow succeeds for user with no site', followRes2.status === 200);
+    const followData2 = await followRes2.json() as any;
+    assertTest('Follow response confirms isFriend: true', followData2.isFriend === true);
+
+    // Verify follower feed on workstation dashboard displays followed user transmissions
+    const feedHomeRes = await fetch(`${API_BASE}/`, {
+      headers: { 'Cookie': newbieCookie },
+    });
+    const feedHomeHtml = await feedHomeRes.text();
+    assertTest('Workstation Follower Feed contains followed station transmission', feedHomeHtml.includes(`@${testUser.handle}`));
+
+    // Clean up newbie user
+    await query('DELETE FROM users WHERE id = $1', [newbieUser.id]);
+
+    // -------------------------------------------------------------------------
+    // TEST 20: Safe Post Purge & Clean Teardown
+    // -------------------------------------------------------------------------
+    logHeader('20. SAFE PURGE & TEARDOWN');
     // Delete post using authenticated session
     const deletePostRes = await fetch(`${API_BASE}/api/posts/${testPostId}`, {
       method: 'DELETE',

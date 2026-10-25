@@ -45,9 +45,17 @@
         {% if currentUser %}
           <!-- Authenticated Primary Workstation Tabs with Static Hash Links -->
           <a
+            href="/#feed"
+            id="tabFeedBtn"
+            class="pixel-btn font-bold text-xs"
+            onclick="switchDashboardTab('feed', event)"
+          >
+            <span>📰</span> <span>Feed</span>
+          </a>
+          <a
             href="/#upload"
             id="tabUploadBtn"
-            class="pixel-btn pixel-btn--yellow font-bold text-xs"
+            class="pixel-btn font-bold text-xs"
             onclick="switchDashboardTab('upload', event)"
           >
             <span>↑</span> <span>Upload</span>
@@ -191,11 +199,11 @@
               aria-expanded="false"
               aria-haspopup="true"
               aria-controls="siteDropdownMenu"
-              title="Mounted Target Site: {{ activeSite.name if activeSite else 'Default' }}"
+              title="Mounted Target Site: {{ activeSite.name if activeSite else 'No Site Mounted' }}"
             >
               <span>💾</span>
               <span id="navActiveSiteName" class="truncate max-w-24 sm:max-w-36 font-mono text-prompt">
-                {{ activeSite.name if activeSite else 'Default Site' }}
+                {{ activeSite.name if activeSite else '+ Add Site' }}
               </span>
               <span class="text-xs" id="siteMenuCaret">▾</span>
             </button>
@@ -212,7 +220,7 @@
                   <span>💾</span>
                   <span class="font-bold uppercase tracking-wider text-xs">MOUNTED TARGET SITES</span>
                 </div>
-                <span class="text-3xs text-muted font-mono">{{ userSites.length or 1 }} SITES</span>
+                <span class="text-3xs text-muted font-mono">{{ userSites.length or 0 }} SITES</span>
               </div>
               <div class="p-2 flex flex-col gap-1 max-h-60 overflow-y-auto text-xs font-mono" id="navSiteList">
                 {% if userSites and userSites.length > 0 %}
@@ -232,16 +240,16 @@
                     </button>
                   {% endfor %}
                 {% else %}
-                  <div class="text-xs text-muted p-2">Default Station Target</div>
+                  <div class="text-xs text-muted p-2">No static targets mounted yet.</div>
                 {% endif %}
               </div>
               <div class="p-2 border-t border-main bg-black flex items-center justify-between text-3xs font-mono">
                 <a
                   href="/#settings"
-                  onclick="if(typeof switchDashboardTab==='function'){switchDashboardTab('settings', event);} toggleSiteMenu(false);"
+                  onclick="if(typeof switchDashboardTab==='function'){switchDashboardTab('settings', event); setTimeout(function(){toggleProvisionForm(true);}, 150);} toggleSiteMenu(false);"
                   class="text-mac hover:underline font-bold"
                 >
-                  ⚙️ Manage &amp; Add Sites :&gt;
+                  ➕ Add Static Site Target :&gt;
                 </a>
               </div>
             </div>
@@ -760,9 +768,18 @@
       <!-- Retro Mobile Bottom Navigation Bar (Screens < 768px) -->
       <nav class="retro-mobile-nav" id="retroMobileNav" aria-label="Mobile Navigation">
         <a
+          href="/#feed"
+          id="mobileTabFeedBtn"
+          class="retro-mobile-nav__item"
+          onclick="switchDashboardTab('feed', event)"
+        >
+          <span class="retro-mobile-nav__icon">📰</span>
+          <span>Feed</span>
+        </a>
+        <a
           href="/#upload"
           id="mobileTabUploadBtn"
-          class="retro-mobile-nav__item is-active"
+          class="retro-mobile-nav__item"
           onclick="switchDashboardTab('upload', event)"
         >
           <span class="retro-mobile-nav__icon">📸</span>

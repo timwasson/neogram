@@ -156,8 +156,8 @@ Inside **`[:> SITES_MANAGER.SYS]`** in Settings, each mounted site provides quic
 - **`[ ✕ Delete ]`**: Unmounts and deletes the site target.
 
 > [!NOTE]
-> **Safety Safeguard:**
-> Neogram enforces that a creator station must maintain at least one mounted site target. You cannot delete your last remaining site. Deleting a site target CASCADE-deletes its associated posts and static build cache while strictly leaving your creator identity, friends, and other sites untouched.
+> **Zero-Site Flexibility:**
+> Because user accounts and static sites are decoupled, you can unmount all site targets and operate in Cyberspace with 0 sites (chatting on NIM, signing guestbooks, and consuming follower feeds). Deleting a site target CASCADE-deletes its associated posts and static build cache while strictly leaving your creator identity, friends network, and other sites untouched.
 
 ---
 
