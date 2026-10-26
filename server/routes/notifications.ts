@@ -109,6 +109,8 @@ notificationsRouter.put('/settings/notifications', async (req: Request, res: Res
       notifyDeploy,
       soundEnabled,
       desktopPush,
+      allowAnonChat,
+      chatWidgetEnabled,
     } = req.body;
 
     const updated = await updateNotificationPreferences(userId, {
@@ -122,6 +124,8 @@ notificationsRouter.put('/settings/notifications', async (req: Request, res: Res
       notifyDeploy: typeof notifyDeploy === 'boolean' ? notifyDeploy : undefined,
       soundEnabled: typeof soundEnabled === 'boolean' ? soundEnabled : undefined,
       desktopPush: typeof desktopPush === 'boolean' ? desktopPush : undefined,
+      allowAnonChat: typeof allowAnonChat === 'boolean' ? allowAnonChat : undefined,
+      chatWidgetEnabled: typeof chatWidgetEnabled === 'boolean' ? chatWidgetEnabled : undefined,
     });
 
     console.log(`[:> NOTIFY PREFS] Updated notification protocols for user ${userId}`);

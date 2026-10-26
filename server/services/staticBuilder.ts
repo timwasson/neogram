@@ -74,6 +74,7 @@ async function cleanHtmlArtifacts(dir: string): Promise<void> {
     'embed',
     'icons',
     'embed.js',
+    'pager.js',
     'neogram-embed.css',
     'id',
     '800',
@@ -320,6 +321,7 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
         apiUrl: config.appUrl || 'http://localhost:4000',
         systemMood: '[:> SURFING THE RETRO STATIC WEBRING]',
         customCssUrl: customCssUrl,
+        chatWidgetEnabled: targetSite.chat_widget_enabled !== false,
       };
       const siteJsonPath = path.join(process.cwd(), 'eleventy/src/_data/site.json');
       await fs.writeFile(siteJsonPath, JSON.stringify(siteData, null, 2), 'utf-8');
@@ -343,6 +345,12 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
         customCssUrl = u.custom_css_url || null;
         shouldBuildHtml = u.build_html !== false;
 
+        const prefRes = await query(
+          'SELECT chat_widget_enabled FROM notification_preferences WHERE user_id = $1',
+          [userId]
+        );
+        const chatWidgetEnabled = prefRes.rows.length > 0 ? prefRes.rows[0].chat_widget_enabled !== false : true;
+
         const siteData = {
           title: `@${author.toUpperCase()}'S STATIC PHOTO STREAM`,
           author: author,
@@ -353,6 +361,7 @@ async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<Sta
           apiUrl: config.appUrl || 'http://localhost:4000',
           systemMood: '[:> SURFING THE RETRO STATIC WEBRING]',
           customCssUrl: customCssUrl,
+          chatWidgetEnabled: chatWidgetEnabled,
         };
         const siteJsonPath = path.join(process.cwd(), 'eleventy/src/_data/site.json');
         await fs.writeFile(siteJsonPath, JSON.stringify(siteData, null, 2), 'utf-8');

@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>{{ title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/neogram.css">
+    <link rel="stylesheet" href="/embed/neogram-embed.css">
+    <script src="/js/retroAudio.js?v=2.2.0"></script>
+  </head>
+  <body class="p-4 bg-desktop">
+    <div class="neogram-pager-window max-w-lg mx-auto pixel-box">
+      <!-- Window Titlebar -->
+      <div class="window-header flex items-center justify-between p-2 bg-title text-white font-mono text-xs select-none">
+        <div class="flex items-center gap-2">
+          <span>📟</span>
+          <span class="font-bold">pager_daemon.sys — @{{ handle }}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span id="pagerLed" class="pager-led pager-led--{{ status }}"></span>
+          <span id="pagerStatusText" class="uppercase font-bold text-xs">[{{ status }}]</span>
+        </div>
+      </div>
+
+      <!-- Station Telemetry Bar -->
+      <div class="p-2 border-b-2 border-main bg-window flex items-center justify-between text-xs font-mono">
+        <div class="flex items-center gap-2">
+          <img src="{{ avatarPath }}" alt="@{{ handle }}" class="w-6 h-6 border border-main object-cover" />
+          <div>
+            <span class="font-bold text-mac">@{{ handle }}</span>
+            {% if uin %}<span class="text-muted text-xs">[#{{ uin }}]</span>{% endif %}
+          </div>
+        </div>
+        <div class="text-right text-xs">
+          <div class="text-muted truncate max-w-xs" id="pagerStatusMsg">:&gt; {{ statusMessage }}</div>
+        </div>
+      </div>
+
+      {% if not widgetEnabled %}
+        <div class="p-6 text-center font-mono text-xs text-muted">
+          <div class="text-2xl mb-2">🔒</div>
+          <div class="font-bold text-white mb-1">PAGER OFFLINE</div>
+          <p>The operator of this station has deactivated the live pager daemon.</p>
+        </div>
+      {% else %}
+        <!-- Transcript Box -->
+        <div id="pagerTranscript" class="p-3 bg-card font-mono text-xs flex flex-col gap-2 overflow-y-auto" style="min-height: 180px; max-height: 280px; border-bottom: 2px solid var(--border-main);">
+          <div class="text-muted text-xs border-b border-main pb-1">
+            [:&gt; TELEMETRY: Secure carrier established to node @{{ handle }}. Messages are held in a 24-hour store-and-forward queue with zero permanent retention.]
+          </div>
+          <div id="messagesList" class="flex flex-col gap-2">
+            <!-- Messages populated via JS -->
+          </div>
+        </div>
+
+        <!-- Identity / Auth Bar -->
+        <div class="p-2 bg-window border-b border-main flex items-center justify-between text-xs font-mono">
+          <div class="flex items-center gap-1.5 truncate">
+            <span class="text-muted">CALLSIGN:</span>
+            <span id="authHandleLabel" class="font-bold text-prompt">@visitor</span>
+          </div>
+          <div id="authActions">
+            <button type="button" id="btnConnectPass" onclick="connectCyberPass()" class="text-mac hover:underline font-bold text-xs">
+              ⚡ Connect Cyber-Pass
+            </button>
+            <button type="button" id="btnDisconnectPass" onclick="disconnectCyberPass()" class="text-muted hover:underline text-xs hidden">
+              [Disconnect ✕]
+            </button>
+          </div>
+        </div>
+
+        <!-- Transmit Form -->
+        <form id="pagerForm" onsubmit="transmitMessage(event)" class="p-3 bg-window flex flex-col gap-2 font-mono text-xs">
+          <!-- Honeypot -->
+          <input type="text" name="website" id="botWebsite" class="hidden" tabindex="-1" autocomplete="off" />
+
+          {% if not allowAnonymous %}
+            <div id="anonNotice" class="retro-alert retro-alert--info text-xs mb-1">
+              🔒 This station only accepts transmissions from verified Cyber-Pass members. Please connect Cyber-Pass to transmit.
+            </div>
+          {% endif %}
+
+          <div class="flex flex-col gap-1">
+            <textarea 
+              id="pagerTextInput" 
+              rows="3" 
+              maxlength="500" 
+              placeholder="Type message to page @{{ handle }}..." 
+              required
+              class="w-full p-2 border-2 border-main font-mono text-xs bg-desktop text-main resize-none focus:outline-none"
+              oninput="updateCharCount()"
+            ></textarea>
+            <div class="flex items-center justify-between text-muted text-xs">
+              <span id="pagerFeedback">Ready for transmission.</span>
+              <span id="pagerCharCount">0 / 500 chars</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between mt-1">
+            <button 
+              type="submit" 
+              id="pagerSubmitBtn" 
+              class="pixel-btn pixel-btn--green text-xs font-bold px-4 py-2 flex items-center gap-1.5"
+            >
+              <span>📟</span>
+              <span>TRANSMIT PAGER :&gt;</span>
+            </button>
+            <span class="text-muted text-xs">24h Ephemeral Delivery</span>
+          </div>
+        </form>
+      {% endif %}
+    </div>
+
+    <script>
+      (function() {
+        var TARGET_STATION = '{{ handle }}';
+        var ALLOW_ANON = {{ allowAnonymous | default(true) }};
+        var WIDGET_ENABLED = {{ widgetEnabled | default(true) }};
+        var currentToken = localStorage.getItem('neogram_pass') || '';
+        var currentHandle = '';
+        var anonHandle = '';
+
+        // Generate or retrieve cached anonymous callsign for session
+        function initCallsign() {
+          if (currentToken) {
+            try {
+              var payload = JSON.parse(atob(currentToken.split('.')[1]));
+              currentHandle = payload.handle || ('user_' + (payload.uin || 'node'));
+              updateCallerUI(currentHandle, true);
+              return;
+            } catch(e) {
+              localStorage.removeItem('neogram_pass');
+              currentToken = '';
+            }
+          }
+
+          var savedAnon = sessionStorage.getItem('neogram_pager_anon');
+          if (!savedAnon) {
+            var prefixes = ['guest', 'surfer', 'cyber', 'dialup', 'node', 'netizen'];
+            var num = Math.floor(1000 + Math.random() * 9000);
+            savedAnon = prefixes[Math.floor(Math.random() * prefixes.length)] + '_' + num;
+            sessionStorage.setItem('neogram_pager_anon', savedAnon);
+          }
+          anonHandle = savedAnon;
+          updateCallerUI(anonHandle, false);
+        }
+
+        function updateCallerUI(handle, isAuth) {
+          var label = document.getElementById('authHandleLabel');
+          var btnConnect = document.getElementById('btnConnectPass');
+          var btnDisconnect = document.getElementById('btnDisconnectPass');
+          var submitBtn = document.getElementById('pagerSubmitBtn');
+          var textInput = document.getElementById('pagerTextInput');
+
+          if (label) label.textContent = '@' + handle + (isAuth ? ' [VERIFIED]' : ' [ANON]');
+          if (btnConnect) btnConnect.classList.toggle('hidden', isAuth);
+          if (btnDisconnect) btnDisconnect.classList.toggle('hidden', !isAuth);
+
+          if (!ALLOW_ANON && !isAuth) {
+            if (submitBtn) submitBtn.disabled = true;
+            if (textInput) textInput.disabled = true;
+          } else {
+            if (submitBtn) submitBtn.disabled = false;
+            if (textInput) textInput.disabled = false;
+          }
+        }
+
+        window.updateCharCount = function() {
+          var input = document.getElementById('pagerTextInput');
+          var counter = document.getElementById('pagerCharCount');
+          if (input && counter) {
+            counter.textContent = input.value.length + ' / 500 chars';
+          }
+        };
+
+        window.connectCyberPass = function() {
+          var width = 460;
+          var height = 540;
+          var left = (window.screen.width - width) / 2;
+          var top = (window.screen.height - height) / 2;
+          var authUrl = '/auth/connect?mode=popup';
+
+          var popup = window.open(
+            authUrl,
+            'NeogramCyberPass',
+            'width=' + width + ',height=' + height + ',top=' + top + ',left=' + left + ',scrollbars=yes'
+          );
+
+          window.addEventListener('message', function onMsg(e) {
+            if (e.data && e.data.type === 'NEOGRAM_PASS_APPROVED' && e.data.token) {
+              currentToken = e.data.token;
+              localStorage.setItem('neogram_pass', currentToken);
+              if (e.data.handle) {
+                currentHandle = e.data.handle;
+                updateCallerUI(currentHandle, true);
+              }
+              if (window.retroAudio) window.retroAudio.playDialupHandshake();
+              window.removeEventListener('message', onMsg);
+            }
+          });
+        };
+
+        window.disconnectCyberPass = function() {
+          localStorage.removeItem('neogram_pass');
+          currentToken = '';
+          currentHandle = '';
+          initCallsign();
+        };
+
+        // Render saved local chat messages
+        function loadLocalMessages() {
+          var list = document.getElementById('messagesList');
+          if (!list) return;
+          list.innerHTML = '';
+          var saved = sessionStorage.getItem('neogram_pager_msgs_' + TARGET_STATION);
+          var msgs = saved ? JSON.parse(saved) : [];
+
+          msgs.forEach(function(m) {
+            appendMessageToTranscript(m);
+          });
+        }
+
+        function appendMessageToTranscript(m) {
+          var list = document.getElementById('messagesList');
+          if (!list) return;
+          var el = document.createElement('div');
+          el.className = 'p-1.5 border border-main text-xs ' + (m.isMe ? 'bg-desktop' : 'bg-window');
+          var timeStr = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          el.innerHTML = '<div class="flex items-center justify-between text-muted mb-0.5">' +
+            '<span class="font-bold ' + (m.isMe ? 'text-prompt' : 'text-mac') + '">@' + m.from + '</span>' +
+            '<span>' + timeStr + '</span>' +
+            '</div>' +
+            '<div class="text-main break-words">' + escapeHtml(m.text) + '</div>';
+          list.appendChild(el);
+          var transcript = document.getElementById('pagerTranscript');
+          if (transcript) transcript.scrollTop = transcript.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+          var div = document.createElement('div');
+          div.textContent = str;
+          return div.innerHTML;
+        }
+
+        window.transmitMessage = async function(e) {
+          e.preventDefault();
+          var input = document.getElementById('pagerTextInput');
+          var feedback = document.getElementById('pagerFeedback');
+          var btn = document.getElementById('pagerSubmitBtn');
+          var botTrap = document.getElementById('botWebsite');
+
+          if (!input || !input.value.trim()) return;
+          var text = input.value.trim();
+
+          if (botTrap && botTrap.value) {
+            input.value = '';
+            return;
+          }
+
+          btn.disabled = true;
+          feedback.textContent = 'Transmitting carrier...';
+
+          try {
+            var headers = { 'Content-Type': 'application/json' };
+            if (currentToken) {
+              headers['Authorization'] = 'Bearer ' + currentToken;
+            }
+
+            var res = await fetch('/api/chat/pager/send/' + TARGET_STATION, {
+              method: 'POST',
+              headers: headers,
+              body: JSON.stringify({
+                to: TARGET_STATION,
+                text: text,
+                senderHandle: currentHandle || anonHandle,
+              }),
+            });
+
+            var data = await res.json();
+            if (!res.ok || !data.ok) {
+              throw new Error(data.error || 'Transmission failed.');
+            }
+
+            // Save to local session transcript
+            var msgObj = {
+              id: data.id,
+              from: data.from || (currentHandle || anonHandle),
+              text: text,
+              timestamp: data.timestamp || new Date().toISOString(),
+              isMe: true,
+            };
+
+            var saved = sessionStorage.getItem('neogram_pager_msgs_' + TARGET_STATION);
+            var msgs = saved ? JSON.parse(saved) : [];
+            msgs.push(msgObj);
+            sessionStorage.setItem('neogram_pager_msgs_' + TARGET_STATION, JSON.stringify(msgs));
+
+            appendMessageToTranscript(msgObj);
+
+            input.value = '';
+            updateCharCount();
+            feedback.textContent = data.message || 'Transmitted!';
+
+            if (window.retroAudio) window.retroAudio.playClick();
+          } catch(err) {
+            feedback.textContent = '[:> ERROR] ' + err.message;
+            if (window.retroAudio) window.retroAudio.playShutter();
+          } finally {
+            btn.disabled = false;
+          }
+        };
+
+        // Live status probe
+        async function probeStationStatus() {
+          try {
+            var res = await fetch('/api/chat/status/' + TARGET_STATION);
+            if (!res.ok) return;
+            var data = await res.json();
+            if (data.ok) {
+              var led = document.getElementById('pagerLed');
+              var statusTxt = document.getElementById('pagerStatusText');
+              var statusMsg = document.getElementById('pagerStatusMsg');
+              if (led) led.className = 'pager-led pager-led--' + data.status;
+              if (statusTxt) statusTxt.textContent = '[' + data.status.toUpperCase() + ']';
+              if (statusMsg) statusMsg.textContent = ':> ' + (data.statusMessage || 'Surfing cyberspace');
+            }
+          } catch(e) {}
+        }
+
+        initCallsign();
+        loadLocalMessages();
+        probeStationStatus();
+        setInterval(probeStationStatus, 30000);
+      })();
+    </script>
+  </body>
+</html>

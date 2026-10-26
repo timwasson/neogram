@@ -1185,9 +1185,157 @@ async function runSmokeTests() {
     assertTest('DELETE /api/sites/:id for Nekoweb site returns HTTP 200', delNekoSiteRes.status === 200);
 
     // -------------------------------------------------------------------------
-    // TEST 21: Safe Post Purge & Clean Teardown
+    // TEST 21: Static Site Chat & Pager Widget Engine
     // -------------------------------------------------------------------------
-    logHeader('21. SAFE PURGE & TEARDOWN');
+    logHeader('21. STATIC SITE CHAT & PAGER WIDGET ENGINE');
+
+    // 1. Static embed script access
+    const pagerScriptRes = await fetch(`${API_BASE}/embed/pager.js`);
+    assertTest('GET /embed/pager.js returns HTTP 200', pagerScriptRes.status === 200);
+    const pagerScriptContent = await pagerScriptRes.text();
+    assertTest('pager.js contains Neogram Cyber-Pager initialization',
+      pagerScriptContent.includes('Neogram Cyber-Pager') && pagerScriptContent.includes('data-station')
+    );
+
+    // 2. Status probe API
+    const statusRes = await fetch(`${API_BASE}/api/chat/status/${testUser.handle}`);
+    assertTest('GET /api/chat/status/:handle returns HTTP 200', statusRes.status === 200);
+    const statusJson = await statusRes.json();
+    assertTest('Status probe payload contains creator handle', statusJson.handle === testUser.handle);
+    assertTest('Status probe payload contains numeric UIN', statusJson.uin === testUser.uin);
+    assertTest('Status probe payload contains widgetEnabled true', statusJson.widgetEnabled === true);
+    assertTest('Status probe payload contains allowAnonymous true by default', statusJson.allowAnonymous === true);
+    assertTest('Status probe payload contains status string', typeof statusJson.status === 'string');
+
+    // 3. Anonymous message transmission
+    const anonMsgRes = await fetch(`${API_BASE}/api/chat/pager/send/${testUser.handle}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: 'Radical retro station! Transmitting from cyberspace.',
+        senderHandle: 'guest_4242',
+      }),
+    });
+    assertTest('POST /api/chat/pager/send with anonymous handle returns HTTP 200', anonMsgRes.status === 200);
+    const anonMsgJson = await anonMsgRes.json();
+    assertTest('Anonymous transmission confirms ok: true', anonMsgJson.ok === true);
+    assertTest('Anonymous transmission attributes to guest_4242', anonMsgJson.from === 'guest_4242');
+    assertTest('Offline queue delivery status returned', anonMsgJson.status === 'queued_offline');
+
+    // 4. Verify message persisted in ephemeral holding queue with 24-hour retention
+    const queueCheck = await query(
+      `SELECT * FROM ephemeral_chat_queue 
+       WHERE receiver_id = $1 AND sender_handle = 'guest_4242' AND is_anonymous = true`,
+      [testUser.id]
+    );
+    assertTest('Anonymous pager message staged in ephemeral_chat_queue', queueCheck.rows.length > 0);
+    assertTest('Anonymous message has null sender_id', queueCheck.rows[0].sender_id === null);
+    assertTest('Anonymous message body matches transmission',
+      queueCheck.rows[0].body === 'Radical retro station! Transmitting from cyberspace.'
+    );
+
+    // 5. Authenticated message transmission with Cyber-Pass / session
+    const authMsgRes = await fetch(`${API_BASE}/api/chat/pager/send/${testUser.handle}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({
+        text: 'Testing authenticated Cyber-Pass pager ping.',
+      }),
+    });
+    assertTest('POST /api/chat/pager/send with authenticated session returns HTTP 200', authMsgRes.status === 200);
+    const authMsgJson = await authMsgRes.json();
+    assertTest('Authenticated transmission attributes to testUser handle', authMsgJson.from === testUser.handle);
+
+    // 6. Creator toggle: Disable anonymous messages in notification preferences
+    const updateAnonPrefsRes = await fetch(`${API_BASE}/api/settings/notifications`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({
+        allowAnonChat: false,
+      }),
+    });
+    assertTest('PUT /api/settings/notifications with allowAnonChat: false returns HTTP 200', updateAnonPrefsRes.status === 200);
+
+    // Verify status probe reflects allowAnonymous: false
+    const statusNoAnonRes = await fetch(`${API_BASE}/api/chat/status/${testUser.handle}`);
+    const statusNoAnonJson = await statusNoAnonRes.json();
+    assertTest('Status probe now returns allowAnonymous: false', statusNoAnonJson.allowAnonymous === false);
+
+    // Anonymous transmission should now be rejected with HTTP 403
+    const blockedAnonRes = await fetch(`${API_BASE}/api/chat/pager/send/${testUser.handle}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: 'Should be rejected because anon chat is disabled.',
+        senderHandle: 'guest_9999',
+      }),
+    });
+    assertTest('Anonymous transmission rejected with HTTP 403 when allowAnonChat is false', blockedAnonRes.status === 403);
+    const blockedJson = await blockedAnonRes.json();
+    assertTest('Rejected payload specifies requiresCyberPass: true', blockedJson.requiresCyberPass === true);
+
+    // Authenticated message still succeeds even when anonymous chat is disabled
+    const authStillWorksRes = await fetch(`${API_BASE}/api/chat/pager/send/${testUser.handle}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({
+        text: 'Cyber-Pass message succeeds despite anon chat disabled.',
+      }),
+    });
+    assertTest('Authenticated transmission succeeds when anonymous chat is disabled', authStillWorksRes.status === 200);
+
+    // Reset allowAnonChat to true
+    await fetch(`${API_BASE}/api/settings/notifications`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({
+        allowAnonChat: true,
+      }),
+    });
+
+    // 7. Standalone iframe view
+    const pagerIframeRes = await fetch(`${API_BASE}/embed/pager/${testUser.handle}`);
+    assertTest('GET /embed/pager/:handle returns HTTP 200', pagerIframeRes.status === 200);
+    const pagerIframeHtml = await pagerIframeRes.text();
+    assertTest('Standalone pager contains pager_daemon.sys header',
+      pagerIframeHtml.includes('pager_daemon.sys') && pagerIframeHtml.includes(`@${testUser.handle}`)
+    );
+    assertTest('Standalone pager contains transmit button', pagerIframeHtml.includes('TRANSMIT PAGER'));
+
+    // 8. Documentation Center & Dashboard Integration
+    const docsTopicRes = await fetch(`${API_BASE}/docs?topic=pager`);
+    assertTest('GET /docs?topic=pager returns HTTP 200', docsTopicRes.status === 200);
+    const docsTopicHtml = await docsTopicRes.text();
+    assertTest('Docs HTML contains Static Site Pager & Chat Widget topic pane',
+      docsTopicHtml.includes('Static Site Pager &amp; Chat Widget') && docsTopicHtml.includes('tabBtn-pager')
+    );
+    assertTest('Docs HTML contains codePagerScript snippet', docsTopicHtml.includes('codePagerScript'));
+
+    const pagerDashRes = await fetch(`${API_BASE}/`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    const pagerDashHtml = await pagerDashRes.text();
+    assertTest('Workstation dashboard contains #chatWidgetEnabledInput toggle', pagerDashHtml.includes('id="chatWidgetEnabledInput"'));
+    assertTest('Workstation dashboard contains #allowAnonChatInput toggle', pagerDashHtml.includes('id="allowAnonChatInput"'));
+    assertTest('Workstation dashboard contains #pagerScriptSnippet embed box', pagerDashHtml.includes('id="pagerScriptSnippet"'));
+    assertTest('Workstation dashboard contains #btnCopyPagerScript button', pagerDashHtml.includes('id="btnCopyPagerScript"'));
+
+    // -------------------------------------------------------------------------
+    // TEST 22: Safe Post Purge & Clean Teardown
+    // -------------------------------------------------------------------------
+    logHeader('22. SAFE PURGE & TEARDOWN');
     // Delete post using authenticated session
     const deletePostRes = await fetch(`${API_BASE}/api/posts/${testPostId}`, {
       method: 'DELETE',

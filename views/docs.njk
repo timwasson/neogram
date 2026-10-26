@@ -118,6 +118,16 @@
 
           <button
             type="button"
+            id="tabBtn-pager"
+            class="docs-topic-btn {% if activeTopic == 'pager' %}is-active{% endif %}"
+            onclick="switchDocTopic('pager')"
+          >
+            <span>📟 Site Pager / Chat Widget</span>
+            <span class="text-xxs">›</span>
+          </button>
+
+          <button
+            type="button"
             id="tabBtn-feeds"
             class="docs-topic-btn {% if activeTopic == 'feeds' %}is-active{% endif %}"
             onclick="switchDocTopic('feeds')"
@@ -867,6 +877,101 @@
                 1. <strong>Rate Limiting:</strong> In-memory sliding window rate limits submissions to maximum 6 signatures per 5 minutes per IP address.<br />
                 2. <strong>One-Click Owner Deletion:</strong> Open the <strong>Embeds</strong> tab in the Workstation. Under <strong>SIGNATURES ARCHIVE</strong>, click the <code>[ ✕ Delete ]</code> button next to any unwanted entry. It will be removed from your host's <code>guestbook.json</code> immediately.
               </p>
+            </div>
+
+          </section>
+
+          <!-- ========================================================= -->
+          <!-- TOPIC: SITE PAGER & CHAT WIDGET                           -->
+          <!-- ========================================================= -->
+          <section id="docSection-pager" class="docs-section-pane flex flex-col gap-6 {% if activeTopic != 'pager' %}hidden{% endif %}">
+            
+            <div class="border-b-2 border-main pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">📟</span>
+                <h1 class="text-base font-bold text-prompt m-0 uppercase">Static Site Pager &amp; Chat Widget</h1>
+              </div>
+              <p class="text-xs text-muted mt-1 m-0">
+                Place an expandable retro chat window on your Neocities, Nekoweb, or personal static site. Visitors can message you in real-time, showing your live station presence (🟢 Online, 🟡 Away, ⚪ Offline).
+              </p>
+            </div>
+
+            <!-- How It Works Architecture Box -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-3">
+              <h3 class="font-bold text-xs uppercase text-prompt m-0">How the Cyberspace Pager Works</h3>
+              <p class="text-xs text-muted m-0">
+                1. <strong>Strict Scoping:</strong> Unlike open IRC chatrooms, the widget connects visitors <em>ONLY</em> to the station owner of that site. It cannot be used to spam arbitrary network users.<br />
+                2. <strong>Zero Server Retention:</strong> In line with Neogram's privacy architecture, messages delivered via WebSocket are never archived to a database. If you are away or offline, messages are held in an in-memory ephemeral queue for up to 24 hours and deleted the instant you sign on.<br />
+                3. <strong>Anonymous Identity &amp; Cyber-Pass Upgrade:</strong> Visitors without an account are assigned a fun retro callsign (e.g. <code>@surfer_4291</code>). Clicking <strong>[⚡ Connect Cyber-Pass]</strong> allows them to authenticate in 1-click and transmit as their verified handle.<br />
+                4. <strong>Two-Way Conversations:</strong> If you reply from your Workstation NIM while the visitor still has your site open, your reply delivers back to their widget in real-time with an 8-bit chime!
+              </p>
+            </div>
+
+            <!-- Floating Script Embed Snippet -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-3">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-xs uppercase text-prompt">1. Floating Retro Dock Script (Recommended)</span>
+                <span class="text-xxs font-mono text-muted">DROP-IN JAVASCRIPT</span>
+              </div>
+              <p class="text-xs text-muted m-0">
+                Add this single line before <code>&lt;/body&gt;</code> on any static HTML page. It creates a compact retro dock button in the corner that expands into the full pager window when clicked.
+              </p>
+              <pre class="docs-code-pre" id="codePagerScript">&lt;!-- Neogram Cyber-Pager Chat Widget --&gt;
+&lt;script 
+  src="{{ appUrl }}/embed/pager.js" 
+  data-station="{{ stationHandle }}" 
+  data-position="bottom-right" 
+  defer&gt;
+&lt;/script&gt;</pre>
+              <button
+                type="button"
+                id="btnCopyPagerScriptDoc"
+                class="pixel-btn pixel-btn--green text-xs font-bold self-start"
+                onclick="copyDocSnippet('btnCopyPagerScriptDoc', 'codePagerScript')"
+              >
+                <span>📋 Copy Script Tag</span>
+              </button>
+            </div>
+
+            <!-- Standalone Iframe Embed Snippet -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-3">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-xs uppercase text-prompt">2. Inline Iframe Widget</span>
+                <span class="text-xxs font-mono text-muted">FIXED POSITION EMBED</span>
+              </div>
+              <p class="text-xs text-muted m-0">
+                Prefer a fixed chat window embedded directly in a sidebar or widget area? Use an iframe pointing to your station's standalone pager daemon:
+              </p>
+              <pre class="docs-code-pre" id="codePagerIframe">&lt;!-- Neogram Standalone Pager Iframe --&gt;
+&lt;iframe 
+  src="{{ appUrl }}/embed/pager/{{ stationHandle }}" 
+  width="380" 
+  height="480" 
+  frameborder="0" 
+  style="border: 3px solid #000;" 
+  title="Page @{{ stationHandle }}"&gt;
+&lt;/iframe&gt;</pre>
+              <button
+                type="button"
+                id="btnCopyPagerIframeDoc"
+                class="pixel-btn pixel-btn--blue text-xs font-bold self-start"
+                onclick="copyDocSnippet('btnCopyPagerIframeDoc', 'codePagerIframe')"
+              >
+                <span>🖼️ Copy Iframe Code</span>
+              </button>
+            </div>
+
+            <!-- Configuration & Anti-Abuse Settings -->
+            <div class="retro-card p-4 m-0 flex flex-col gap-3">
+              <h3 class="font-bold text-xs uppercase text-prompt m-0">Owner Configuration &amp; Anti-Spam Controls</h3>
+              <p class="text-xs text-muted m-0">
+                You maintain complete control over how the pager operates on your static sites:
+              </p>
+              <ul class="text-xs text-muted m-0 pl-4 space-y-1">
+                <li><strong>Toggle Anonymous Messages:</strong> In your Workstation Settings under <em>[:&gt; NOTIFICATION_DISPATCHER.CFG]</em>, you can uncheck <em>"Accept Anonymous Transmissions"</em>. The widget will then require visitors to connect a verified Neogram Cyber-Pass before transmitting.</li>
+                <li><strong>Deactivate Pager Daemon:</strong> Toggle <em>"Enable Live Pager Widget on Static Sites"</em> off to temporarily suspend incoming pager transmissions without removing the embed tag from your HTML.</li>
+                <li><strong>Sliding-Window Rate Limiting:</strong> The Neogram gateway enforces strict rate limits (maximum 15 transmissions per 2 minutes per IP) and filters automated bot crawlers via hidden honeypot fields.</li>
+              </ul>
             </div>
 
           </section>

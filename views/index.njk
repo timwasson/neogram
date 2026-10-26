@@ -1554,6 +1554,29 @@
                     </div>
                   </div>
 
+                  <!-- Section 3: Static Site Chat & Pager Widget Protocols -->
+                  <div class="border-2 border-main p-3 bg-card space-y-2.5">
+                    <span class="text-xs font-bold text-accent block border-b border-main pb-1 uppercase tracking-wider">
+                      📟 Static Site Chat &amp; Pager Widget:
+                    </span>
+
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" id="chatWidgetEnabledInput" class="mt-1" checked />
+                      <div class="text-xs">
+                        <span class="font-bold text-white block">📟 Enable Live Pager Widget on Static Sites</span>
+                        <span class="text-muted block">Allows visitors on your Neocities, Nekoweb, or personal static pages to ping you directly.</span>
+                      </div>
+                    </label>
+
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" id="allowAnonChatInput" class="mt-1" checked />
+                      <div class="text-xs">
+                        <span class="font-bold text-white block">🌐 Accept Anonymous Transmissions</span>
+                        <span class="text-muted block">Visitors without a Cyber-Pass are assigned a retro callsign (e.g. @guest_4812). If unchecked, visitors must connect a verified Neogram Cyber-Pass to message you.</span>
+                      </div>
+                    </label>
+                  </div>
+
                   <!-- Action Button -->
                   <div class="pt-1">
                     <button
@@ -1835,6 +1858,79 @@
                     id="btnCopyFeedIframe"
                     onclick="copyFeedIframe()"
                     class="pixel-btn font-bold text-xs"
+                  >
+                    <span>🖼️ Copy Iframe Code</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- CYBER-PAGER & CHAT WIDGET BOX -->
+              <div class="retro-card p-4 m-0">
+                <div class="window-header mb-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span>📟</span>
+                    <span class="font-bold">[:&gt; pager_daemon.sys — LIVE CHAT WIDGET]</span>
+                  </div>
+                  <span id="pagerEmbedStatusBadge" class="text-xs font-mono font-bold text-mac">LIVE 24H CARRIER</span>
+                </div>
+
+                <p class="text-xs text-muted mb-3 font-mono">
+                  :&gt; Place an expandable 90s chat/pager window on your Neocities, Nekoweb, or personal static site. Visitors can message you with their Cyber-Pass or as an anonymous guest. Messages route directly to your NIM / Notifications inbox with zero permanent retention.
+                </p>
+
+                <!-- Snippet 1: Drop-in Floating Script Widget -->
+                <div class="font-mono text-xs mb-3">
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="font-bold">FLOATING RETRO DOCK SCRIPT (RECOMMENDED):</label>
+                    <span class="text-3xs text-muted">PASTE BEFORE &lt;/BODY&gt;</span>
+                  </div>
+                  <pre id="pagerScriptSnippet" class="p-2 bg-window border border-main text-xs font-mono overflow-x-auto select-all mb-2">&lt;!-- Neogram Live Chat / Pager Widget --&gt;
+&lt;script 
+  src="{{ appUrl }}/embed/pager.js" 
+  data-station="{{ currentUser.handle }}" 
+  data-slug="{{ activeSite.slug if activeSite else '' }}"
+  data-position="bottom-right"
+  defer&gt;
+&lt;/script&gt;</pre>
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      id="btnCopyPagerScript"
+                      onclick="copyPagerScriptTag()"
+                      class="pixel-btn pixel-btn--green font-bold text-xs"
+                    >
+                      <span>📋 Copy Script Tag</span>
+                    </button>
+                    <a
+                      id="pagerTestLink"
+                      href="/embed/pager/{{ currentUser.handle }}"
+                      target="_blank"
+                      class="pixel-btn text-xs font-bold"
+                    >
+                      <span>🌐 Test Standalone Pager</span>
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Snippet 2: Standalone Iframe Embed -->
+                <div class="font-mono text-xs">
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="font-bold">IFRAME EMBED CODE:</label>
+                    <span class="text-3xs text-muted">FIXED INLINE WINDOW</span>
+                  </div>
+                  <pre id="pagerIframeSnippet" class="p-2 bg-window border border-main text-xs font-mono overflow-x-auto select-all mb-2">&lt;!-- Neogram Pager Iframe --&gt;
+&lt;iframe 
+  src="{{ appUrl }}/embed/pager/{{ currentUser.handle }}" 
+  width="380" 
+  height="480" 
+  frameborder="0"
+  style="border: 3px solid #000;"&gt;
+&lt;/iframe&gt;</pre>
+                  <button
+                    type="button"
+                    id="btnCopyPagerIframe"
+                    onclick="copyPagerIframeTag()"
+                    class="pixel-btn pixel-btn--blue font-bold text-xs"
                   >
                     <span>🖼️ Copy Iframe Code</span>
                   </button>
@@ -2691,9 +2787,54 @@
     if (feedDisplay) feedDisplay.textContent = feedPath;
     if (feedLink) feedLink.href = feedPath;
 
+    var pagerSnippet = document.getElementById('pagerScriptSnippet');
+    var pagerIframeSnippet = document.getElementById('pagerIframeSnippet');
+    var pagerTestLink = document.getElementById('pagerTestLink');
+    var pagerSlugAttr = slug ? ('\n  data-slug="' + slug + '"') : '';
+    if (pagerSnippet) {
+      pagerSnippet.textContent = '<!-- Neogram Live Chat / Pager Widget -->\n<script \n  src="' + window.location.origin + '/embed/pager.js" \n  data-station="' + userHandle + '"' + pagerSlugAttr + '\n  data-position="bottom-right"\n  defer>\n</script>';
+    }
+    if (pagerIframeSnippet) {
+      var iframeUrl = window.location.origin + '/embed/pager/' + userHandle + (slug ? ('/' + slug) : '');
+      pagerIframeSnippet.textContent = '<!-- Neogram Pager Iframe -->\n<iframe \n  src="' + iframeUrl + '" \n  width="380" \n  height="480" \n  frameborder="0"\n  style="border: 3px solid #000;">\n</iframe>';
+    }
+    if (pagerTestLink) {
+      pagerTestLink.href = '/embed/pager/' + userHandle + (slug ? ('/' + slug) : '');
+    }
+
     loadGuestbookEntries();
   }
   window.handleEmbedSiteChange = handleEmbedSiteChange;
+
+  function copyPagerScriptTag() {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var snippet = document.getElementById('pagerScriptSnippet');
+    if (snippet) {
+      navigator.clipboard?.writeText(snippet.textContent);
+      var btn = document.getElementById('btnCopyPagerScript');
+      if (btn) {
+        var old = btn.innerHTML;
+        btn.innerHTML = '<span>✓ Copied Script Tag!</span>';
+        setTimeout(function() { btn.innerHTML = old; }, 2000);
+      }
+    }
+  }
+  window.copyPagerScriptTag = copyPagerScriptTag;
+
+  function copyPagerIframeTag() {
+    if (window.retroAudio) window.retroAudio.playClick();
+    var snippet = document.getElementById('pagerIframeSnippet');
+    if (snippet) {
+      navigator.clipboard?.writeText(snippet.textContent);
+      var btn = document.getElementById('btnCopyPagerIframe');
+      if (btn) {
+        var old = btn.innerHTML;
+        btn.innerHTML = '<span>✓ Copied Iframe Code!</span>';
+        setTimeout(function() { btn.innerHTML = old; }, 2000);
+      }
+    }
+  }
+  window.copyPagerIframeTag = copyPagerIframeTag;
 
   function updateCounterPreview(hits, style) {
     var img = document.getElementById('counterLiveSvg');
@@ -3692,6 +3833,8 @@
       var deployInput = document.getElementById('notifyDeployInput');
       var soundInput = document.getElementById('notifySoundInput');
       var desktopPushInput = document.getElementById('notifyDesktopPushInput');
+      var widgetEnabledInput = document.getElementById('chatWidgetEnabledInput');
+      var allowAnonInput = document.getElementById('allowAnonChatInput');
 
       if (nimInput) nimInput.checked = !!p.notifyNim;
       if (followInput) followInput.checked = !!p.notifyFollow;
@@ -3703,6 +3846,8 @@
       if (deployInput) deployInput.checked = !!p.notifyDeploy;
       if (soundInput) soundInput.checked = !!p.soundEnabled;
       if (desktopPushInput) desktopPushInput.checked = !!p.desktopPush;
+      if (widgetEnabledInput) widgetEnabledInput.checked = p.chatWidgetEnabled !== false;
+      if (allowAnonInput) allowAnonInput.checked = p.allowAnonChat !== false;
 
       // Update push permission button state
       var pushBtn = document.getElementById('requestPushPermissionBtn');
@@ -3747,6 +3892,8 @@
         notifyDeploy: document.getElementById('notifyDeployInput').checked,
         soundEnabled: document.getElementById('notifySoundInput').checked,
         desktopPush: document.getElementById('notifyDesktopPushInput').checked,
+        chatWidgetEnabled: document.getElementById('chatWidgetEnabledInput') ? document.getElementById('chatWidgetEnabledInput').checked : true,
+        allowAnonChat: document.getElementById('allowAnonChatInput') ? document.getElementById('allowAnonChatInput').checked : true,
       };
 
       var res = await fetch('/api/settings/notifications', {

@@ -96,5 +96,9 @@
 
   <!-- Optional Neogram Embed Layer -->
   <script src="{{ '/embed/embed.js' | url }}" async></script>
+  {% if site.chatWidgetEnabled %}
+  <!-- Neogram Retro Pager Chat Widget -->
+  <script src="{{ '/embed/pager.js' | url }}" data-station="{{ site.author }}" data-auto-init="true" async></script>
+  {% endif %}
 </body>
 </html>

@@ -906,3 +906,282 @@ embedsRouter.get('/embed/feed/:identifier', async (req: Request, res: Response) 
     res.status(500).send(`Feed Error: ${err.message}`);
   }
 });
+
+// ============================================================================
+// 5. RETRO CYBER-PAGER / CHAT WIDGET
+// ============================================================================
+
+/**
+ * GET /api/chat/status/:identifier (and /api/chat/status/:identifier/:slug)
+ * Unauthenticated probe endpoint returning creator status, presence LED, and widget permissions
+ */
+embedsRouter.get(['/api/chat/status/:identifier', '/api/chat/status/:identifier/:slug'], async (req: Request, res: Response) => {
+  try {
+    const identifier = req.params.identifier;
+    const rawSlug = req.params.slug || '';
+    const user = await findUserByHandleOrId(identifier);
+
+    if (!user) {
+      res.status(404).json({ ok: false, error: 'Station node not found.' });
+      return;
+    }
+
+    const handle = user.handle || user.email.split('@')[0];
+    const { getNotificationPreferences } = await import('../services/notificationService');
+    const prefs = await getNotificationPreferences(user.id);
+
+    // Check optional target site if slug provided
+    let targetSite: any = null;
+    if (rawSlug) {
+      const { getSiteBySlug } = await import('../services/siteService');
+      targetSite = await getSiteBySlug(user.id, rawSlug);
+    }
+
+    const { activeSockets } = await import('../services/chatSocket');
+    const activeSession = activeSockets.get(user.id);
+
+    const isOnline = !!activeSession;
+    const status = activeSession ? activeSession.status : (user.is_away ? 'away' : 'offline');
+    const statusMessage = activeSession
+      ? activeSession.awayMessage
+      : (user.status_message || 'Surfing cyberspace');
+
+    // Site settings override or fallback to user prefs
+    const widgetEnabled = targetSite && targetSite.chatWidgetEnabled !== undefined
+      ? targetSite.chatWidgetEnabled
+      : (prefs.chatWidgetEnabled !== false);
+
+    const allowAnonymous = targetSite && targetSite.allowAnonChat !== undefined
+      ? targetSite.allowAnonChat
+      : (prefs.allowAnonChat !== false);
+
+    res.json({
+      ok: true,
+      handle,
+      uin: user.uin ? parseInt(user.uin, 10) : undefined,
+      status: isOnline ? status : 'offline',
+      statusMessage,
+      avatarPath: user.avatar_path || '/icons/default-avatar.svg',
+      siteName: targetSite ? targetSite.name : null,
+      siteSlug: targetSite ? targetSite.slug : null,
+      widgetEnabled,
+      allowAnonymous,
+    });
+  } catch (err: any) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Rate limiting for pager transmissions: max 15 requests per 2 minutes per IP
+const pagerRateLimiter = rateLimit({
+  windowMs: 2 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Rate limit exceeded: Too many transmissions sent. Please wait.' },
+});
+
+/**
+ * POST /api/chat/pager/send
+ * Sends a message via the embeddable chat widget to the station owner
+ */
+embedsRouter.post(['/api/chat/pager/send', '/api/chat/pager/send/:identifier'], pagerRateLimiter, async (req: Request, res: Response) => {
+  try {
+    const { to, text, senderHandle, website, siteSlug } = req.body;
+    const targetIdentifier = req.params.identifier || to;
+
+    if (!targetIdentifier) {
+      res.status(400).json({ ok: false, error: 'Destination station node is required.' });
+      return;
+    }
+
+    // Bot trap / honeypot
+    if (website && website.trim()) {
+      res.json({ ok: true, status: 'delivered', id: 'trap_drop', message: 'Transmission received.' });
+      return;
+    }
+
+    const targetUser = await findUserByHandleOrId(targetIdentifier);
+    if (!targetUser) {
+      res.status(404).json({ ok: false, error: 'Destination station node not found.' });
+      return;
+    }
+
+    const { getNotificationPreferences } = await import('../services/notificationService');
+    const prefs = await getNotificationPreferences(targetUser.id);
+
+    let targetSite: any = null;
+    if (siteSlug) {
+      const { getSiteBySlug } = await import('../services/siteService');
+      targetSite = await getSiteBySlug(targetUser.id, siteSlug);
+    }
+
+    const widgetEnabled = targetSite && targetSite.chatWidgetEnabled !== undefined
+      ? targetSite.chatWidgetEnabled
+      : (prefs.chatWidgetEnabled !== false);
+
+    if (!widgetEnabled) {
+      res.status(403).json({ ok: false, error: 'Chat widget is disabled on this station.' });
+      return;
+    }
+
+    const allowAnonymous = targetSite && targetSite.allowAnonChat !== undefined
+      ? targetSite.allowAnonChat
+      : (prefs.allowAnonChat !== false);
+
+    // Check caller authentication (Cyber-Pass token or cookie)
+    const authUser = await getAuthUser(req);
+    let finalSenderHandle = '';
+    let isAnonymous = false;
+    let senderId: string | null = null;
+
+    if (authUser) {
+      finalSenderHandle = authUser.handle || authUser.email.split('@')[0];
+      senderId = authUser.id;
+      isAnonymous = false;
+    } else {
+      if (!allowAnonymous) {
+        res.status(403).json({
+          ok: false,
+          error: 'This station only accepts transmissions from verified Cyber-Pass members. Please connect Cyber-Pass.',
+          requiresCyberPass: true,
+        });
+        return;
+      }
+      isAnonymous = true;
+      const rawHandle = typeof senderHandle === 'string' ? senderHandle.trim().replace(/[^a-zA-Z0-9_]/g, '') : '';
+      finalSenderHandle = rawHandle || `guest_${Math.floor(1000 + Math.random() * 9000)}`;
+    }
+
+    if (!text || !text.trim()) {
+      res.status(400).json({ ok: false, error: 'Message text cannot be empty.' });
+      return;
+    }
+
+    const maxLen = isAnonymous ? 500 : 2000;
+    const trimmedText = text.trim().slice(0, maxLen);
+    const msgId = `pager_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const timestamp = new Date().toISOString();
+
+    const { activeSockets } = await import('../services/chatSocket');
+    const recipientSession = activeSockets.get(targetUser.id);
+    let status: 'delivered' | 'queued_offline' = 'queued_offline';
+
+    if (recipientSession && recipientSession.ws.readyState === 1) { // 1 = OPEN
+      recipientSession.ws.send(JSON.stringify({
+        type: 'direct_message',
+        id: msgId,
+        from: finalSenderHandle,
+        fromId: senderId,
+        to: targetUser.handle,
+        text: trimmedText,
+        timestamp,
+        wasQueued: false,
+        isAnonymous,
+        isPager: true,
+        viaSite: targetSite ? targetSite.name : null,
+      }));
+      status = 'delivered';
+    } else {
+      if (isAnonymous) {
+        await query(
+          `INSERT INTO ephemeral_chat_queue (sender_id, sender_handle, is_anonymous, receiver_id, body)
+           VALUES (NULL, $1, TRUE, $2, $3)`,
+          [finalSenderHandle, targetUser.id, trimmedText]
+        );
+      } else {
+        await query(
+          `INSERT INTO ephemeral_chat_queue (sender_id, sender_handle, is_anonymous, receiver_id, body)
+           VALUES ($1, $2, FALSE, $3, $4)`,
+          [senderId, finalSenderHandle, targetUser.id, trimmedText]
+        );
+      }
+      status = 'queued_offline';
+    }
+
+    // Dispatch notification
+    import('../services/notificationService').then((m) => {
+      m.dispatchNotification({
+        userId: targetUser.id,
+        actorId: isAnonymous ? null : senderId,
+        type: 'nim',
+        title: isAnonymous ? `📟 Pager transmission from @${finalSenderHandle}` : `New transmission from @${finalSenderHandle}`,
+        body: isAnonymous ? trimmedText.slice(0, 100) : 'Sent you an instant message via NIM.',
+        linkUrl: `/#nim?user=${finalSenderHandle}`,
+        icon: isAnonymous ? '📟' : '🗨️',
+      }).catch(() => {});
+    }).catch(() => {});
+
+    res.json({
+      ok: true,
+      status,
+      id: msgId,
+      from: finalSenderHandle,
+      timestamp,
+      message: status === 'delivered'
+        ? 'Transmitted directly to station operator!'
+        : 'Station operator is away/offline. Message held in 24-hour store-and-forward queue.',
+    });
+  } catch (err: any) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * GET /embed/pager/:identifier (and /embed/pager/:identifier/:slug)
+ * Standalone embeddable retro pager view for iframes
+ */
+embedsRouter.get(['/embed/pager/:identifier', '/embed/pager/:identifier/:slug'], async (req: Request, res: Response) => {
+  try {
+    const user = await findUserByHandleOrId(req.params.identifier);
+    if (!user) {
+      res.status(404).render('404', { url: req.originalUrl });
+      return;
+    }
+
+    const rawSlug = req.params.slug || '';
+    const handle = user.handle || user.email.split('@')[0];
+    const { getNotificationPreferences } = await import('../services/notificationService');
+    const prefs = await getNotificationPreferences(user.id);
+
+    let targetSite: any = null;
+    if (rawSlug) {
+      const { getSiteBySlug } = await import('../services/siteService');
+      targetSite = await getSiteBySlug(user.id, rawSlug);
+    }
+
+    const { activeSockets } = await import('../services/chatSocket');
+    const activeSession = activeSockets.get(user.id);
+    const isOnline = !!activeSession;
+    const status = activeSession ? activeSession.status : (user.is_away ? 'away' : 'offline');
+    const statusMessage = activeSession
+      ? activeSession.awayMessage
+      : (user.status_message || 'Surfing cyberspace');
+
+    const widgetEnabled = targetSite && targetSite.chatWidgetEnabled !== undefined
+      ? targetSite.chatWidgetEnabled
+      : (prefs.chatWidgetEnabled !== false);
+
+    const allowAnonymous = targetSite && targetSite.allowAnonChat !== undefined
+      ? targetSite.allowAnonChat
+      : (prefs.allowAnonChat !== false);
+
+    const { config } = await import('../config');
+
+    res.render('embeds/pager', {
+      title: `Page @${handle} — Neogram Station Pager`,
+      handle,
+      uin: user.uin ? parseInt(user.uin, 10) : undefined,
+      status: isOnline ? status : 'offline',
+      statusMessage,
+      avatarPath: user.avatar_path || '/icons/default-avatar.svg',
+      siteName: targetSite ? targetSite.name : null,
+      siteSlug: targetSite ? targetSite.slug : null,
+      widgetEnabled,
+      allowAnonymous,
+      appUrl: config.appUrl,
+    });
+  } catch (err: any) {
+    res.status(500).send(`Pager Error: ${err.message}`);
+  }
+});

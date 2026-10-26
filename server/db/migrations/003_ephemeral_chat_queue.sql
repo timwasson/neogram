@@ -3,7 +3,9 @@
 
 CREATE TABLE IF NOT EXISTS ephemeral_chat_queue (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    sender_handle VARCHAR(50),
+    is_anonymous BOOLEAN DEFAULT FALSE,
     receiver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     body TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,

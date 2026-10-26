@@ -9,6 +9,7 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy({ 'public/js': 'js' });
   eleventyConfig.addPassthroughCopy({ 'embed': 'embed' });
   eleventyConfig.addPassthroughCopy({ 'embed/embed.js': 'embed.js' });
+  eleventyConfig.addPassthroughCopy({ 'embed/pager.js': 'pager.js' });
   eleventyConfig.addPassthroughCopy({ 'embed/neogram-embed.css': 'neogram-embed.css' });
 
   // Custom filters for retro display

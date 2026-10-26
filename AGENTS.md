@@ -24,6 +24,7 @@ It provides:
 11. **Mobile Cyber-Pass & Cross-Domain SSO:** 1-click cross-domain authentication for static sites supporting desktop pop-up postMessage and mobile return URL redirect with `#neogram_pass=` hash token ingestion.
 12. **Indie Web Data Sovereignty & Account Decommissioning:** 1-click JSON station archive export (`GET /api/settings/export-archive`) and self-serve station wipe (`DELETE /api/settings/account`) enforcing zero data lock-in.
 13. **Multi-Site Architecture (1 User : N Sites):** Complete decoupling of user login identity (callsign `@handle`, permanent numeric `#uin`) from static site deployments. A single authenticated creator can provision, manage, switch between, and deploy to multiple independent static targets (e.g. Neocities, Nekoweb, GitHub Pages), each with dedicated deploy paths, isolated photo streams, per-site SVG hit counters (`/counter/:uin/:slug.svg`), guestbooks (`/embed/guestbook/:handle/:slug`), and static feeds.
+14. **Embeddable Retro Chat & Pager Widget (`embed/pager.js`):** Lightweight client widget allowing static site owners to embed a floating dock or inline retro chat window on Neocities, Nekoweb, or GitHub Pages. Features live operator presence (Active 🟢, Idle 🟡, Signed Out ⚪), strict destination station locking (can *only* message the host station owner), 1-click Cyber-Pass authentication with automatic random `@guest_XXXX` fallback for unauthenticated visitors, 24-hour store-and-forward queueing (`ephemeral_chat_queue`) with zero permanent database retention, and station owner controls to toggle widget enablement and anonymous messaging.
 
 ---
 
@@ -235,6 +236,9 @@ CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read, cr
 - `.neogram-guestbook`: Guestbook container and form
 - `.neogram-counter`: Hit counter widget
 - `.neogram-button`: Brutalist retro push button
+- `.neogram-pager-dock`: Floating bottom-right/left trigger button with live operator LED
+- `.neogram-pager-window`: Standalone retro pager dialog (`__header`, `__title`, `__actions`, `__body`, `__station-strip`, `__station-avatar`, `__station-info`, `__station-handle`, `__station-away`, `__auth-strip`, `__auth-tag`, `__auth-btn`, `__feed`, `__msg`, `__msg--out`, `__msg--in`, `__msg--sys`, `__form`, `__textarea`, `__footer`, `__counter`, `__btn-send`)
+- `.pager-led`: Status indicator dot (`--online` green, `--away` amber, `--offline` grey)
 
 ### 4.2 Credential Security & Dual-Channel Authentication
 - **Encryption at Rest:** Static hosting credentials (GitHub PATs, Neocities API keys, SFTP passwords) must be **encrypted at rest** using AES-256-GCM (`users.deployment_credentials`). Never return sensitive credentials in API responses.

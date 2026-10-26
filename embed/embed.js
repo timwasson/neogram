@@ -17,8 +17,21 @@
           this.renderFeed(el);
         } else if (type === 'guestbook') {
           this.renderGuestbook(el);
+        } else if (type === 'pager') {
+          this.renderPager(el);
         }
       }
+    },
+
+    renderPager: function (el) {
+      var station = el.getAttribute('data-station') || '';
+      if (!station) return;
+      var script = document.createElement('script');
+      script.src = '/embed/pager.js';
+      script.setAttribute('data-station', station);
+      var slug = el.getAttribute('data-slug');
+      if (slug) script.setAttribute('data-slug', slug);
+      document.body.appendChild(script);
     },
 
     renderCounter: function (el) {

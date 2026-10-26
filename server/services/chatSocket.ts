@@ -14,10 +14,15 @@ export interface ActiveSession {
   status: 'online' | 'away';
   awayMessage: string;
   connectedAt: Date;
+  isAnonymous?: boolean;
+  targetStationId?: string;
+  targetStationHandle?: string;
 }
 
 // In-memory active presence map keyed by userId
 export const activeSockets = new Map<string, ActiveSession>();
+// In-memory active anonymous pager sockets map keyed by anonHandle
+export const activeAnonSockets = new Map<string, ActiveSession>();
 
 /**
  * Broadcasts a presence or network event to all connected sockets
@@ -46,13 +51,21 @@ export function initChatWebSocketServer(server: http.Server) {
 
   wss.on('connection', async (ws: WebSocket, req: http.IncomingMessage) => {
     let authenticatedUser: any = null;
+    let isAnonymousPager = false;
+    let anonHandle = '';
+    let targetStation: any = null;
 
     try {
+      const urlObj = req.url ? new URL(req.url, 'http://localhost') : null;
+      const isPagerParam = urlObj?.searchParams.get('pager') === 'true';
+      const stationParam = urlObj?.searchParams.get('station');
+
       // 0. Verify Origin to prevent Cross-Site WebSocket Hijacking (CSWSH)
       const origin = req.headers.origin;
       if (origin) {
         const { config } = await import('../config');
         const isAllowedOrigin =
+          isPagerParam ||
           origin === config.appUrl ||
           origin.startsWith('http://localhost:') ||
           origin.startsWith('http://127.0.0.1:') ||
@@ -65,6 +78,17 @@ export function initChatWebSocketServer(server: http.Server) {
           console.warn(`[:> WEBSOCKET CSWSH BLOCKED] Rejected connection from unauthorized origin: ${origin}`);
           ws.send(JSON.stringify({ type: 'error', code: 'FORBIDDEN_ORIGIN', message: 'Cross-site WebSocket connection rejected' }));
           ws.close(4003, 'Forbidden origin');
+          return;
+        }
+      }
+
+      // Check if this is an embedded pager connection targeted to a station
+      if (isPagerParam && stationParam) {
+        const { findUserByHandleOrId } = await import('../routes/embeds');
+        targetStation = await findUserByHandleOrId(stationParam);
+        if (!targetStation) {
+          ws.send(JSON.stringify({ type: 'error', code: 'STATION_NOT_FOUND', message: 'Station node not found.' }));
+          ws.close(4004, 'Station not found');
           return;
         }
       }
@@ -82,8 +106,7 @@ export function initChatWebSocketServer(server: http.Server) {
       }
 
       // Fallback: Check url query params (e.g. ?token=... or ?handle=...)
-      if (!authenticatedUser && req.url) {
-        const urlObj = new URL(req.url, 'http://localhost');
+      if (!authenticatedUser && urlObj) {
         const tokenQuery = urlObj.searchParams.get('token');
         if (tokenQuery) {
           const payload = verifySessionToken(tokenQuery);
@@ -92,17 +115,101 @@ export function initChatWebSocketServer(server: http.Server) {
           }
         }
       }
+
+      // If unauthenticated and pager connection requested, check anonymous permissions
+      if (!authenticatedUser && isPagerParam && targetStation) {
+        const { getNotificationPreferences } = await import('./notificationService');
+        const prefs = await getNotificationPreferences(targetStation.id);
+
+        if (prefs.chatWidgetEnabled === false) {
+          ws.send(JSON.stringify({ type: 'error', code: 'WIDGET_DISABLED', message: 'Chat widget is disabled on this station.' }));
+          ws.close(4003, 'Widget disabled');
+          return;
+        }
+
+        if (prefs.allowAnonChat === false) {
+          ws.send(JSON.stringify({ type: 'error', code: 'ANON_CHAT_DISABLED', message: 'This station only accepts transmissions from verified Cyber-Pass members.' }));
+          ws.close(4003, 'Anonymous chat disabled');
+          return;
+        }
+
+        const rawAnon = urlObj.searchParams.get('anonHandle') || '';
+        const cleanAnon = rawAnon.trim().replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20);
+        anonHandle = cleanAnon || `guest_${Math.floor(1000 + Math.random() * 9000)}`;
+        isAnonymousPager = true;
+      }
     } catch (err) {
       console.warn('[:> WEBSOCKET AUTH ERROR]', err);
     }
 
-    if (!authenticatedUser) {
+    if (!authenticatedUser && !isAnonymousPager) {
       // Send error packet and terminate
       ws.send(JSON.stringify({ type: 'error', code: 'UNAUTHORIZED', message: 'Authentication required' }));
       ws.close(4001, 'Unauthorized');
       return;
     }
 
+    // A: Anonymous Pager Session
+    if (isAnonymousPager && targetStation) {
+      const anonUserId = `anon_${anonHandle}`;
+      const session: ActiveSession = {
+        userId: anonUserId,
+        handle: anonHandle,
+        email: `${anonHandle}@pager.local`,
+        ws,
+        isAlive: true,
+        status: 'online',
+        awayMessage: 'Browsing static site',
+        connectedAt: new Date(),
+        isAnonymous: true,
+        targetStationId: targetStation.id,
+        targetStationHandle: targetStation.handle || targetStation.email.split('@')[0],
+      };
+
+      activeAnonSockets.set(anonHandle, session);
+      console.log(`[:> PAGER // CONNECTED] Anonymous visitor @${anonHandle} paging @${session.targetStationHandle}`);
+
+      ws.on('pong', () => {
+        session.isAlive = true;
+      });
+
+      // Send initial pager handshake with target station status
+      const targetActive = activeSockets.get(targetStation.id);
+      const targetStatus = targetActive ? targetActive.status : 'offline';
+      const targetAwayMsg = targetActive ? targetActive.awayMessage : (targetStation.status_message || 'Offline');
+
+      ws.send(JSON.stringify({
+        type: 'pager_init',
+        station: session.targetStationHandle,
+        uin: targetStation.uin,
+        status: targetStatus,
+        awayMessage: targetAwayMsg,
+        anonHandle,
+      }));
+
+      ws.on('message', async (data: Buffer | string) => {
+        try {
+          const parsed = JSON.parse(data.toString());
+          await handleClientMessage(session, parsed);
+        } catch (err: any) {
+          console.error('[:> WEBSOCKET PAGER PARSE ERROR]', err);
+          ws.send(JSON.stringify({ type: 'error', message: 'Invalid JSON payload' }));
+        }
+      });
+
+      ws.on('close', (code) => {
+        activeAnonSockets.delete(anonHandle);
+        console.log(`[:> PAGER // DISCONNECT] Anonymous visitor @${anonHandle} closed session. Code: ${code}`);
+      });
+
+      ws.on('error', (err) => {
+        console.error(`[:> PAGER ERROR @${anonHandle}]`, err);
+      });
+
+      return;
+    }
+
+    // B: Authenticated User Session
     const userId = authenticatedUser.id;
     const handle = authenticatedUser.handle || authenticatedUser.email.split('@')[0];
 
@@ -198,6 +305,17 @@ export function initChatWebSocketServer(server: http.Server) {
       session.isAlive = false;
       session.ws.ping();
     }
+
+    // Ping active anonymous pager sockets
+    for (const [anonHandle, session] of activeAnonSockets.entries()) {
+      if (!session.isAlive) {
+        session.ws.terminate();
+        activeAnonSockets.delete(anonHandle);
+        continue;
+      }
+      session.isAlive = false;
+      session.ws.ping();
+    }
   }, 30000);
 
   // Auto-prune expired offline messages every 15 minutes
@@ -284,11 +402,11 @@ export async function refreshUserBuddyList(userId: string) {
 async function flushOfflineQueue(ws: WebSocket, userId: string) {
   try {
     const queueRes = await query(
-      `SELECT q.id, q.body, q.created_at, 
-              COALESCE(u.handle, split_part(u.email, '@', 1)) as "fromHandle",
+      `SELECT q.id, q.body, q.created_at, q.sender_handle, q.is_anonymous,
+              COALESCE(u.handle, split_part(u.email, '@', 1), q.sender_handle, 'Anonymous') as "fromHandle",
               u.id as "fromId"
        FROM ephemeral_chat_queue q
-       JOIN users u ON q.sender_id = u.id
+       LEFT JOIN users u ON q.sender_id = u.id
        WHERE q.receiver_id = $1 AND q.expires_at > CURRENT_TIMESTAMP
        ORDER BY q.created_at ASC`,
       [userId]
@@ -305,10 +423,12 @@ async function flushOfflineQueue(ws: WebSocket, userId: string) {
         type: 'direct_message',
         id: msg.id,
         from: msg.fromHandle,
-        fromId: msg.fromId,
+        fromId: msg.fromId || null,
         text: msg.body,
         timestamp: msg.created_at,
         wasQueued: true,
+        isAnonymous: !!msg.is_anonymous || !msg.fromId,
+        isPager: !!msg.is_anonymous,
       }));
       deliveredIds.push(msg.id);
     }
@@ -364,11 +484,47 @@ async function handleClientMessage(sender: ActiveSession, msg: any) {
       const { to, text, id } = msg;
       if (!to || !text || !text.trim()) return;
 
-      const trimmedText = text.trim().slice(0, 2000);
+      // Restrict anonymous pager sender to only transmitting to their target station
+      if (sender.isAnonymous && sender.targetStationHandle && to !== sender.targetStationHandle) {
+        sender.ws.send(JSON.stringify({
+          type: 'message_error',
+          id,
+          error: `Transmissions from this widget may only be sent to @${sender.targetStationHandle}.`,
+        }));
+        return;
+      }
+
+      const maxLen = sender.isAnonymous ? 500 : 2000;
+      const trimmedText = text.trim().slice(0, maxLen);
       const msgId = id || `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
       const timestamp = new Date().toISOString();
 
-      // Find recipient user in DB or in-memory
+      // Check if recipient is an active anonymous session (e.g. station owner replying to visitor)
+      const anonRecipient = activeAnonSockets.get(to);
+      if (anonRecipient && anonRecipient.ws.readyState === WebSocket.OPEN) {
+        anonRecipient.ws.send(JSON.stringify({
+          type: 'direct_message',
+          id: msgId,
+          from: sender.handle,
+          fromId: sender.userId,
+          to: to,
+          text: trimmedText,
+          timestamp,
+          wasQueued: false,
+          isPager: true,
+        }));
+
+        sender.ws.send(JSON.stringify({
+          type: 'message_status',
+          id: msgId,
+          to: to,
+          status: 'delivered',
+          timestamp,
+        }));
+        return;
+      }
+
+      // Find recipient user in DB
       const recipientRes = await query(
         `SELECT id, COALESCE(handle, split_part(email, '@', 1)) as handle
          FROM users
@@ -377,10 +533,13 @@ async function handleClientMessage(sender: ActiveSession, msg: any) {
       );
 
       if (recipientRes.rows.length === 0) {
+        const isAnonTarget = to.startsWith('guest_') || to.startsWith('surfer_') || to.startsWith('anon_');
         sender.ws.send(JSON.stringify({
           type: 'message_error',
           id: msgId,
-          error: `User @${to} not found on Neogram network.`,
+          error: isAnonTarget
+            ? `Anonymous visitor @${to} has closed their browser session.`
+            : `User @${to} not found on Neogram network.`,
         }));
         return;
       }
@@ -394,11 +553,13 @@ async function handleClientMessage(sender: ActiveSession, msg: any) {
           type: 'direct_message',
           id: msgId,
           from: sender.handle,
-          fromId: sender.userId,
+          fromId: sender.isAnonymous ? null : sender.userId,
           to: recipient.handle,
           text: trimmedText,
           timestamp,
           wasQueued: false,
+          isAnonymous: !!sender.isAnonymous,
+          isPager: !!sender.isAnonymous,
         }));
 
         // Send delivery confirmation back to sender
@@ -411,11 +572,19 @@ async function handleClientMessage(sender: ActiveSession, msg: any) {
         }));
       } else {
         // Recipient is offline: Place into ephemeral 24-hour holding queue
-        await query(
-          `INSERT INTO ephemeral_chat_queue (sender_id, receiver_id, body)
-           VALUES ($1, $2, $3)`,
-          [sender.userId, recipient.id, trimmedText]
-        );
+        if (sender.isAnonymous) {
+          await query(
+            `INSERT INTO ephemeral_chat_queue (sender_id, sender_handle, is_anonymous, receiver_id, body)
+             VALUES (NULL, $1, TRUE, $2, $3)`,
+            [sender.handle, recipient.id, trimmedText]
+          );
+        } else {
+          await query(
+            `INSERT INTO ephemeral_chat_queue (sender_id, sender_handle, is_anonymous, receiver_id, body)
+             VALUES ($1, $2, FALSE, $3, $4)`,
+            [sender.userId, sender.handle, recipient.id, trimmedText]
+          );
+        }
 
         sender.ws.send(JSON.stringify({
           type: 'message_status',
@@ -430,12 +599,12 @@ async function handleClientMessage(sender: ActiveSession, msg: any) {
       import('./notificationService').then((m) => {
         m.dispatchNotification({
           userId: recipient.id,
-          actorId: sender.userId,
+          actorId: sender.isAnonymous ? null : sender.userId,
           type: 'nim',
-          title: `New transmission from @${sender.handle}`,
-          body: 'Sent you an instant message via NIM.',
+          title: sender.isAnonymous ? `📟 Pager transmission from @${sender.handle}` : `New transmission from @${sender.handle}`,
+          body: sender.isAnonymous ? trimmedText.slice(0, 100) : 'Sent you an instant message via NIM.',
           linkUrl: `/#nim?user=${sender.handle}`,
-          icon: '🗨️',
+          icon: sender.isAnonymous ? '📟' : '🗨️',
         }).catch(() => {});
       }).catch(() => {});
 
