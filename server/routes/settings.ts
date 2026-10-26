@@ -4,6 +4,7 @@ import { query } from '../db';
 import { COOKIE_NAME, verifySessionToken, extractToken, signSessionToken, setSessionCookie, clearSessionCookie } from '../auth/jwt';
 import { encryptCredentials, decryptCredentials, maskApiKey, NeocitiesCredentials } from '../utils/crypto';
 import { testNeocitiesConnection, deployToNeocities } from '../services/neocitiesPublisher';
+import { testNekowebConnection, deployToNekoweb } from '../services/nekowebPublisher';
 import { processAvatarBuffer } from '../services/imageProcessor';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -216,11 +217,13 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
         }
         finalSiteUrl = trimmed.slice(0, 500);
       }
-    } else if (creds.siteName) {
-      finalSiteUrl = `https://${creds.siteName}.neocities.org`;
     }
 
     const finalDeployType = deploymentType || existingUser.deployment_type || 'neocities';
+    if (!finalSiteUrl && creds.siteName) {
+      const hostDomain = finalDeployType === 'nekoweb' ? 'nekoweb.org' : 'neocities.org';
+      finalSiteUrl = `https://${creds.siteName}.${hostDomain}`;
+    }
     const finalAutoDeploy = typeof autoDeploy === 'boolean' ? autoDeploy : !!existingUser.auto_deploy;
     const finalBuildHtml = typeof buildHtml === 'boolean' ? buildHtml : (existingUser.build_html !== false);
 
@@ -368,6 +371,142 @@ settingsRouter.post('/settings/test-neocities', async (req: Request, res: Respon
 });
 
 /**
+ * 3b. POST /api/settings/test-nekoweb - Test Nekoweb connection with either provided key or stored key
+ */
+settingsRouter.post('/settings/test-nekoweb', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.userId;
+    const { apiKey, siteId } = req.body;
+
+    let keyToTest: string | null = null;
+
+    if (apiKey && typeof apiKey === 'string' && !apiKey.startsWith('••••') && apiKey.trim().length > 0) {
+      keyToTest = apiKey.trim();
+    } else {
+      // Look up stored key in database
+      if (siteId) {
+        const siteRes = await query('SELECT deployment_credentials FROM sites WHERE id = $1 AND user_id = $2', [siteId, userId]);
+        if (siteRes.rows.length > 0) {
+          const creds = decryptCredentials<NeocitiesCredentials>(siteRes.rows[0].deployment_credentials);
+          keyToTest = creds?.apiKey || null;
+        }
+      }
+      if (!keyToTest) {
+        const userRes = await query(
+          `SELECT deployment_credentials FROM users WHERE id = $1`,
+          [userId]
+        );
+        if (userRes.rows.length > 0) {
+          const creds = decryptCredentials<NeocitiesCredentials>(userRes.rows[0].deployment_credentials);
+          keyToTest = creds?.apiKey || null;
+        }
+      }
+    }
+
+    if (!keyToTest) {
+      res.status(400).json({
+        ok: false,
+        error: 'No Nekoweb API key provided or found in your stored profile.',
+      });
+      return;
+    }
+
+    const testResult = await testNekowebConnection(keyToTest);
+
+    if (!testResult.ok) {
+      res.status(400).json({
+        ok: false,
+        error: testResult.error || 'Nekoweb connection failed.',
+      });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      message: `Verified connection with Nekoweb domain: "${testResult.info?.domain}"`,
+      info: testResult.info,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * 3c. POST /api/settings/test-connection - Unified connection tester for either provider
+ */
+settingsRouter.post('/settings/test-connection', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.userId;
+    const { provider, apiKey, siteId } = req.body;
+
+    const targetProvider = provider === 'nekoweb' ? 'nekoweb' : 'neocities';
+    if (targetProvider === 'nekoweb') {
+      let keyToTest: string | null = (apiKey && !apiKey.startsWith('••••')) ? apiKey.trim() : null;
+      if (!keyToTest) {
+        if (siteId) {
+          const siteRes = await query('SELECT deployment_credentials FROM sites WHERE id = $1 AND user_id = $2', [siteId, userId]);
+          if (siteRes.rows.length > 0) {
+            const creds = decryptCredentials<NeocitiesCredentials>(siteRes.rows[0].deployment_credentials);
+            keyToTest = creds?.apiKey || null;
+          }
+        }
+        if (!keyToTest) {
+          const userRes = await query('SELECT deployment_credentials FROM users WHERE id = $1', [userId]);
+          if (userRes.rows.length > 0) {
+            const creds = decryptCredentials<NeocitiesCredentials>(userRes.rows[0].deployment_credentials);
+            keyToTest = creds?.apiKey || null;
+          }
+        }
+      }
+
+      if (!keyToTest) {
+        res.status(400).json({ ok: false, error: 'No Nekoweb API key provided.' });
+        return;
+      }
+
+      const result = await testNekowebConnection(keyToTest);
+      if (!result.ok) {
+        res.status(400).json({ ok: false, error: result.error });
+        return;
+      }
+      res.json({ ok: true, provider: 'nekoweb', message: `Verified Nekoweb domain: "${result.info?.domain}"`, info: result.info });
+    } else {
+      let keyToTest: string | null = (apiKey && !apiKey.startsWith('••••')) ? apiKey.trim() : null;
+      if (!keyToTest) {
+        if (siteId) {
+          const siteRes = await query('SELECT deployment_credentials FROM sites WHERE id = $1 AND user_id = $2', [siteId, userId]);
+          if (siteRes.rows.length > 0) {
+            const creds = decryptCredentials<NeocitiesCredentials>(siteRes.rows[0].deployment_credentials);
+            keyToTest = creds?.apiKey || null;
+          }
+        }
+        if (!keyToTest) {
+          const userRes = await query('SELECT deployment_credentials FROM users WHERE id = $1', [userId]);
+          if (userRes.rows.length > 0) {
+            const creds = decryptCredentials<NeocitiesCredentials>(userRes.rows[0].deployment_credentials);
+            keyToTest = creds?.apiKey || null;
+          }
+        }
+      }
+
+      if (!keyToTest) {
+        res.status(400).json({ ok: false, error: 'No Neocities API key provided.' });
+        return;
+      }
+
+      const result = await testNeocitiesConnection(keyToTest);
+      if (!result.ok) {
+        res.status(400).json({ ok: false, error: result.error });
+        return;
+      }
+      res.json({ ok: true, provider: 'neocities', message: `Verified Neocities site: "${result.info?.sitename}"`, info: result.info });
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * 4. POST /api/deploy/neocities - Trigger immediate live deployment of user's 11ty static gallery
  */
 settingsRouter.post('/deploy/neocities', async (req: Request, res: Response, next: NextFunction) => {
@@ -385,6 +524,28 @@ settingsRouter.post('/deploy/neocities', async (req: Request, res: Response, nex
     res.status(400).json({
       ok: false,
       error: err.message || 'Deployment to Neocities failed.',
+    });
+  }
+});
+
+/**
+ * 4b. POST /api/deploy/nekoweb - Trigger immediate live deployment to Nekoweb
+ */
+settingsRouter.post('/deploy/nekoweb', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.userId;
+    const deployResult = await deployToNekoweb(userId);
+    res.json({
+      ok: true,
+      message: deployResult.message,
+      filesCount: deployResult.filesCount,
+      durationMs: deployResult.durationMs,
+      siteUrl: deployResult.siteUrl,
+    });
+  } catch (err: any) {
+    res.status(400).json({
+      ok: false,
+      error: err.message || 'Deployment to Nekoweb failed.',
     });
   }
 });

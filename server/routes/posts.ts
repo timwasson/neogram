@@ -300,11 +300,17 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
       console.warn('[:> STATIC-STORAGE] Could not write initial comments file:', _initErr);
     }
 
-    // 5. Build static gallery and deploy immediately to Neocities if connected
+    // 5. Build static gallery and deploy immediately to host if connected
     if (hasApiKey) {
-      const { deployToNeocities } = await import('../services/neocitiesPublisher');
-      await deployToNeocities(targetSite.id, true);
-      console.log(`[:> ZERO-RETENTION PIPELINE] Deployed live to Neocities for site ${targetSite.id} (user ${user.id})`);
+      if (targetSite.deploymentType === 'nekoweb') {
+        const { deployToNekoweb } = await import('../services/nekowebPublisher');
+        await deployToNekoweb(targetSite.id, true);
+        console.log(`[:> ZERO-RETENTION PIPELINE] Deployed live to Nekoweb for site ${targetSite.id} (user ${user.id})`);
+      } else {
+        const { deployToNeocities } = await import('../services/neocitiesPublisher');
+        await deployToNeocities(targetSite.id, true);
+        console.log(`[:> ZERO-RETENTION PIPELINE] Deployed live to Neocities for site ${targetSite.id} (user ${user.id})`);
+      }
     } else {
       const { buildStaticGallery } = await import('../services/staticBuilder');
       await buildStaticGallery({ siteId: targetSite.id, userId: user.id });
@@ -338,8 +344,8 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
     res.status(201).json({
       ok: true,
       message: hasApiKey
-        ? 'Photo published live to your Neocities site!'
-        : 'Photo published to your Cyberspace Station profile! (Connect Neocities in Settings whenever you want to sync live to your static site)',
+        ? `Photo published live to your ${targetSite.deploymentType === 'nekoweb' ? 'Nekoweb' : 'Neocities'} site!`
+        : 'Photo published to your Cyberspace Station profile! (Connect Neocities or Nekoweb in Settings whenever you want to sync live to your static site)',
       isSandbox: !hasApiKey,
       post: {
         id: newPost.id,
@@ -707,6 +713,9 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
     import('../services/neocitiesPublisher')
       .then((m) => m.triggerAutoDeployIfEnabled(postSiteId || updated.user_id))
       .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
+    import('../services/nekowebPublisher')
+      .then((m) => m.triggerNekowebAutoDeployIfEnabled(postSiteId || updated.user_id))
+      .catch((err) => console.error('[:> NEKOWEB AUTO-DEPLOY] Hook error:', err));
 
     res.json({
       ok: true,
@@ -759,17 +768,22 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     // 2. Delete post row from PostgreSQL (comments cascade delete)
     await query('DELETE FROM posts WHERE id = $1', [id]);
 
-    // 3. Purge remote files from Neocities if post was hosted on Neocities
-    if (image_path && (image_path.includes('.neocities.org') || image_path.includes('/uploads/'))) {
-      const { deleteFromNeocities } = await import('../services/neocitiesPublisher');
+    // 3. Purge remote files from host if post was hosted externally
+    if (image_path && (image_path.includes('.neocities.org') || image_path.includes('.nekoweb.org') || image_path.includes('/uploads/'))) {
       const cleanRel = (p: string) => p.replace(/^https?:\/\/[^\/]+\//, '').replace(/^\/+/, '');
       const filesToDelete = [
         image_path ? cleanRel(image_path) : null,
         thumbnail_path ? cleanRel(thumbnail_path) : null
       ].filter(Boolean) as string[];
 
+      const { deleteFromNeocities } = await import('../services/neocitiesPublisher');
       deleteFromNeocities(site_id || user.id, filesToDelete).catch((err) => {
         console.warn('[:> NEOCITIES DELETE] Warning: could not purge remote files:', err);
+      });
+
+      const { deleteFromNekoweb } = await import('../services/nekowebPublisher');
+      deleteFromNekoweb(site_id || user.id, filesToDelete).catch((err) => {
+        console.warn('[:> NEKOWEB DELETE] Warning: could not purge remote files:', err);
       });
     }
 
@@ -798,6 +812,9 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
       import('../services/neocitiesPublisher')
         .then((m) => m.triggerAutoDeployIfEnabled(site_id || user_id))
         .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
+      import('../services/nekowebPublisher')
+        .then((m) => m.triggerNekowebAutoDeployIfEnabled(site_id || user_id))
+        .catch((err) => console.error('[:> NEKOWEB AUTO-DEPLOY] Hook error:', err));
     }
 
     // Cascading rebuild of all friends/followers who follow this user

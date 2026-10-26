@@ -63,9 +63,14 @@ export function getDeployPathPrefix(user: any): string {
  */
 export async function readRemoteJson<T>(user: any, relPath: string, defaultValue: T): Promise<T> {
   const deployPrefix = getDeployPathPrefix(user);
-  const baseSiteUrl = user.site_url
-    ? user.site_url.replace(/\/+$/, '')
-    : `https://${user.handle || 'user'}.neocities.org`;
+  let baseSiteUrl = user.site_url ? user.site_url.replace(/\/+$/, '') : '';
+  if (!baseSiteUrl) {
+    if (user.deployment_type === 'nekoweb') {
+      baseSiteUrl = `https://${user.handle || 'user'}.nekoweb.org`;
+    } else {
+      baseSiteUrl = `https://${user.handle || 'user'}.neocities.org`;
+    }
+  }
 
   const remoteUrl = deployPrefix
     ? `${baseSiteUrl}/${deployPrefix}/${relPath}`
@@ -174,14 +179,15 @@ export async function writeRemoteJson(user: any, relPath: string, data: any): Pr
         return false;
       }
     } else if (deploymentType === 'nekoweb') {
-      // Ready for Nekoweb API deployment
       try {
         const formData = new FormData();
         const blob = new Blob([Buffer.from(jsonString)], { type: 'application/json' });
-        formData.append('pathname', remotePath);
-        formData.append('file', blob, path.basename(remotePath));
+        const dirPath = path.posix.dirname(remotePath);
+        const normalizedDirPath = dirPath === '.' ? '/' : (dirPath.startsWith('/') ? dirPath : `/${dirPath}`);
+        formData.append('pathname', normalizedDirPath);
+        formData.append('files', blob, path.basename(remotePath));
 
-        const res = await fetch('https://nekoweb.org/api/site/upload', {
+        const res = await fetch('https://nekoweb.org/api/files/upload', {
           method: 'POST',
           headers: {
             'Authorization': apiKey,
@@ -189,7 +195,14 @@ export async function writeRemoteJson(user: any, relPath: string, data: any): Pr
           body: formData,
         });
 
-        return res.ok;
+        const resData = (await res.json().catch(() => ({}))) as any;
+        if (!res.ok) {
+          console.warn(`[:> NEKOWEB UPLOAD] Warning for ${remotePath}:`, resData);
+          return false;
+        }
+
+        console.log(`[:> NEKOWEB UPLOAD] Successfully updated remote JSON: ${remotePath}`);
+        return true;
       } catch (nekoErr) {
         console.error(`[:> NEKOWEB UPLOAD] Failure uploading ${remotePath}:`, nekoErr);
         return false;

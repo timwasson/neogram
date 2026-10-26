@@ -11,6 +11,8 @@
       "DOM.Iterable"
     ],
     "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",

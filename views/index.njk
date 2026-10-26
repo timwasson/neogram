@@ -984,10 +984,10 @@
                         </div>
                         <div>
                           <label class="block font-bold mb-1">Host Provider:</label>
-                          <select id="newSiteDeployType" class="retro-input text-xs">
+                          <select id="newSiteDeployType" class="retro-input text-xs" onchange="updateNewSiteProviderUI()">
                             <option value="neocities" selected>Neocities</option>
+                            <option value="nekoweb">Nekoweb (Live REST API)</option>
                             <option value="none">Cold-Start / Sandbox</option>
-                            <option value="nekoweb" disabled>Nekoweb (v1.1)</option>
                             <option value="github" disabled>GitHub Pages (v1.1)</option>
                             <option value="sftp" disabled>SFTP (v1.1)</option>
                           </select>
@@ -1199,9 +1199,10 @@
                     <label class="block text-xs font-bold mb-1">
                       Target Hosting Provider:
                     </label>
-                    <select id="settingsDeployType" name="deploymentType" class="retro-input text-xs">
+                    <select id="settingsDeployType" name="deploymentType" class="retro-input text-xs" onchange="updateProviderSettingsUI()">
                       <option value="neocities" selected>Neocities (Direct REST API v1.0 — Live)</option>
-                      <option value="nekoweb" disabled>Nekoweb (REST API v1 — Arriving in v1.1)</option>
+                      <option value="nekoweb">Nekoweb (Direct REST API v1.0 — Live)</option>
+                      <option value="none">Cold-Start / Sandbox (Internal Station Profile)</option>
                       <option value="github" disabled>GitHub Pages (Git Commit Pipeline — Arriving in v1.1)</option>
                       <option value="sftp" disabled>SFTP / SSH Static Sync — Arriving in v1.1</option>
                     </select>
@@ -1209,7 +1210,7 @@
 
                   <!-- Sitename -->
                   <div>
-                    <label for="settingsSiteName" class="block text-xs font-bold mb-1">
+                    <label for="settingsSiteName" id="settingsSiteSubdomainLabel" class="block text-xs font-bold mb-1">
                       Neocities Site Subdomain / Name:
                     </label>
                     <div class="flex items-center gap-2">
@@ -1221,7 +1222,7 @@
                         class="retro-input text-xs flex-1"
                         oninput="updateSiteUrlPreview()"
                       />
-                      <span class="text-xs font-mono text-muted">.neocities.org</span>
+                      <span id="settingsSiteSubdomainSuffix" class="text-xs font-mono text-muted">.neocities.org</span>
                     </div>
                   </div>
 
@@ -1273,15 +1274,16 @@
                   <div>
                     <div class="flex items-center justify-between mb-1 flex-wrap gap-1">
                       <div class="flex items-center gap-2">
-                        <label for="settingsApiKey" class="text-xs font-bold">
+                        <label for="settingsApiKey" id="settingsApiKeyLabel" class="text-xs font-bold">
                           Neocities API Key:
                         </label>
                         <a
                           href="https://neocities.org/settings#api_key"
+                          id="settingsGetKeyBtn"
                           target="_blank"
                           rel="noopener noreferrer"
                           class="pixel-btn pixel-btn--sm pixel-btn--yellow text-3xs font-bold py-0.5 px-1.5"
-                          title="Open your Neocities API Key settings in new tab"
+                          title="Open your API Key settings in new tab"
                         >
                           <span>🔑 GET KEY FROM NEOCITIES ↗</span>
                         </a>
@@ -3013,8 +3015,11 @@
     var urlInput = document.getElementById('settingsSiteUrl');
     var deployPathInput = document.getElementById('settingsDeployPath');
     var previewEl = document.getElementById('deployUrlPreview');
+    var deployTypeEl = document.getElementById('settingsDeployType');
+    var isNeko = deployTypeEl && deployTypeEl.value === 'nekoweb';
+    var domainSuffix = isNeko ? 'nekoweb.org' : 'neocities.org';
 
-    var base = 'https://' + (sitename || 'user') + '.neocities.org';
+    var base = 'https://' + (sitename || 'user') + '.' + domainSuffix;
     if (sitename) {
       urlInput.value = base;
     }
@@ -3022,6 +3027,43 @@
     if (previewEl) {
       var finalUrl = folder ? (base + '/' + folder + '/') : (base + '/');
       previewEl.textContent = finalUrl;
+    }
+  }
+
+  function updateProviderSettingsUI() {
+    var deployTypeEl = document.getElementById('settingsDeployType');
+    var isNeko = deployTypeEl && deployTypeEl.value === 'nekoweb';
+    var domainSuffixEl = document.getElementById('settingsSiteSubdomainSuffix');
+    var labelEl = document.getElementById('settingsSiteSubdomainLabel');
+    var keyLabelEl = document.getElementById('settingsApiKeyLabel');
+    var getKeyBtnEl = document.getElementById('settingsGetKeyBtn');
+    var deployBtn = document.getElementById('deployNowBtn');
+
+    if (domainSuffixEl) domainSuffixEl.textContent = isNeko ? '.nekoweb.org' : '.neocities.org';
+    if (labelEl) labelEl.textContent = isNeko ? 'Nekoweb Site Subdomain / Name:' : 'Neocities Site Subdomain / Name:';
+    if (keyLabelEl) keyLabelEl.textContent = isNeko ? 'Nekoweb API Key:' : 'Neocities API Key:';
+    if (getKeyBtnEl) {
+      getKeyBtnEl.href = isNeko ? 'https://nekoweb.org/settings' : 'https://neocities.org/settings#api_key';
+      var span = getKeyBtnEl.querySelector('span');
+      if (span) span.textContent = isNeko ? '🔑 GET KEY FROM NEKOWEB ↗' : '🔑 GET KEY FROM NEOCITIES ↗';
+    }
+    if (deployBtn) {
+      var deploySpan = deployBtn.querySelector('span') || deployBtn;
+      deploySpan.textContent = isNeko ? '🚀 DEPLOY TO NEKOWEB NOW :>' : '🚀 DEPLOY TO NEOCITIES NOW :>';
+    }
+    updateSiteUrlPreview();
+  }
+
+  function updateNewSiteProviderUI() {
+    var type = document.getElementById('newSiteDeployType').value;
+    var urlInput = document.getElementById('newSiteUrl');
+    if (!urlInput) return;
+    if (type === 'nekoweb') {
+      urlInput.placeholder = 'https://yoursite.nekoweb.org';
+    } else if (type === 'none') {
+      urlInput.placeholder = 'None (Cold-start station profile)';
+    } else {
+      urlInput.placeholder = 'https://yoursite.neocities.org';
     }
   }
 
@@ -3397,8 +3439,8 @@
       document.getElementById('settingsSiteName').value = s.siteName || '';
       document.getElementById('settingsSiteUrl').value = s.siteUrl || '';
       document.getElementById('settingsDeployPath').value = (s.deployPath !== undefined && s.deployPath !== null) ? s.deployPath : 'neogram';
-      updateSiteUrlPreview();
       if (s.deploymentType) document.getElementById('settingsDeployType').value = s.deploymentType;
+      updateProviderSettingsUI();
       document.getElementById('settingsAutoDeploy').checked = !!s.autoDeploy;
       if (document.getElementById('settingsBuildHtml')) {
         document.getElementById('settingsBuildHtml').checked = s.buildHtml !== false;
@@ -3498,16 +3540,19 @@
     var testBtn = document.getElementById('testConnectionBtn');
     var apiKey = document.getElementById('settingsApiKey').value.trim();
     var indicator = document.getElementById('remoteNodeIndicator');
+    var deployType = document.getElementById('settingsDeployType').value;
+    var providerName = deployType === 'nekoweb' ? 'Nekoweb' : 'Neocities';
+    var testEndpoint = deployType === 'nekoweb' ? '/api/settings/test-nekoweb' : '/api/settings/test-neocities';
 
     testBtn.disabled = true;
     testBtn.textContent = 'PROBING...';
     indicator.textContent = 'NEGOTIATING...';
     indicator.className = 'text-xs font-mono text-mac';
 
-    appendTelemetryLog('Pinging Neocities REST API (https://neocities.org/api/info)...');
+    appendTelemetryLog('Pinging ' + providerName + ' REST API (' + testEndpoint + ')...');
 
     try {
-      var res = await fetch('/api/settings/test-neocities', {
+      var res = await fetch(testEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey: apiKey })
@@ -3520,20 +3565,29 @@
       indicator.textContent = 'ONLINE [VERIFIED]';
       indicator.className = 'text-xs font-mono text-prompt font-bold';
 
-      document.getElementById('remoteSitename').textContent = info.sitename + '.neocities.org';
-      document.getElementById('remoteViews').textContent = Number(info.views).toLocaleString();
-      document.getElementById('remoteHits').textContent = Number(info.hits).toLocaleString();
-      document.getElementById('remoteLastUpdated').textContent = info.last_updated ? new Date(info.last_updated).toLocaleString() : 'N/A';
-      document.getElementById('remoteProfileLink').href = 'https://neocities.org/site/' + info.sitename;
-
-      appendTelemetryLog('Verified site "' + info.sitename + '" | Views: ' + info.views + ' | Hits: ' + info.hits);
+      if (deployType === 'nekoweb') {
+        var domain = info.domain || 'site';
+        document.getElementById('remoteSitename').textContent = domain + (domain.includes('.') ? '' : '.nekoweb.org');
+        document.getElementById('remoteViews').textContent = Number(info.views || 0).toLocaleString();
+        document.getElementById('remoteHits').textContent = Number(info.followers || 0).toLocaleString() + ' followers';
+        document.getElementById('remoteLastUpdated').textContent = info.last_updated ? new Date(info.last_updated).toLocaleString() : 'N/A';
+        document.getElementById('remoteProfileLink').href = 'https://' + domain + (domain.includes('.') ? '' : '.nekoweb.org');
+        appendTelemetryLog('Verified Nekoweb site "' + domain + '" | Views: ' + info.views);
+      } else {
+        document.getElementById('remoteSitename').textContent = info.sitename + '.neocities.org';
+        document.getElementById('remoteViews').textContent = Number(info.views).toLocaleString();
+        document.getElementById('remoteHits').textContent = Number(info.hits).toLocaleString();
+        document.getElementById('remoteLastUpdated').textContent = info.last_updated ? new Date(info.last_updated).toLocaleString() : 'N/A';
+        document.getElementById('remoteProfileLink').href = 'https://neocities.org/site/' + info.sitename;
+        appendTelemetryLog('Verified site "' + info.sitename + '" | Views: ' + info.views + ' | Hits: ' + info.hits);
+      }
       if (window.retroAudio) window.retroAudio.playSuccess();
     } catch (err) {
       indicator.textContent = 'AUTH FAILED';
       indicator.className = 'text-xs font-mono text-crimson font-bold';
-      appendTelemetryLog('Neocities probe failed: ' + err.message, true);
+      appendTelemetryLog(providerName + ' probe failed: ' + err.message, true);
       if (window.retroAudio) window.retroAudio.playError();
-      alert('Neocities API Test Failed: ' + err.message);
+      alert(providerName + ' API Test Failed: ' + err.message);
     } finally {
       testBtn.disabled = false;
       testBtn.textContent = '🧪 TEST CONNECTION';
@@ -3548,9 +3602,12 @@
     } catch(e) {}
     var deployBtn = document.getElementById('deployNowBtn');
     var durationLabel = document.getElementById('deployDurationLabel');
+    var deployType = document.getElementById('settingsDeployType').value;
+    var providerName = deployType === 'nekoweb' ? 'Nekoweb' : 'Neocities';
+    var deployEndpoint = deployType === 'nekoweb' ? '/api/deploy/nekoweb' : '/api/deploy/neocities';
 
     deployBtn.disabled = true;
-    deployBtn.textContent = '🚀 COMPILING & UPLOADING TO NEOCITIES...';
+    deployBtn.textContent = '🚀 COMPILING & UPLOADING TO ' + providerName.toUpperCase() + '...';
     durationLabel.textContent = 'TRANSMITTING...';
 
     appendTelemetryLog('Preparing personal 11ty static compilation for user...');
@@ -3558,22 +3615,22 @@
     try {
       appendTelemetryLog('Invoking Eleventy static compiler pipeline...');
       appendTelemetryLog('Packaging Sharp WebP assets and paginated photo pages...');
-      appendTelemetryLog('Connecting to Neocities API upload stream (28.8k baud)...');
+      appendTelemetryLog('Connecting to ' + providerName + ' API upload stream (28.8k baud)...');
 
-      var res = await fetch('/api/deploy/neocities', {
+      var res = await fetch(deployEndpoint, {
         method: 'POST'
       });
 
       var data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || 'Neocities deployment rejected.');
+      if (!res.ok || !data.ok) throw new Error(data.error || (providerName + ' deployment rejected.'));
 
-      appendTelemetryLog('[✓ SUCCESS] ' + data.filesCount + ' files uploaded to Neocities in ' + data.durationMs + 'ms!');
+      appendTelemetryLog('[✓ SUCCESS] ' + data.filesCount + ' files uploaded to ' + providerName + ' in ' + data.durationMs + 'ms!');
       var livePreviewEl = document.getElementById('deployUrlPreview');
       var liveUrl = data.siteUrl || (livePreviewEl ? livePreviewEl.textContent.trim() : '');
       if (liveUrl) {
         appendTelemetryLog('[:> LIVE GALLERY] Synced and online: ' + liveUrl + ' ', false, liveUrl);
       } else {
-        appendTelemetryLog('Live static gallery deployed to Neocities static host.');
+        appendTelemetryLog('Live static gallery deployed to ' + providerName + ' static host.');
       }
       durationLabel.textContent = 'DEPLOYED (' + data.durationMs + 'ms)';
 
@@ -3583,10 +3640,10 @@
       durationLabel.textContent = 'FAILED';
       appendTelemetryLog('Deployment error: ' + err.message, true);
       if (window.retroAudio) window.retroAudio.playError();
-      alert('Neocities Deployment Error: ' + err.message);
+      alert(providerName + ' Deployment Error: ' + err.message);
     } finally {
       deployBtn.disabled = false;
-      deployBtn.textContent = '🚀 DEPLOY TO NEOCITIES NOW :>';
+      deployBtn.textContent = '🚀 DEPLOY TO ' + providerName.toUpperCase() + ' NOW :>';
     }
   }
 

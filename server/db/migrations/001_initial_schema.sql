@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     auth_token VARCHAR(255),
     auth_token_expires_at TIMESTAMPTZ,
     site_url VARCHAR(500),
-    deployment_type VARCHAR(50) DEFAULT 'none' CHECK (deployment_type IN ('neocities', 'github', 'sftp', 'none')),
+    deployment_type VARCHAR(50) DEFAULT 'none' CHECK (deployment_type IN ('neocities', 'nekoweb', 'github', 'sftp', 'none')),
     deployment_credentials BYTEA, -- Encrypted credentials (AES-256-GCM)
     custom_css_url VARCHAR(500),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,

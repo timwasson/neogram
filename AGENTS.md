@@ -11,15 +11,15 @@
 **Neogram** is a lightweight SaaS suite designed for retro web enthusiasts (Neocities, GitHub Pages, self-hosted static site owners) that bridges mobile-first creation with 90s web nostalgia.
 
 It provides:
-1. **Mobile-to-Static Publishing Engine (PWA):** Snap or upload a photo, apply retro filters/shaders, write a caption, and publish it directly to personal static sites (via Neocities API, GitHub Pages commits, or SFTP).
+1. **Mobile-to-Static Publishing Engine (PWA):** Snap or upload a photo, apply retro filters/shaders, write a caption, and publish it directly to personal static sites (via Neocities API, Nekoweb API, GitHub Pages commits, or SFTP).
 2. **Centralized & Self-Hosted Social Layer:** Embeddable async JS/iframes that inject styled feeds, guestbook ledgers, and zero-retention self-hosted comment files onto static sites with 1-click Cyber-Pass authentication.
 3. **Legacy Retro Widgets:** Dynamic web hit counter images (LED/Nixie/Odometer/VFD) and guestbook ledgers permanently anchored to immutable numeric node UINs.
 4. **Retro Chat Browser Extension:** A Chrome/Firefox Manifest V3 sidebar/popup emulating classic 90s AIM/ICQ mechanics with buddy lists, DMs, sound chimes, and status messages.
-5. **Cyberspace Friends Network & Static Follow Grid:** Simple "Friends" engine with reciprocal 1-click adding, dedicated workstation Friends console (`/friends`), static `/friends/index.html` photo grid on Neocities, and concurrency-safe cascading FIFO rebuilds when friends broadcast new photographs.
+5. **Cyberspace Friends Network & Static Follow Grid:** Simple "Friends" engine with reciprocal 1-click adding, dedicated workstation Friends console (`/friends`), static `/friends/index.html` photo grid on Neocities/Nekoweb, and concurrency-safe cascading FIFO rebuilds when friends broadcast new photographs.
 6. **Cyberspace Station Directory & Presence Hub (`/directory`):** Public station white-pages categorizing registered nodes by live presence (Active 🟢, Away 🟡, Inactive ⚪) with deterministic alphabetical sorting and instant search filtering.
 7. **Interactive Cyberspace Documentation Center (`/docs`):** Complete user manuals, setup guides, and live session-interpolated embed snippets.
 8. **Configurable Cyberspace Notification Engine & In-App Alert Center (`[:> NOTIFY_CENTER.SYS]`):** Real-time WebSocket transmission alerts (`/ws/chat`), 8-bit synthesized audio chimes, native desktop/PWA service worker pushes, and a user dashboard configuration console (`[:> NOTIFICATION_DISPATCHER.CFG]`) to toggle delivery across 8 event types.
-9. **Headless Self-Hosted API & Static JSON Feeds:** Opt-out capability allowing users to disable 11ty static HTML generation (`users.build_html`) and compile/push strictly `feed.json`, `posts.json`, per-photo comment JSONs, and optimized media to their personal static host (Neocities), enabling custom bespoke frontends in Vanilla JavaScript, React, or Vue.
+9. **Headless Self-Hosted API & Static JSON Feeds:** Opt-out capability allowing users to disable 11ty static HTML generation (`users.build_html`) and compile/push strictly `feed.json`, `posts.json`, per-photo comment JSONs, and optimized media to their personal static host (Neocities or Nekoweb), enabling custom bespoke frontends in Vanilla JavaScript, React, or Vue.
 10. **Cold-Start Sandbox Publishing Mode:** Instant photo snaps and publication directly to station profiles (`/user/:handle`) without requiring an external Neocities account or API key first, giving creators immediate gratification and zero-friction onboarding.
 11. **Mobile Cyber-Pass & Cross-Domain SSO:** 1-click cross-domain authentication for static sites supporting desktop pop-up postMessage and mobile return URL redirect with `#neogram_pass=` hash token ingestion.
 12. **Indie Web Data Sovereignty & Account Decommissioning:** 1-click JSON station archive export (`GET /api/settings/export-archive`) and self-serve station wipe (`DELETE /api/settings/account`) enforcing zero data lock-in.
@@ -37,7 +37,7 @@ It provides:
 | **Static Site Generator** | **Eleventy (11ty v3)** | Compiles multi-tenant static photo galleries (`dist/static-galleries/<siteId>`) via FIFO BuildQueue |
 | **Server Templating** | **Nunjucks** | Fast, secure server-rendered dashboard & embed markup templates |
 | **Styling & Design System** | **Dart Sass + Vanilla CSS (NO TAILWIND)** | Modular SCSS (`src/styles/`), CSS variables, BEM components (`pixel-box`, `pixel-btn`, `retro-alert`, `baud-progress-bar`), CRT phosphor glow, and utility classes. **Tailwind CSS is strictly prohibited.** |
-| **Static Deploy Pipeline** | **Neocities API / GitHub API / SFTP** | Automated pushes of generated 11ty HTML & media to the user's static host |
+| **Static Deploy Pipeline** | **Neocities API / Nekoweb API / GitHub API / SFTP** | Automated pushes of generated 11ty HTML & media to the user's static host |
 | **Client Embeds** | **Vanilla JS + BEM Hooks** | Zero-dependency async embed scripts with strict BEM CSS hooks for user customization |
 | **Audio Synthesis** | **Web Audio API (`retroAudio`)** | Synthesized 8-bit beeps, shutter sounds, dial-up handshakes, click SFX |
 | **Chat Extension** | **WebExtension (Manifest V3)** | AIM/ICQ-style popup/sidebar chat client |
@@ -57,7 +57,7 @@ CREATE TABLE users (
     auth_token_expires_at TIMESTAMPTZ,
     site_url VARCHAR(500),
     deploy_path VARCHAR(200) DEFAULT 'neogram',
-    deployment_type VARCHAR(50) DEFAULT 'none' CHECK (deployment_type IN ('neocities', 'github', 'sftp', 'none')),
+    deployment_type VARCHAR(50) DEFAULT 'none' CHECK (deployment_type IN ('neocities', 'nekoweb', 'github', 'sftp', 'none')),
     deployment_credentials BYTEA, -- Encrypted credentials (AES-256-GCM)
     custom_css_url VARCHAR(500),
     avatar_path VARCHAR(500), -- 128x128 WebP profile avatar
@@ -258,11 +258,11 @@ CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read, cr
    - Copies stylesheets (`css/neogram.css`), uploads, and embed scripts into the user's static bundle.
    - **Self-Hosted JSON Feeds (`feed.json` & `posts.json`):** Always compiles and outputs structured JSON API feeds (`feed.json` and `posts.json`) directly into the user's root static distribution directory. These feeds provide full creator profile metadata (handle, UIN, avatar, site URL), published photo records, like counts, per-photo comments, and live interaction action URLs (`likeUrl`, `commentUrl`, `followUrl`).
    - **Headless API Mode (`users.build_html = false`):** When opted out via dashboard settings (`users.build_html = false`), 11ty HTML compilation is skipped entirely. Any existing HTML templates (`index.html`, `photos/`, `friends/`, `css/`, `js/`) are purged from the static bundle while strictly preserving `uploads/`, `feed.json`, `posts.json`, and comments JSONs. The publisher then pushes only the static JSON feeds and media to Neocities, enabling users to build bespoke frontends from scratch using Vanilla JavaScript, React, Vue, or Svelte.
-5. **Deployment Adapter (`server/services/neocitiesPublisher.ts`):**
-   - Reads decrypted Neocities API key and pushes multipart archive directly to `POST https://neocities.org/api/upload` from the user's isolated directory (`dist/static-galleries/<userId>/`).
-   - Probes remote site views and hits via `https://neocities.org/api/info`.
-   - Optional automatic deployment on post creation, edit, or deletion (`users.auto_deploy`).
-   - The manual rebuild endpoint (`POST /api/build-static`) automatically triggers `deployToNeocities(...)` when credentials exist.
+5. **Deployment Adapters (`neocitiesPublisher.ts` & `nekowebPublisher.ts`):**
+   - **Neocities (`server/services/neocitiesPublisher.ts`):** Reads decrypted Neocities API key and pushes multipart archive directly to `POST https://neocities.org/api/upload` from the user's isolated directory (`dist/static-galleries/<userId>/`). Probes remote site views and hits via `https://neocities.org/api/info`.
+   - **Nekoweb (`server/services/nekowebPublisher.ts`):** Reads decrypted Nekoweb API key and packages static gallery into in-memory ZIP archive using `archiver`. Initializes session via `GET https://nekoweb.org/api/files/big/create`, uploads archive via `POST https://nekoweb.org/api/files/big/append`, and executes server-side extraction directly into target subfolder via `POST https://nekoweb.org/api/files/import/:id`. Probes remote views and followers via `https://nekoweb.org/api/site/info`.
+   - Optional automatic deployment on post creation, edit, or deletion (`auto_deploy`).
+   - The manual rebuild endpoint (`POST /api/build-static` and `POST /api/sites/:id/deploy`) automatically dispatches to the configured host adapter.
 6. Centralized social layer: Visitors to static sites react and comment; comments post back to `/api/posts/:id/comments` and trigger an automated background 11ty rebuild in the queue.
 
 ### 4.4 Styling Architecture: Pure Custom Utilities & BEM (Strictly NO Tailwind)

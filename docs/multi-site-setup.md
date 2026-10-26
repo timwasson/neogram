@@ -59,9 +59,9 @@ Your creator identity (`@handle`, numeric ICQ `#uin`, avatar, and friends networ
 5. Enter your configuration:
    - **Target Site Name:** A friendly label (e.g. `Cyber Shrine 1999` or `Pixel Art Portfolio`).
    - **Unique Site Slug:** Lowercase identifier used in URLs (e.g. `shrine`, `portfolio`).
-   - **Target Provider:** `Neocities` (or upcoming Nekoweb / GitHub Pages).
-   - **Neocities Site Subdomain:** Your remote site name (e.g. `shrine` for `shrine.neocities.org`).
-   - **Neocities API Key:** The private API key for that specific Neocities account.
+   - **Target Provider:** `Neocities` or `Nekoweb` (with GitHub Pages & SFTP on roadmap).
+   - **Host Subdomain:** Your remote site name (e.g. `shrine` for `shrine.neocities.org` or `shrine.nekoweb.org`).
+   - **Host API Key:** The private API key for that specific host account.
    - **Target Subfolder:** The subfolder on your host (e.g. `shrine` or `neogram`).
 6. Click **`[ 🚀 PROVISION TARGET :> ]`**. Neogram saves and encrypts your target.
 

@@ -60,7 +60,7 @@ function formatSiteRow(row: any): Site {
   const creds = decryptCredentials<NeocitiesCredentials>(row.deployment_credentials);
   const hasApiKey = !!(creds && creds.apiKey);
   const maskedKey = hasApiKey ? maskApiKey(creds!.apiKey) : '';
-  const siteName = creds?.siteName || (row.site_url ? row.site_url.replace(/https?:\/\//, '').replace(/\.neocities\.org.*$/, '') : '');
+  const siteName = creds?.siteName || (row.site_url ? row.site_url.replace(/https?:\/\//, '').replace(/\.(neocities|nekoweb)\.org.*$/, '') : '');
   const deployPath = row.deploy_path !== null && row.deploy_path !== undefined ? row.deploy_path : 'neogram';
 
   return {
@@ -265,12 +265,13 @@ export async function createSite(userId: string, input: CreateSiteInput): Promis
     slug = `${slug}-${Math.floor(100 + Math.random() * 900)}`;
   }
 
-  let siteUrl = input.siteUrl && input.siteUrl.trim() ? input.siteUrl.trim() : `https://${handle}.neocities.org`;
+  const deploymentType = input.deploymentType || 'neocities';
+  const defaultBaseDomain = deploymentType === 'nekoweb' ? 'nekoweb.org' : 'neocities.org';
+  let siteUrl = input.siteUrl && input.siteUrl.trim() ? input.siteUrl.trim() : `https://${handle}.${defaultBaseDomain}`;
   if (!/^https?:\/\//i.test(siteUrl)) {
     siteUrl = `https://${siteUrl}`;
   }
 
-  const deploymentType = input.deploymentType || 'neocities';
   const deployPath = input.deployPath !== undefined ? sanitizeSlug(input.deployPath, '') : 'neogram';
   const autoDeploy = !!input.autoDeploy;
   const buildHtml = input.buildHtml !== false;

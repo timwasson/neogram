@@ -1,6 +1,6 @@
 # 📟 Neogram: 90s Retro Social Publishing Engine
 
-> A lightweight, privacy-first SaaS suite bridging mobile photo creation with 90s web nostalgia. Snap photos from your phone, apply vintage CRT and halftone shaders, and publish them directly to your personal static site (Neocities, GitHub Pages, or self-hosted) with zero permanent media storage on the server.
+> A lightweight, privacy-first SaaS suite bridging mobile photo creation with 90s web nostalgia. Snap photos from your phone, apply vintage CRT and halftone shaders, and publish them directly to your personal static site (Neocities, Nekoweb, or self-hosted) with zero permanent media storage on the server.
 
 ---
 
@@ -10,10 +10,11 @@
 - **Database:** PostgreSQL (Docker or managed) with automated migrations
 - **Image Processing:** Sharp (1200px max, 400px thumbnails, WebP compression, EXIF auto-rotation)
 - **Static Site Engine:** Eleventy (11ty v3) with FIFO `BuildQueue` serialization & multi-tenant isolation (`dist/static-galleries/<userId>/`)
-- **Design System:** Zero Tailwind. Pure Vanilla CSS compiled from Dart Sass (`public/css/neogram.css`). Dual-layer styling: workstation UI uses modular utility classes; static gallery output delivered to Neocities/GitHub Pages uses strict BEM classes for 1-click end-user CSS overrides
+- **Static Publishers:** Direct REST API automated deploy adapters for both **Neocities** (`POST /api/upload`) and **Nekoweb** (`/files/big/create`, `/files/big/append`, `/files/import/:id`)
+- **Design System:** Zero Tailwind. Pure Vanilla CSS compiled from Dart Sass (`public/css/neogram.css`). Dual-layer styling: workstation UI uses modular utility classes; static gallery output delivered to Neocities/Nekoweb uses strict BEM classes for 1-click end-user CSS overrides
 - **Audio Engine:** Web Audio API synthesized 8-bit clicks, camera shutters, success chimes, and dial-up tones
 - **Social & Widgets:** Dynamic SVG hit counters (`/counter/:handle.svg`), public station cyber-profiles (`/user/:id`), visitor guestbook, and JSONFeed 1.1 feeds
-- **Friends & Static Follow Grid:** Dedicated workstation `/friends` page, static `/friends/` photo gallery grid on Neocities, cascading follower rebuilds on post publication, and 1-click "Add Friend" on profiles and static site banners
+- **Friends & Static Follow Grid:** Dedicated workstation `/friends` page, static `/friends/` photo gallery grid on Neocities/Nekoweb, cascading follower rebuilds on post publication, and 1-click "Add Friend" on profiles and static site banners
 - **User Directory & Presence:** Cyberspace white-pages directory (`/directory` & `/api/directory`) with presence categorization (Active, Away, Inactive), search filtering, and profile linking
 - **Documentation Center:** Complete user guides and interactive embed manual (`/docs` & `docs/`) with step-by-step setup guides, sample embed codes for hit counters and guestbooks, and publishing pipeline deep-dives
 - **Instant Messenger:** WebSockets (`/ws/chat`) with ephemeral offline queue, client-side retention, categorized online/offline Friends and Cyberspace Stations buddy list, and Manifest V3 browser extension
@@ -23,9 +24,9 @@
 
 ## 🛡️ Key Safety & Privacy Invariants
 
-1. **Zero Server Media Retention (0 MB):** Image uploads are processed into ephemeral staging, uploaded directly to the creator's remote static site (Neocities), and immediately wiped from local disk upon confirmation. The Neogram server stores 0 bytes of user media.
-2. **Safe Subdirectory Publishing:** By default, Neogram publishes to `/neogram/` (e.g. `https://<user>.neocities.org/neogram/`). Existing homepages (`index.html`), personal blogs, or custom styling are **never modified or overwritten**.
-3. **Non-Destructive Deletion Invariant:** Remote deletions to Neocities are strictly restricted to `uploads/` matching the user's `deploy_path`. Non-Neogram files cannot be deleted.
+1. **Zero Server Media Retention (0 MB):** Image uploads are processed into ephemeral staging, uploaded directly to the creator's remote static site (Neocities or Nekoweb), and immediately wiped from local disk upon confirmation. The Neogram server stores 0 bytes of user media.
+2. **Safe Subdirectory Publishing:** By default, Neogram publishes to `/neogram/` (e.g. `https://<user>.neocities.org/neogram/` or `https://<user>.nekoweb.org/neogram/`). Existing homepages (`index.html`), personal blogs, or custom styling are **never modified or overwritten**.
+3. **Non-Destructive Deletion Invariant:** Remote deletions to Neocities and Nekoweb are strictly restricted to `uploads/` matching the user's `deploy_path`. Non-Neogram files cannot be deleted.
 4. **Permanent Node UIN (ICQ-Style):** Accounts receive an immutable numeric node ID (`users.uin`, sequence starting at `#100101`). Creators can freely edit their `@handle` without breaking third-party static site embeds or counters.
 5. **Semantic BEM Static Deliverables & Custom CSS:** The Eleventy static site engine compiles galleries using pure BEM markup (`.neogram-*`) with zero inline utility classes. Static site owners can link custom stylesheets (`users.custom_css_url`) or inject custom CSS on Neocities to effortlessly override any component's look without fighting specificity or needing `!important`.
 6. **Public Station Cyber-Identity (`/user/:id`):** Public station profiles resolve by UUID, `@handle`, or immutable `#uin`. Features avatar, live hit counter, status broadcast, photo stream, reciprocal "Add Friend" action, and clean links directly to the creator's root personal website without subdirectories.

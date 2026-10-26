@@ -1106,9 +1106,88 @@ async function runSmokeTests() {
     await query('DELETE FROM users WHERE id = $1', [newbieUser.id]);
 
     // -------------------------------------------------------------------------
-    // TEST 20: Safe Post Purge & Clean Teardown
+    // TEST 20: Nekoweb Hosting Integration & REST API Pipeline
     // -------------------------------------------------------------------------
-    logHeader('20. SAFE PURGE & TEARDOWN');
+    logHeader('20. NEKOWEB HOSTING INTEGRATION & REST API PIPELINE');
+
+    // 1. Test test-nekoweb endpoint with empty/invalid key
+    const nekoTestRes = await fetch(`${API_BASE}/api/settings/test-nekoweb`, {
+      method: 'POST',
+      headers: {
+        'Cookie': sessionCookie,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ apiKey: '' }),
+    });
+    assertTest('POST /api/settings/test-nekoweb with empty key returns HTTP 400', nekoTestRes.status === 400);
+
+    // 2. Test unified test-connection endpoint with provider: 'nekoweb'
+    const unifiedNekoRes = await fetch(`${API_BASE}/api/settings/test-connection`, {
+      method: 'POST',
+      headers: {
+        'Cookie': sessionCookie,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ provider: 'nekoweb', apiKey: 'dummy_invalid_key_123' }),
+    });
+    assertTest('POST /api/settings/test-connection with provider: nekoweb returns HTTP 400 on invalid key', unifiedNekoRes.status === 400);
+
+    // 3. Test provisioning a Nekoweb site target
+    const nekoSiteRes = await fetch(`${API_BASE}/api/sites`, {
+      method: 'POST',
+      headers: {
+        'Cookie': sessionCookie,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: 'Cat Cyber Shrine',
+        slug: 'cat-shrine',
+        deploymentType: 'nekoweb',
+        siteUrl: 'https://cybercat.nekoweb.org',
+        deployPath: 'shrine',
+      }),
+    });
+    assertTest('POST /api/sites with deploymentType: nekoweb returns HTTP 201 Created', nekoSiteRes.status === 201);
+    const nekoSiteData = await nekoSiteRes.json() as any;
+    const nekoSite = nekoSiteData.site;
+    assertTest('Nekoweb site target persisted with deploymentType "nekoweb"', nekoSite.deploymentType === 'nekoweb');
+    assertTest('Nekoweb site target has correct Nekoweb URL', nekoSite.siteUrl === 'https://cybercat.nekoweb.org');
+
+    // 4. Test deploying Nekoweb site target locally (when no key configured)
+    const nekoDeployRes = await fetch(`${API_BASE}/api/sites/${nekoSite.id}/deploy`, {
+      method: 'POST',
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('POST /api/sites/:id/deploy for Nekoweb site returns HTTP 200', nekoDeployRes.status === 200);
+    const nekoDeployData = await nekoDeployRes.json() as any;
+    assertTest('Nekoweb deploy response confirms local build success', nekoDeployData.ok === true && !!nekoDeployData.build);
+
+    // 5. Test ZIP archiver utility from nekowebPublisher
+    const { zipDirectoryToBuffer } = await import('../services/nekowebPublisher');
+    const testDirToZip = path.join(process.cwd(), 'eleventy/src/_includes');
+    const zipResultBuffer = await zipDirectoryToBuffer(testDirToZip);
+    assertTest('zipDirectoryToBuffer produces non-empty Buffer', Buffer.isBuffer(zipResultBuffer) && zipResultBuffer.length > 0);
+    assertTest('zipDirectoryToBuffer contains standard ZIP magic header (PK\\x03\\x04)', zipResultBuffer[0] === 0x50 && zipResultBuffer[1] === 0x4b);
+
+    // 6. Test dashboard UI contains enabled Nekoweb option in selectors
+    const dashRes = await fetch(`${API_BASE}/`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    const nekoDashHtml = await dashRes.text();
+    assertTest('Dashboard contains enabled Nekoweb option in #settingsDeployType', nekoDashHtml.includes('value="nekoweb"') && !nekoDashHtml.includes('value="nekoweb" disabled'));
+    assertTest('Dashboard contains enabled Nekoweb option in #newSiteDeployType', nekoDashHtml.includes('id="newSiteDeployType"'));
+
+    // 7. Clean up the Nekoweb site target
+    const delNekoSiteRes = await fetch(`${API_BASE}/api/sites/${nekoSite.id}`, {
+      method: 'DELETE',
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('DELETE /api/sites/:id for Nekoweb site returns HTTP 200', delNekoSiteRes.status === 200);
+
+    // -------------------------------------------------------------------------
+    // TEST 21: Safe Post Purge & Clean Teardown
+    // -------------------------------------------------------------------------
+    logHeader('21. SAFE PURGE & TEARDOWN');
     // Delete post using authenticated session
     const deletePostRes = await fetch(`${API_BASE}/api/posts/${testPostId}`, {
       method: 'DELETE',

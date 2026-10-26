@@ -158,10 +158,18 @@ sitesRouter.post('/sites/:id/deploy', async (req: Request, res: Response, next: 
     }
 
     if (site.hasApiKey) {
-      const deployRes = await deployToNeocities(site.id, true);
+      let deployRes;
+      const isNeko = site.deploymentType === 'nekoweb';
+      if (isNeko) {
+        const { deployToNekoweb } = await import('../services/nekowebPublisher');
+        deployRes = await deployToNekoweb(site.id, true);
+      } else {
+        const { deployToNeocities } = await import('../services/neocitiesPublisher');
+        deployRes = await deployToNeocities(site.id, true);
+      }
       res.json({
         ok: true,
-        message: `Site "${site.name}" published live to Neocities!`,
+        message: `Site "${site.name}" published live to ${isNeko ? 'Nekoweb' : 'Neocities'}!`,
         deploy: deployRes,
       });
     } else {

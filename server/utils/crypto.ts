@@ -20,6 +20,13 @@ export interface NeocitiesCredentials {
   autoDeploy?: boolean;
 }
 
+export interface NekowebCredentials {
+  apiKey: string;
+  siteName?: string;
+  siteUrl?: string;
+  autoDeploy?: boolean;
+}
+
 /**
  * Encrypt a plaintext string or credentials object into a Buffer for PostgreSQL BYTEA storage.
  * Serialization layout: [12-byte IV][16-byte AuthTag][Ciphertext]
