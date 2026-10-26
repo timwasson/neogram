@@ -2792,7 +2792,7 @@
     var pagerTestLink = document.getElementById('pagerTestLink');
     var pagerSlugAttr = slug ? ('\n  data-slug="' + slug + '"') : '';
     if (pagerSnippet) {
-      pagerSnippet.textContent = '<!-- Neogram Live Chat / Pager Widget -->\n<script \n  src="' + window.location.origin + '/embed/pager.js" \n  data-station="' + userHandle + '"' + pagerSlugAttr + '\n  data-position="bottom-right"\n  defer>\n</script>';
+      pagerSnippet.textContent = '<!-- Neogram Live Chat / Pager Widget -->\n<script \n  src="' + window.location.origin + '/embed/pager.js" \n  data-station="' + userHandle + '"' + pagerSlugAttr + '\n  data-position="bottom-right"\n  defer>\n<' + '/script>';
     }
     if (pagerIframeSnippet) {
       var iframeUrl = window.location.origin + '/embed/pager/' + userHandle + (slug ? ('/' + slug) : '');
