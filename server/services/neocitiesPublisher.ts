@@ -4,6 +4,13 @@ import { query } from '../db';
 import { decryptCredentials, NeocitiesCredentials } from '../utils/crypto';
 import { buildStaticGallery } from './staticBuilder';
 
+export interface DeltaFile {
+  relativePath: string;
+  absolutePath?: string;
+  content?: string | Buffer;
+  contentType?: string;
+}
+
 export interface DeployResult {
   ok: boolean;
   message: string;
@@ -22,6 +29,7 @@ export interface NeocitiesSiteInfo {
   domain?: string;
   tags?: string[];
 }
+
 
 /**
  * Validates a Neocities API key by querying the /api/info endpoint.
@@ -393,3 +401,124 @@ export async function triggerAutoDeployIfEnabled(targetId: string): Promise<void
     console.error('[:> AUTO-DEPLOY HOOK ERROR]', err.message);
   }
 }
+
+/**
+ * Deploys an explicit list of delta files directly to Neocities without full directory scan.
+ * Drastically speeds up photo uploads, comments, and friend feed updates.
+ */
+export async function deployFilesToNeocities(
+  targetId: string,
+  files: DeltaFile[],
+  isSiteId: boolean = false
+): Promise<DeployResult> {
+  const startTime = Date.now();
+  if (!files || files.length === 0) {
+    return { ok: true, message: 'No delta files to deploy.', filesCount: 0, durationMs: 0 };
+  }
+
+  let site: any = null;
+  let user: any = null;
+
+  const siteRes = await query(
+    `SELECT s.*, u.id as user_owner_id, u.email, u.handle
+     FROM sites s
+     JOIN users u ON s.user_id = u.id
+     WHERE s.id = $1`,
+    [targetId]
+  );
+
+  if (siteRes.rows.length > 0) {
+    site = siteRes.rows[0];
+    user = { id: site.user_owner_id, email: site.email, handle: site.handle };
+  } else {
+    const userRes = await query(
+      `SELECT id, email, handle, site_url, deployment_type, deployment_credentials, auto_deploy, deploy_path
+       FROM users
+       WHERE id = $1`,
+      [targetId]
+    );
+
+    if (userRes.rows.length === 0) {
+      throw new Error('User node or site target not found in database.');
+    }
+
+    user = userRes.rows[0];
+    const { getDefaultSite } = await import('./siteService');
+    site = await getDefaultSite(user.id);
+  }
+
+  const creds = decryptCredentials<NeocitiesCredentials>(site.deployment_credentials || user.deployment_credentials);
+  if (!creds || !creds.apiKey || !creds.apiKey.trim()) {
+    throw new Error(
+      `No Neocities API key configured for site "${site.name || 'Personal Site'}".`
+    );
+  }
+
+  const apiKey = creds.apiKey.trim();
+  const rawDeployPath = site.deploy_path !== null && site.deploy_path !== undefined
+    ? String(site.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+    : 'neogram';
+
+  const formData = new FormData();
+  let validCount = 0;
+
+  for (const file of files) {
+    let fileBytes: Buffer;
+    if (file.content !== undefined) {
+      fileBytes = Buffer.isBuffer(file.content) ? file.content : Buffer.from(file.content, 'utf-8');
+    } else if (file.absolutePath) {
+      fileBytes = await fs.readFile(file.absolutePath);
+    } else {
+      continue;
+    }
+
+    const blob = new Blob([new Uint8Array(fileBytes)]);
+    const sanitizedDeploy = rawDeployPath.replace(/[^a-zA-Z0-9_-]/g, '');
+    const cleanRel = path.posix.normalize(file.relativePath).replace(/^(\.\.(\/|\\|$))+/, '');
+    const remotePath = sanitizedDeploy
+      ? path.posix.join(sanitizedDeploy, cleanRel)
+      : cleanRel;
+
+    formData.append(remotePath, blob, path.basename(remotePath));
+    validCount++;
+  }
+
+  if (validCount === 0) {
+    return { ok: true, message: 'No valid files provided.', filesCount: 0, durationMs: 0 };
+  }
+
+  const res = await fetch('https://neocities.org/api/upload', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: formData,
+  });
+
+  const data = (await res.json()) as any;
+  if (!res.ok || data.result !== 'success') {
+    const msg = (data.message || '').toLowerCase();
+    if (res.status === 429 || msg.includes('rate limit') || msg.includes('too many')) {
+      throw new Error('Neocities API rate limit reached. Please wait a few minutes before deploying again.');
+    }
+    if (res.status === 413 || msg.includes('quota') || msg.includes('storage') || msg.includes('space')) {
+      throw new Error('Neocities storage quota exceeded.');
+    }
+    throw new Error(data.message || `Neocities upload rejected (HTTP ${res.status}).`);
+  }
+
+  const durationMs = Date.now() - startTime;
+  const baseSiteUrl = user.site_url ? user.site_url.replace(/\/+$/, '') : `https://${user.handle || 'user'}.neocities.org`;
+  const deployedSiteUrl = rawDeployPath ? `${baseSiteUrl}/${rawDeployPath}/` : `${baseSiteUrl}/`;
+
+  console.log(`[:> NEOCITIES DELTA DEPLOY] Uploaded ${validCount} delta files in ${durationMs}ms`);
+
+  return {
+    ok: true,
+    message: data.message || 'Delta files uploaded successfully to Neocities.',
+    filesCount: validCount,
+    durationMs,
+    siteUrl: deployedSiteUrl,
+  };
+}
+

@@ -248,26 +248,22 @@ CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read, cr
   - Real-time WebSockets (`/ws/chat`) inspect cookies first, falling back to the `?token=<jwt>` URL query parameter.
   - Authentication endpoints (`/api/auth/verify-otp`, `/api/auth/magic-login`) return both `Set-Cookie` and JSON responses `{ success: true, token, user }` to support programmatic consumers.
 
-### 4.3 Static Publishing Pipeline (11ty + Neocities)
+### 4.3 Static Publishing Pipeline (Dual-Tier: Eleventy Full Builds + High-Speed Delta Engine)
 1. User uploads photo payload and post metadata in Neogram Creator Studio (`POST /api/posts`).
 2. Server validates session and processes image via `sharp` (scale to max 1200px, create 400px thumbnail, optimize to WebP).
 3. Server commits record to PostgreSQL `posts` table.
-4. **11ty Static Site Generation (`server/services/staticBuilder.ts`):**
-   - **Multi-Tenant Isolated Builds:** Compiles personal static photo galleries strictly into isolated user folders (`dist/static-galleries/<userId>/`).
-   - **FIFO BuildQueue Serialization:** All static build and compile requests are queued through an in-memory sequential FIFO queue (`buildQueue.enqueue(...)`). This guarantees that concurrent user operations (uploads, comments, edits, or deploys) run one at a time, completely eliminating race conditions on shared template data files (`posts.json` and `site.json`).
-   - **Cross-Tenant Template Cache Isolation:** Eleventy v3 caches compiled template functions in-memory by default. In multi-tenant environments with varying `deploy_path` values (e.g. `/neogram/` vs. `/photos/`), cached template functions would reuse another tenant's prefix. The Eleventy config explicitly sets `eleventyConfig.setUseTemplateCache(false)` to prevent template function bleeding across builds.
-   - **Embed Asset Passthrough:** Guarantees that `embed/` stylesheets and scripts are copied into each tenant's static distribution directory (`dist/static-galleries/<userId>/embed/`).
-   - **Direct Static Focus (No `/preview/` Bloat):** The redundant `/preview/` and `/photos/<id>/` preview routes have been removed in favor of clean static deployments directly to Neocities and embeddable widgets.
-   - Generates responsive gallery grid (`index.html`) and paginated photo pages (`photos/<id>/index.html`).
-   - Copies stylesheets (`css/neogram.css`), uploads, and embed scripts into the user's static bundle.
-   - **Self-Hosted JSON Feeds (`feed.json` & `posts.json`):** Always compiles and outputs structured JSON API feeds (`feed.json` and `posts.json`) directly into the user's root static distribution directory. These feeds provide full creator profile metadata (handle, UIN, avatar, site URL), published photo records, like counts, per-photo comments, and live interaction action URLs (`likeUrl`, `commentUrl`, `followUrl`).
-   - **Headless API Mode (`users.build_html = false`):** When opted out via dashboard settings (`users.build_html = false`), 11ty HTML compilation is skipped entirely. Any existing HTML templates (`index.html`, `photos/`, `friends/`, `css/`, `js/`) are purged from the static bundle while strictly preserving `uploads/`, `feed.json`, `posts.json`, and comments JSONs. The publisher then pushes only the static JSON feeds and media to Neocities, enabling users to build bespoke frontends from scratch using Vanilla JavaScript, React, Vue, or Svelte.
-5. **Deployment Adapters (`neocitiesPublisher.ts` & `nekowebPublisher.ts`):**
-   - **Neocities (`server/services/neocitiesPublisher.ts`):** Reads decrypted Neocities API key and pushes multipart archive directly to `POST https://neocities.org/api/upload` from the user's isolated directory (`dist/static-galleries/<userId>/`). Probes remote site views and hits via `https://neocities.org/api/info`.
-   - **Nekoweb (`server/services/nekowebPublisher.ts`):** Reads decrypted Nekoweb API key and packages static gallery into in-memory ZIP archive using `archiver`. Initializes session via `GET https://nekoweb.org/api/files/big/create`, uploads archive via `POST https://nekoweb.org/api/files/big/append`, and executes server-side extraction directly into target subfolder via `POST https://nekoweb.org/api/files/import/:id`. Probes remote views and followers via `https://nekoweb.org/api/site/info`.
-   - Optional automatic deployment on post creation, edit, or deletion (`auto_deploy`).
-   - The manual rebuild endpoint (`POST /api/build-static` and `POST /api/sites/:id/deploy`) automatically dispatches to the configured host adapter.
-6. Centralized social layer: Visitors to static sites react and comment; comments post back to `/api/posts/:id/comments` and trigger an automated background 11ty rebuild in the queue.
+4. **Dual-Tier Static Site Engine:**
+   - **Tier 1 — Eleventy Full Multi-Tenant Builds (`server/services/staticBuilder.ts`):** Used for initial site provisioning, full manual re-syncs (`POST /api/build-static`), or structural template modifications. Serialized through `buildQueue.enqueue` with template caching disabled.
+   - **Tier 2 — High-Speed Incremental Delta Builder (`server/services/incrementalBuilder.ts`):** Used for high-frequency operations:
+     - **New Photo Snaps:** Compiles *only* the new photo HTML (`photos/<id>/index.html`), updates the main gallery grid (`index.html`), and updates `feed.json` / `posts.json` in **~10–25ms**. Existing photo pages and static assets are untouched.
+     - **Comment & Like Reactions:** Re-renders *only* the single affected photo's HTML page (`photos/<id>/index.html`), comment ledger JSON (`<file>.comments.json`), and feeds in **~15ms**. Zero full rebuilds.
+     - **Friends Network Cascade:** Re-renders *only* the follower's `friends/index.html` and `friendsPosts.json` in **~10ms**. Follower's friend grid strictly references the original author's host URL for image and thumbnail assets (**0 bytes of media copied or uploaded to follower's site**).
+5. **Deployment Adapters & Delta Uploader (`neocitiesPublisher.ts` & `nekowebPublisher.ts`):**
+   - **Neocities Delta Upload (`deployFilesToNeocities`):** Direct multipart POST to `https://neocities.org/api/upload` transferring strictly the delta files (e.g. 1–5 files), bypassing full-directory scans.
+   - **Nekoweb Delta Upload (`deployFilesToNekoweb`):** Uploads individual files or folder batches directly via `POST https://nekoweb.org/api/files/upload`. **Does NOT require a ZIP archive for incremental updates**, reducing deployment latency from 2.5s+ down to ~100–200ms. Bulk ZIP import (`/api/files/big/*` + `/api/files/import/:id`) is strictly reserved as an initial site setup fallback.
+   - Initial site deployment seeds base assets (`css/`, `js/`, `icons/`, `embed/`), after which all publishing operations utilize the lightning-fast delta pipeline.
+6. Centralized social layer: Visitors to static sites react and comment; comments post back to `/api/posts/:id/comments` and trigger an automated background delta rebuild and deploy.
+
 
 ### 4.4 Styling Architecture: Pure Custom Utilities & BEM (Strictly NO Tailwind)
 - **Tailwind CSS is prohibited:** Do not introduce Tailwind CLI, Tailwind directives, or Tailwind dependencies for views or embeds.

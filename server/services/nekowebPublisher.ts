@@ -4,6 +4,9 @@ import { ZipArchive } from 'archiver';
 import { query } from '../db';
 import { decryptCredentials, NekowebCredentials } from '../utils/crypto';
 import { buildStaticGallery } from './staticBuilder';
+import { DeltaFile } from './neocitiesPublisher';
+export type { DeltaFile };
+
 
 export interface DeployResult {
   ok: boolean;
@@ -13,6 +16,7 @@ export interface DeployResult {
   siteUrl?: string;
   error?: string;
 }
+
 
 export interface NekowebSiteInfo {
   domain: string;
@@ -440,3 +444,151 @@ export async function triggerNekowebAutoDeployIfEnabled(targetId: string): Promi
     console.error('[:> NEKOWEB AUTO-DEPLOY HOOK ERROR]', err.message);
   }
 }
+
+/**
+ * Deploys an explicit list of delta files directly to Nekoweb via POST /api/files/upload.
+ * Bypasses ZIP creation and big file imports for individual/small updates.
+ */
+export async function deployFilesToNekoweb(
+  targetId: string,
+  files: DeltaFile[],
+  isSiteId: boolean = false
+): Promise<DeployResult> {
+  const startTime = Date.now();
+  if (!files || files.length === 0) {
+    return { ok: true, message: 'No delta files to deploy.', filesCount: 0, durationMs: 0 };
+  }
+
+  let site: any = null;
+  let user: any = null;
+
+  const siteRes = await query(
+    `SELECT s.*, u.id as user_owner_id, u.email, u.handle
+     FROM sites s
+     JOIN users u ON s.user_id = u.id
+     WHERE s.id = $1`,
+    [targetId]
+  );
+
+  if (siteRes.rows.length > 0) {
+    site = siteRes.rows[0];
+    user = { id: site.user_owner_id, email: site.email, handle: site.handle };
+  } else {
+    const userRes = await query(
+      `SELECT id, email, handle, site_url, deployment_type, deployment_credentials, auto_deploy, deploy_path
+       FROM users
+       WHERE id = $1`,
+      [targetId]
+    );
+
+    if (userRes.rows.length === 0) {
+      throw new Error('User node or site target not found in database.');
+    }
+
+    user = userRes.rows[0];
+    const { getDefaultSite } = await import('./siteService');
+    site = await getDefaultSite(user.id);
+  }
+
+  const creds = decryptCredentials<NekowebCredentials>(site.deployment_credentials || user.deployment_credentials);
+  if (!creds || !creds.apiKey || !creds.apiKey.trim()) {
+    throw new Error(
+      `No Nekoweb API key configured for site "${site.name || 'Personal Site'}".`
+    );
+  }
+
+  const apiKey = creds.apiKey.trim();
+  const rawDeployPath = site.deploy_path !== null && site.deploy_path !== undefined
+    ? String(site.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+    : 'neogram';
+
+  // Group files by destination folder on Nekoweb
+  const filesByDir = new Map<string, Array<{ filename: string; bytes: Buffer }>>();
+  const ensuredDirs = new Set<string>();
+
+  for (const file of files) {
+    let fileBytes: Buffer;
+    if (file.content !== undefined) {
+      fileBytes = Buffer.isBuffer(file.content) ? file.content : Buffer.from(file.content, 'utf-8');
+    } else if (file.absolutePath) {
+      fileBytes = await fs.readFile(file.absolutePath);
+    } else {
+      continue;
+    }
+
+    const cleanRel = path.posix.normalize(file.relativePath).replace(/^(\.\.(\/|\\|$))+/, '');
+    const remotePath = rawDeployPath
+      ? path.posix.join(rawDeployPath, cleanRel)
+      : cleanRel;
+    const dir = path.posix.dirname(remotePath);
+    const normalizedDir = dir === '.' ? '/' : (dir.startsWith('/') ? dir : `/${dir}`);
+
+    if (!filesByDir.has(normalizedDir)) {
+      filesByDir.set(normalizedDir, []);
+    }
+    filesByDir.get(normalizedDir)!.push({
+      filename: path.basename(remotePath),
+      bytes: fileBytes,
+    });
+  }
+
+  // Upload each folder's batch directly via POST /api/files/upload (without ZIP!)
+  let uploadedCount = 0;
+  for (const [dirPath, folderFiles] of filesByDir.entries()) {
+    // Ensure subdirectory exists on Nekoweb if not root
+    if (dirPath !== '/' && !ensuredDirs.has(dirPath)) {
+      try {
+        const createParams = new URLSearchParams();
+        createParams.append('isFolder', 'true');
+        createParams.append('pathname', dirPath.replace(/^\/+/, ''));
+        await fetch('https://nekoweb.org/api/files/create', {
+          method: 'POST',
+          headers: {
+            'Authorization': apiKey,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: createParams.toString(),
+        });
+        ensuredDirs.add(dirPath);
+      } catch (_dirErr) {}
+    }
+
+    // Nekoweb /files/upload accepts files for pathname
+    const formData = new FormData();
+    formData.append('pathname', dirPath);
+    for (const f of folderFiles) {
+      const blob = new Blob([new Uint8Array(f.bytes)]);
+      formData.append('files', blob, f.filename);
+    }
+
+    const res = await fetch('https://nekoweb.org/api/files/upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': apiKey,
+      },
+      body: formData,
+    });
+
+    const resData = (await res.json().catch(() => ({}))) as any;
+    if (!res.ok) {
+      console.warn(`[:> NEKOWEB DELTA UPLOAD WARNING] Failed uploading to ${dirPath}:`, resData);
+      throw new Error(resData?.message || `Failed uploading files to Nekoweb directory ${dirPath}`);
+    }
+    uploadedCount += folderFiles.length;
+  }
+
+  const durationMs = Date.now() - startTime;
+  const baseSiteUrl = user.site_url ? user.site_url.replace(/\/+$/, '') : `https://${user.handle || 'user'}.nekoweb.org`;
+  const deployedSiteUrl = rawDeployPath ? `${baseSiteUrl}/${rawDeployPath}/` : `${baseSiteUrl}/`;
+
+  console.log(`[:> NEKOWEB DELTA DEPLOY SUCCESS] Uploaded ${uploadedCount} delta files in ${durationMs}ms`);
+
+  return {
+    ok: true,
+    message: `Delta files uploaded successfully to Nekoweb.`,
+    filesCount: uploadedCount,
+    durationMs,
+    siteUrl: deployedSiteUrl,
+  };
+}
+

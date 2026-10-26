@@ -300,20 +300,27 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
       console.warn('[:> STATIC-STORAGE] Could not write initial comments file:', _initErr);
     }
 
-    // 5. Build static gallery and deploy immediately to host if connected
-    if (hasApiKey) {
+    // 5. High-speed incremental build and delta deploy
+    const isFirstDeploy = !targetSite.lastDeployedAt;
+    if (isFirstDeploy && hasApiKey) {
       if (targetSite.deploymentType === 'nekoweb') {
         const { deployToNekoweb } = await import('../services/nekowebPublisher');
         await deployToNekoweb(targetSite.id, true);
-        console.log(`[:> ZERO-RETENTION PIPELINE] Deployed live to Nekoweb for site ${targetSite.id} (user ${user.id})`);
+        console.log(`[:> INITIAL DEPLOY] Deployed baseline static assets to Nekoweb for site ${targetSite.id}`);
       } else {
         const { deployToNeocities } = await import('../services/neocitiesPublisher');
         await deployToNeocities(targetSite.id, true);
-        console.log(`[:> ZERO-RETENTION PIPELINE] Deployed live to Neocities for site ${targetSite.id} (user ${user.id})`);
+        console.log(`[:> INITIAL DEPLOY] Deployed baseline static assets to Neocities for site ${targetSite.id}`);
       }
     } else {
-      const { buildStaticGallery } = await import('../services/staticBuilder');
-      await buildStaticGallery({ siteId: targetSite.id, userId: user.id });
+      const { buildAndDeployNewPhoto } = await import('../services/incrementalBuilder');
+      await buildAndDeployNewPhoto({
+        siteId: targetSite.id,
+        userId: user.id,
+        postId: newPost.id,
+        imagePath: newPost.image_path,
+        thumbnailPath: newPost.thumbnail_path,
+      });
     }
 
     // 6. Cascading rebuild of all friends/followers who follow this user
@@ -394,10 +401,14 @@ postsRouter.post('/posts/:id/like', async (req: Request, res: Response, next) =>
 
     const postOwnerId = result.rows[0].userId;
 
-    // Trigger 11ty static update in background for post owner
-    import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery({ userId: postOwnerId }))
-      .catch(() => {});
+    // Trigger incremental static update in background for post owner
+    import('../services/incrementalBuilder')
+      .then((m) => m.buildAndDeployComment({
+        siteId: result.rows[0].siteId,
+        userId: postOwnerId,
+        postId: id,
+      }))
+      .catch((err) => console.error('[:> INCREMENTAL LIKE ERROR]', err));
 
     // Dispatch like notification to photo owner
     const liker = await getSessionUser(req);
@@ -508,10 +519,14 @@ postsRouter.post('/posts/:id/comments', commentRateLimiter, async (req: Request,
       [id, user.handle || 'visitor', user.avatarPath || '💬', cleanText]
     ).catch(() => {});
 
-    // Trigger 11ty static update in background for post owner
-    import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery({ userId: ownerUser.id }))
-      .catch(() => {});
+    // Trigger incremental static update in background for post owner
+    import('../services/incrementalBuilder')
+      .then((m) => m.buildAndDeployComment({
+        siteId: post.site_id,
+        userId: ownerUser.id,
+        postId: id,
+      }))
+      .catch((err) => console.error('[:> INCREMENTAL COMMENT ERROR]', err));
 
     // 1. Dispatch comment_own notification to photo owner
     if (user.id !== ownerUser.id) {
@@ -644,10 +659,14 @@ postsRouter.delete('/posts/:postId/comments/:commentId', async (req: Request, re
     // Clean up legacy table if exists
     await query('DELETE FROM comments WHERE id::text = $1 OR body = $1', [commentId]).catch(() => {});
 
-    // Trigger 11ty static rebuild
-    import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery({ userId: user.id }))
-      .catch(() => {});
+    // Trigger incremental static update in background for post owner
+    import('../services/incrementalBuilder')
+      .then((m) => m.buildAndDeployComment({
+        siteId: post.site_id,
+        userId: user.id,
+        postId: post.id,
+      }))
+      .catch((err) => console.error('[:> INCREMENTAL COMMENT DELETE ERROR]', err));
 
     res.json({
       ok: true,
@@ -846,29 +865,12 @@ export async function triggerFollowersCascade(authorId: string) {
 
     if (followersRes.rows.length === 0) return;
 
-    const { buildQueue, buildStaticGallery } = await import('../services/staticBuilder');
+    const { buildAndDeployFriendFeed } = await import('../services/incrementalBuilder');
 
     for (const row of followersRes.rows) {
       const followerId = row.followerId;
-      buildQueue.enqueue(`CascadeFollower:${followerId}`, async () => {
-        console.log(`[:> CASCADE QUEUE] Rebuilding static gallery for follower ${followerId}...`);
-        const userCreds = await query(
-          'SELECT deployment_type, deployment_credentials, auto_deploy FROM users WHERE id = $1',
-          [followerId]
-        );
-        const u = userCreds.rows[0];
-        const shouldDeployRemote = u && u.deployment_type === 'neocities' && !!u.deployment_credentials && u.auto_deploy;
-
-        if (shouldDeployRemote) {
-          const { deployToNeocities } = await import('../services/neocitiesPublisher');
-          await deployToNeocities(followerId);
-          // Pacing delay to prevent hammering Neocities API rate limits
-          await new Promise((resolve) => setTimeout(resolve, 1200));
-        } else {
-          await buildStaticGallery({ userId: followerId });
-        }
-      }).catch((err) => {
-        console.warn(`[:> CASCADE REBUILD ERROR] Failed rebuilding for follower ${followerId}:`, err);
+      buildAndDeployFriendFeed(followerId).catch((err) => {
+        console.warn(`[:> CASCADE REBUILD ERROR] Incremental build failed for follower ${followerId}:`, err);
       });
     }
   } catch (err) {

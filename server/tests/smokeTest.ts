@@ -1333,9 +1333,58 @@ async function runSmokeTests() {
     assertTest('Workstation dashboard contains #btnCopyPagerScript button', pagerDashHtml.includes('id="btnCopyPagerScript"'));
 
     // -------------------------------------------------------------------------
-    // TEST 22: Safe Post Purge & Clean Teardown
+    // TEST 22: High-Speed Incremental Build & Delta Deploy Pipeline
     // -------------------------------------------------------------------------
-    logHeader('22. SAFE PURGE & TEARDOWN');
+    logHeader('22. HIGH-SPEED INCREMENTAL BUILD & DELTA DEPLOY PIPELINE');
+    const { buildAndDeployNewPhoto, buildAndDeployComment, buildAndDeployFriendFeed } = await import('../services/incrementalBuilder');
+    const { deployFilesToNeocities } = await import('../services/neocitiesPublisher');
+    const { deployFilesToNekoweb } = await import('../services/nekowebPublisher');
+    const { getDefaultSite } = await import('../services/siteService');
+    const testSite = await getDefaultSite(testUser.id);
+    const testSiteId = testSite.id;
+
+    assertTest('deployFilesToNeocities function exported', typeof deployFilesToNeocities === 'function');
+    assertTest('deployFilesToNekoweb function exported', typeof deployFilesToNekoweb === 'function');
+
+    // Test incremental new photo build
+    const incPhotoRes = await buildAndDeployNewPhoto({
+      siteId: testSiteId,
+      userId: testUser.id,
+      postId: testPostId,
+
+      imagePath: '/uploads/images/test.webp',
+      thumbnailPath: '/uploads/thumbnails/test.webp',
+    });
+    assertTest('buildAndDeployNewPhoto executes successfully', incPhotoRes.ok === true);
+    assertTest('buildAndDeployNewPhoto processed delta files', incPhotoRes.filesCount > 0);
+
+    const sitePhotoHtmlPath = path.join(process.cwd(), 'dist/static-galleries', testSiteId, 'photos', testPostId, 'index.html');
+    const siteIndexHtmlPath = path.join(process.cwd(), 'dist/static-galleries', testSiteId, 'index.html');
+    assertTest('Incremental build generated target photo HTML page', existsSync(sitePhotoHtmlPath));
+    assertTest('Incremental build generated updated index HTML page', existsSync(siteIndexHtmlPath));
+
+    // Test incremental comment build
+    const incCommentRes = await buildAndDeployComment({
+      siteId: testSiteId,
+      userId: testUser.id,
+      postId: testPostId,
+    });
+    assertTest('buildAndDeployComment executes successfully', incCommentRes.ok === true);
+    assertTest('buildAndDeployComment processed delta files', incCommentRes.filesCount > 0);
+
+    // Test incremental friends feed build
+    const incFriendsRes = await buildAndDeployFriendFeed(testUser.id);
+    assertTest('buildAndDeployFriendFeed executes successfully', incFriendsRes.ok === true);
+    const userFriendsHtmlPath = path.join(userGalleryDir, 'friends', 'index.html');
+    const userFriendsJsonPath = path.join(userGalleryDir, 'friendsPosts.json');
+    assertTest('Incremental friends build generated friends/index.html', existsSync(userFriendsHtmlPath));
+    assertTest('Incremental friends build generated friendsPosts.json', existsSync(userFriendsJsonPath));
+
+    // -------------------------------------------------------------------------
+    // TEST 23: Safe Post Purge & Clean Teardown
+    // -------------------------------------------------------------------------
+    logHeader('23. SAFE PURGE & TEARDOWN');
+
     // Delete post using authenticated session
     const deletePostRes = await fetch(`${API_BASE}/api/posts/${testPostId}`, {
       method: 'DELETE',

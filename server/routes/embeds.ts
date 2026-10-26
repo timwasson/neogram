@@ -576,22 +576,8 @@ async function syncFollowerStaticSite(userId: string) {
       return;
     }
 
-    const { buildQueue, buildStaticGallery } = await import('../services/staticBuilder');
-    buildQueue.enqueue(`FollowerSync:${userId}`, async () => {
-      const credsRes = await query(
-        'SELECT deployment_type, deployment_credentials, auto_deploy FROM users WHERE id = $1',
-        [userId]
-      );
-      const u = credsRes.rows[0];
-      const hasApiKey = u && u.deployment_type === 'neocities' && !!u.deployment_credentials;
-
-      if (hasApiKey) {
-        const { deployToNeocities } = await import('../services/neocitiesPublisher');
-        await deployToNeocities(userId);
-      } else {
-        await buildStaticGallery({ userId });
-      }
-    }).catch((err) => {
+    const { buildAndDeployFriendFeed } = await import('../services/incrementalBuilder');
+    buildAndDeployFriendFeed(userId).catch((err) => {
       console.warn(`[:> FOLLOWER SYNC ERROR] Rebuild failed for follower ${userId}:`, err);
     });
   } catch (err) {
