@@ -360,10 +360,19 @@
                   </a>
 
                   <a
+                    href="/friends"
+                    id="dropdownFriendsLink"
+                    class="pixel-btn pixel-btn--sm text-xs justify-center w-full"
+                    onclick="if(typeof toggleUserMenu==='function'){toggleUserMenu(false);} if(window.retroAudio) retroAudio.playClick();"
+                  >
+                    <span>🤝</span> <span>Friends Network</span>
+                  </a>
+
+                  <a
                     href="/#settings"
                     id="dropdownSettingsLink"
                     class="pixel-btn pixel-btn--sm text-xs justify-center w-full"
-                    onclick="if(typeof switchDashboardTab==='function'){switchDashboardTab('settings', event);} if(typeof toggleUserMenu==='function'){toggleUserMenu(false);} if(window.retroAudio) retroAudio.playClick();"
+                    onclick="switchDashboardTab('settings', event); if(typeof toggleUserMenu==='function'){toggleUserMenu(false);}"
                   >
                     <span>⚙&#xFE0E;</span> <span>Station Settings</span>
                   </a>
@@ -536,6 +545,47 @@
           });
         }
       })();
+    </script>
+
+    <!-- Global Workstation Tab Switcher & Deep Router -->
+    <script>
+      function switchDashboardTab(tab, e) {
+        if (tab === 'edit') tab = 'manage';
+        var targetHash = tab === 'manage' ? 'edit' : tab;
+
+        if (window.retroAudio && typeof window.retroAudio.playClick === 'function') {
+          window.retroAudio.playClick();
+        }
+
+        // If currently on any subpage other than the dashboard root (/), route to /#hash
+        if (window.location.pathname !== '/') {
+          window.location.href = '/#' + targetHash;
+          return;
+        }
+
+        if (e && typeof e.preventDefault === 'function') {
+          e.preventDefault();
+        }
+
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+          document.activeElement.blur();
+        }
+
+        // On mobile viewports, close NIM messenger window if open so selected view is visible
+        if (window.AimClient && window.AimClient.isOpen && window.innerWidth < 768) {
+          window.AimClient.closeWindow();
+        }
+
+        // Scroll to top of content
+        window.scrollTo({ top: 0, behavior: 'instant' });
+
+        if (typeof window.executeDashboardTabSwitch === 'function') {
+          window.executeDashboardTabSwitch(tab);
+        } else {
+          window.location.hash = '#' + targetHash;
+        }
+      }
+      window.switchDashboardTab = switchDashboardTab;
     </script>
 
     <!-- User Account Dropdown Controller -->
@@ -816,11 +866,48 @@
           type="button"
           id="mobileTabAimBtn"
           class="retro-mobile-nav__item"
+          onclick="if(window.AimClient){ window.AimClient.toggleWindow(); } if(window.retroAudio) retroAudio.playClick();"
           title="Open Neogram Instant Messenger"
         >
           <span class="retro-mobile-nav__icon">💬</span>
           <span>NIM</span>
         </button>
+      </nav>
+    {% else %}
+      <!-- Retro Mobile Bottom Navigation Bar (Guest / Logged Out) -->
+      <nav class="retro-mobile-nav" id="retroMobileNavGuest" aria-label="Mobile Navigation">
+        <a
+          href="/"
+          class="retro-mobile-nav__item {% if activeView == 'dashboard' %}is-active{% endif %}"
+          onclick="if(window.retroAudio) retroAudio.playClick();"
+        >
+          <span class="retro-mobile-nav__icon">💾</span>
+          <span>About</span>
+        </a>
+        <a
+          href="/directory"
+          class="retro-mobile-nav__item {% if activeView == 'directory' %}is-active{% endif %}"
+          onclick="if(window.retroAudio) retroAudio.playClick();"
+        >
+          <span class="retro-mobile-nav__icon">👥</span>
+          <span>Directory</span>
+        </a>
+        <a
+          href="/docs"
+          class="retro-mobile-nav__item {% if activeView == 'docs' %}is-active{% endif %}"
+          onclick="if(window.retroAudio) retroAudio.playClick();"
+        >
+          <span class="retro-mobile-nav__icon">📖</span>
+          <span>Docs</span>
+        </a>
+        <a
+          href="/login"
+          class="retro-mobile-nav__item {% if activeView == 'login' %}is-active{% endif %}"
+          onclick="if(window.retroAudio) retroAudio.playClick();"
+        >
+          <span class="retro-mobile-nav__icon">🔑</span>
+          <span>Login</span>
+        </a>
       </nav>
     {% endif %}
 

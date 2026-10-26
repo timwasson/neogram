@@ -2520,13 +2520,8 @@
   // -------------------------------------------------------------
   // GALLERY MANAGEMENT & ARCHIVE CONTROLLERS
   // -------------------------------------------------------------
-  function switchDashboardTab(tab, e) {
+  function executeDashboardTabSwitch(tab) {
     if (tab === 'edit') tab = 'manage';
-    if (window.retroAudio) window.retroAudio.playClick();
-    if (e && e.preventDefault) e.preventDefault();
-    if (document.activeElement && typeof document.activeElement.blur === 'function') {
-      document.activeElement.blur();
-    }
 
     var targetHash = tab === 'manage' ? 'edit' : tab;
     if (window.location.hash !== '#' + targetHash) {
@@ -2602,24 +2597,24 @@
   function syncDashboardTabFromHash() {
     var hash = window.location.hash ? window.location.hash.replace('#', '') : '';
     if (hash === 'feed') {
-      switchDashboardTab('feed');
+      executeDashboardTabSwitch('feed');
     } else if (hash === 'edit' || hash === 'manage') {
-      switchDashboardTab('manage');
+      executeDashboardTabSwitch('manage');
     } else if (hash === 'settings') {
-      switchDashboardTab('settings');
+      executeDashboardTabSwitch('settings');
     } else if (hash === 'embeds') {
-      switchDashboardTab('embeds');
+      executeDashboardTabSwitch('embeds');
     } else if (hash === 'upload') {
-      switchDashboardTab('upload');
+      executeDashboardTabSwitch('upload');
     } else {
-      var defaultTab = {{ 'feed' if (not userSites or userSites.length == 0) else 'upload' | dump | safe }};
-      switchDashboardTab(defaultTab);
+      var defaultTab = {{ ('feed' if (not userSites or userSites.length == 0) else 'upload') | dump | safe }};
+      executeDashboardTabSwitch(defaultTab);
     }
   }
 
   window.addEventListener('DOMContentLoaded', syncDashboardTabFromHash);
   window.addEventListener('hashchange', syncDashboardTabFromHash);
-  window.switchDashboardTab = switchDashboardTab;
+  window.executeDashboardTabSwitch = executeDashboardTabSwitch;
 
   // -------------------------------------------------------------
   // EMBEDS & RETRO STUDIO CONTROLLERS
@@ -3196,19 +3191,6 @@
     }
   }
 
-  async function loadSettings() {
-    try {
-      var res = await fetch('/api/settings');
-      var data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to load settings.');
-
-      var s = data.settings;
-      if (s.handle) {
-        var handleInput = document.getElementById('settingsHandleInput');
-        if (handleInput) handleInput.value = s.handle;
-      }
-      if (s.avatarPath) {
-        var avatarPreview = document.getElementById('settingsAvatarPreview');
   // ============================================================================
   // MULTI-SITE TARGETS & SITES MANAGER CONTROLLERS
   // ============================================================================

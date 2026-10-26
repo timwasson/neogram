@@ -1499,7 +1499,7 @@ a {
     display: none !important;
   }
   main {
-    padding-bottom: 74px !important;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
 /* -------------------------------------------------------------
@@ -1515,15 +1515,19 @@ a {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 52px;
+    height: calc(56px + env(safe-area-inset-bottom, 0px));
+    min-height: calc(56px + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
     background-color: var(--surface-window);
     border-top: 3px solid var(--border-main);
     z-index: 9999;
     align-items: stretch;
     justify-content: space-around;
-    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.6);
     user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
   }
 }
 .retro-mobile-nav__item {
@@ -1532,7 +1536,7 @@ a {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: bold;
@@ -1544,24 +1548,34 @@ a {
   border-left: none;
   background: transparent;
   cursor: pointer;
-  transition: background 0.1s ease;
-  padding: 0;
+  transition: background 0.1s ease, color 0.1s ease;
+  padding: 6px 2px;
   line-height: 1;
+  min-height: 48px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .retro-mobile-nav__item:last-child {
   border-right: none;
 }
+.retro-mobile-nav__item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
 .retro-mobile-nav__item:active, .retro-mobile-nav__item.is-active {
-  background-color: var(--accent-amber);
-  color: #000000;
+  background-color: var(--accent-amber) !important;
+  color: #000000 !important;
 }
 .dark .retro-mobile-nav__item:active, .dark .retro-mobile-nav__item.is-active {
-  background-color: var(--accent-amber);
-  color: #000000;
+  background-color: var(--accent-amber) !important;
+  color: #000000 !important;
+}
+.retro-mobile-nav__item span {
+  pointer-events: none;
 }
 .retro-mobile-nav__icon {
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1;
+  pointer-events: none;
 }
 
 /**
