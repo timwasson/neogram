@@ -289,7 +289,10 @@ CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read, cr
 
 ### 4.7 Mobile-to-Static PWA Publishing & Offline Resilience
 - **App Shell & Manifest:** Web App Manifest (`public/manifest.json`) supports standalone display mode, orientation, app shortcuts, and mobile Web Share Target (`share_target`).
-- **Service Worker Caching (`public/sw.js`):** Cache-first strategy for static retro assets/fonts, network-first for HTML pages, with automated fallback to `public/offline.html` during disconnects.
+- **Service Worker Caching & Cache Versioning Protocol (`public/sw.js`):** Cache-first strategy for static retro assets/fonts, network-first for HTML pages, with automated fallback to `public/offline.html` during disconnects. Modifications to the application shell or base assets require incrementing `CACHE_NAME` (e.g., `'neogram-shell-v2'`).
+- **Zero-Stale-Shell Invalidation:** In `public/sw.js`, the `activate` event purges all obsolete cache stores (`key !== CACHE_NAME`), immediately claims clients (`self.clients.claim()`), and broadcasts `postMessage({ type: 'CACHE_UPDATED' })` to all connected windows.
+- **Strict No-Cache Service Worker Route (`server/app.ts`):** `GET /sw.js` must always be served explicitly with `Cache-Control: no-cache, no-store, must-revalidate`, `Pragma: no-cache`, and `Expires: 0`. This prevents mobile Safari and standalone iOS PWAs from pinning stale service worker scripts in persistent HTTP disk cache.
+- **Client Auto-Update Dispatch (`public/js/pwa.js`):** On every page load, `pwa.js` triggers `reg.update()`. When a `CACHE_UPDATED` message is received from the newly activated service worker, the client automatically reloads (`window.location.reload()`), ensuring mobile standalone users transition to clean app shells without manual cache clearing.
 - **Offline Post Buffering (IndexedDB):** If a user transmits a post while disconnected, `public/js/pwa.js` intercepts submission and buffers the photo Blob, caption, and metadata in IndexedDB (`neogram_pwa_db`, store `pending_posts`).
 - **Carrier Telemetry & Auto-Drain:** Real-time COM2 carrier monitor in the desktop taskbar (`#taskbarCom2Panel`) switches between `NO CARRIER // 300 BAUD` and `CARRIER 33600 V.90`. When connectivity is restored, the client automatically drains the IndexedDB queue to `POST /api/posts`.
 - **Native Hardware Camera Capture:** Uses standard `<input type="file" capture="environment">` for mobile camera snaps without WebRTC canvas overhead.
@@ -627,6 +630,11 @@ The following matrix documents all server routes, auth requirements, and functio
 | **Widgets & Embeds** | `GET` | `/embed/guestbook/:handle`, `/embed/guestbook/:handle/:slug` | None (Frame: *) | Retro iframe guestbook widget with visitor signature form and moderated entry list. |
 | **Widgets & Embeds** | `GET` | `/embed/feed/:handle` | None (Frame: *) | Retro iframe photo stream embed card. |
 | **Real-Time WebSockets**| `WS` | `/ws/chat` | JWT Cookie / Param | In-memory NIM chat router and notification carrier. CSWSH origin validation, presence tracking, store-and-forward queue, zero database retention. |
+
+### 4.30 Inline Script HTML Delimiter Escaping Invariant (\x3c Encoding)
+- **Root Cause & Critical Parser Invariant:** In server-rendered Nunjucks views (`views/*.njk`) and HTML layouts, the browser's HTML tokenizer evaluates tag delimiter tokens (e.g. `</script>`, `<script`, `<!--`, `<iframe`) **before** JavaScript syntax parsing occurs. If an unescaped tag sequence appears inside a JavaScript string literal within an inline `<script>` tag, the HTML parser terminates the `<script>` element prematurely.
+- **Symptom Prevention:** Premature script closing causes trailing JavaScript code to spill onto the viewport as raw text, and turns snippet strings (e.g. `<iframe src="...">`) into actual DOM elements that load relative paths like `/' + iframeUrl + '/` as ghost 404 errors.
+- **Strict Coding Standard:** Any HTML markup or tags constructed inside inline `<script>` blocks (such as embed code generators or iframe snippets) **MUST** escape all opening brackets using hexadecimal encoding (`\x3c`, e.g. `\x3cscript\x3e`, `\x3c/script\x3e`, `\x3ciframe\x3e`, `\x3c/iframe\x3e`, `\x3c!--`). Never output literal `<script` or `</script` strings within inline JavaScript.
 
 ---
 
