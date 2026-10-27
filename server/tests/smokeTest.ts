@@ -1341,7 +1341,7 @@ async function runSmokeTests() {
     const { deployFilesToNekoweb } = await import('../services/nekowebPublisher');
     const { getDefaultSite } = await import('../services/siteService');
     const testSite = await getDefaultSite(testUser.id);
-    const testSiteId = testSite.id;
+    const testSiteId = testSite!.id;
 
     assertTest('deployFilesToNeocities function exported', typeof deployFilesToNeocities === 'function');
     assertTest('deployFilesToNekoweb function exported', typeof deployFilesToNekoweb === 'function');
@@ -1350,7 +1350,7 @@ async function runSmokeTests() {
     const incPhotoRes = await buildAndDeployNewPhoto({
       siteId: testSiteId,
       userId: testUser.id,
-      postId: testPostId,
+      postId: testPostId!,
 
       imagePath: '/uploads/images/test.webp',
       thumbnailPath: '/uploads/thumbnails/test.webp',
@@ -1358,7 +1358,7 @@ async function runSmokeTests() {
     assertTest('buildAndDeployNewPhoto executes successfully', incPhotoRes.ok === true);
     assertTest('buildAndDeployNewPhoto processed delta files', incPhotoRes.filesCount > 0);
 
-    const sitePhotoHtmlPath = path.join(process.cwd(), 'dist/static-galleries', testSiteId, 'photos', testPostId, 'index.html');
+    const sitePhotoHtmlPath = path.join(process.cwd(), 'dist/static-galleries', testSiteId, 'photos', testPostId!, 'index.html');
     const siteIndexHtmlPath = path.join(process.cwd(), 'dist/static-galleries', testSiteId, 'index.html');
     assertTest('Incremental build generated target photo HTML page', existsSync(sitePhotoHtmlPath));
     assertTest('Incremental build generated updated index HTML page', existsSync(siteIndexHtmlPath));
@@ -1367,7 +1367,7 @@ async function runSmokeTests() {
     const incCommentRes = await buildAndDeployComment({
       siteId: testSiteId,
       userId: testUser.id,
-      postId: testPostId,
+      postId: testPostId!,
     });
     assertTest('buildAndDeployComment executes successfully', incCommentRes.ok === true);
     assertTest('buildAndDeployComment processed delta files', incCommentRes.filesCount > 0);

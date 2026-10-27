@@ -21,6 +21,8 @@
           navigator.serviceWorker.register('/sw.js', { scope: '/' })
             .then(function (reg) {
               console.log('[:> PWA // CARRIER] Service Worker registered. Scope:', reg.scope);
+              // Force update check on every load
+              reg.update();
             })
             .catch(function (err) {
               console.warn('[:> PWA // REGISTRATION FAILED]', err);
@@ -30,6 +32,10 @@
         navigator.serviceWorker.addEventListener('message', function (event) {
           if (event.data && event.data.type === 'CARRIER_RESTORED') {
             NeogramPWA.onCarrierRestored();
+          }
+          if (event.data && event.data.type === 'CACHE_UPDATED') {
+            console.log('[:> PWA // CARRIER] Clean shell cache activated. Reloading workstation...');
+            window.location.reload();
           }
         });
       }

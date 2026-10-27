@@ -3,7 +3,7 @@
  * Offline caching, navigation fallback, and carrier status management.
  */
 
-const CACHE_NAME = 'neogram-shell-v1';
+const CACHE_NAME = 'neogram-shell-v2';
 
 const STATIC_PRECACHE = [
   '/',
@@ -22,13 +22,13 @@ const STATIC_PRECACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[:> SW] Pre-caching core shell assets...');
+      console.log('[:> SW] Pre-caching core shell assets (v2)...');
       return cache.addAll(STATIC_PRECACHE);
     }).then(() => self.skipWaiting())
   );
 });
 
-// Activate: Clean up legacy caches
+// Activate: Clean up legacy caches & notify clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -40,7 +40,12 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => self.clients.claim()).then(async () => {
+      const allClients = await self.clients.matchAll();
+      for (const client of allClients) {
+        client.postMessage({ type: 'CACHE_UPDATED' });
+      }
+    })
   );
 });
 

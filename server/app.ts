@@ -143,6 +143,14 @@ export function createApp(): Express {
   app.use('/api', globalApiLimiter);
 
   // 3. Static Assets
+  // Service Worker script must never be HTTP-cached by browsers
+  app.get('/sw.js', (_req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile(path.resolve(process.cwd(), 'public', 'sw.js'));
+  });
+
   app.use(express.static(path.resolve(process.cwd(), 'public')));
   app.use('/embed', express.static(path.resolve(process.cwd(), 'embed')));
   app.use('/extension', express.static(path.resolve(process.cwd(), 'extension')));
