@@ -169,6 +169,18 @@ export function initChatWebSocketServer(server: http.Server) {
       activeAnonSockets.set(anonHandle, session);
       console.log(`[:> PAGER // CONNECTED] Anonymous visitor @${anonHandle} paging @${session.targetStationHandle}`);
 
+      // Notify station owner if currently online
+      const stationOwnerSession = activeSockets.get(targetStation.id);
+      if (stationOwnerSession && stationOwnerSession.ws.readyState === WebSocket.OPEN) {
+        stationOwnerSession.ws.send(JSON.stringify({
+          type: 'visitor_presence',
+          handle: anonHandle,
+          status: 'online',
+          isVisitor: true,
+          connectedAt: session.connectedAt,
+        }));
+      }
+
       ws.on('pong', () => {
         session.isAlive = true;
       });
@@ -187,6 +199,9 @@ export function initChatWebSocketServer(server: http.Server) {
         anonHandle,
       }));
 
+      // Flush any queued offline messages sent to this anonymous visitor
+      await flushOfflineQueueForAnon(ws, anonHandle);
+
       ws.on('message', async (data: Buffer | string) => {
         try {
           const parsed = JSON.parse(data.toString());
@@ -200,6 +215,16 @@ export function initChatWebSocketServer(server: http.Server) {
       ws.on('close', (code) => {
         activeAnonSockets.delete(anonHandle);
         console.log(`[:> PAGER // DISCONNECT] Anonymous visitor @${anonHandle} closed session. Code: ${code}`);
+
+        const ownerSession = activeSockets.get(targetStation.id);
+        if (ownerSession && ownerSession.ws.readyState === WebSocket.OPEN) {
+          ownerSession.ws.send(JSON.stringify({
+            type: 'visitor_presence',
+            handle: anonHandle,
+            status: 'offline',
+            isVisitor: true,
+          }));
+        }
       });
 
       ws.on('error', (err) => {
@@ -375,9 +400,22 @@ async function sendInitialState(ws: WebSocket, currentUserId: string) {
       };
     });
 
+    // Query active anonymous visitors paging this station
+    const activeVisitors: Array<{ handle: string; status: string; connectedAt: string }> = [];
+    for (const [anonHandle, anonSession] of activeAnonSockets.entries()) {
+      if (anonSession.targetStationId === currentUserId && anonSession.ws.readyState === WebSocket.OPEN) {
+        activeVisitors.push({
+          handle: anonHandle,
+          status: 'online',
+          connectedAt: anonSession.connectedAt.toISOString(),
+        });
+      }
+    }
+
     ws.send(JSON.stringify({
       type: 'init_state',
       buddies,
+      activeVisitors,
       activeCount: activeSockets.size,
     }));
   } catch (err: any) {
@@ -443,6 +481,55 @@ async function flushOfflineQueue(ws: WebSocket, userId: string) {
     }
   } catch (err: any) {
     console.error('[:> FLUSH QUEUE ERROR]', err);
+  }
+}
+
+/**
+ * Flushes any pending messages from ephemeral holding table to an anonymous visitor,
+ * and immediately hard-deletes them upon transmission!
+ */
+async function flushOfflineQueueForAnon(ws: WebSocket, anonHandle: string) {
+  try {
+    const queueRes = await query(
+      `SELECT q.id, q.body, q.created_at, q.sender_handle,
+              COALESCE(u.handle, split_part(u.email, '@', 1), q.sender_handle, 'Station Operator') as "fromHandle",
+              u.id as "fromId"
+       FROM ephemeral_chat_queue q
+       LEFT JOIN users u ON q.sender_id = u.id
+       WHERE q.receiver_handle = $1 AND q.expires_at > CURRENT_TIMESTAMP
+       ORDER BY q.created_at ASC`,
+      [anonHandle]
+    );
+
+    if (queueRes.rows.length === 0) return;
+
+    console.log(`[:> CHAT QUEUE] Delivering ${queueRes.rows.length} pending offline messages to visitor @${anonHandle}`);
+
+    const deliveredIds: string[] = [];
+
+    for (const msg of queueRes.rows) {
+      ws.send(JSON.stringify({
+        type: 'direct_message',
+        id: msg.id,
+        from: msg.fromHandle,
+        fromId: msg.fromId || null,
+        text: msg.body,
+        timestamp: msg.created_at,
+        wasQueued: true,
+        isPager: true,
+      }));
+      deliveredIds.push(msg.id);
+    }
+
+    if (deliveredIds.length > 0) {
+      await query(
+        'DELETE FROM ephemeral_chat_queue WHERE id = ANY($1::uuid[])',
+        [deliveredIds]
+      );
+      console.log(`[:> CHAT QUEUE] Cleaned up ${deliveredIds.length} delivered visitor messages from database.`);
+    }
+  } catch (err: any) {
+    console.error('[:> FLUSH ANON QUEUE ERROR]', err);
   }
 }
 
@@ -532,14 +619,38 @@ async function handleClientMessage(sender: ActiveSession, msg: any) {
         [to]
       );
 
+      // Check if target is an anonymous handle (guest_..., surfer_..., cyber_..., etc.)
+      const isAnonTarget = to.startsWith('guest_') ||
+                           to.startsWith('surfer_') ||
+                           to.startsWith('cyber_') ||
+                           to.startsWith('dialup_') ||
+                           to.startsWith('node_') ||
+                           to.startsWith('netizen_') ||
+                           to.startsWith('anon_');
+
+      if (isAnonTarget) {
+        // Recipient visitor is currently navigating or away. Place into 24-hour store-and-forward queue!
+        await query(
+          `INSERT INTO ephemeral_chat_queue (sender_id, sender_handle, receiver_id, receiver_handle, is_anonymous, body)
+           VALUES ($1, $2, NULL, $3, FALSE, $4)`,
+          [sender.userId, sender.handle, to, trimmedText]
+        );
+
+        sender.ws.send(JSON.stringify({
+          type: 'message_status',
+          id: msgId,
+          to: to,
+          status: 'queued_offline',
+          timestamp,
+        }));
+        return;
+      }
+
       if (recipientRes.rows.length === 0) {
-        const isAnonTarget = to.startsWith('guest_') || to.startsWith('surfer_') || to.startsWith('anon_');
         sender.ws.send(JSON.stringify({
           type: 'message_error',
           id: msgId,
-          error: isAnonTarget
-            ? `Anonymous visitor @${to} has closed their browser session.`
-            : `User @${to} not found on Neogram network.`,
+          error: `User @${to} not found on Neogram network.`,
         }));
         return;
       }

@@ -1543,14 +1543,25 @@
                           <span class="text-muted block">Show system notification banners via Service Worker when window is backgrounded.</span>
                         </div>
                       </label>
-                      <button
-                        type="button"
-                        id="requestPushPermissionBtn"
-                        class="pixel-btn pixel-btn--sm pixel-btn--yellow text-3xs font-bold shrink-0 self-center"
-                        onclick="requestBrowserPushPermission()"
-                      >
-                        <span>PERMIT BROWSER</span>
-                      </button>
+                      <div class="flex items-center gap-1.5 shrink-0 self-center">
+                        <button
+                          type="button"
+                          id="requestPushPermissionBtn"
+                          class="pixel-btn pixel-btn--sm pixel-btn--yellow text-3xs font-bold"
+                          onclick="requestBrowserPushPermission()"
+                        >
+                          <span>PERMIT BROWSER</span>
+                        </button>
+                        <button
+                          type="button"
+                          id="testPushPermissionBtn"
+                          class="pixel-btn pixel-btn--sm text-3xs font-bold"
+                          onclick="testBrowserDesktopNotification()"
+                          title="Trigger a test desktop notification to verify operating system delivery"
+                        >
+                          <span>TEST ALERT</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -3854,11 +3865,25 @@
       if (pushBtn && typeof Notification !== 'undefined') {
         if (Notification.permission === 'granted') {
           pushBtn.innerHTML = '<span>✓ PERMITTED</span>';
-          pushBtn.className = 'pixel-btn pixel-btn--sm pixel-btn--green text-3xs font-bold shrink-0 self-center';
+          pushBtn.className = 'pixel-btn pixel-btn--sm pixel-btn--green text-3xs font-bold';
         } else if (Notification.permission === 'denied') {
           pushBtn.innerHTML = '<span>✕ BLOCKED IN BROWSER</span>';
-          pushBtn.className = 'pixel-btn pixel-btn--sm pixel-btn--danger text-3xs font-bold shrink-0 self-center';
+          pushBtn.className = 'pixel-btn pixel-btn--sm pixel-btn--danger text-3xs font-bold';
+          if (desktopPushInput) desktopPushInput.checked = false;
+        } else {
+          pushBtn.innerHTML = '<span>PERMIT BROWSER</span>';
+          pushBtn.className = 'pixel-btn pixel-btn--sm pixel-btn--yellow text-3xs font-bold';
         }
+      }
+
+      // Automatically request permission if user toggles the checkbox
+      if (desktopPushInput && !desktopPushInput._hasPermListener) {
+        desktopPushInput._hasPermListener = true;
+        desktopPushInput.addEventListener('change', function () {
+          if (this.checked && typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+            requestBrowserPushPermission();
+          }
+        });
       }
     } catch (err) {
       console.warn('[:> NOTIFY SETTINGS LOAD ERROR]', err);
@@ -3944,17 +3969,43 @@
         if (pushCheckbox) pushCheckbox.checked = true;
         if (pushBtn) {
           pushBtn.innerHTML = '<span>✓ PERMITTED</span>';
-          pushBtn.className = 'pixel-btn pixel-btn--sm pixel-btn--green text-3xs font-bold shrink-0 self-center';
+          pushBtn.className = 'pixel-btn pixel-btn--sm pixel-btn--green text-3xs font-bold';
         }
         if (window.retroAudio) window.retroAudio.playSuccess();
         alert('Cyberspace alert carrier permitted! Click "Save Notification Protocols" to commit changes.');
-      } else {
+      } else if (permission === 'denied') {
+        if (pushCheckbox) pushCheckbox.checked = false;
         if (pushBtn) {
           pushBtn.innerHTML = '<span>✕ BLOCKED IN BROWSER</span>';
-          pushBtn.className = 'pixel-btn pixel-btn--sm pixel-btn--danger text-3xs font-bold shrink-0 self-center';
+          pushBtn.className = 'pixel-btn pixel-btn--sm pixel-btn--danger text-3xs font-bold';
         }
+        alert('Notifications were blocked. Please click the permissions icon in your browser address bar and change Notifications to "Allow", then reload.');
       }
     });
+  }
+
+  function testBrowserDesktopNotification() {
+    if (window.retroAudio) window.retroAudio.playClick();
+    if (typeof Notification === 'undefined') {
+      alert('Desktop notifications are not supported in this browser.');
+      return;
+    }
+    if (Notification.permission !== 'granted') {
+      alert('Notifications are not permitted yet (Permission: ' + Notification.permission + '). Click "PERMIT BROWSER" first.');
+      return;
+    }
+    if (window.NeogramNotifications && typeof window.NeogramNotifications.sendTestNotification === 'function') {
+      window.NeogramNotifications.sendTestNotification();
+    } else {
+      try {
+        new Notification('[:> NEOGRAM TEST ALERT]', {
+          body: 'Cyberspace transmission link verified! Desktop alerts are working.',
+          icon: '/icons/icon-192.png',
+        });
+      } catch (e) {
+        alert('Notification error: ' + e.message);
+      }
+    }
   }
 
   function copyPostWebUrl(url, btn) {

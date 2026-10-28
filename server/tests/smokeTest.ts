@@ -1332,6 +1332,19 @@ async function runSmokeTests() {
     assertTest('Workstation dashboard contains #allowAnonChatInput toggle', pagerDashHtml.includes('id="allowAnonChatInput"'));
     assertTest('Workstation dashboard contains #pagerScriptSnippet embed box', pagerDashHtml.includes('id="pagerScriptSnippet"'));
     assertTest('Workstation dashboard contains #btnCopyPagerScript button', pagerDashHtml.includes('id="btnCopyPagerScript"'));
+    assertTest('Workstation dashboard contains #testPushPermissionBtn button', pagerDashHtml.includes('id="testPushPermissionBtn"'));
+
+    // 9. Verify anonymous receiver store-and-forward queueing for visitor handles
+    const testAnonReply = await query(
+      `INSERT INTO ephemeral_chat_queue (sender_id, sender_handle, receiver_id, receiver_handle, is_anonymous, body)
+       VALUES ($1, $2, NULL, 'guest_4242', FALSE, 'Thanks for paging my retro site! Here is my reply.')
+       RETURNING id, receiver_handle, body`,
+      [testUser.id, testUser.handle]
+    );
+    assertTest('Reply to visitor successfully staged with receiver_handle', testAnonReply.rows.length === 1 && testAnonReply.rows[0].receiver_handle === 'guest_4242');
+
+    // Clean up test message
+    await query('DELETE FROM ephemeral_chat_queue WHERE id = $1', [testAnonReply.rows[0].id]);
 
     // -------------------------------------------------------------------------
     // TEST 22: High-Speed Incremental Build & Delta Deploy Pipeline

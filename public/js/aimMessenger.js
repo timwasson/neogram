@@ -11,6 +11,8 @@
     currentUser: null,
     activeBuddy: null,
     buddies: [],
+    activeVisitors: new Map(), // handle -> { handle, status: 'online' | 'offline', lastSeen: number, lastSnippet: string }
+    pendingSender: null,
     reconnectTimer: null,
     isOpen: false,
     currentView: 'buddies', // 'buddies' | 'im'
@@ -21,6 +23,23 @@
       this.currentUser = userHandle;
       this.bindDomElements();
       this.connectWebSocket();
+      this.checkHashRoute();
+
+      var self = this;
+      window.addEventListener('hashchange', function () {
+        self.checkHashRoute();
+      });
+    },
+
+    checkHashRoute: function () {
+      var hash = window.location.hash || '';
+      if (hash.startsWith('#nim?user=') || hash.startsWith('#im?user=')) {
+        var target = hash.split('user=')[1];
+        if (target) {
+          target = target.split('&')[0];
+          this.openChatWith(target);
+        }
+      }
     },
 
     bindDomElements: function () {
@@ -45,7 +64,13 @@
 
       if (this.dockBtn) {
         this.dockBtn.addEventListener('click', function () {
-          self.toggleWindow();
+          if (self.pendingSender) {
+            var target = self.pendingSender;
+            self.pendingSender = null;
+            self.openChatWith(target);
+          } else {
+            self.toggleWindow();
+          }
         });
       }
 
@@ -175,8 +200,34 @@
       switch (packet.type) {
         case 'init_state':
           this.buddies = packet.buddies || [];
+          if (Array.isArray(packet.activeVisitors)) {
+            var self = this;
+            packet.activeVisitors.forEach(function (v) {
+              self.activeVisitors.set(v.handle, {
+                handle: v.handle,
+                status: v.status || 'online',
+                lastSeen: v.connectedAt ? new Date(v.connectedAt).getTime() : Date.now(),
+              });
+            });
+          }
           this.renderBuddies();
           this.updateDockBadge();
+          break;
+
+        case 'visitor_presence':
+          if (packet.handle) {
+            var existingVisitor = this.activeVisitors.get(packet.handle) || { handle: packet.handle };
+            existingVisitor.status = packet.status;
+            existingVisitor.lastSeen = Date.now();
+            this.activeVisitors.set(packet.handle, existingVisitor);
+
+            if (this.activeBuddy && this.activeBuddy.handle === packet.handle) {
+              this.activeBuddy.isOnline = packet.status === 'online';
+              this.activeBuddy.status = packet.status;
+              this.updateImHeader();
+            }
+            this.renderBuddies();
+          }
           break;
 
         case 'presence_update':
@@ -189,6 +240,21 @@
 
         case 'message_status':
           this.handleMessageStatus(packet);
+          break;
+
+        case 'message_error':
+          if (this.isOpen && this.currentView === 'im') {
+            this.appendMessageToTranscript({
+              id: 'sys_err_' + Date.now(),
+              from: 'system',
+              text: '[:> TRANSMISSION NOTICE] ' + (packet.error || 'Failed to deliver message.'),
+              timestamp: new Date().toISOString(),
+              isSystem: true,
+            });
+            if (window.retroAudio && window.retroAudio.playError) {
+              window.retroAudio.playError();
+            }
+          }
           break;
 
         case 'typing':
@@ -268,36 +334,62 @@
         timestamp: packet.timestamp || new Date().toISOString(),
         isMe: false,
         wasQueued: !!packet.wasQueued,
+        isPager: !!packet.isPager,
       };
 
       // 1. Store in LocalStorage
       this.saveMessageToLocal(fromHandle, msgObj);
 
-      // 2. Play classic chime
+      // 2. Track as active visitor if anonymous or pager
+      if (packet.isAnonymous || packet.isPager || fromHandle.startsWith('guest_') || fromHandle.startsWith('surfer_') || fromHandle.startsWith('cyber_') || fromHandle.startsWith('dialup_') || fromHandle.startsWith('node_') || fromHandle.startsWith('netizen_') || fromHandle.startsWith('anon_')) {
+        this.activeVisitors.set(fromHandle, {
+          handle: fromHandle,
+          status: 'online',
+          lastSeen: Date.now(),
+          lastSnippet: packet.text,
+        });
+      }
+
+      // 3. Play classic chime
       if (window.retroAudio && window.retroAudio.playAimMessageChime) {
         window.retroAudio.playAimMessageChime();
       }
 
-      // 3. If chatting with this buddy right now, append to transcript
+      // 4. If chatting with this buddy right now, append to transcript
       if (this.isOpen && this.currentView === 'im' && this.activeBuddy && this.activeBuddy.handle === fromHandle) {
         this.appendMessageToTranscript(msgObj);
       } else {
         // Alert on dock button
+        this.pendingSender = fromHandle;
         if (this.dockBtn) {
           this.dockBtn.classList.add('aim-dock-btn--alert');
           this.dockBtn.innerHTML = '<span>🔔 New IM from @' + fromHandle + '</span>';
         }
+      }
+
+      // Re-render buddies so new visitor is visible immediately
+      if (this.currentView === 'buddies') {
+        this.renderBuddies();
       }
     },
 
     handleMessageStatus: function (packet) {
       // Append delivery feedback to transcript if active
       if (this.isOpen && this.currentView === 'im' && this.activeBuddy && this.activeBuddy.handle === packet.to) {
-        if (packet.status === 'queued_offline') {
+        if (packet.status === 'delivered') {
+          var sysMsgDelivered = {
+            id: 'sys_' + Date.now(),
+            from: 'system',
+            text: '[:> SYSTEM] Transmission delivered directly to @' + packet.to + '.',
+            timestamp: new Date().toISOString(),
+            isSystem: true,
+          };
+          this.appendMessageToTranscript(sysMsgDelivered);
+        } else if (packet.status === 'queued_offline') {
           var sysMsg = {
             id: 'sys_' + Date.now(),
             from: 'system',
-            text: '[:> SYSTEM] Recipient @' + packet.to + ' is offline. Message held in 24h store-and-forward queue.',
+            text: '[:> SYSTEM] Recipient @' + packet.to + ' is offline/away. Message held in 24h store-and-forward queue.',
             timestamp: new Date().toISOString(),
             isSystem: true,
           };
@@ -519,6 +611,72 @@
         othersOffline.forEach(function (b) { html += makeItem(b); });
       }
 
+      // 3. PAGER TRANSMISSIONS & EXTERNAL SITE VISITORS
+      var visitorMap = new Map();
+
+      // From in-memory active visitors
+      this.activeVisitors.forEach(function (v, h) {
+        visitorMap.set(h, {
+          handle: h,
+          isOnline: v.status === 'online',
+          lastSeen: v.lastSeen || 0,
+          lastSnippet: v.lastSnippet || '',
+        });
+      });
+
+      // From LocalStorage chat archives
+      for (var k = 0; k < localStorage.length; k++) {
+        var storageKey = localStorage.key(k);
+        if (storageKey && storageKey.indexOf('neogram_im_') === 0) {
+          var h = storageKey.replace('neogram_im_', '');
+          if (h && h.toLowerCase() !== myHandle) {
+            var isRegBuddy = this.buddies.some(function (b) {
+              return (b.handle || '').toLowerCase() === h.toLowerCase();
+            });
+            if (!isRegBuddy) {
+              var hist = this.getLocalHistory(h);
+              var lastMsg = hist.length > 0 ? hist[hist.length - 1] : null;
+              var existing = visitorMap.get(h) || {
+                handle: h,
+                isOnline: false,
+                lastSeen: lastMsg ? new Date(lastMsg.timestamp || 0).getTime() : 0,
+                lastSnippet: lastMsg ? lastMsg.text : '',
+              };
+              if (lastMsg && !existing.lastSnippet) {
+                existing.lastSnippet = lastMsg.text;
+                existing.lastSeen = new Date(lastMsg.timestamp || 0).getTime();
+              }
+              visitorMap.set(h, existing);
+            }
+          }
+        }
+      }
+
+      var visitorList = Array.from(visitorMap.values()).sort(function (a, b) {
+        return (b.lastSeen || 0) - (a.lastSeen || 0);
+      });
+
+      var visitorsOnline = visitorList.filter(function (v) { return v.isOnline; });
+
+      html += '<div class="aim-window__buddy-section-title">📟 Pager &amp; Site Visitors (' + visitorsOnline.length + ' Active / ' + visitorList.length + ' Total)</div>';
+      if (visitorList.length === 0) {
+        html += '<div class="text-xs text-muted p-1 italic">No visitor transmissions yet. Embed pager widget on your site to receive transmissions.</div>';
+      } else {
+        visitorList.forEach(function (v) {
+          var dot = v.isOnline ? '🟢' : '⚪';
+          var snip = v.lastSnippet ? ' — "' + self.escapeHtml(v.lastSnippet.slice(0, 30)) + '"' : '';
+          var opacityClass = v.isOnline ? '' : ' opacity-70';
+          html += '<div class="aim-window__buddy-item' + opacityClass + '" data-handle="' + self.escapeHtml(v.handle) + '">' +
+            '<div class="flex items-center gap-1.5 overflow-hidden">' +
+              '<span>' + dot + '</span>' +
+              '<span class="font-bold text-accent">@' + self.escapeHtml(v.handle) + '</span>' +
+              '<span class="text-muted text-xs truncate">' + snip + '</span>' +
+            '</div>' +
+            '<button type="button" class="aim-window__btn-sm">REPLY</button>' +
+          '</div>';
+        });
+      }
+
       container.innerHTML = html;
 
       // Attach click listeners to buddy items
@@ -543,6 +701,9 @@
 
     openChatWith: function (handle) {
       if (window.retroAudio) window.retroAudio.playClick();
+      // Ensure the chat window is opened and visible
+      this.openWindow();
+
       var buddy = null;
       for (var i = 0; i < this.buddies.length; i++) {
         if (this.buddies[i].handle === handle) {
@@ -552,7 +713,15 @@
       }
 
       if (!buddy) {
-        buddy = { handle: handle, isOnline: false, status: 'offline', awayMessage: '' };
+        var vInfo = this.activeVisitors.get(handle);
+        var isOnline = vInfo ? vInfo.status === 'online' : false;
+        buddy = {
+          handle: handle,
+          isOnline: isOnline,
+          status: isOnline ? 'online' : 'offline',
+          awayMessage: '',
+          isVisitor: true,
+        };
       }
 
       this.activeBuddy = buddy;
@@ -577,15 +746,22 @@
 
     updateImHeader: function () {
       if (!this.activeBuddy) return;
-      if (this.imTitleEl) this.imTitleEl.textContent = 'Instant Message: @' + this.activeBuddy.handle;
+      var titlePrefix = this.activeBuddy.isVisitor ? '📟 Pager Transmission: @' : 'Instant Message: @';
+      if (this.imTitleEl) this.imTitleEl.textContent = titlePrefix + this.activeBuddy.handle;
       if (this.imStatusDotEl) {
-        this.imStatusDotEl.textContent = this.activeBuddy.isOnline
-          ? (this.activeBuddy.status === 'away' ? '🟡 Away' : '🟢 Online')
-          : '⚪ Offline';
+        if (this.activeBuddy.isVisitor) {
+          this.imStatusDotEl.textContent = this.activeBuddy.isOnline
+            ? '🟢 Pager Active'
+            : '⚪ Session Closed (Queued)';
+        } else {
+          this.imStatusDotEl.textContent = this.activeBuddy.isOnline
+            ? (this.activeBuddy.status === 'away' ? '🟡 Away' : '🟢 Online')
+            : '⚪ Offline';
+        }
       }
 
       if (this.imAwayBannerEl) {
-        if (this.activeBuddy.status === 'away' && this.activeBuddy.awayMessage) {
+        if (!this.activeBuddy.isVisitor && this.activeBuddy.status === 'away' && this.activeBuddy.awayMessage) {
           this.imAwayBannerEl.textContent = 'Auto-Response: "' + this.activeBuddy.awayMessage + '"';
           this.imAwayBannerEl.classList.remove('hidden');
         } else {
@@ -680,7 +856,12 @@
       var mobBtn = document.getElementById('mobileTabAimBtn');
       if (mobBtn) mobBtn.classList.remove('is-active');
     },
+
+    open: function () {
+      this.openWindow();
+    },
   };
 
   window.AimClient = AimClient;
+  window.aimMessenger = AimClient;
 })(window, document);

@@ -225,6 +225,18 @@
     attachEvents();
     loadTranscript();
     probeStatus();
+
+    // If visitor has active messages in this session, keep live bridge connected
+    // so incoming operator replies chime and alert the dock button immediately
+    var savedMsgs = sessionStorage.getItem('neogram_pager_msgs_' + station);
+    if (savedMsgs) {
+      try {
+        var parsed = JSON.parse(savedMsgs);
+        if (parsed && parsed.length > 0) {
+          connectWebSocket();
+        }
+      } catch (e) {}
+    }
   }
 
   // 6. Event Handlers & State Management

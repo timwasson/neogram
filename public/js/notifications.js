@@ -171,8 +171,9 @@
         // Special case for NIM popout
         if (linkUrl.startsWith('/#nim?user=')) {
           var userHandle = linkUrl.split('user=')[1];
-          if (window.aimMessenger && typeof window.aimMessenger.openChatWith === 'function') {
-            window.aimMessenger.openChatWith(userHandle);
+          var client = window.AimClient || window.aimMessenger;
+          if (client && typeof client.openChatWith === 'function') {
+            client.openChatWith(userHandle);
             return;
           }
         }
@@ -227,6 +228,83 @@
         });
     },
 
+    triggerDesktopNotification: function (title, options, linkUrl) {
+      if (typeof window.Notification === 'undefined') {
+        console.log('[:> DESKTOP NOTIFY] Window Notification is not supported in this browser.');
+        return;
+      }
+
+      if (Notification.permission !== 'granted') {
+        console.log('[:> DESKTOP NOTIFY] Permission is "' + Notification.permission + '" (not "granted"). Suppressing banner.');
+        return;
+      }
+
+      console.log('[:> DESKTOP NOTIFY] Triggering alert banner:', title);
+
+      var clientOpener = function () {
+        window.focus();
+        if (linkUrl) {
+          if (linkUrl.startsWith('/#nim?user=')) {
+            var u = linkUrl.split('user=')[1];
+            var client = window.AimClient || window.aimMessenger;
+            if (client && typeof client.openChatWith === 'function') {
+              client.openChatWith(u);
+              return;
+            }
+          }
+          window.location.href = linkUrl;
+        }
+      };
+
+      // 1. Direct window Notification
+      try {
+        var notif = new Notification(title, options);
+        notif.onclick = function () {
+          clientOpener();
+          notif.close();
+        };
+        console.log('[:> DESKTOP NOTIFY] Notification spawned via window.Notification.');
+        return;
+      } catch (err) {
+        console.warn('[:> DESKTOP NOTIFY] Notification constructor failed, attempting ServiceWorker:', err);
+      }
+
+      // 2. ServiceWorkerRegistration fallback
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(function (reg) {
+          if (reg && typeof reg.showNotification === 'function') {
+            var swOptions = Object.assign({}, options, {
+              data: { url: linkUrl || '/' },
+              vibrate: [200, 100, 200]
+            });
+            return reg.showNotification(title, swOptions).then(function () {
+              console.log('[:> DESKTOP NOTIFY] Spawned via ServiceWorker showNotification.');
+            });
+          }
+        }).catch(function (swErr) {
+          console.warn('[:> DESKTOP NOTIFY] ServiceWorker showNotification failed:', swErr);
+        });
+      }
+    },
+
+    sendTestNotification: function () {
+      if (typeof window.Notification === 'undefined') {
+        alert('Desktop notifications are not supported in this browser.');
+        return false;
+      }
+      if (Notification.permission !== 'granted') {
+        alert('Browser notification permission is currently: ' + Notification.permission + '. Click "PERMIT BROWSER" first.');
+        return false;
+      }
+      this.triggerDesktopNotification('[:> NEOGRAM TEST ALERT]', {
+        body: 'Cyberspace transmission link verified! Desktop alerts are working.',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        tag: 'neogram-test-' + Date.now(),
+      }, '/#settings');
+      return true;
+    },
+
     handleRealtimeNotification: function (packet) {
       var n = packet.notification;
       if (!n) return;
@@ -252,29 +330,13 @@
       }
 
       // 2. Trigger native desktop / PWA push notification if permitted
-      if (packet.desktopPush && typeof window.Notification !== 'undefined' && Notification.permission === 'granted') {
-        try {
-          if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.ready.then(function (reg) {
-              reg.showNotification(n.title, {
-                body: n.body || 'New cyberspace transmission',
-                icon: '/icons/icon-192.png',
-                badge: '/icons/icon-192.png',
-                vibrate: [200, 100, 200],
-                data: { url: n.linkUrl || '/' },
-              });
-            });
-          } else {
-            var notif = new Notification(n.title, {
-              body: n.body || 'New cyberspace transmission',
-              icon: '/icons/icon-192.png',
-            });
-            notif.onclick = function () {
-              window.focus();
-              if (n.linkUrl) window.location.href = n.linkUrl;
-            };
-          }
-        } catch (_pushErr) {}
+      if (packet.desktopPush) {
+        this.triggerDesktopNotification(n.title, {
+          body: n.body || 'New cyberspace transmission',
+          icon: '/icons/icon-192.png',
+          badge: '/icons/icon-192.png',
+          tag: 'neogram-' + (n.id || Date.now()),
+        }, n.linkUrl);
       }
     },
   };
