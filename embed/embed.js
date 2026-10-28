@@ -26,8 +26,15 @@
     renderPager: function (el) {
       var station = el.getAttribute('data-station') || '';
       if (!station) return;
+      var apiHost = 'https://neogram.club';
+      var currentScript = document.currentScript;
+      if (currentScript && currentScript.src) {
+        try {
+          apiHost = new URL(currentScript.src).origin;
+        } catch(e) {}
+      }
       var script = document.createElement('script');
-      script.src = '/embed/pager.js';
+      script.src = apiHost + '/embed/pager.js';
       script.setAttribute('data-station', station);
       var slug = el.getAttribute('data-slug');
       if (slug) script.setAttribute('data-slug', slug);

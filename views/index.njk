@@ -1821,7 +1821,7 @@
                   <pre id="counterCodeSnippet" class="p-2 bg-window border border-main text-xs font-mono overflow-x-auto select-all mb-2">&lt;!-- Neogram Dynamic Web Hit Counter --&gt;
 &lt;!-- Paste anywhere inside your page's HTML (e.g. before &lt;/body&gt;) --&gt;
 &lt;div class="neogram-counter"&gt;
-  &lt;img src="http://localhost:4000/counter/{{ currentUser.handle }}.svg?style=green_led" alt="Visitor Counter" /&gt;
+  &lt;img src="{{ appUrl if appUrl else 'https://neogram.club' }}/counter/{{ currentUser.handle }}.svg?style=green_led" alt="Visitor Counter" /&gt;
 &lt;/div&gt;</pre>
                   <button
                     type="button"
@@ -1849,7 +1849,7 @@
                 </p>
 
                 <div class="p-2 border border-main bg-window font-mono text-xs mb-3 flex items-center justify-between">
-                  <code id="feedUrlDisplay" class="text-prompt break-all">/api/users/{{ currentUser.handle }}/feed.json</code>
+                  <code id="feedUrlDisplay" class="text-prompt break-all">{{ appUrl if appUrl else 'https://neogram.club' }}/api/users/{{ currentUser.handle }}/feed.json</code>
                   <a id="feedUrlLink" href="/api/users/{{ currentUser.handle }}/feed.json" target="_blank" class="pixel-btn text-xs ml-2">
                     <span>🌐 Open</span>
                   </a>
@@ -1897,7 +1897,7 @@
                   </div>
                   <pre id="pagerScriptSnippet" class="p-2 bg-window border border-main text-xs font-mono overflow-x-auto select-all mb-2">&lt;!-- Neogram Live Chat / Pager Widget --&gt;
 &lt;script 
-  src="{{ appUrl }}/embed/pager.js" 
+  src="{{ appUrl if appUrl else 'https://neogram.club' }}/embed/pager.js" 
   data-station="{{ currentUser.handle }}" 
   data-slug="{{ activeSite.slug if activeSite else '' }}"
   data-position="bottom-right"
@@ -1931,7 +1931,7 @@
                   </div>
                   <pre id="pagerIframeSnippet" class="p-2 bg-window border border-main text-xs font-mono overflow-x-auto select-all mb-2">&lt;!-- Neogram Pager Iframe --&gt;
 &lt;iframe 
-  src="{{ appUrl }}/embed/pager/{{ currentUser.handle }}" 
+  src="{{ appUrl if appUrl else 'https://neogram.club' }}/embed/pager/{{ currentUser.handle }}" 
   width="380" 
   height="480" 
   frameborder="0"
@@ -1994,7 +1994,7 @@
                   </div>
                   <pre id="guestbookCodeSnippet" class="p-2 bg-window border border-main text-xs font-mono overflow-x-auto select-all mb-2">&lt;!-- Neogram Public Visitor Guestbook --&gt;
 &lt;!-- Paste anywhere inside your HTML --&gt;
-&lt;iframe src="http://localhost:4000/embed/guestbook/{{ currentUser.handle }}" width="100%" height="550" frameborder="0" style="border: 2px solid #00ff00; background: #000;"&gt;&lt;/iframe&gt;</pre>
+&lt;iframe src="{{ appUrl if appUrl else 'https://neogram.club' }}/embed/guestbook/{{ currentUser.handle }}" width="100%" height="550" frameborder="0" style="border: 2px solid #00ff00; background: #000;"&gt;&lt;/iframe&gt;</pre>
                   <div class="flex items-center gap-2 flex-wrap">
                     <button
                       type="button"
@@ -2730,6 +2730,10 @@
   // -------------------------------------------------------------
   var currentCounterStyle = 'green_led';
   var userHandle = '{{ currentUser.handle }}';
+  var publicEmbedOrigin = '{{ appUrl if appUrl else "https://neogram.club" }}';
+  if (!publicEmbedOrigin || publicEmbedOrigin.indexOf('localhost') !== -1 || publicEmbedOrigin.indexOf('127.0.0.1') !== -1) {
+    publicEmbedOrigin = 'https://neogram.club';
+  }
 
   async function loadEmbedsStudio() {
     loadCounterSettings();
@@ -2795,7 +2799,7 @@
     var feedDisplay = document.getElementById('feedUrlDisplay');
     var feedLink = document.getElementById('feedUrlLink');
     var feedPath = '/api/users/' + userHandle + '/feed.json' + (slug ? ('?siteSlug=' + encodeURIComponent(slug)) : '');
-    if (feedDisplay) feedDisplay.textContent = feedPath;
+    if (feedDisplay) feedDisplay.textContent = publicEmbedOrigin + feedPath;
     if (feedLink) feedLink.href = feedPath;
 
     var pagerSnippet = document.getElementById('pagerScriptSnippet');
@@ -2803,10 +2807,10 @@
     var pagerTestLink = document.getElementById('pagerTestLink');
     var pagerSlugAttr = slug ? ('\n  data-slug="' + slug + '"') : '';
     if (pagerSnippet) {
-      pagerSnippet.textContent = '\x3c!-- Neogram Live Chat / Pager Widget --\x3e\n\x3cscript \n  src="' + window.location.origin + '/embed/pager.js" \n  data-station="' + userHandle + '"' + pagerSlugAttr + '\n  data-position="bottom-right"\n  defer\x3e\n\x3c/script\x3e';
+      pagerSnippet.textContent = '\x3c!-- Neogram Live Chat / Pager Widget --\x3e\n\x3cscript \n  src="' + publicEmbedOrigin + '/embed/pager.js" \n  data-station="' + userHandle + '"' + pagerSlugAttr + '\n  data-position="bottom-right"\n  defer\x3e\n\x3c/script\x3e';
     }
     if (pagerIframeSnippet) {
-      var iframeUrl = window.location.origin + '/embed/pager/' + userHandle + (slug ? ('/' + slug) : '');
+      var iframeUrl = publicEmbedOrigin + '/embed/pager/' + userHandle + (slug ? ('/' + slug) : '');
       pagerIframeSnippet.textContent = '\x3c!-- Neogram Pager Iframe --\x3e\n\x3ciframe \n  src="' + iframeUrl + '" \n  width="380" \n  height="480" \n  frameborder="0"\n  style="border: 3px solid #000;"\x3e\n\x3c/iframe\x3e';
     }
     if (pagerTestLink) {
@@ -2853,7 +2857,7 @@
     var snippet = document.getElementById('counterCodeSnippet');
     var slugPart = currentEmbedSiteSlug ? ('/' + currentEmbedSiteSlug) : '';
     var url = '/counter/' + userHandle + slugPart + '.svg?style=' + style + '&t=' + Date.now();
-    var fullUrl = window.location.origin + '/counter/' + userHandle + slugPart + '.svg?style=' + style;
+    var fullUrl = publicEmbedOrigin + '/counter/' + userHandle + slugPart + '.svg?style=' + style;
     if (img) img.src = url;
     if (label) label.textContent = '/counter/' + userHandle + slugPart + '.svg?style=' + style;
     if (snippet) {
@@ -2939,7 +2943,7 @@
   function copyFeedUrl() {
     if (window.retroAudio) window.retroAudio.playClick();
     var slugParam = currentEmbedSiteSlug ? ('?siteSlug=' + encodeURIComponent(currentEmbedSiteSlug)) : '';
-    var fullUrl = window.location.origin + '/api/users/' + userHandle + '/feed.json' + slugParam;
+    var fullUrl = publicEmbedOrigin + '/api/users/' + userHandle + '/feed.json' + slugParam;
     navigator.clipboard?.writeText(fullUrl);
     var btn = document.getElementById('btnCopyFeedUrl');
     if (btn) {
@@ -2951,7 +2955,7 @@
 
   function copyFeedIframe() {
     if (window.retroAudio) window.retroAudio.playClick();
-    var iframe = '\x3ciframe src="' + window.location.origin + '/embed/feed/' + userHandle + '" width="100%" height="600" frameborder="0"\x3e\x3c/iframe\x3e';
+    var iframe = '\x3ciframe src="' + publicEmbedOrigin + '/embed/feed/' + userHandle + '" width="100%" height="600" frameborder="0"\x3e\x3c/iframe\x3e';
     navigator.clipboard?.writeText(iframe);
     var btn = document.getElementById('btnCopyFeedIframe');
     if (btn) {
@@ -2974,7 +2978,7 @@
 
     var snippet = document.getElementById('guestbookCodeSnippet');
     var slugPart = currentEmbedSiteSlug ? ('/' + currentEmbedSiteSlug) : '';
-    var fullUrl = window.location.origin + '/embed/guestbook/' + userHandle + slugPart + (skin !== 'dark' ? ('?skin=' + skin) : '');
+    var fullUrl = publicEmbedOrigin + '/embed/guestbook/' + userHandle + slugPart + (skin !== 'dark' ? ('?skin=' + skin) : '');
     var openBtn = document.getElementById('btnOpenGuestbookLink');
     if (openBtn) openBtn.href = '/embed/guestbook/' + userHandle + slugPart;
 
@@ -2992,7 +2996,7 @@
     if (window.retroAudio) window.retroAudio.playClick();
     var snippet = document.getElementById('guestbookCodeSnippet');
     var slugPart = currentEmbedSiteSlug ? ('/' + currentEmbedSiteSlug) : '';
-    var iframeText = snippet ? snippet.textContent : ('\x3ciframe src="' + window.location.origin + '/embed/guestbook/' + userHandle + slugPart + '" width="100%" height="550" frameborder="0"\x3e\x3c/iframe\x3e');
+    var iframeText = snippet ? snippet.textContent : ('\x3ciframe src="' + publicEmbedOrigin + '/embed/guestbook/' + userHandle + slugPart + '" width="100%" height="550" frameborder="0"\x3e\x3c/iframe\x3e');
     navigator.clipboard?.writeText(iframeText);
     var btn = document.getElementById('btnCopyGuestbookIframe');
     if (btn) {

@@ -1322,7 +1322,9 @@ async function runSmokeTests() {
     assertTest('Docs HTML contains Static Site Pager & Chat Widget topic pane',
       docsTopicHtml.includes('Static Site Pager &amp; Chat Widget') && docsTopicHtml.includes('tabBtn-pager')
     );
-    assertTest('Docs HTML contains codePagerScript snippet', docsTopicHtml.includes('codePagerScript'));
+    assertTest('Docs HTML contains codePagerScript snippet with https://neogram.club domain',
+      docsTopicHtml.includes('codePagerScript') && docsTopicHtml.includes('https://neogram.club/embed/pager.js')
+    );
 
     const pagerDashRes = await fetch(`${API_BASE}/`, {
       headers: { 'Cookie': sessionCookie },
@@ -1330,7 +1332,15 @@ async function runSmokeTests() {
     const pagerDashHtml = await pagerDashRes.text();
     assertTest('Workstation dashboard contains #chatWidgetEnabledInput toggle', pagerDashHtml.includes('id="chatWidgetEnabledInput"'));
     assertTest('Workstation dashboard contains #allowAnonChatInput toggle', pagerDashHtml.includes('id="allowAnonChatInput"'));
-    assertTest('Workstation dashboard contains #pagerScriptSnippet embed box', pagerDashHtml.includes('id="pagerScriptSnippet"'));
+    assertTest('Workstation dashboard contains #pagerScriptSnippet embed box with https://neogram.club domain',
+      pagerDashHtml.includes('id="pagerScriptSnippet"') && pagerDashHtml.includes('https://neogram.club/embed/pager.js')
+    );
+    assertTest('Workstation dashboard contains #counterCodeSnippet with https://neogram.club domain',
+      pagerDashHtml.includes('https://neogram.club/counter/')
+    );
+    assertTest('Workstation dashboard contains #guestbookCodeSnippet with https://neogram.club domain',
+      pagerDashHtml.includes('https://neogram.club/embed/guestbook/')
+    );
     assertTest('Workstation dashboard contains #btnCopyPagerScript button', pagerDashHtml.includes('id="btnCopyPagerScript"'));
     assertTest('Workstation dashboard contains #testPushPermissionBtn button', pagerDashHtml.includes('id="testPushPermissionBtn"'));
 

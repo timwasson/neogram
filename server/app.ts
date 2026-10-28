@@ -162,8 +162,14 @@ export function createApp(): Express {
   app.use('/api', apiRouter);
   app.use(embedsRouter);
 
-  // Attach session user to res.locals for templates
+  // Attach session user and default public appUrl to res.locals for templates
   app.use(async (req: Request, res: Response, next: NextFunction) => {
+    const rawAppUrl = config.appUrl || process.env.APP_URL || '';
+    // For external embed snippets, always default to https://neogram.club unless a custom non-localhost domain is set
+    res.locals.appUrl = (rawAppUrl && !rawAppUrl.includes('localhost') && !rawAppUrl.includes('127.0.0.1'))
+      ? rawAppUrl
+      : 'https://neogram.club';
+
     try {
       const token = extractToken(req);
       if (token) {
@@ -281,6 +287,7 @@ export function createApp(): Express {
         systemPrompt: ':> SYSTEM 7 WORKSTATION ONLINE',
         version: '2.0.0',
         activeView: 'dashboard',
+        appUrl: res.locals.appUrl,
         posts: userArchivePosts,
         allPosts: postsQuery.rows,
         followerFeedPosts,

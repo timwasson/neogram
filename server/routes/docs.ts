@@ -9,7 +9,10 @@ export const docsRouter = Router();
  */
 docsRouter.get('/docs', (req: Request, res: Response) => {
   const currentUser = res.locals.currentUser;
-  const baseUrl = config.appUrl || `${req.protocol}://${req.get('host')}`;
+  const rawAppUrl = res.locals.appUrl || config.appUrl || `${req.protocol}://${req.get('host')}`;
+  const baseUrl = (rawAppUrl && !rawAppUrl.includes('localhost') && !rawAppUrl.includes('127.0.0.1'))
+    ? rawAppUrl
+    : 'https://neogram.club';
 
   const stationHandle = currentUser ? currentUser.handle : 'your_handle';
   const stationUin = currentUser && currentUser.uin ? currentUser.uin : 100101;
