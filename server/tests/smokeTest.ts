@@ -269,6 +269,7 @@ async function runSmokeTests() {
     const counterHandleRes = await fetch(`${API_BASE}/counter/${testUser.handle}.svg?style=green_led`);
     assertTest('GET /counter/:handle.svg returns HTTP 200', counterHandleRes.status === 200);
     assertTest('Counter content-type is image/svg+xml', counterHandleRes.headers.get('content-type')?.includes('image/svg+xml') === true);
+    assertTest('Counter has cross-origin CORP header', counterHandleRes.headers.get('cross-origin-resource-policy') === 'cross-origin');
     const svgHandleContent = await counterHandleRes.text();
     assertTest('Counter SVG contains valid XML tags', svgHandleContent.includes('<svg') && svgHandleContent.includes('</svg>'));
 

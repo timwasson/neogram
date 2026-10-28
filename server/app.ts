@@ -68,6 +68,8 @@ export function createApp(): Express {
     helmet({
       contentSecurityPolicy: false, // Custom CSP below handles widget framing dynamically
       crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allows external static sites (Neocities, Nekoweb, etc.) to load widgets, SVGs, audio, and embeds
+      crossOriginOpenerPolicy: false, // Allows cross-origin popups (Cyber-Pass SSO) to communicate via window.opener.postMessage
       frameguard: false, // Custom frame-ancestors logic below protects dashboard from clickjacking
     })
   );
@@ -79,6 +81,7 @@ export function createApp(): Express {
     // Allow iframe embedding strictly for public widget embed routes; defend workstation dashboard from Clickjacking
     if (req.path.startsWith('/embed') || req.path.startsWith('/counter')) {
       res.setHeader('Content-Security-Policy', "frame-ancestors *");
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     } else {
       res.setHeader('X-Frame-Options', 'SAMEORIGIN');
       res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");

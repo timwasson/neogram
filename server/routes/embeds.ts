@@ -101,6 +101,8 @@ embedsRouter.get(['/counter/:identifier.svg', '/counter/:identifier/:slug.svg'],
       'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
       'Pragma': 'no-cache',
       'Expires': '0',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+      'Access-Control-Allow-Origin': '*',
     });
 
     res.send(svg);
@@ -108,7 +110,11 @@ embedsRouter.get(['/counter/:identifier.svg', '/counter/:identifier/:slug.svg'],
     console.error('[:> COUNTER ERROR]', err);
     // Return a fallback SVG even on error so images never show as broken
     const fallbackSvg = generateCounterSvg(0, 'green_led');
-    res.set('Content-Type', 'image/svg+xml').send(fallbackSvg);
+    res.set({
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+      'Access-Control-Allow-Origin': '*',
+    }).send(fallbackSvg);
   }
 });
 
