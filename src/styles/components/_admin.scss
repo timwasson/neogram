@@ -29,6 +29,10 @@
   color: #fff;
   border: 1px solid var(--border-main, #000);
   box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.4);
+
+  .dark & {
+    box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1);
+  }
 }
 
 .sysop-header__sub {
@@ -53,6 +57,10 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+
+  .dark & {
+    box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.08), inset -1px -1px 0 #000, 2px 2px 0 #000;
+  }
 }
 
 .sysop-metric__title {
@@ -124,9 +132,15 @@
   max-block-size: min(550px, 80vh);
   container-type: inline-size;
   border: 2px solid var(--border-main, #000);
-  background: #fff;
+  background: var(--surface-card, #fff);
   margin-top: 1rem;
   box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #fff;
+
+  .dark & {
+    background: var(--surface-card, #0d1117);
+    border-color: var(--border-main, #384252);
+    box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.9), inset -1px -1px 0 rgba(255, 255, 255, 0.05);
+  }
 }
 
 .sysop-table {
@@ -135,6 +149,7 @@
   border-spacing: 0;
   font-family: var(--font-mono, monospace);
   font-size: 0.75rem;
+  color: var(--text-main, #000);
 }
 
 .sysop-table thead {
@@ -143,6 +158,12 @@
   z-index: 2;
   background: var(--surface-title, #000080);
   color: #fff;
+
+  .dark & {
+    background: #05070a;
+    color: var(--text-main, #e6edf3);
+    border-bottom: 2px solid var(--border-main, #384252);
+  }
 }
 
 .sysop-table th,
@@ -151,6 +172,12 @@
   text-align: left;
   border-bottom: 1px solid #ddd;
   border-right: 1px solid #ddd;
+  color: inherit;
+
+  .dark & {
+    border-bottom: 1px solid var(--border-muted, #21262d);
+    border-right: 1px solid var(--border-muted, #21262d);
+  }
 }
 
 .sysop-table th:last-child,
@@ -158,16 +185,38 @@
   border-right: none;
 }
 
-.sysop-table tbody tr:hover {
-  background: #f0f7ff;
-}
+.sysop-table tbody tr {
+  background: #fff;
+  color: var(--text-main, #000);
 
-.sysop-table tbody tr.sysop-table__row--banned {
-  background: #fff0f0;
-}
+  .dark & {
+    background: var(--surface-card, #0d1117);
+    color: var(--text-main, #e6edf3);
+  }
 
-.sysop-table tbody tr.sysop-table__row--banned:hover {
-  background: #ffe0e0;
+  &:hover {
+    background: #f0f7ff;
+
+    .dark & {
+      background: #161f2e;
+    }
+  }
+
+  &.sysop-table__row--banned {
+    background: #fff0f0;
+
+    .dark & {
+      background: #25070a;
+    }
+
+    &:hover {
+      background: #ffe0e0;
+
+      .dark & {
+        background: #350b10;
+      }
+    }
+  }
 }
 
 /* Sticky row header on desktop */
@@ -176,10 +225,33 @@
   inset-inline-start: 0;
   background: #fafafa;
   font-weight: bold;
+  color: var(--text-main, #000);
+
+  .dark & {
+    background: #11161d;
+    color: var(--text-main, #e6edf3);
+  }
 }
 
 .sysop-table tbody tr.sysop-table__row--banned th {
   background: #ffe6e6;
+
+  .dark & {
+    background: #2b0c10;
+    color: #ff6b8b;
+  }
+}
+
+.sysop-table a {
+  color: var(--accent-mac, #000080);
+
+  .dark & {
+    color: var(--accent-mac, #58a6ff);
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 /* Responsive Stacked Container Query Transformation */
@@ -201,6 +273,12 @@
     margin-bottom: 1rem;
     border: 2px solid #000;
     box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15);
+
+    .dark & {
+      border-color: var(--border-main, #384252);
+      box-shadow: 2px 2px 0 #000;
+      background: var(--surface-card, #0d1117);
+    }
   }
 
   .sysop-table tbody th {
@@ -210,6 +288,12 @@
     background: #000080;
     color: #fff;
     border-bottom: 2px solid #000;
+
+    .dark & {
+      background: #05070a;
+      border-bottom: 2px solid var(--border-main, #384252);
+      color: var(--text-main, #e6edf3);
+    }
   }
 
   .sysop-table td {
@@ -223,6 +307,10 @@
     font-weight: bold;
     color: #555;
     margin-right: 0.5rem;
+
+    .dark & {
+      color: var(--accent-mac, #58a6ff);
+    }
   }
 
   .sysop-table td:nth-child(2)::before { content: "Node Contact: "; }
@@ -242,23 +330,53 @@
   font-size: 0.65rem;
   font-weight: bold;
   border: 1px solid #000;
+  background: var(--surface-sunken, #f0ece1);
+  color: var(--text-main, #000);
+
+  .dark & {
+    border-color: var(--border-main, #384252);
+    background: var(--surface-sunken, #05080c);
+    color: var(--text-main, #e6edf3);
+  }
 }
 
 .sysop-badge--active {
   background: #e6ffec;
   color: #00882b;
   border-color: #00882b;
+
+  .dark & {
+    background: #002b0f;
+    color: var(--accent-prompt, #39ff14);
+    border-color: var(--accent-prompt, #39ff14);
+    text-shadow: 0 0 6px rgba(57, 255, 20, 0.4);
+  }
 }
 
 .sysop-badge--banned {
   background: #ffe6e6;
   color: #cc0000;
   border-color: #cc0000;
+
+  .dark & {
+    background: #25070a;
+    color: #ff6b8b;
+    border-color: var(--accent-crimson, #ff3366);
+    text-shadow: 0 0 6px rgba(255, 51, 102, 0.4);
+  }
 }
 
 .sysop-badge--online {
   background: #00ff66;
   color: #000;
+  border-color: #00882b;
+
+  .dark & {
+    background: #00ff66;
+    color: #000000;
+    border-color: #00ff66;
+    box-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+  }
 }
 
 /* Ban Dialog / Modal */
@@ -281,6 +399,11 @@
   width: 100%;
   max-width: 480px;
   background: var(--surface-window, #dfdfdf);
-  border: 2px solid #000;
+  border: 2px solid var(--border-main, #000);
   box-shadow: 4px 4px 0 #000;
+
+  .dark & {
+    border-color: var(--border-main, #384252);
+    box-shadow: 4px 4px 0px 0px #000000, 0 0 30px rgba(0, 0, 0, 0.8);
+  }
 }

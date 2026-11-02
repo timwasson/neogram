@@ -4,6 +4,7 @@
  */
 
 :root {
+  color-scheme: light;
   --bg-desktop: #285577;       /* Deep 90s Unix/Mac workstation teal-slate */
   --surface-window: #dcd8d0;   /* Classic Platinum grey */
   --surface-title: #2a2c30;    /* Classic dark titlebar */
@@ -32,6 +33,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --bg-desktop: #0a0e14;       /* Midnight Unix workstation */
   --surface-window: #161b22;   /* Dark terminal surface */
   --surface-title: #05070a;    /* Deep midnight title */

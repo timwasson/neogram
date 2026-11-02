@@ -54,7 +54,7 @@
     </div>
     <div class="sysop-metric">
       <div class="sysop-metric__title">Live Operator Nodes</div>
-      <div class="sysop-metric__val" style="color: #00882b;">{{ telemetry.activeSocketsCount }}</div>
+      <div class="sysop-metric__val text-prompt">{{ telemetry.activeSocketsCount }}</div>
       <div class="sysop-metric__sub">WebSocket Carriers Connected</div>
     </div>
     <div class="sysop-metric">
@@ -323,8 +323,7 @@
             name="text"
             rows="2"
             maxlength="500"
-            class="w-full font-mono text-xs p-2 border-2 border-black"
-            style="background: #fff;"
+            class="retro-input text-xs"
             oninput="handleMarqueeInput(this);"
           >{{ currentTicker }}</textarea>
           <div class="flex justify-between items-center mt-1 text-3xs font-mono text-muted">
@@ -336,7 +335,7 @@
         <!-- Live Simulation Preview -->
         <div class="mb-3">
           <div class="font-bold font-mono text-3xs text-muted uppercase mb-1">Live Preview Simulation:</div>
-          <div class="terminal-marquee-bar" style="border: 1px solid #000;">
+          <div class="terminal-marquee-bar border">
             <div class="animate-marquee font-mono text-xs" id="marqueePreview">
               {{ currentTicker }}
             </div>
@@ -350,7 +349,7 @@
           <button type="button" class="pixel-btn text-xs" onclick="resetMarqueeDefault();">
             <span>↺</span> <span>Reset Default</span>
           </button>
-          <span id="marqueeStatusAlert" class="font-mono text-xs text-green hidden font-bold"></span>
+          <span id="marqueeStatusAlert" class="font-mono text-xs text-prompt hidden font-bold"></span>
         </div>
       </form>
     </div>
@@ -372,7 +371,7 @@
             type="search"
             id="nodeSearchInput"
             placeholder="Search handle, email, or UIN..."
-            class="w-full p-1.5 font-mono text-xs border-2 border-black"
+            class="retro-input text-xs"
             oninput="filterNodesTable();"
           />
         </div>
@@ -439,7 +438,7 @@
                     {% if u.isOnline %}
                       <span class="pipeline-led" title="Operator online right now" style="width: 8px; height: 8px; margin-right: 0;"></span>
                     {% endif %}
-                    <a href="/user/@{{ u.handle }}" target="_blank" class="font-bold text-title hover:underline">
+                    <a href="/user/@{{ u.handle }}" target="_blank" class="font-bold text-mac hover:underline">
                       @{{ u.handle }}
                     </a>
                     <span class="text-3xs text-muted font-normal">[#{{ u.uin }}]</span>
@@ -573,7 +572,7 @@
         <p class="font-mono text-xs mb-2">
           You are about to soft-ban station node <span id="banModalHandle" class="font-bold text-danger"></span>.
         </p>
-        <div class="retro-alert retro-alert--info font-mono text-3xs mb-3">
+        <div class="retro-alert retro-alert--info is-visible font-mono text-3xs mb-3">
           <strong>CARRIER INVARIANT:</strong> Soft-banning freezes this node from logging in or transmitting new content to Neogram social feeds.
           <strong>All static files on their remote host (Neocities/Nekoweb/SFTP) are strictly preserved and untouched.</strong>
         </div>
@@ -585,8 +584,7 @@
           id="banReasonInput"
           placeholder="e.g. Terms of Service violation, spam transmission"
           maxlength="255"
-          class="w-full p-2 font-mono text-xs border-2 border-black"
-          style="background: #fff;"
+          class="retro-input text-xs"
         />
       </div>
 
@@ -619,14 +617,14 @@
         <div class="mb-2">
           <label class="block font-bold mb-1" for="qaModalSiteName">Site Label &amp; Slug:</label>
           <div class="flex gap-2">
-            <input type="text" id="qaModalSiteName" required placeholder="Primary Neocities" class="w-full p-1.5 font-mono text-xs border-2 border-black" />
-            <input type="text" id="qaModalSiteSlug" required placeholder="main" class="w-40 p-1.5 font-mono text-xs border-2 border-black" />
+            <input type="text" id="qaModalSiteName" required placeholder="Primary Neocities" class="retro-input text-xs flex-1" />
+            <input type="text" id="qaModalSiteSlug" required placeholder="main" class="retro-input text-xs w-40" />
           </div>
         </div>
 
         <div class="mb-2">
           <label class="block font-bold mb-1" for="qaModalDeployType">Static Host Provider:</label>
-          <select id="qaModalDeployType" class="w-full p-1.5 font-mono text-xs border-2 border-black">
+          <select id="qaModalDeployType" class="retro-input text-xs w-full">
             <option value="neocities">Neocities REST API</option>
             <option value="nekoweb">Nekoweb REST API</option>
             <option value="none">Cold-Start Sandbox (No External Host)</option>
@@ -636,8 +634,8 @@
         <div class="mb-2">
           <label class="block font-bold mb-1" for="qaModalSiteUrl">Target Site Base URL &amp; Subdirectory Path:</label>
           <div class="flex gap-2">
-            <input type="url" id="qaModalSiteUrl" required placeholder="https://mysite.neocities.org" class="w-full p-1.5 font-mono text-xs border-2 border-black" />
-            <input type="text" id="qaModalDeployPath" placeholder="neogram" class="w-40 p-1.5 font-mono text-xs border-2 border-black" />
+            <input type="url" id="qaModalSiteUrl" required placeholder="https://mysite.neocities.org" class="retro-input text-xs flex-1" />
+            <input type="text" id="qaModalDeployPath" placeholder="neogram" class="retro-input text-xs w-40" />
           </div>
         </div>
 
@@ -647,7 +645,7 @@
             type="password"
             id="qaModalApiKey"
             placeholder="Paste Neocities or Nekoweb API Key (leave blank to keep existing key)"
-            class="w-full p-1.5 font-mono text-xs border-2 border-black"
+            class="retro-input text-xs w-full"
           />
         </div>
 

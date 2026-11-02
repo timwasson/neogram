@@ -72,7 +72,17 @@
 .opacity-70 { opacity: 0.7; }
 .opacity-100 { opacity: 1; }
 .cursor-pointer { cursor: pointer; }
+
+/* Borders */
 .border-0 { border: 0 !important; }
+.border { border: 1px solid var(--border-main); }
+.border-2 { border: 2px solid var(--border-main); }
+.border-b { border-bottom: 1px solid var(--border-muted, #ddd); }
+.border-t { border-top: 1px solid var(--border-muted, #ddd); }
+.border-dashed { border-style: dashed; }
+.border-main { border-color: var(--border-main); }
+.border-black { border-color: var(--border-main); }
+
 .bg-transparent { background: transparent !important; }
 .bg-black { background-color: #000000 !important; }
 .bg-white { background-color: #ffffff !important; }
@@ -148,6 +158,7 @@
 .font-pixel { font-family: var(--font-pixel); }
 .font-led { font-family: var(--font-led); }
 
+.text-3xs { font-size: 9px; }
 .text-xxs { font-size: 10px; }
 .text-xs { font-size: 11px; }
 .text-sm { font-size: 12px; }
@@ -191,6 +202,9 @@
   }
 }
 .text-crimson { color: var(--accent-crimson); }
+.text-danger { color: var(--accent-crimson); }
+.text-green { color: var(--accent-prompt); }
+.text-title { color: var(--text-main); }
 .text-white { color: #ffffff; }
 .text-black { color: #000000; }
 

@@ -7,6 +7,7 @@
  * Defines color palettes, typography, surfaces, and theme rules for Neogram.
  */
 :root {
+  color-scheme: light;
   --bg-desktop: #285577; /* Deep 90s Unix/Mac workstation teal-slate */
   --surface-window: #dcd8d0; /* Classic Platinum grey */
   --surface-title: #2a2c30; /* Classic dark titlebar */
@@ -31,6 +32,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --bg-desktop: #0a0e14; /* Midnight Unix workstation */
   --surface-window: #161b22; /* Dark terminal surface */
   --surface-title: #05070a; /* Deep midnight title */
@@ -285,8 +287,37 @@ a {
   cursor: pointer;
 }
 
+/* Borders */
 .border-0 {
   border: 0 !important;
+}
+
+.border {
+  border: 1px solid var(--border-main);
+}
+
+.border-2 {
+  border: 2px solid var(--border-main);
+}
+
+.border-b {
+  border-bottom: 1px solid var(--border-muted, #ddd);
+}
+
+.border-t {
+  border-top: 1px solid var(--border-muted, #ddd);
+}
+
+.border-dashed {
+  border-style: dashed;
+}
+
+.border-main {
+  border-color: var(--border-main);
+}
+
+.border-black {
+  border-color: var(--border-main);
 }
 
 .bg-transparent {
@@ -541,6 +572,10 @@ a {
   font-family: var(--font-led);
 }
 
+.text-3xs {
+  font-size: 9px;
+}
+
 .text-xxs {
   font-size: 10px;
 }
@@ -636,6 +671,18 @@ a {
 
 .text-crimson {
   color: var(--accent-crimson);
+}
+
+.text-danger {
+  color: var(--accent-crimson);
+}
+
+.text-green {
+  color: var(--accent-prompt);
+}
+
+.text-title {
+  color: var(--text-main);
 }
 
 .text-white {
@@ -1154,6 +1201,10 @@ a {
     font-size: 16px;
   }
 }
+.retro-input.text-xs {
+  padding: 6px 8px;
+  font-size: 11px;
+}
 .retro-input::placeholder {
   color: var(--text-muted);
   font-weight: 400;
@@ -1181,6 +1232,14 @@ a {
   border-color: #58a6ff;
   background: #070d16;
   box-shadow: inset 2px 2px 4px 0px rgba(0, 0, 0, 0.9), 0 0 10px rgba(88, 166, 255, 0.45);
+}
+.retro-input option {
+  background: var(--surface-card);
+  color: var(--text-main);
+}
+.dark .retro-input option {
+  background: #0d1117;
+  color: #e6edf3;
 }
 .retro-input {
   /* -------------------------------------------------------------
@@ -3757,6 +3816,9 @@ dialog.pixel-dialog[open] {
   border: 1px solid var(--border-main, #000);
   box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.4);
 }
+.dark .sysop-header__badge {
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1);
+}
 
 .sysop-header__sub {
   font-family: var(--font-mono, monospace);
@@ -3780,6 +3842,9 @@ dialog.pixel-dialog[open] {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+.dark .sysop-metric {
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.08), inset -1px -1px 0 #000, 2px 2px 0 #000;
 }
 
 .sysop-metric__title {
@@ -3854,9 +3919,14 @@ dialog.pixel-dialog[open] {
   max-block-size: min(550px, 80vh);
   container-type: inline-size;
   border: 2px solid var(--border-main, #000);
-  background: #fff;
+  background: var(--surface-card, #fff);
   margin-top: 1rem;
   box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #fff;
+}
+.dark .sysop-table-wrapper {
+  background: var(--surface-card, #0d1117);
+  border-color: var(--border-main, #384252);
+  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.9), inset -1px -1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .sysop-table {
@@ -3865,6 +3935,7 @@ dialog.pixel-dialog[open] {
   border-spacing: 0;
   font-family: var(--font-mono, monospace);
   font-size: 0.75rem;
+  color: var(--text-main, #000);
 }
 
 .sysop-table thead {
@@ -3874,6 +3945,11 @@ dialog.pixel-dialog[open] {
   background: var(--surface-title, #000080);
   color: #fff;
 }
+.dark .sysop-table thead {
+  background: #05070a;
+  color: var(--text-main, #e6edf3);
+  border-bottom: 2px solid var(--border-main, #384252);
+}
 
 .sysop-table th,
 .sysop-table td {
@@ -3881,6 +3957,12 @@ dialog.pixel-dialog[open] {
   text-align: left;
   border-bottom: 1px solid #ddd;
   border-right: 1px solid #ddd;
+  color: inherit;
+}
+.dark .sysop-table th,
+.dark .sysop-table td {
+  border-bottom: 1px solid var(--border-muted, #21262d);
+  border-right: 1px solid var(--border-muted, #21262d);
 }
 
 .sysop-table th:last-child,
@@ -3888,16 +3970,31 @@ dialog.pixel-dialog[open] {
   border-right: none;
 }
 
+.sysop-table tbody tr {
+  background: #fff;
+  color: var(--text-main, #000);
+}
+.dark .sysop-table tbody tr {
+  background: var(--surface-card, #0d1117);
+  color: var(--text-main, #e6edf3);
+}
 .sysop-table tbody tr:hover {
   background: #f0f7ff;
 }
-
+.dark .sysop-table tbody tr:hover {
+  background: #161f2e;
+}
 .sysop-table tbody tr.sysop-table__row--banned {
   background: #fff0f0;
 }
-
+.dark .sysop-table tbody tr.sysop-table__row--banned {
+  background: #25070a;
+}
 .sysop-table tbody tr.sysop-table__row--banned:hover {
   background: #ffe0e0;
+}
+.dark .sysop-table tbody tr.sysop-table__row--banned:hover {
+  background: #350b10;
 }
 
 /* Sticky row header on desktop */
@@ -3906,10 +4003,29 @@ dialog.pixel-dialog[open] {
   inset-inline-start: 0;
   background: #fafafa;
   font-weight: bold;
+  color: var(--text-main, #000);
+}
+.dark .sysop-table tbody th {
+  background: #11161d;
+  color: var(--text-main, #e6edf3);
 }
 
 .sysop-table tbody tr.sysop-table__row--banned th {
   background: #ffe6e6;
+}
+.dark .sysop-table tbody tr.sysop-table__row--banned th {
+  background: #2b0c10;
+  color: #ff6b8b;
+}
+
+.sysop-table a {
+  color: var(--accent-mac, #000080);
+}
+.dark .sysop-table a {
+  color: var(--accent-mac, #58a6ff);
+}
+.sysop-table a:hover {
+  text-decoration: underline;
 }
 
 /* Responsive Stacked Container Query Transformation */
@@ -3930,6 +4046,11 @@ dialog.pixel-dialog[open] {
     border: 2px solid #000;
     box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15);
   }
+  .dark .sysop-table tbody tr {
+    border-color: var(--border-main, #384252);
+    box-shadow: 2px 2px 0 #000;
+    background: var(--surface-card, #0d1117);
+  }
   .sysop-table tbody th {
     position: sticky;
     inset-block-start: 0;
@@ -3937,6 +4058,11 @@ dialog.pixel-dialog[open] {
     background: #000080;
     color: #fff;
     border-bottom: 2px solid #000;
+  }
+  .dark .sysop-table tbody th {
+    background: #05070a;
+    border-bottom: 2px solid var(--border-main, #384252);
+    color: var(--text-main, #e6edf3);
   }
   .sysop-table td {
     border-right: none;
@@ -3948,6 +4074,9 @@ dialog.pixel-dialog[open] {
     font-weight: bold;
     color: #555;
     margin-right: 0.5rem;
+  }
+  .dark .sysop-table td::before {
+    color: var(--accent-mac, #58a6ff);
   }
   .sysop-table td:nth-child(2)::before {
     content: "Node Contact: ";
@@ -3977,6 +4106,13 @@ dialog.pixel-dialog[open] {
   font-size: 0.65rem;
   font-weight: bold;
   border: 1px solid #000;
+  background: var(--surface-sunken, #f0ece1);
+  color: var(--text-main, #000);
+}
+.dark .sysop-badge {
+  border-color: var(--border-main, #384252);
+  background: var(--surface-sunken, #05080c);
+  color: var(--text-main, #e6edf3);
 }
 
 .sysop-badge--active {
@@ -3984,16 +4120,35 @@ dialog.pixel-dialog[open] {
   color: #00882b;
   border-color: #00882b;
 }
+.dark .sysop-badge--active {
+  background: #002b0f;
+  color: var(--accent-prompt, #39ff14);
+  border-color: var(--accent-prompt, #39ff14);
+  text-shadow: 0 0 6px rgba(57, 255, 20, 0.4);
+}
 
 .sysop-badge--banned {
   background: #ffe6e6;
   color: #cc0000;
   border-color: #cc0000;
 }
+.dark .sysop-badge--banned {
+  background: #25070a;
+  color: #ff6b8b;
+  border-color: var(--accent-crimson, #ff3366);
+  text-shadow: 0 0 6px rgba(255, 51, 102, 0.4);
+}
 
 .sysop-badge--online {
   background: #00ff66;
   color: #000;
+  border-color: #00882b;
+}
+.dark .sysop-badge--online {
+  background: #00ff66;
+  color: #000000;
+  border-color: #00ff66;
+  box-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
 }
 
 /* Ban Dialog / Modal */
@@ -4016,6 +4171,10 @@ dialog.pixel-dialog[open] {
   width: 100%;
   max-width: 480px;
   background: var(--surface-window, #dfdfdf);
-  border: 2px solid #000;
+  border: 2px solid var(--border-main, #000);
   box-shadow: 4px 4px 0 #000;
+}
+.dark .sysop-modal {
+  border-color: var(--border-main, #384252);
+  box-shadow: 4px 4px 0px 0px #000000, 0 0 30px rgba(0, 0, 0, 0.8);
 }

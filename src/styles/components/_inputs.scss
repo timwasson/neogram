@@ -21,6 +21,11 @@
     font-size: 16px;
   }
 
+  &.text-xs {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
   &::placeholder {
     color: var(--text-muted);
     font-weight: 400;
@@ -49,6 +54,16 @@
       border-color: #58a6ff;
       background: #070d16;
       box-shadow: inset 2px 2px 4px 0px rgba(0, 0, 0, 0.9), 0 0 10px rgba(88, 166, 255, 0.45);
+    }
+  }
+
+  option {
+    background: var(--surface-card);
+    color: var(--text-main);
+
+    .dark & {
+      background: #0d1117;
+      color: #e6edf3;
     }
   }
 
