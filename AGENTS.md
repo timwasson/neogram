@@ -788,13 +788,35 @@ npm run extension:package
 # Output: neogram-aim-extension.zip
 ```
 
-### 7.4 Automated QA Smoke Testing
+### 7.4 Automated QA Smoke, Live-Host & Production Load Testing (`https://neogram.club`)
+
+Neogram uses a **3-tier automated testing architecture** designed so lighter AI models (`flash` / `flash_lite`) and multi-agent browser runners can execute end-to-end and load tests directly against **`https://neogram.club`** without needing email OTP codes or raw API keys in `.env` files.
+
+#### A. Provisioning QA Personas & Exporting `qa-sessions.json` (via `https://neogram.club/admin`)
+1. Open **`https://neogram.club/admin`** (SysOp Control Terminal) and locate **`[:> QA_FLEET_MANAGER.SYS // AUTOMATED_TEST_AGENTS]`**.
+2. Click **`[⚡ Provision 5 Core QA Personas]`** to create/verify:
+   - **`@qa_alice`** (`qa_alice@qa.neogram.club`): Multi-site Neocities creator (`main` + `zine` slots) for `1 User : N Sites` testing.
+   - **`@qa_bob`** (`qa_bob@qa.neogram.club`): Nekoweb full-HTML publisher & reciprocal friend of `@qa_alice`.
+   - **`@qa_headless`** (`qa_headless@qa.neogram.club`): Headless JSON mode (`build_html = FALSE`).
+   - **`@qa_friend`** (`qa_friend@qa.neogram.club`): Follower of `@qa_alice` & `@qa_bob` for static `/friends/index.html` cascade testing.
+   - **`@qa_surfer`** (`qa_surfer@qa.neogram.club`): Sandbox visitor for Cyber-Pass SSO, comments, guestbook, and Pager chat.
+3. Click **`[🚀 Provision 20-Agent Load Fleet]`** to create `@qa_agent_01` .. `@qa_agent_20` for 20-user simultaneous load benchmarking.
+4. Click **`[🔑 Edit Site / Key]`** next to any QA persona in `/admin` to save real **Neocities** or **Nekoweb** API keys directly into PostgreSQL (`AES-256-GCM` encrypted).
+5. Click **`[⬇ Export qa-sessions.json]`** and place `qa-sessions.json` in the project root (`/Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/qa-sessions.json`, git-ignored). This file provides 30-day JWT `token` and `cookie` (`neogram_session=<jwt>`) credentials for every `@qa_*` agent.
+
+#### B. Running the Automated Test Suites (Instructions for AI Testing Agents)
 ```bash
-# Run end-to-end integration assertions against the live backend
+# 1. Local / Self-Contained Integration Smoke Suite (220+ assertions)
 npm test
+
+# 2. Live Static Host Verification (Publishes to Neocities & Nekoweb via qa-sessions.json and probes live feed.json URLs)
+npm run test:live-hosts
+
+# 3. 20-Agent Simultaneous Production Load & Queue Drain Benchmark against https://neogram.club
+npm run test:load
 ```
-- Executes 89 automated assertions across 15 telemetry suites in ~2.9s.
-- Verifies: OTP request, auto-provisioning, sliding-window rate limiting, JWT cookies, cyber identity/avatars, Sharp WebP compression & thumbnails, multi-tenant isolated 11ty static compilation, SVG hit counters (handle and UIN), self-hosted comments & Cyber-Pass SSO, JSONFeed 1.1 headless feeds, Cyberspace User Directory & presence categorization (Active, Away, Inactive), Cyberspace Documentation & embed manual, Cyberspace Friends Network & static follow grid lifecycle, and safe post/user teardown.
+- **Multi-Browser Persona Testing:** AI agents testing via browser tools should read `qa-sessions.json` from the repo root, set the `neogram_session` cookie (or `Authorization: Bearer <token>` header) for each persona in separate browser contexts, and test multi-site switching, photo uploads with shaders, live `.neocities.org` / `.nekoweb.org` rendering, Cyber-Pass SSO, guestbooks, SVG hit counters, and Pager chat.
+- **Post-Test Cleanup on Production:** After running load or E2E tests on `https://neogram.club`, click **`[🧹 Purge QA Test Posts]`** in `https://neogram.club/admin` (or `POST /api/admin/qa-fleet/purge-posts`). This deletes all test posts, comments, and guestbook entries created by `@qa.neogram.club` users while preserving the QA accounts, mounted sites, and encrypted API keys.
 
 ### 7.5 Database Migrations & Seeding
 Migrations run automatically on server start via `server/db/migrate.ts`.
