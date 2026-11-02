@@ -25,10 +25,13 @@ It provides:
 12. **Indie Web Data Sovereignty & Account Decommissioning:** 1-click JSON station archive export (`GET /api/settings/export-archive`) and self-serve station wipe (`DELETE /api/settings/account`) enforcing zero data lock-in.
 13. **Multi-Site Architecture (1 User : N Sites):** Complete decoupling of user login identity (callsign `@handle`, permanent numeric `#uin`) from static site deployments. A single authenticated creator can provision, manage, switch between, and deploy to multiple independent static targets (e.g. Neocities, Nekoweb, GitHub Pages), each with dedicated deploy paths, isolated photo streams, per-site SVG hit counters (`/counter/:uin/:slug.svg`), guestbooks (`/embed/guestbook/:handle/:slug`), and static feeds.
 14. **Embeddable Retro Chat & Pager Widget (`embed/pager.js`):** Lightweight client widget allowing static site owners to embed a floating dock or inline retro chat window on Neocities, Nekoweb, or GitHub Pages. Features live operator presence (Active 🟢, Idle 🟡, Signed Out ⚪), strict destination station locking (can *only* message the host station owner), 1-click Cyber-Pass authentication with automatic random `@guest_XXXX` fallback for unauthenticated visitors, 24-hour store-and-forward queueing (`ephemeral_chat_queue`) with zero permanent database retention, and station owner controls to toggle widget enablement and anonymous messaging.
+15. **SysOp Admin Control Terminal & Moderation Engine (`/admin`):** Dedicated retro administrator workstation console protected by environment-anchored SysOp whitelisting (`ADMIN_EMAILS`), anti-probing 404 security barriers, and CSRF mutation headers. Features real-time cyberspace registration telemetry (24h, 7d, 30d, operator sockets), live FIFO static build pipeline monitor (`buildQueue.getTelemetry()`) with queue-wait & execution baud telemetry, live dynamic marquee ticker controller broadcasting system announcements in real-time, soft-ban station node moderation (`is_banned = TRUE`) that freezes logins and dynamic social interactions while strictly preserving all remote user content on Neocities/Nekoweb/SFTP, and an integrated **QA Test Fleet Manager (`[:> QA_FLEET_MANAGER.SYS]`)** to provision `@qa_*` (`@qa.neogram.club`) test personas, attach encrypted Neocities/Nekoweb API keys directly to test user accounts, export pre-authenticated 30-day `qa-sessions.json` bundles for OTP-free multi-agent browser/load testing against **`https://neogram.club`**, and purge QA test posts after test runs.
 
 ---
 
-## 2. Target Technical Stack
+## 2. Target Technical Stack & Production Environment
+
+- **Canonical Production URL:** **`https://neogram.club`** (Hosted on DigitalOcean). There are no separate cloud staging/dev/test environments; live end-to-end and load testing is performed directly against `https://neogram.club` using isolated `@qa.neogram.club` test accounts managed via `/admin`.
 
 | Component | Technology | Rationale / Purpose |
 |---|---|---|

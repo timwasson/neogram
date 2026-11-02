@@ -1,0 +1,1014 @@
+{% extends "layouts/base.njk" %}
+
+{% block head %}
+  <title>{{ title }}</title>
+{% endblock %}
+
+{% block content %}
+<main class="sysop-terminal">
+
+  <!-- 1. SysOp Terminal Header Window -->
+  <div class="pixel-box mb-4">
+    <div class="window-header flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="pixel-btn pixel-btn--sm" style="padding: 0 4px;">⚡</span>
+        <span class="font-bold text-xs uppercase tracking-wider">[:&gt; SYSOP_CONTROL_TERMINAL.SYS // ROOT_CLEARANCE]</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="sysop-badge sysop-badge--online">CARRIER 33.6K V.90 ONLINE</span>
+        <button type="button" class="pixel-btn pixel-btn--sm" onclick="location.reload();" title="Refresh Console">↻</button>
+      </div>
+    </div>
+    <div class="p-3">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-sm text-title">OPERATOR IDENTITY:</span>
+            <span class="font-bold text-sm font-mono">@{{ adminUser.handle }} [#{{ adminUser.uin }}]</span>
+            <span class="sysop-badge sysop-badge--active">SYSOP_ROOT</span>
+          </div>
+          <div class="sysop-header__sub mt-1">
+            Verified Carrier Node: <span class="font-bold">{{ adminUser.email }}</span> // Environment Access: <span class="font-bold text-green">STRICT_AUTH_GRANTED</span>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <a href="/" class="pixel-btn text-xs font-bold">
+            <span>←</span> <span>Exit to Workstation</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Registration & Station Telemetry Matrix -->
+  <div class="sysop-grid">
+    <div class="sysop-metric">
+      <div class="sysop-metric__title">Total Station Nodes</div>
+      <div class="sysop-metric__val">{{ telemetry.totalUsers }}</div>
+      <div class="sysop-metric__sub">Registered Cyberspace Creators</div>
+    </div>
+    <div class="sysop-metric">
+      <div class="sysop-metric__title">New Registrations</div>
+      <div class="sysop-metric__val text-mac">{{ telemetry.reg24h }}</div>
+      <div class="sysop-metric__sub">Past 24h (7d: {{ telemetry.reg7d }} // 30d: {{ telemetry.reg30d }})</div>
+    </div>
+    <div class="sysop-metric">
+      <div class="sysop-metric__title">Live Operator Nodes</div>
+      <div class="sysop-metric__val" style="color: #00882b;">{{ telemetry.activeSocketsCount }}</div>
+      <div class="sysop-metric__sub">WebSocket Carriers Connected</div>
+    </div>
+    <div class="sysop-metric">
+      <div class="sysop-metric__title">Moderation Status</div>
+      <div class="sysop-metric__val {% if telemetry.totalBanned > 0 %}text-danger{% endif %}">{{ telemetry.totalBanned }}</div>
+      <div class="sysop-metric__sub">Soft-Banned Nodes (Frozen)</div>
+    </div>
+  </div>
+
+  <!-- Telemetry Sub-Row: Deployment Distribution & Aggregate Counters -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+    <div class="pixel-box">
+      <div class="window-header">
+        <span class="font-bold text-xs">[:&gt; STATIC_HOSTING_DISTRIBUTION.SYS]</span>
+      </div>
+      <div class="p-3 font-mono text-xs">
+        <div class="flex justify-between py-1 border-b border-dashed">
+          <span>Neocities API Nodes:</span>
+          <span class="font-bold">{{ telemetry.deployBreakdown.neocities | default(0) }}</span>
+        </div>
+        <div class="flex justify-between py-1 border-b border-dashed">
+          <span>Nekoweb Rest API Nodes:</span>
+          <span class="font-bold">{{ telemetry.deployBreakdown.nekoweb | default(0) }}</span>
+        </div>
+        <div class="flex justify-between py-1 border-b border-dashed">
+          <span>GitHub Pages Commits:</span>
+          <span class="font-bold">{{ telemetry.deployBreakdown.github | default(0) }}</span>
+        </div>
+        <div class="flex justify-between py-1 border-b border-dashed">
+          <span>SFTP Personal Servers:</span>
+          <span class="font-bold">{{ telemetry.deployBreakdown.sftp | default(0) }}</span>
+        </div>
+        <div class="flex justify-between py-1">
+          <span>Cold-Start Sandbox Nodes:</span>
+          <span class="font-bold">{{ telemetry.deployBreakdown['none'] | default(0) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="pixel-box">
+      <div class="window-header">
+        <span class="font-bold text-xs">[:&gt; NETWORK_ACTIVITY_TOTALS.SYS]</span>
+      </div>
+      <div class="p-3 font-mono text-xs">
+        <div class="flex justify-between py-1 border-b border-dashed">
+          <span>Total Snap Transmissions (Posts):</span>
+          <span class="font-bold">{{ telemetry.totalPosts }}</span>
+        </div>
+        <div class="flex justify-between py-1 border-b border-dashed">
+          <span>Dynamic Web Counter Increments:</span>
+          <span class="font-bold">{{ telemetry.totalHits }}</span>
+        </div>
+        <div class="flex justify-between py-1">
+          <span>Guestbook Ledger Signatures:</span>
+          <span class="font-bold">{{ telemetry.totalGuestbook }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Live Build & Publish Pipeline Monitor -->
+  <div class="pixel-box mb-4">
+    <div class="window-header flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-xs">[:&gt; PIPELINE_MONITOR.SYS // 11TY_FIFO_QUEUE]</span>
+      </div>
+      <button type="button" class="pixel-btn pixel-btn--sm" id="btnRefreshPipeline" onclick="pollPipelineTelemetry();">
+        ↻ Refresh Pipeline
+      </button>
+    </div>
+    <div class="p-3">
+      <!-- Live Status Strip -->
+      <div id="pipelineStatusStrip" class="pipeline-status-strip {% if pipelineTelemetry.isBusy %}pipeline-status-strip--busy{% endif %}">
+        <div class="flex items-center">
+          <span id="pipelineLed" class="pipeline-led {% if pipelineTelemetry.isBusy %}pipeline-led--busy{% endif %}"></span>
+          <span id="pipelineStatusText">
+            {% if pipelineTelemetry.isBusy %}
+              BUSY // PROCESSING JOB: {{ pipelineTelemetry.currentJob.taskName }} (Queue Depth: {{ pipelineTelemetry.activeCount }})
+            {% else %}
+              PIPELINE IDLE // WAITING FOR TRANSMISSIONS (Queue Depth: 0)
+            {% endif %}
+          </span>
+        </div>
+        <div class="text-xs" id="pipelineTimer">
+          {% if pipelineTelemetry.currentJob %}
+            Started: {{ pipelineTelemetry.currentJob.startedAt | formatDate }}
+          {% else %}
+            Baud: 28.8K V.34 OK
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Recent Completed Builds Log -->
+      <div class="font-mono text-xs mb-1 font-bold">Recent Pipeline Build Executions:</div>
+      <div class="sysop-table-wrapper" tabindex="0" role="region" aria-label="Recent Pipeline Builds" style="max-block-size: 200px;">
+        <table class="sysop-table" id="pipelineHistoryTable">
+          <thead>
+            <tr>
+              <th scope="col">Job ID</th>
+              <th scope="col">Task Description</th>
+              <th scope="col">Queue Wait</th>
+              <th scope="col">Exec Time</th>
+              <th scope="col">Status</th>
+              <th scope="col">Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="pipelineHistoryBody">
+            {% if pipelineTelemetry.history.length == 0 %}
+              <tr>
+                <td colspan="6" class="text-center p-3 text-muted">No pipeline jobs executed yet in this server session.</td>
+              </tr>
+            {% else %}
+              {% for job in pipelineTelemetry.history %}
+                <tr>
+                  <th scope="row">{{ job.id }}</th>
+                  <td>{{ job.taskName }}</td>
+                  <td>{{ job.queueWaitMs | default(0) }}ms</td>
+                  <td>{{ job.durationMs }}ms</td>
+                  <td>
+                    {% if job.status == 'SUCCESS' %}
+                      <span class="sysop-badge sysop-badge--active">SUCCESS</span>
+                    {% else %}
+                      <span class="sysop-badge sysop-badge--banned" title="{{ job.error }}">ERROR</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ job.startedAt | formatDate }}</td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3B. QA Test Fleet & Automated Session Manager -->
+  <div class="pixel-box mb-4" id="qaFleetSection">
+    <div class="window-header flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-xs">[:&gt; QA_FLEET_MANAGER.SYS // AUTOMATED_TEST_AGENTS]</span>
+      </div>
+      <span class="sysop-badge sysop-badge--online">{{ qaFleet.length | default(0) }} QA Agents Provisioned</span>
+    </div>
+    <div class="p-3">
+      <p class="text-xs font-mono mb-3 text-muted">
+        Provision dedicated <strong>@qa_*</strong> test personas (`@qa.neogram.club`), attach real <strong>Neocities</strong> or <strong>Nekoweb</strong> API keys directly to their mounted sites (encrypted at rest in PostgreSQL), and export a pre-authenticated <code>qa-sessions.json</code> bundle so automated browser and load-testing agents can log into <strong>neogram.club</strong> without OTP emails.
+      </p>
+
+      <!-- Action Toolbar -->
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <button type="button" class="pixel-btn pixel-btn--yellow font-bold text-xs" onclick="provisionQaFleet('core');">
+          <span>⚡</span> <span>Provision 5 Core QA Personas</span>
+        </button>
+        <button type="button" class="pixel-btn font-bold text-xs" onclick="provisionQaFleet('load20');">
+          <span>🚀</span> <span>Provision 20-Agent Load Fleet</span>
+        </button>
+        {% if qaFleet and qaFleet.length > 0 %}
+          <a href="/api/admin/qa-fleet/export-sessions" class="pixel-btn pixel-btn--green font-bold text-xs">
+            <span>⬇</span> <span>Export qa-sessions.json ({{ qaFleet.length }} Agents)</span>
+          </a>
+          <button type="button" class="pixel-btn text-xs" onclick="purgeQaPosts();">
+            <span>🧹</span> <span>Purge QA Test Posts</span>
+          </button>
+          <button type="button" class="pixel-btn pixel-btn--danger text-xs" onclick="wipeQaFleet();">
+            <span>☢</span> <span>Wipe QA Fleet</span>
+          </button>
+        {% endif %}
+      </div>
+
+      <!-- QA Fleet Table -->
+      <div class="sysop-table-wrapper" tabindex="0" role="region" aria-label="QA Test Fleet Accounts">
+        <table class="sysop-table">
+          <thead>
+            <tr>
+              <th scope="col">QA Persona</th>
+              <th scope="col">Mounted Static Sites &amp; API Keys</th>
+              <th scope="col">QA Posts</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if not qaFleet or qaFleet.length == 0 %}
+              <tr>
+                <td colspan="4" class="text-center p-3 text-muted font-mono text-xs">
+                  No QA test accounts provisioned yet. Click <strong>[⚡ Provision 5 Core QA Personas]</strong> above to create <code>@qa_alice</code> (Multi-Site Neocities), <code>@qa_bob</code> (Nekoweb), <code>@qa_headless</code> (JSON API), <code>@qa_friend</code>, and <code>@qa_surfer</code>.
+                </td>
+              </tr>
+            {% else %}
+              {% for qa in qaFleet %}
+                <tr>
+                  <th scope="row">
+                    <div class="font-bold text-xs font-mono">@{{ qa.handle }} <span class="text-3xs text-muted">[#{{ qa.uin }}]</span></div>
+                    <div class="text-3xs text-muted font-normal">{{ qa.statusMessage }}</div>
+                  </th>
+                  <td>
+                    <div class="flex flex-col gap-1.5">
+                      {% for s in qa.sites %}
+                        <div class="flex flex-wrap items-center justify-between gap-2 p-1.5 border border-dashed">
+                          <div class="font-mono text-3xs">
+                            <span class="font-bold uppercase">[{{ s.deploymentType }}]</span>
+                            <span class="font-bold">{{ s.name }}</span>
+                            <span class="text-muted">(/{{ s.slug }})</span>
+                            — <a href="{{ s.siteUrl }}" target="_blank" class="underline">{{ s.siteUrl }}</a>
+                            <span class="text-muted">(path: /{{ s.deployPath }})</span>
+                            {% if not s.buildHtml %}
+                              <span class="sysop-badge sysop-badge--online">HEADLESS JSON</span>
+                            {% endif %}
+                            {% if s.hasApiKey %}
+                              <span class="sysop-badge sysop-badge--active">🔑 KEY SAVED ({{ s.maskedApiKey }})</span>
+                            {% elif s.deploymentType != 'none' %}
+                              <span class="sysop-badge sysop-badge--banned">⚠ NO API KEY</span>
+                            {% else %}
+                              <span class="sysop-badge">SANDBOX</span>
+                            {% endif %}
+                          </div>
+                          <button
+                            type="button"
+                            class="pixel-btn pixel-btn--sm text-3xs font-bold"
+                            onclick="openQaSiteModal('{{ qa.id }}', '{{ qa.handle }}', '{{ s.id }}', '{{ s.name | escape }}', '{{ s.slug }}', '{{ s.deploymentType }}', '{{ s.siteUrl }}', '{{ s.deployPath }}', {{ 'true' if s.buildHtml else 'false' }}, {{ 'true' if s.autoDeploy else 'false' }});"
+                          >
+                            🔑 Edit Site / Key
+                          </button>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </td>
+                  <td>
+                    <span class="font-bold font-mono text-xs">{{ qa.postCount }}</span>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      class="pixel-btn pixel-btn--sm text-3xs font-bold"
+                      onclick="openQaSiteModal('{{ qa.id }}', '{{ qa.handle }}', '', '', 'site-' + ({{ qa.sites.length }} + 1), 'neocities', 'https://{{ qa.handle }}-2.neocities.org', 'neogram', true, true);"
+                    >
+                      + Add Site
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Terminal Marquee Announcement Controller -->
+  <div class="pixel-box mb-4">
+    <div class="window-header flex justify-between items-center">
+      <span class="font-bold text-xs">[:&gt; MARQUEE_BROADCAST_CONTROLLER.CFG]</span>
+      <span class="text-3xs text-muted">Top Workstation Ticker</span>
+    </div>
+    <div class="p-3">
+      <p class="text-xs font-mono mb-2 text-muted">
+        Modify the top scrolling announcement ticker in real-time. Broadcasts across the workstation header without redeploying the server.
+      </p>
+
+      <form id="marqueeForm" onsubmit="updateMarqueeTicker(event);">
+        <div class="mb-2">
+          <label for="marqueeTextInput" class="block font-mono text-xs font-bold mb-1">
+            Announcement Ticker Text:
+          </label>
+          <textarea
+            id="marqueeTextInput"
+            name="text"
+            rows="2"
+            maxlength="500"
+            class="w-full font-mono text-xs p-2 border-2 border-black"
+            style="background: #fff;"
+            oninput="handleMarqueeInput(this);"
+          >{{ currentTicker }}</textarea>
+          <div class="flex justify-between items-center mt-1 text-3xs font-mono text-muted">
+            <span>Supports ASCII uppercase characters, retro symbols, and system prompts (:&gt;).</span>
+            <span id="marqueeCharCount">{{ (currentTicker | default('')).length }} / 500 characters</span>
+          </div>
+        </div>
+
+        <!-- Live Simulation Preview -->
+        <div class="mb-3">
+          <div class="font-bold font-mono text-3xs text-muted uppercase mb-1">Live Preview Simulation:</div>
+          <div class="terminal-marquee-bar" style="border: 1px solid #000;">
+            <div class="animate-marquee font-mono text-xs" id="marqueePreview">
+              {{ currentTicker }}
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="submit" id="btnSaveMarquee" class="pixel-btn pixel-btn--yellow font-bold text-xs">
+            <span>⚡</span> <span>Broadcast to Cyberspace</span>
+          </button>
+          <button type="button" class="pixel-btn text-xs" onclick="resetMarqueeDefault();">
+            <span>↺</span> <span>Reset Default</span>
+          </button>
+          <span id="marqueeStatusAlert" class="font-mono text-xs text-green hidden font-bold"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5. Station Node Moderation Ledger -->
+  <div class="pixel-box mb-4">
+    <div class="window-header flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-xs">[:&gt; STATION_NODES_MODERATION.LEDGER]</span>
+      </div>
+      <span class="sysop-badge sysop-badge--online">{{ users.length }} Nodes Loaded</span>
+    </div>
+    <div class="p-3">
+      <!-- Search & Status Filter Controls -->
+      <div class="flex flex-col sm:flex-row justify-between items-center gap-2 mb-3">
+        <div class="w-full sm:w-80">
+          <input
+            type="search"
+            id="nodeSearchInput"
+            placeholder="Search handle, email, or UIN..."
+            class="w-full p-1.5 font-mono text-xs border-2 border-black"
+            oninput="filterNodesTable();"
+          />
+        </div>
+        <div class="flex gap-1 w-full sm:w-auto">
+          <button
+            type="button"
+            class="pixel-btn pixel-btn--sm pixel-btn--active font-mono text-xs filter-btn"
+            data-filter="all"
+            onclick="setNodeFilter('all', this);"
+          >
+            All ({{ users.length }})
+          </button>
+          <button
+            type="button"
+            class="pixel-btn pixel-btn--sm font-mono text-xs filter-btn"
+            data-filter="active"
+            onclick="setNodeFilter('active', this);"
+          >
+            Active ({{ users.length - telemetry.totalBanned }})
+          </button>
+          <button
+            type="button"
+            class="pixel-btn pixel-btn--sm font-mono text-xs filter-btn"
+            data-filter="banned"
+            onclick="setNodeFilter('banned', this);"
+          >
+            Soft-Banned ({{ telemetry.totalBanned }})
+          </button>
+        </div>
+      </div>
+
+      <!-- Moderation Table (Container Query Stacked on Mobile) -->
+      <div
+        class="sysop-table-wrapper"
+        tabindex="0"
+        role="region"
+        aria-label="Station Nodes Moderation Roster"
+      >
+        <table class="sysop-table" id="nodesTable">
+          <thead>
+            <tr>
+              <th scope="col">Station Node</th>
+              <th scope="col">Contact Identity</th>
+              <th scope="col">Target Host</th>
+              <th scope="col">Posts</th>
+              <th scope="col">Registered</th>
+              <th scope="col">Status</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="nodesTableBody">
+            {% for u in users %}
+              <tr
+                class="node-row {% if u.isBanned %}sysop-table__row--banned{% endif %}"
+                data-handle="{{ u.handle | lower }}"
+                data-email="{{ u.email | lower }}"
+                data-uin="{{ u.uin }}"
+                data-banned="{{ 'true' if u.isBanned else 'false' }}"
+                id="userRow_{{ u.id }}"
+              >
+                <!-- Row Header (Sticky on Desktop, Stacked Header on Mobile) -->
+                <th scope="row">
+                  <div class="flex items-center gap-1.5">
+                    {% if u.isOnline %}
+                      <span class="pipeline-led" title="Operator online right now" style="width: 8px; height: 8px; margin-right: 0;"></span>
+                    {% endif %}
+                    <a href="/user/@{{ u.handle }}" target="_blank" class="font-bold text-title hover:underline">
+                      @{{ u.handle }}
+                    </a>
+                    <span class="text-3xs text-muted font-normal">[#{{ u.uin }}]</span>
+                  </div>
+                </th>
+                <td>
+                  <span class="font-mono text-xs">{{ u.email }}</span>
+                </td>
+                <td>
+                  <span class="uppercase font-bold text-3xs">{{ u.deploymentType | default('none') }}</span>
+                  <span class="text-3xs text-muted">({{ u.siteCount }} site{% if u.siteCount != 1 %}s{% endif %})</span>
+                </td>
+                <td>
+                  <span class="font-bold">{{ u.postCount }}</span>
+                </td>
+                <td>
+                  <span class="text-3xs">{{ u.createdAt | formatDate }}</span>
+                </td>
+                <td>
+                  {% if u.isBanned %}
+                    <span class="sysop-badge sysop-badge--banned" title="Banned on {{ u.bannedAt | formatDate }}: {{ u.banReason }}">
+                      🚫 BANNED
+                    </span>
+                    {% if u.banReason %}
+                      <div class="text-3xs text-danger italic truncate max-w-xs">{{ u.banReason }}</div>
+                    {% endif %}
+                  {% else %}
+                    <span class="sysop-badge sysop-badge--active">🟢 ACTIVE</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if u.isBanned %}
+                    <button
+                      type="button"
+                      class="pixel-btn pixel-btn--green pixel-btn--sm text-3xs font-bold"
+                      onclick="reinstateUser('{{ u.id }}', '{{ u.handle }}');"
+                    >
+                      ✓ Reinstate
+                    </button>
+                  {% else %}
+                    {% if u.id == adminUser.id %}
+                      <span class="text-3xs text-muted italic">Self (SysOp)</span>
+                    {% else %}
+                      <button
+                        type="button"
+                        class="pixel-btn pixel-btn--danger pixel-btn--sm text-3xs font-bold"
+                        onclick="promptSoftBanUser('{{ u.id }}', '{{ u.handle }}');"
+                      >
+                        🚫 Soft Ban
+                      </button>
+                    {% endif %}
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. SysOp Security Audit Ledger -->
+  <div class="pixel-box">
+    <div class="window-header flex justify-between items-center">
+      <span class="font-bold text-xs">[:&gt; SYSOP_AUDIT_LOG.LEDGER]</span>
+      <span class="text-3xs text-muted">Immutable Security Audit Trail</span>
+    </div>
+    <div class="p-3">
+      <div
+        class="sysop-table-wrapper"
+        tabindex="0"
+        role="region"
+        aria-label="SysOp Security Audit Ledger"
+        style="max-block-size: 260px;"
+      >
+        <table class="sysop-table">
+          <thead>
+            <tr>
+              <th scope="col">Timestamp</th>
+              <th scope="col">Operator</th>
+              <th scope="col">Action</th>
+              <th scope="col">Target ID</th>
+              <th scope="col">Details</th>
+              <th scope="col">IP Address</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if auditLogs.length == 0 %}
+              <tr>
+                <td colspan="6" class="text-center p-3 text-muted">No SysOp administrative actions recorded yet.</td>
+              </tr>
+            {% else %}
+              {% for log in auditLogs %}
+                <tr>
+                  <th scope="row">{{ log.createdAt | formatDate }}</th>
+                  <td>{{ log.adminEmail }}</td>
+                  <td>
+                    <span class="sysop-badge {% if 'BAN' in log.action %}sysop-badge--banned{% else %}sysop-badge--active{% endif %}">
+                      {{ log.action }}
+                    </span>
+                  </td>
+                  <td>{{ log.targetId | default('-') }}</td>
+                  <td class="text-3xs font-mono max-w-xs truncate">
+                    {% if log.details %}
+                      {{ log.details | dump }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td>{{ log.ipAddress | default('127.0.0.1') }}</td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Moderation Soft Ban Modal Dialog -->
+<div id="banModalBackdrop" class="sysop-modal-backdrop hidden" onclick="if(event.target === this) closeBanModal();">
+  <div class="sysop-modal pixel-box">
+    <div class="window-header flex justify-between items-center">
+      <span class="font-bold text-xs">[:&gt; CONFIRM_NODE_SUSPENSION.SYS]</span>
+      <button type="button" class="pixel-btn pixel-btn--sm" onclick="closeBanModal();">✕</button>
+    </div>
+    <div class="p-4">
+      <div class="mb-3">
+        <p class="font-mono text-xs mb-2">
+          You are about to soft-ban station node <span id="banModalHandle" class="font-bold text-danger"></span>.
+        </p>
+        <div class="retro-alert retro-alert--info font-mono text-3xs mb-3">
+          <strong>CARRIER INVARIANT:</strong> Soft-banning freezes this node from logging in or transmitting new content to Neogram social feeds.
+          <strong>All static files on their remote host (Neocities/Nekoweb/SFTP) are strictly preserved and untouched.</strong>
+        </div>
+        <label for="banReasonInput" class="block font-mono text-xs font-bold mb-1">
+          Suspension Reason (Logged to Audit Trail):
+        </label>
+        <input
+          type="text"
+          id="banReasonInput"
+          placeholder="e.g. Terms of Service violation, spam transmission"
+          maxlength="255"
+          class="w-full p-2 font-mono text-xs border-2 border-black"
+          style="background: #fff;"
+        />
+      </div>
+
+      <input type="hidden" id="banTargetUserId" value="" />
+
+      <div class="flex justify-end gap-2">
+        <button type="button" class="pixel-btn text-xs" onclick="closeBanModal();">
+          Cancel
+        </button>
+        <button type="button" id="btnConfirmBan" class="pixel-btn pixel-btn--danger font-bold text-xs" onclick="confirmSoftBan();">
+          Confirm Soft Ban
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QA Site & API Key Configuration Modal -->
+<div id="qaSiteModalBackdrop" class="sysop-modal-backdrop hidden" onclick="if(event.target === this) closeQaSiteModal();">
+  <div class="sysop-modal pixel-box">
+    <div class="window-header flex justify-between items-center">
+      <span class="font-bold text-xs" id="qaSiteModalTitle">[:&gt; CONFIGURE_QA_SITE_CREDENTIALS.SYS]</span>
+      <button type="button" class="pixel-btn pixel-btn--sm" onclick="closeQaSiteModal();">✕</button>
+    </div>
+    <div class="p-4 font-mono text-xs">
+      <form id="qaSiteForm" onsubmit="saveQaSiteConfig(event);">
+        <input type="hidden" id="qaModalUserId" value="" />
+        <input type="hidden" id="qaModalSiteId" value="" />
+
+        <div class="mb-2">
+          <label class="block font-bold mb-1" for="qaModalSiteName">Site Label &amp; Slug:</label>
+          <div class="flex gap-2">
+            <input type="text" id="qaModalSiteName" required placeholder="Primary Neocities" class="w-full p-1.5 font-mono text-xs border-2 border-black" />
+            <input type="text" id="qaModalSiteSlug" required placeholder="main" class="w-40 p-1.5 font-mono text-xs border-2 border-black" />
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <label class="block font-bold mb-1" for="qaModalDeployType">Static Host Provider:</label>
+          <select id="qaModalDeployType" class="w-full p-1.5 font-mono text-xs border-2 border-black">
+            <option value="neocities">Neocities REST API</option>
+            <option value="nekoweb">Nekoweb REST API</option>
+            <option value="none">Cold-Start Sandbox (No External Host)</option>
+          </select>
+        </div>
+
+        <div class="mb-2">
+          <label class="block font-bold mb-1" for="qaModalSiteUrl">Target Site Base URL &amp; Subdirectory Path:</label>
+          <div class="flex gap-2">
+            <input type="url" id="qaModalSiteUrl" required placeholder="https://mysite.neocities.org" class="w-full p-1.5 font-mono text-xs border-2 border-black" />
+            <input type="text" id="qaModalDeployPath" placeholder="neogram" class="w-40 p-1.5 font-mono text-xs border-2 border-black" />
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="block font-bold mb-1" for="qaModalApiKey">Host API Key (Encrypted with AES-256-GCM in PostgreSQL):</label>
+          <input
+            type="password"
+            id="qaModalApiKey"
+            placeholder="Paste Neocities or Nekoweb API Key (leave blank to keep existing key)"
+            class="w-full p-1.5 font-mono text-xs border-2 border-black"
+          />
+        </div>
+
+        <div class="flex items-center gap-4 mb-3">
+          <label class="flex items-center gap-1.5">
+            <input type="checkbox" id="qaModalBuildHtml" checked />
+            <span>Build 11ty HTML (Uncheck for Headless JSON Mode)</span>
+          </label>
+          <label class="flex items-center gap-1.5">
+            <input type="checkbox" id="qaModalAutoDeploy" checked />
+            <span>Auto-Deploy on Publish</span>
+          </label>
+        </div>
+
+        <div class="flex justify-end gap-2">
+          <button type="button" class="pixel-btn text-xs" onclick="closeQaSiteModal();">Cancel</button>
+          <button type="submit" id="btnSaveQaSite" class="pixel-btn pixel-btn--green font-bold text-xs">
+            💾 Save Site &amp; Encrypt Key
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentActiveFilter = 'all';
+
+  function handleMarqueeInput(textarea) {
+    const val = textarea.value;
+    document.getElementById('marqueeCharCount').textContent = val.length + ' / 500 characters';
+    document.getElementById('marqueePreview').textContent = val || ':> NO ANNOUNCEMENT ACTIVE_';
+  }
+
+  function resetMarqueeDefault() {
+    const def = ':> NEOGRAM UNIX WORKSTATION // HYBRID MAC-SYSTEM7 + BSD-X11 // RETRO PHOTO PUBLISHING ENGINE FOR NEOCITIES & PERSONAL SITES // NO SAAS SLOP // 28.8K V.34 DIAL-UP OK // SYSTEM PROMPT READY_';
+    const ta = document.getElementById('marqueeTextInput');
+    ta.value = def;
+    handleMarqueeInput(ta);
+  }
+
+  async function updateMarqueeTicker(e) {
+    e.preventDefault();
+    const text = document.getElementById('marqueeTextInput').value.trim();
+    const btn = document.getElementById('btnSaveMarquee');
+    const alert = document.getElementById('marqueeStatusAlert');
+
+    btn.disabled = true;
+    btn.textContent = '⚡ Transmitting...';
+
+    try {
+      if (window.retroAudio) retroAudio.playClick();
+      const res = await fetch('/api/admin/marquee', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-neogram-sysop-op': '1',
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to update ticker.');
+      }
+
+      alert.textContent = '✓ Broadcasted successfully!';
+      alert.classList.remove('hidden');
+
+      // Update top live ticker directly if in DOM
+      const topContent = document.getElementById('terminalMarqueeContent');
+      if (topContent) topContent.textContent = data.ticker;
+
+      setTimeout(() => alert.classList.add('hidden'), 4000);
+    } catch (err) {
+      window.alert('[:> TRANSMISSION ERROR] ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<span>⚡</span> <span>Broadcast to Cyberspace</span>';
+    }
+  }
+
+  async function pollPipelineTelemetry() {
+    const btn = document.getElementById('btnRefreshPipeline');
+    if (btn) btn.textContent = '↻ Polling...';
+
+    try {
+      const res = await fetch('/api/admin/pipeline');
+      const data = await res.json();
+      if (data.ok && data.telemetry) {
+        const t = data.telemetry;
+        const strip = document.getElementById('pipelineStatusStrip');
+        const led = document.getElementById('pipelineLed');
+        const statusText = document.getElementById('pipelineStatusText');
+        const timerText = document.getElementById('pipelineTimer');
+
+        if (t.isBusy && t.currentJob) {
+          strip.classList.add('pipeline-status-strip--busy');
+          led.classList.add('pipeline-led--busy');
+          statusText.textContent = `BUSY // PROCESSING JOB: ${t.currentJob.taskName} (Queue Depth: ${t.activeCount})`;
+          timerText.textContent = `Started: ${new Date(t.currentJob.startedAt).toLocaleTimeString()}`;
+        } else {
+          strip.classList.remove('pipeline-status-strip--busy');
+          led.classList.remove('pipeline-led--busy');
+          statusText.textContent = 'PIPELINE IDLE // WAITING FOR TRANSMISSIONS (Queue Depth: 0)';
+          timerText.textContent = 'Baud: 28.8K V.34 OK';
+        }
+
+        // Render recent jobs
+        if (t.history && t.history.length > 0) {
+          const tbody = document.getElementById('pipelineHistoryBody');
+          tbody.innerHTML = t.history.map(job => `
+            <tr>
+              <th scope="row">${job.id}</th>
+              <td>${job.taskName}</td>
+              <td>${job.queueWaitMs || 0}ms</td>
+              <td>${job.durationMs || 0}ms</td>
+              <td>
+                <span class="sysop-badge ${job.status === 'SUCCESS' ? 'sysop-badge--active' : 'sysop-badge--banned'}">
+                  ${job.status}
+                </span>
+              </td>
+              <td>${new Date(job.startedAt).toLocaleTimeString()}</td>
+            </tr>
+          `).join('');
+        }
+      }
+    } catch (_err) {
+      // Ignore background poll errors
+    } finally {
+      if (btn) btn.textContent = '↻ Refresh Pipeline';
+    }
+  }
+
+  // Poll pipeline telemetry every 8 seconds while tab is active
+  setInterval(pollPipelineTelemetry, 8000);
+
+  function promptSoftBanUser(userId, handle) {
+    if (window.retroAudio) retroAudio.playClick();
+    document.getElementById('banTargetUserId').value = userId;
+    document.getElementById('banModalHandle').textContent = '@' + handle;
+    document.getElementById('banReasonInput').value = 'Violated terms of service';
+    document.getElementById('banModalBackdrop').classList.remove('hidden');
+    document.getElementById('banReasonInput').focus();
+  }
+
+  function closeBanModal() {
+    document.getElementById('banModalBackdrop').classList.add('hidden');
+  }
+
+  async function confirmSoftBan() {
+    const userId = document.getElementById('banTargetUserId').value;
+    const reason = document.getElementById('banReasonInput').value.trim() || 'Violated terms of service';
+    const btn = document.getElementById('btnConfirmBan');
+
+    btn.disabled = true;
+    btn.textContent = 'Suspending...';
+
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/ban`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-neogram-sysop-op': '1',
+        },
+        body: JSON.stringify({ reason }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to soft-ban user.');
+      }
+
+      closeBanModal();
+      location.reload();
+    } catch (err) {
+      window.alert('[:> MODERATION ERROR] ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Confirm Soft Ban';
+    }
+  }
+
+  async function reinstateUser(userId, handle) {
+    if (!window.confirm(`Reinstate station node @${handle}? This will re-enable their login and social features.`)) {
+      return;
+    }
+
+    try {
+      if (window.retroAudio) retroAudio.playClick();
+      const res = await fetch(`/api/admin/users/${userId}/unban`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-neogram-sysop-op': '1',
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to reinstate user.');
+      }
+
+      location.reload();
+    } catch (err) {
+      window.alert('[:> MODERATION ERROR] ' + err.message);
+    }
+  }
+
+  function setNodeFilter(filter, btn) {
+    currentActiveFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('pixel-btn--active'));
+    btn.classList.add('pixel-btn--active');
+    filterNodesTable();
+  }
+
+  function filterNodesTable() {
+    const query = document.getElementById('nodeSearchInput').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('.node-row');
+
+    rows.forEach(row => {
+      const handle = row.dataset.handle || '';
+      const email = row.dataset.email || '';
+      const uin = row.dataset.uin || '';
+      const isBanned = row.dataset.banned === 'true';
+
+      const matchesQuery = !query || handle.includes(query) || email.includes(query) || uin.includes(query);
+
+      let matchesStatus = true;
+      if (currentActiveFilter === 'active') {
+        matchesStatus = !isBanned;
+      } else if (currentActiveFilter === 'banned') {
+        matchesStatus = isBanned;
+      }
+
+      if (matchesQuery && matchesStatus) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+
+  async function provisionQaFleet(mode) {
+    try {
+      if (window.retroAudio) retroAudio.playClick();
+      const res = await fetch('/api/admin/qa-fleet/provision', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-neogram-sysop-op': '1',
+        },
+        body: JSON.stringify({ mode }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to provision QA fleet.');
+      }
+      location.reload();
+    } catch (err) {
+      window.alert('[:> QA FLEET ERROR] ' + err.message);
+    }
+  }
+
+  function openQaSiteModal(userId, handle, siteId, name, slug, deployType, siteUrl, deployPath, buildHtml, autoDeploy) {
+    if (window.retroAudio) retroAudio.playClick();
+    document.getElementById('qaModalUserId').value = userId;
+    document.getElementById('qaModalSiteId').value = siteId || '';
+    document.getElementById('qaSiteModalTitle').textContent = siteId
+      ? `[:> EDIT SITE & API KEY FOR @${handle.toUpperCase()}]`
+      : `[:> ADD NEW SITE FOR @${handle.toUpperCase()}]`;
+    document.getElementById('qaModalSiteName').value = name || `${handle} Site`;
+    document.getElementById('qaModalSiteSlug').value = slug || 'main';
+    document.getElementById('qaModalDeployType').value = deployType || 'neocities';
+    document.getElementById('qaModalSiteUrl').value = siteUrl || `https://${handle}.neocities.org`;
+    document.getElementById('qaModalDeployPath').value = deployPath !== undefined ? deployPath : 'neogram';
+    document.getElementById('qaModalApiKey').value = '';
+    document.getElementById('qaModalBuildHtml').checked = buildHtml !== false;
+    document.getElementById('qaModalAutoDeploy').checked = autoDeploy !== false;
+    document.getElementById('qaSiteModalBackdrop').classList.remove('hidden');
+    document.getElementById('qaModalApiKey').focus();
+  }
+
+  function closeQaSiteModal() {
+    document.getElementById('qaSiteModalBackdrop').classList.add('hidden');
+  }
+
+  async function saveQaSiteConfig(e) {
+    e.preventDefault();
+    const userId = document.getElementById('qaModalUserId').value;
+    const siteId = document.getElementById('qaModalSiteId').value;
+    const btn = document.getElementById('btnSaveQaSite');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    try {
+      const res = await fetch(`/api/admin/qa-fleet/${userId}/sites`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-neogram-sysop-op': '1',
+        },
+        body: JSON.stringify({
+          siteId: siteId || undefined,
+          name: document.getElementById('qaModalSiteName').value.trim(),
+          slug: document.getElementById('qaModalSiteSlug').value.trim(),
+          deploymentType: document.getElementById('qaModalDeployType').value,
+          siteUrl: document.getElementById('qaModalSiteUrl').value.trim(),
+          deployPath: document.getElementById('qaModalDeployPath').value.trim(),
+          apiKey: document.getElementById('qaModalApiKey').value.trim(),
+          buildHtml: document.getElementById('qaModalBuildHtml').checked,
+          autoDeploy: document.getElementById('qaModalAutoDeploy').checked,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to save QA site settings.');
+      }
+      closeQaSiteModal();
+      location.reload();
+    } catch (err) {
+      window.alert('[:> QA SITE CONFIG ERROR] ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '💾 Save Site & Encrypt Key';
+    }
+  }
+
+  async function purgeQaPosts() {
+    if (!window.confirm('Purge all test posts, comments, and guestbook entries created by @qa.neogram.club accounts? (Your QA accounts and saved API keys will be kept intact.)')) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/qa-fleet/purge-posts', {
+        method: 'POST',
+        headers: { 'x-neogram-sysop-op': '1' },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to purge QA posts.');
+      window.alert(data.message);
+      location.reload();
+    } catch (err) {
+      window.alert('[:> ERROR] ' + err.message);
+    }
+  }
+
+  async function wipeQaFleet() {
+    if (!window.confirm('WARNING: This will delete all @qa.neogram.club user accounts and their saved sites/keys. Continue?')) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/qa-fleet/wipe', {
+        method: 'POST',
+        headers: { 'x-neogram-sysop-op': '1' },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to wipe QA fleet.');
+      location.reload();
+    } catch (err) {
+      window.alert('[:> ERROR] ' + err.message);
+    }
+  }
+</script>
+{% endblock %}

@@ -183,8 +183,13 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
   try {
     const user = await getSessionUser(req);
 
-    if (!user) {
-      res.status(401).json({ ok: false, error: 'Authentication required. Please dial into your terminal session to publish photos.' });
+    if (!user || user.isBanned) {
+      res.status(user?.isBanned ? 403 : 401).json({
+        ok: false,
+        error: user?.isBanned
+          ? 'Station node suspended by network administrator. Publishing disabled.'
+          : 'Authentication required. Please dial into your terminal session to publish photos.',
+      });
       return;
     }
 
@@ -453,10 +458,12 @@ postsRouter.post('/posts/:id/comments', commentRateLimiter, async (req: Request,
 
     // Verify authenticated Neogram user (Cyber-Pass token or session)
     const user = await getSessionUser(req);
-    if (!user) {
-      res.status(401).json({
+    if (!user || user.isBanned) {
+      res.status(user?.isBanned ? 403 : 401).json({
         ok: false,
-        error: 'Authentication required. Please connect your Neogram Cyber-Pass to leave a comment.',
+        error: user?.isBanned
+          ? 'Station node suspended by network administrator. Comments disabled.'
+          : 'Authentication required. Please connect your Neogram Cyber-Pass to leave a comment.',
       });
       return;
     }

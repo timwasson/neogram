@@ -48,6 +48,7 @@ export async function fetchCategorizedDirectory(): Promise<CategorizedDirectory>
       u.created_at as "createdAt",
       (SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id) as "postCount"
     FROM users u
+    WHERE COALESCE(u.is_banned, false) = false
     ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC, u.uin ASC
   `);
 

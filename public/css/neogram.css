@@ -3726,3 +3726,296 @@ dialog.pixel-dialog[open] {
     transform: scale(1);
   }
 }
+/* ==========================================================================
+   _admin.scss: SysOp Admin Control Terminal & Moderation Styling
+   Strict Vanilla CSS / Dart Sass BEM Component Library
+   ========================================================================== */
+.sysop-terminal {
+  max-width: 1200px;
+  margin: 1.5rem auto 3rem auto;
+  padding: 0 1rem;
+}
+
+/* Header & Station Badge */
+.sysop-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.sysop-header__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 0.25rem 0.5rem;
+  background: var(--surface-title, #000080);
+  color: #fff;
+  border: 1px solid var(--border-main, #000);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.sysop-header__sub {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8rem;
+  color: var(--text-muted, #444);
+}
+
+/* Metric Telemetry Cards Grid */
+.sysop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.sysop-metric {
+  background: var(--surface-window, #dfdfdf);
+  border: 2px solid var(--border-main, #000);
+  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #808080, 2px 2px 0 rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sysop-metric__title {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: var(--text-muted, #555);
+}
+
+.sysop-metric__val {
+  font-family: var(--font-mono, monospace);
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--text-main, #000);
+  line-height: 1.1;
+}
+
+.sysop-metric__sub {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.7rem;
+  color: var(--text-muted, #666);
+}
+
+/* Pipeline Status Card */
+.pipeline-status-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: #000;
+  color: #00ff66;
+  border: 2px solid #333;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.pipeline-status-strip--busy {
+  color: #ffcc00;
+  border-color: #ffaa00;
+}
+
+.pipeline-led {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #00ff66;
+  box-shadow: 0 0 8px #00ff66;
+  margin-right: 0.5rem;
+}
+
+.pipeline-led--busy {
+  background: #ffaa00;
+  box-shadow: 0 0 8px #ffaa00;
+  animation: pulse-busy 1s infinite alternate;
+}
+
+@keyframes pulse-busy {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* Accessible Responsive Table Wrapper */
+.sysop-table-wrapper {
+  overflow: auto;
+  max-inline-size: 100%;
+  max-block-size: min(550px, 80vh);
+  container-type: inline-size;
+  border: 2px solid var(--border-main, #000);
+  background: #fff;
+  margin-top: 1rem;
+  box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #fff;
+}
+
+.sysop-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+}
+
+.sysop-table thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  background: var(--surface-title, #000080);
+  color: #fff;
+}
+
+.sysop-table th,
+.sysop-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+}
+
+.sysop-table th:last-child,
+.sysop-table td:last-child {
+  border-right: none;
+}
+
+.sysop-table tbody tr:hover {
+  background: #f0f7ff;
+}
+
+.sysop-table tbody tr.sysop-table__row--banned {
+  background: #fff0f0;
+}
+
+.sysop-table tbody tr.sysop-table__row--banned:hover {
+  background: #ffe0e0;
+}
+
+/* Sticky row header on desktop */
+.sysop-table tbody th {
+  position: sticky;
+  inset-inline-start: 0;
+  background: #fafafa;
+  font-weight: bold;
+}
+
+.sysop-table tbody tr.sysop-table__row--banned th {
+  background: #ffe6e6;
+}
+
+/* Responsive Stacked Container Query Transformation */
+@container (width < 680px) {
+  .sysop-table,
+  .sysop-table thead,
+  .sysop-table tbody,
+  .sysop-table tr,
+  .sysop-table th,
+  .sysop-table td {
+    display: block;
+  }
+  .sysop-table thead {
+    display: none;
+  }
+  .sysop-table tbody tr {
+    margin-bottom: 1rem;
+    border: 2px solid #000;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15);
+  }
+  .sysop-table tbody th {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 2;
+    background: #000080;
+    color: #fff;
+    border-bottom: 2px solid #000;
+  }
+  .sysop-table td {
+    border-right: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sysop-table td::before {
+    font-weight: bold;
+    color: #555;
+    margin-right: 0.5rem;
+  }
+  .sysop-table td:nth-child(2)::before {
+    content: "Node Contact: ";
+  }
+  .sysop-table td:nth-child(3)::before {
+    content: "Target Host: ";
+  }
+  .sysop-table td:nth-child(4)::before {
+    content: "Posts Count: ";
+  }
+  .sysop-table td:nth-child(5)::before {
+    content: "Registered: ";
+  }
+  .sysop-table td:nth-child(6)::before {
+    content: "Status: ";
+  }
+  .sysop-table td:nth-child(7)::before {
+    content: "Moderation: ";
+  }
+}
+/* SysOp Badges */
+.sysop-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.4rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.65rem;
+  font-weight: bold;
+  border: 1px solid #000;
+}
+
+.sysop-badge--active {
+  background: #e6ffec;
+  color: #00882b;
+  border-color: #00882b;
+}
+
+.sysop-badge--banned {
+  background: #ffe6e6;
+  color: #cc0000;
+  border-color: #cc0000;
+}
+
+.sysop-badge--online {
+  background: #00ff66;
+  color: #000;
+}
+
+/* Ban Dialog / Modal */
+.sysop-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
+}
+
+.sysop-modal-backdrop.hidden {
+  display: none;
+}
+
+.sysop-modal {
+  width: 100%;
+  max-width: 480px;
+  background: var(--surface-window, #dfdfdf);
+  border: 2px solid #000;
+  box-shadow: 4px 4px 0 #000;
+}

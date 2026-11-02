@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -n \"SERVER,SASS\" -c \"blue,magenta\" \"npm run dev:server\" \"npm run sass:watch\"",
-    "dev:server": "tsx watch --watch server --watch eleventy server/index.ts",
+    "dev:server": "tsx watch --watch server --watch eleventy --watch .env server/index.ts",
     "sass:build": "sass src/styles/main.scss public/css/neogram.css --no-source-map",
     "sass:watch": "sass src/styles/main.scss public/css/neogram.css --watch --no-source-map",
     "build:static": "tsx -e \"import { buildStaticGallery } from './server/services/staticBuilder'; buildStaticGallery().then(() => process.exit(0)).catch(err => { console.error(err); process.exit(1); });\"",
@@ -15,7 +15,9 @@
     "extension:package": "npm run extension:sync && cd extension && zip -r ../neogram-aim-extension.zip . -x '*.DS_Store*'",
     "build": "npm run sass:build && npm run build:static && npm run extension:sync",
     "lint": "tsc --noEmit",
-    "test": "tsx server/tests/smokeTest.ts"
+    "test": "tsx server/tests/smokeTest.ts",
+    "test:load": "tsx server/tests/loadAndConcurrencyTest.ts",
+    "test:live-hosts": "tsx server/tests/liveHostVerificationTest.ts"
   },
   "dependencies": {
     "@11ty/eleventy": "^3.1.7",

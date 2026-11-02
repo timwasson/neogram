@@ -15,6 +15,10 @@ export interface AuthUser {
   deploymentType?: string;
   avatarPath?: string;
   hasApiKey?: boolean;
+  isBanned?: boolean;
+  isAdmin?: boolean;
+  banReason?: string;
+  bannedAt?: Date;
 }
 
 export function normalizeIdentifier(input: string): string {
@@ -92,13 +96,19 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
   const dispatchTarget = isPhoneNumber ? digits : normalized;
 
   // 1. Check or create user
-  const existing = await query('SELECT id, email, handle, uin FROM users WHERE email = $1', [normalized]);
+  const existing = await query(
+    'SELECT id, email, handle, uin, is_banned as "isBanned", ban_reason as "banReason" FROM users WHERE email = $1',
+    [normalized]
+  );
 
   let userId: string;
   let userHandle: string;
   let userUin: number;
 
   if (existing.rows.length > 0) {
+    if (existing.rows[0].isBanned) {
+      throw new Error('This station node has been suspended by the network administrator.');
+    }
     userId = existing.rows[0].id;
     userHandle = existing.rows[0].handle;
     userUin = existing.rows[0].uin ? parseInt(existing.rows[0].uin, 10) : 100101;
@@ -159,7 +169,7 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
   const normalized = isPhoneNumber ? `${digits}@sms.neogram.local` : trimmed.toLowerCase();
 
   const res = await query(
-    `SELECT id, email, handle, uin, auth_token, auth_token_expires_at, site_url, deploy_path, deployment_type, avatar_path
+    `SELECT id, email, handle, uin, auth_token, auth_token_expires_at, site_url, deploy_path, deployment_type, avatar_path, is_banned as "isBanned", ban_reason as "banReason"
      FROM users
      WHERE email = $1`,
     [normalized]
@@ -170,6 +180,10 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
   }
 
   const user = res.rows[0];
+
+  if (user.isBanned) {
+    throw new Error('This station node has been suspended by the network administrator.');
+  }
 
   if (!user.auth_token || user.auth_token !== code.trim()) {
     if (failedOtpAttempts.size > 2000) {
@@ -212,6 +226,9 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
 
   console.log(`[:> AUTH SUCCESS] User node authenticated: @${user.handle} (UIN: #${user.uin}, ${user.id})`);
 
+  const { config } = await import('../config');
+  const isAdmin = config.adminEmails.includes(user.email.toLowerCase());
+
   return {
     id: user.id,
     email: user.email,
@@ -221,12 +238,14 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
     deployPath: user.deploy_path || 'neogram',
     deploymentType: user.deployment_type,
     avatarPath: user.avatar_path,
+    isBanned: false,
+    isAdmin,
   };
 }
 
 export async function getUserById(id: string): Promise<AuthUser | null> {
   const res = await query(
-    'SELECT id, email, handle, uin, site_url as "siteUrl", deploy_path as "deployPath", deployment_type as "deploymentType", deployment_credentials, avatar_path as "avatarPath" FROM users WHERE id = $1',
+    'SELECT id, email, handle, uin, site_url as "siteUrl", deploy_path as "deployPath", deployment_type as "deploymentType", deployment_credentials, avatar_path as "avatarPath", is_banned as "isBanned", ban_reason as "banReason", banned_at as "bannedAt" FROM users WHERE id = $1',
     [id]
   );
   if (!res.rows[0]) return null;
@@ -247,6 +266,9 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
   const baseSite = user.siteUrl || (user.handle ? `https://${user.handle}.neocities.org` : undefined);
   const fullSiteUrl = baseSite && rawDeploy ? `${baseSite.replace(/\/+$/, '')}/${rawDeploy}/` : (baseSite ? `${baseSite.replace(/\/+$/, '')}/` : undefined);
 
+  const { config } = await import('../config');
+  const isAdmin = config.adminEmails.includes(user.email.toLowerCase());
+
   return {
     id: user.id,
     email: user.email,
@@ -257,5 +279,9 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
     deploymentType: user.deploymentType,
     avatarPath: user.avatarPath,
     hasApiKey,
+    isBanned: !!user.isBanned,
+    banReason: user.banReason,
+    bannedAt: user.bannedAt,
+    isAdmin,
   };
 }

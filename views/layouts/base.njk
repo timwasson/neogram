@@ -20,9 +20,9 @@
   </head>
   <body>
     <!-- Vintage Terminal Marquee Banner with System Prompt :> -->
-    <div class="terminal-marquee-bar">
-      <div class="animate-marquee">
-        :&gt; NEOGRAM UNIX WORKSTATION // HYBRID MAC-SYSTEM7 + BSD-X11 // RETRO PHOTO PUBLISHING ENGINE FOR NEOCITIES &amp; PERSONAL SITES // NO SAAS SLOP // 28.8K V.34 DIAL-UP OK // SYSTEM PROMPT READY_
+    <div class="terminal-marquee-bar" id="terminalMarqueeBar">
+      <div class="animate-marquee" id="terminalMarqueeContent">
+        {{ tickerAnnouncement | default(':> NEOGRAM UNIX WORKSTATION // HYBRID MAC-SYSTEM7 + BSD-X11 // RETRO PHOTO PUBLISHING ENGINE FOR NEOCITIES &amp; PERSONAL SITES // NO SAAS SLOP // 28.8K V.34 DIAL-UP OK // SYSTEM PROMPT READY_') | safe }}
       </div>
     </div>
 
@@ -100,6 +100,17 @@
           >
             <span>⎘</span> <span>Embeds</span>
           </a>
+          {% if currentUser.isAdmin or isAdmin %}
+            <a
+              href="/admin"
+              id="tabSysopBtn"
+              class="pixel-btn pixel-btn--yellow font-bold text-xs {% if activeView == 'admin' %}pixel-btn--active{% endif %}"
+              onclick="if(window.retroAudio) retroAudio.playClick();"
+              title="SysOp Control Terminal"
+            >
+              <span>⚡</span> <span>SysOp</span>
+            </a>
+          {% endif %}
         {% else %}
           <!-- Public Informational Options (When Logged Out) -->
           <a href="/" class="pixel-btn {% if activeView == 'dashboard' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">

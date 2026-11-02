@@ -11,6 +11,8 @@ import { apiRouter } from './routes/api';
 import { embedsRouter } from './routes/embeds';
 import { directoryRouter } from './routes/directory';
 import { docsRouter } from './routes/docs';
+import { adminRouter } from './routes/admin';
+import { getTickerAnnouncement } from './services/systemSettings';
 import { COOKIE_NAME, verifySessionToken, clearSessionCookie, extractToken, signSessionToken } from './auth/jwt';
 import { getUserById } from './auth/service';
 import { config } from './config';
@@ -162,7 +164,7 @@ export function createApp(): Express {
   app.use('/api', apiRouter);
   app.use(embedsRouter);
 
-  // Attach session user and default public appUrl to res.locals for templates
+  // Attach session user, dynamic marquee announcement, and default public appUrl to res.locals for templates
   app.use(async (req: Request, res: Response, next: NextFunction) => {
     const rawAppUrl = config.appUrl || process.env.APP_URL || '';
     // For external embed snippets, always default to https://neogram.club unless a custom non-localhost domain is set
@@ -171,13 +173,20 @@ export function createApp(): Express {
       : 'https://neogram.club';
 
     try {
+      res.locals.tickerAnnouncement = await getTickerAnnouncement();
+    } catch {
+      // Fallback handled in Nunjucks template
+    }
+
+    try {
       const token = extractToken(req);
       if (token) {
         const payload = verifySessionToken(token);
         if (payload) {
           const user = await getUserById(payload.userId);
-          res.locals.currentUser = user;
-          if (user) {
+          if (user && !user.isBanned) {
+            res.locals.currentUser = user;
+            res.locals.isAdmin = !!user.isAdmin;
             const { getUserSites } = await import('./services/siteService');
             const userSites = await getUserSites(user.id);
             res.locals.userSites = userSites;
@@ -190,6 +199,9 @@ export function createApp(): Express {
               activeSite = userSites.find((s) => s.isDefault) || userSites[0] || null;
             }
             res.locals.activeSite = activeSite;
+          } else {
+            res.locals.currentUser = null;
+            res.locals.isAdmin = false;
           }
         }
       }
@@ -199,7 +211,8 @@ export function createApp(): Express {
     next();
   });
 
-  // 5. Server-rendered Web Views
+  // 5. Server-rendered Web Views & Admin Terminal
+  app.use(adminRouter);
   app.use(directoryRouter);
   app.use(docsRouter);
 
@@ -288,6 +301,7 @@ export function createApp(): Express {
         version: '2.0.0',
         activeView: 'dashboard',
         appUrl: res.locals.appUrl,
+        tickerAnnouncement: res.locals.tickerAnnouncement,
         posts: userArchivePosts,
         allPosts: postsQuery.rows,
         followerFeedPosts,
@@ -456,11 +470,13 @@ export function createApp(): Express {
       const { findUserByHandleOrId } = await import('./routes/embeds');
       const user = await findUserByHandleOrId(identifier);
 
-      if (!user) {
+      if (!user || user.is_banned) {
         res.status(404).render('404', {
           title: 'Neogram - Station Node Not Found',
           url: req.originalUrl,
-          message: `[:> Station node "${identifier}" not found in Neogram Cyberspace Directory.]`,
+          message: user?.is_banned
+            ? `[:> Station node "${identifier}" is currently suspended by network administrator.]`
+            : `[:> Station node "${identifier}" not found in Neogram Cyberspace Directory.]`,
         });
         return;
       }

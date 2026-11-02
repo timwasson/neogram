@@ -19,6 +19,28 @@ export interface StaticBuildResult {
   durationMs?: number;
 }
 
+export interface BuildJobRecord {
+  id: string;
+  taskName: string;
+  enqueuedAt?: string;
+  startedAt: string;
+  completedAt?: string;
+  queueWaitMs?: number;
+  durationMs?: number;
+  totalTurnaroundMs?: number;
+  status: 'RUNNING' | 'SUCCESS' | 'ERROR';
+  error?: string;
+}
+
+export interface BuildPipelineTelemetry {
+  isBusy: boolean;
+  activeCount: number;
+  peakQueueDepth: number;
+  totalProcessed: number;
+  currentJob: BuildJobRecord | null;
+  history: BuildJobRecord[];
+}
+
 /**
  * In-memory sequential FIFO build queue to prevent concurrency race conditions.
  * Ensures builds execute in strict order without collision on shared Eleventy data files.
@@ -26,19 +48,58 @@ export interface StaticBuildResult {
 class BuildQueue {
   private queue: Promise<any> = Promise.resolve();
   private activeCount: number = 0;
+  private peakQueueDepth: number = 0;
+  private totalProcessed: number = 0;
+  private currentActiveJob: BuildJobRecord | null = null;
+  private jobHistory: BuildJobRecord[] = [];
 
   public enqueue<T>(taskName: string, task: () => Promise<T>): Promise<T> {
+    const enqueueTime = Date.now();
+    const enqueuedAtIso = new Date(enqueueTime).toISOString();
+
     return new Promise<T>((resolve, reject) => {
       this.activeCount++;
+      if (this.activeCount > this.peakQueueDepth) {
+        this.peakQueueDepth = this.activeCount;
+      }
       console.log(`[:> BUILD QUEUE] Enqueued job '${taskName}'. Pending in queue: ${this.activeCount}`);
 
       this.queue = this.queue
         .then(async () => {
-          console.log(`[:> BUILD QUEUE] Starting job '${taskName}'...`);
+          const startTime = Date.now();
+          const queueWaitMs = startTime - enqueueTime;
+          const jobRecord: BuildJobRecord = {
+            id: `build_${startTime}_${Math.random().toString(36).substring(2, 7)}`,
+            taskName,
+            enqueuedAt: enqueuedAtIso,
+            startedAt: new Date(startTime).toISOString(),
+            queueWaitMs,
+            status: 'RUNNING',
+          };
+          this.currentActiveJob = jobRecord;
+          console.log(`[:> BUILD QUEUE] Starting job '${taskName}' (waited ${queueWaitMs}ms in queue)...`);
+
           try {
             const result = await task();
+            const finishTime = Date.now();
+            const durationMs = finishTime - startTime;
+            jobRecord.completedAt = new Date(finishTime).toISOString();
+            jobRecord.durationMs = durationMs;
+            jobRecord.totalTurnaroundMs = finishTime - enqueueTime;
+            jobRecord.status = 'SUCCESS';
+            this.totalProcessed++;
+            this.recordHistory(jobRecord);
             resolve(result);
-          } catch (err) {
+          } catch (err: any) {
+            const finishTime = Date.now();
+            const durationMs = finishTime - startTime;
+            jobRecord.completedAt = new Date(finishTime).toISOString();
+            jobRecord.durationMs = durationMs;
+            jobRecord.totalTurnaroundMs = finishTime - enqueueTime;
+            jobRecord.status = 'ERROR';
+            jobRecord.error = err?.message || String(err);
+            this.totalProcessed++;
+            this.recordHistory(jobRecord);
             reject(err);
           }
         })
@@ -48,13 +109,38 @@ class BuildQueue {
         })
         .finally(() => {
           this.activeCount--;
+          this.currentActiveJob = null;
           console.log(`[:> BUILD QUEUE] Job '${taskName}' finalized. Remaining in queue: ${this.activeCount}`);
         });
     });
   }
 
+  private recordHistory(record: BuildJobRecord) {
+    this.jobHistory.unshift(record);
+    if (this.jobHistory.length > 100) {
+      this.jobHistory.pop();
+    }
+  }
+
+  public resetTelemetry() {
+    this.peakQueueDepth = this.activeCount;
+    this.totalProcessed = 0;
+    this.jobHistory = [];
+  }
+
   public get pending(): number {
     return this.activeCount;
+  }
+
+  public getTelemetry(): BuildPipelineTelemetry {
+    return {
+      isBusy: this.activeCount > 0,
+      activeCount: this.activeCount,
+      peakQueueDepth: this.peakQueueDepth,
+      totalProcessed: this.totalProcessed,
+      currentJob: this.currentActiveJob,
+      history: [...this.jobHistory],
+    };
   }
 }
 

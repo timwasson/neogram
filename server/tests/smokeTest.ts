@@ -1405,9 +1405,194 @@ async function runSmokeTests() {
     assertTest('Incremental friends build generated friendsPosts.json', existsSync(userFriendsJsonPath));
 
     // -------------------------------------------------------------------------
-    // TEST 23: Safe Post Purge & Clean Teardown
+    // TEST 23: SysOp Admin Control Terminal & Moderation Engine
     // -------------------------------------------------------------------------
-    logHeader('23. SAFE PURGE & TEARDOWN');
+    logHeader('23. SYSOP ADMIN CONTROL TERMINAL & MODERATION ENGINE');
+
+    // 1. Unauthorized non-admin access returns 404 (Anti-probing protection)
+    const nonAdminGet = await fetch(`${API_BASE}/admin`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('GET /admin for non-admin returns HTTP 404', nonAdminGet.status === 404);
+
+    const nonAdminApi = await fetch(`${API_BASE}/api/admin/pipeline`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('GET /api/admin/pipeline for non-admin returns HTTP 404', nonAdminApi.status === 404);
+
+    // 2. Authenticate as authorized SysOp admin (from .env ADMIN_EMAILS)
+    const { requestOtp, verifyOtp } = await import('../auth/service');
+    const { signSessionToken } = await import('../auth/jwt');
+    const adminEmail = 'qa_admin@neogram.retro';
+    const adminOtpReq = await requestOtp(adminEmail);
+    const adminUser = await verifyOtp(adminEmail, adminOtpReq.code);
+    const adminSessionCookie = `neogram_session=${signSessionToken({
+      userId: adminUser.id,
+      email: adminUser.email,
+      handle: adminUser.handle,
+      uin: adminUser.uin,
+    })}`;
+
+    // 3. SysOp Admin Terminal View
+    const adminGet = await fetch(`${API_BASE}/admin`, {
+      headers: { 'Cookie': adminSessionCookie },
+    });
+    const adminHtml = await adminGet.text();
+    assertTest('GET /admin for authorized SysOp returns HTTP 200', adminGet.status === 200, `Status: ${adminGet.status}`);
+    assertTest('SysOp Terminal HTML contains SYSOP_CONTROL_TERMINAL.SYS', adminHtml.includes('SYSOP_CONTROL_TERMINAL.SYS'));
+    assertTest('SysOp Terminal HTML contains MARQUEE_BROADCAST_CONTROLLER.CFG', adminHtml.includes('MARQUEE_BROADCAST_CONTROLLER.CFG'));
+    assertTest('SysOp Terminal HTML contains PIPELINE_MONITOR.SYS', adminHtml.includes('PIPELINE_MONITOR.SYS'));
+
+    // Workstation top nav now includes SysOp button
+    const mainViewRes = await fetch(`${API_BASE}/`, {
+      headers: { 'Cookie': adminSessionCookie },
+    });
+    const mainHtml = await mainViewRes.text();
+    assertTest('Workstation navbar renders #tabSysopBtn for admin', mainHtml.includes('id="tabSysopBtn"'));
+
+    // 4. Live Build Pipeline Telemetry
+    const pipelineRes = await fetch(`${API_BASE}/api/admin/pipeline`, {
+      headers: { 'Cookie': adminSessionCookie },
+    });
+    assertTest('GET /api/admin/pipeline returns HTTP 200', pipelineRes.status === 200);
+    const pipelineData = await pipelineRes.json();
+    assertTest('Pipeline telemetry indicates status', typeof pipelineData.telemetry.isBusy === 'boolean');
+    assertTest('Pipeline telemetry contains execution history', Array.isArray(pipelineData.telemetry.history));
+
+    // 5. Dynamic Marquee Ticker Controller
+    const testMarqueeText = ':> SPECIAL BROADCAST: 1996 CYBER-SPACE EXPO ONLINE // WELCOME SYSOP OPERATORS';
+
+    // Missing CSRF header should return 400
+    const noHeaderMarquee = await fetch(`${API_BASE}/api/admin/marquee`, {
+      method: 'POST',
+      headers: {
+        'Cookie': adminSessionCookie,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: testMarqueeText }),
+    });
+    assertTest('POST /api/admin/marquee without x-neogram-sysop-op returns HTTP 400', noHeaderMarquee.status === 400);
+
+    const updateMarqueeRes = await fetch(`${API_BASE}/api/admin/marquee`, {
+      method: 'POST',
+      headers: {
+        'Cookie': adminSessionCookie,
+        'Content-Type': 'application/json',
+        'x-neogram-sysop-op': '1',
+      },
+      body: JSON.stringify({ text: testMarqueeText }),
+    });
+    assertTest('POST /api/admin/marquee with header returns HTTP 200', updateMarqueeRes.status === 200);
+    const marqueeData = await updateMarqueeRes.json();
+    assertTest('Marquee response confirms updated ticker', marqueeData.ticker === testMarqueeText);
+
+    // Verify marquee updated on main workstation view
+    const updatedMainView = await fetch(`${API_BASE}/`);
+    const updatedMainHtml = await updatedMainView.text();
+    assertTest('GET / renders dynamically updated marquee announcement', updatedMainHtml.includes(testMarqueeText));
+
+    // 6. User Moderation (Soft-Banning)
+    // Create a target user to moderate
+    const modEmail = `spammer_${Date.now()}@retro.local`;
+    const modReq = await requestOtp(modEmail);
+    const modUser = await verifyOtp(modEmail, modReq.code);
+    const modSessionCookie = `neogram_session=${signSessionToken({
+      userId: modUser.id,
+      email: modUser.email,
+      handle: modUser.handle,
+      uin: modUser.uin,
+    })}`;
+
+    // Admin self-ban should be refused
+    const selfBanRes = await fetch(`${API_BASE}/api/admin/users/${adminUser.id}/ban`, {
+      method: 'POST',
+      headers: {
+        'Cookie': adminSessionCookie,
+        'Content-Type': 'application/json',
+        'x-neogram-sysop-op': '1',
+      },
+      body: JSON.stringify({ reason: 'Self ban attempt' }),
+    });
+    assertTest('POST /api/admin/users/:id/ban refuses self-ban with HTTP 400', selfBanRes.status === 400);
+
+    // Soft-ban the target user
+    const banRes = await fetch(`${API_BASE}/api/admin/users/${modUser.id}/ban`, {
+      method: 'POST',
+      headers: {
+        'Cookie': adminSessionCookie,
+        'Content-Type': 'application/json',
+        'x-neogram-sysop-op': '1',
+      },
+      body: JSON.stringify({ reason: 'Spamming cyberspace feeds' }),
+    });
+    assertTest('POST /api/admin/users/:id/ban returns HTTP 200', banRes.status === 200);
+
+    // Verify user is soft-banned in database
+    const modDbCheck = await query('SELECT is_banned, ban_reason FROM users WHERE id = $1', [modUser.id]);
+    assertTest('Target user marked is_banned: true in PostgreSQL', modDbCheck.rows[0]?.is_banned === true);
+    assertTest('Ban reason recorded in PostgreSQL', modDbCheck.rows[0]?.ban_reason === 'Spamming cyberspace feeds');
+
+    // Audit log recorded
+    const auditCheck = await query("SELECT * FROM admin_audit_logs WHERE action = 'BAN_USER' AND target_id = $1", [modUser.id]);
+    assertTest('BAN_USER action recorded in immutable audit log', auditCheck.rows.length > 0);
+
+    // Banned user cannot request OTP
+    let otpBlocked = false;
+    try {
+      await requestOtp(modEmail);
+    } catch (err: any) {
+      otpBlocked = err.message.includes('suspended by the network administrator');
+    }
+    assertTest('Banned user blocked from requesting login OTP', otpBlocked);
+
+    // Banned user hidden from public directory
+    const { fetchCategorizedDirectory } = await import('../routes/directory');
+    const directory = await fetchCategorizedDirectory();
+    const isVisibleInDir = [...directory.active, ...directory.away, ...directory.inactive].some(u => u.id === modUser.id);
+    assertTest('Banned user excluded from public station directory', isVisibleInDir === false);
+
+    // Banned user profile returns 404 suspended notice
+    const profileRes = await fetch(`${API_BASE}/user/@${modUser.handle}`);
+    assertTest('GET /user/:handle for banned user returns HTTP 404', profileRes.status === 404);
+    const profileHtml = await profileRes.text();
+    assertTest('Profile 404 contains suspended notification', profileHtml.includes('suspended by network administrator'));
+
+    // Banned user rejected when attempting to comment
+    const bannedCommentRes = await fetch(`${API_BASE}/api/posts/${testPostId}/comments`, {
+      method: 'POST',
+      headers: {
+        'Cookie': modSessionCookie,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: 'Spam comment from banned node' }),
+    });
+    assertTest('POST /api/posts/:id/comments by banned user returns HTTP 403 Forbidden', bannedCommentRes.status === 403);
+
+    // 7. Reinstate User (Unban)
+    const unbanRes = await fetch(`${API_BASE}/api/admin/users/${modUser.id}/unban`, {
+      method: 'POST',
+      headers: {
+        'Cookie': adminSessionCookie,
+        'Content-Type': 'application/json',
+        'x-neogram-sysop-op': '1',
+      },
+    });
+    assertTest('POST /api/admin/users/:id/unban returns HTTP 200', unbanRes.status === 200);
+
+    const modUnbanCheck = await query('SELECT is_banned, ban_reason FROM users WHERE id = $1', [modUser.id]);
+    assertTest('Reinstated user has is_banned: false in PostgreSQL', modUnbanCheck.rows[0]?.is_banned === false);
+
+    const unbanAuditCheck = await query("SELECT * FROM admin_audit_logs WHERE action = 'UNBAN_USER' AND target_id = $1", [modUser.id]);
+    assertTest('UNBAN_USER action recorded in immutable audit log', unbanAuditCheck.rows.length > 0);
+
+    // Clean up moderation test user & admin user
+    await query('DELETE FROM users WHERE id = $1', [modUser.id]);
+    await query('DELETE FROM users WHERE id = $1', [adminUser.id]);
+
+    // -------------------------------------------------------------------------
+    // TEST 24: Safe Post Purge & Clean Teardown
+    // -------------------------------------------------------------------------
+    logHeader('24. SAFE PURGE & TEARDOWN');
 
     // Delete post using authenticated session
     const deletePostRes = await fetch(`${API_BASE}/api/posts/${testPostId}`, {

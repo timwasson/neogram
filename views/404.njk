@@ -9,9 +9,15 @@
     <h2 class="font-mono text-lg mb-3">
       FILE NOT FOUND IN SECTOR
     </h2>
-    <p class="text-sm text-muted mb-5 leading-normal">
-      The requested file path <code class="text-code">{{ url }}</code> does not exist on this Neogram workstation node.
-    </p>
+    {% if message %}
+      <div class="retro-alert retro-alert--error font-mono text-xs mb-4">
+        {{ message }}
+      </div>
+    {% else %}
+      <p class="text-sm text-muted mb-5 leading-normal">
+        The requested file path <code class="text-code">{{ url }}</code> does not exist on this Neogram workstation node.
+      </p>
+    {% endif %}
     <a href="/" class="pixel-btn pixel-btn--yellow font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">
       &lt; Return to System Console
     </a>

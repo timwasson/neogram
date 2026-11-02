@@ -17,6 +17,7 @@ export interface AppConfig {
   twilioAccountSid?: string;
   twilioAuthToken?: string;
   twilioPhoneNumber?: string;
+  adminEmails: string[];
 }
 
 export const config: AppConfig = {
@@ -33,6 +34,17 @@ export const config: AppConfig = {
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID,
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN,
   twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER,
+  get adminEmails(): string[] {
+    try {
+      dotenv.config({ override: true });
+    } catch {
+      // Ignore in non-file environments
+    }
+    return (process.env.ADMIN_EMAILS || '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+  },
 };
 
 // Strict security hygiene validation for production environments

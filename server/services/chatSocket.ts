@@ -142,6 +142,12 @@ export function initChatWebSocketServer(server: http.Server) {
       console.warn('[:> WEBSOCKET AUTH ERROR]', err);
     }
 
+    if (authenticatedUser && authenticatedUser.isBanned) {
+      ws.send(JSON.stringify({ type: 'error', code: 'NODE_BANNED', message: 'Station node suspended by network administrator.' }));
+      ws.close(4003, 'Node banned');
+      return;
+    }
+
     if (!authenticatedUser && !isAnonymousPager) {
       // Send error packet and terminate
       ws.send(JSON.stringify({ type: 'error', code: 'UNAUTHORIZED', message: 'Authentication required' }));
