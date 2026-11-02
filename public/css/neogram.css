@@ -4169,7 +4169,7 @@ dialog.pixel-dialog[open] {
 
 .sysop-modal {
   width: 100%;
-  max-width: 480px;
+  max-width: 540px;
   background: var(--surface-window, #dfdfdf);
   border: 2px solid var(--border-main, #000);
   box-shadow: 4px 4px 0 #000;
@@ -4177,4 +4177,16 @@ dialog.pixel-dialog[open] {
 .dark .sysop-modal {
   border-color: var(--border-main, #384252);
   box-shadow: 4px 4px 0px 0px #000000, 0 0 30px rgba(0, 0, 0, 0.8);
+}
+
+.sysop-modal-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+@media (min-width: 480px) {
+  .sysop-modal-grid-2 {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
 }

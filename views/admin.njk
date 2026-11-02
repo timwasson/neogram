@@ -273,7 +273,17 @@
                           <button
                             type="button"
                             class="pixel-btn pixel-btn--sm text-3xs font-bold"
-                            onclick="openQaSiteModal('{{ qa.id }}', '{{ qa.handle }}', '{{ s.id }}', '{{ s.name | escape }}', '{{ s.slug }}', '{{ s.deploymentType }}', '{{ s.siteUrl }}', '{{ s.deployPath }}', {{ 'true' if s.buildHtml else 'false' }}, {{ 'true' if s.autoDeploy else 'false' }});"
+                            data-user-id="{{ qa.id }}"
+                            data-handle="{{ qa.handle }}"
+                            data-site-id="{{ s.id }}"
+                            data-site-name="{{ s.name }}"
+                            data-site-slug="{{ s.slug }}"
+                            data-deploy-type="{{ s.deploymentType }}"
+                            data-site-url="{{ s.siteUrl }}"
+                            data-deploy-path="{{ s.deployPath }}"
+                            data-build-html="{{ 'true' if s.buildHtml else 'false' }}"
+                            data-auto-deploy="{{ 'true' if s.autoDeploy else 'false' }}"
+                            onclick="openQaSiteModalFromDataset(this);"
                           >
                             🔑 Edit Site / Key
                           </button>
@@ -288,7 +298,17 @@
                     <button
                       type="button"
                       class="pixel-btn pixel-btn--sm text-3xs font-bold"
-                      onclick="openQaSiteModal('{{ qa.id }}', '{{ qa.handle }}', '', '', 'site-' + ({{ qa.sites.length }} + 1), 'neocities', 'https://{{ qa.handle }}-2.neocities.org', 'neogram', true, true);"
+                      data-user-id="{{ qa.id }}"
+                      data-handle="{{ qa.handle }}"
+                      data-site-id=""
+                      data-site-name=""
+                      data-site-slug="site-{{ qa.sites.length + 1 }}"
+                      data-deploy-type="neocities"
+                      data-site-url="https://{{ qa.handle }}-2.neocities.org"
+                      data-deploy-path="neogram"
+                      data-build-html="true"
+                      data-auto-deploy="true"
+                      onclick="openQaSiteModalFromDataset(this);"
                     >
                       + Add Site
                     </button>
@@ -614,11 +634,14 @@
         <input type="hidden" id="qaModalUserId" value="" />
         <input type="hidden" id="qaModalSiteId" value="" />
 
-        <div class="mb-2">
-          <label class="block font-bold mb-1" for="qaModalSiteName">Site Label &amp; Slug:</label>
-          <div class="flex gap-2">
-            <input type="text" id="qaModalSiteName" required placeholder="Primary Neocities" class="retro-input text-xs flex-1" />
-            <input type="text" id="qaModalSiteSlug" required placeholder="main" class="retro-input text-xs w-40" />
+        <div class="sysop-modal-grid-2 mb-2">
+          <div>
+            <label class="block font-bold mb-1" for="qaModalSiteName">Site Display Name:</label>
+            <input type="text" id="qaModalSiteName" required placeholder="e.g. Primary Neocities" class="retro-input text-xs w-full" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1" for="qaModalSiteSlug">Internal Slug:</label>
+            <input type="text" id="qaModalSiteSlug" required placeholder="e.g. main or zine" class="retro-input text-xs w-full" />
           </div>
         </div>
 
@@ -632,11 +655,14 @@
         </div>
 
         <div class="mb-2">
-          <label class="block font-bold mb-1" for="qaModalSiteUrl">Target Site Base URL &amp; Subdirectory Path:</label>
-          <div class="flex gap-2">
-            <input type="url" id="qaModalSiteUrl" required placeholder="https://mysite.neocities.org" class="retro-input text-xs flex-1" />
-            <input type="text" id="qaModalDeployPath" placeholder="neogram" class="retro-input text-xs w-40" />
-          </div>
+          <label class="block font-bold mb-1" for="qaModalSiteUrl">Target Site Base URL:</label>
+          <input type="url" id="qaModalSiteUrl" required placeholder="https://mysite.neocities.org or https://mysite.nekoweb.org" class="retro-input text-xs w-full" />
+        </div>
+
+        <div class="mb-2">
+          <label class="block font-bold mb-1" for="qaModalDeployPath">Remote Subdirectory Deploy Path (optional):</label>
+          <input type="text" id="qaModalDeployPath" placeholder="neogram (leave blank for root /)" class="retro-input text-xs w-full" />
+          <span class="text-3xs text-muted block mt-0.5">Files deploy to &lt;Base URL&gt;/&lt;Deploy Path&gt;/ (e.g. /neogram, or blank for site root)</span>
         </div>
 
         <div class="mb-3">
@@ -647,6 +673,7 @@
             placeholder="Paste Neocities or Nekoweb API Key (leave blank to keep existing key)"
             class="retro-input text-xs w-full"
           />
+          <span class="text-3xs text-muted block mt-0.5">Leave blank to preserve currently encrypted key.</span>
         </div>
 
         <div class="flex items-center gap-4 mb-3">
@@ -908,6 +935,22 @@
     } catch (err) {
       window.alert('[:> QA FLEET ERROR] ' + err.message);
     }
+  }
+
+  function openQaSiteModalFromDataset(btn) {
+    const d = btn.dataset;
+    openQaSiteModal(
+      d.userId,
+      d.handle,
+      d.siteId,
+      d.siteName,
+      d.siteSlug,
+      d.deployType,
+      d.siteUrl,
+      d.deployPath,
+      d.buildHtml === 'true',
+      d.autoDeploy === 'true'
+    );
   }
 
   function openQaSiteModal(userId, handle, siteId, name, slug, deployType, siteUrl, deployPath, buildHtml, autoDeploy) {
