@@ -482,13 +482,20 @@ postsRouter.post('/posts/:id/comments', commentRateLimiter, async (req: Request,
     }
     const post = postRes.rows[0];
 
-    // Fetch post owner to access deployment credentials
+    // Fetch post owner and target site to access deployment credentials
     const ownerRes = await query('SELECT * FROM users WHERE id = $1', [post.user_id]);
     if (ownerRes.rows.length === 0) {
       res.status(404).json({ ok: false, error: 'Post owner not found.' });
       return;
     }
     const ownerUser = ownerRes.rows[0];
+    let storageTarget = ownerUser;
+    if (post.site_id) {
+      const siteRes = await query('SELECT * FROM sites WHERE id = $1', [post.site_id]);
+      if (siteRes.rows.length > 0) {
+        storageTarget = { ...ownerUser, ...siteRes.rows[0], handle: ownerUser.handle };
+      }
+    }
 
     // Resolve clean root site URL for commenter
     let cleanCommenterSiteUrl: string | undefined = undefined;
@@ -506,7 +513,7 @@ postsRouter.post('/posts/:id/comments', commentRateLimiter, async (req: Request,
     // Append comment directly to self-hosted JSON on static host (Neocities / Nekoweb / local static bundle)
     const { appendPostComment } = await import('../services/staticStorage');
     const comment = await appendPostComment(
-      ownerUser,
+      storageTarget,
       post,
       {
         id: user.id,
@@ -600,6 +607,11 @@ postsRouter.post('/posts/:id/comments', commentRateLimiter, async (req: Request,
 postsRouter.get('/posts/:id/comments', async (req: Request, res: Response, next) => {
   try {
     const { id } = req.params;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (!isUuid) {
+      res.status(404).json({ ok: false, error: 'Post not found.' });
+      return;
+    }
     const postRes = await query('SELECT * FROM posts WHERE id = $1', [id]);
     if (postRes.rows.length === 0) {
       res.status(404).json({ ok: false, error: 'Post not found.' });
@@ -609,10 +621,17 @@ postsRouter.get('/posts/:id/comments', async (req: Request, res: Response, next)
 
     const ownerRes = await query('SELECT * FROM users WHERE id = $1', [post.user_id]);
     const ownerUser = ownerRes.rows[0];
+    let storageTarget = ownerUser;
+    if (post.site_id) {
+      const siteRes = await query('SELECT * FROM sites WHERE id = $1', [post.site_id]);
+      if (siteRes.rows.length > 0) {
+        storageTarget = { ...ownerUser, ...siteRes.rows[0], handle: ownerUser?.handle };
+      }
+    }
 
     const { readRemoteJson, getCommentsRelativePath } = await import('../services/staticStorage');
     const relPath = getCommentsRelativePath(post.image_path);
-    const commentsData = await readRemoteJson<any>(ownerUser, relPath, { comments: [] });
+    const commentsData = await readRemoteJson<any>(storageTarget, relPath, { comments: [] });
 
     // Fallback to mirrored database comments if static host returned empty list (e.g. newly deployed)
     let comments = Array.isArray(commentsData.comments) ? commentsData.comments : [];
@@ -660,8 +679,16 @@ postsRouter.delete('/posts/:postId/comments/:commentId', async (req: Request, re
       return;
     }
 
+    let storageTarget: any = user;
+    if (post.site_id) {
+      const siteRes = await query('SELECT * FROM sites WHERE id = $1', [post.site_id]);
+      if (siteRes.rows.length > 0) {
+        storageTarget = { ...user, ...siteRes.rows[0], handle: user.handle };
+      }
+    }
+
     const { deletePostComment } = await import('../services/staticStorage');
-    const deleted = await deletePostComment(user, post, commentId);
+    const deleted = await deletePostComment(storageTarget, post, commentId);
 
     // Clean up legacy table if exists
     await query('DELETE FROM comments WHERE id::text = $1 OR body = $1', [commentId]).catch(() => {});

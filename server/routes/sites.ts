@@ -59,6 +59,16 @@ sitesRouter.post('/sites', async (req: Request, res: Response, next: NextFunctio
       return;
     }
 
+    if (siteUrl && /^(javascript|data|vbscript):/i.test(String(siteUrl).trim())) {
+      res.status(400).json({ ok: false, error: 'Invalid URL scheme for siteUrl.' });
+      return;
+    }
+
+    if (customCssUrl && !/^https?:\/\//i.test(String(customCssUrl).trim())) {
+      res.status(400).json({ ok: false, error: 'Custom CSS URL must use HTTP or HTTPS protocol.' });
+      return;
+    }
+
     const newSite = await createSite(userId, {
       name,
       slug,

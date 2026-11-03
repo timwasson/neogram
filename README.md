@@ -128,16 +128,28 @@ npm run dev
 - Sass watcher and Express server run concurrently.
 - Migrations apply automatically on server boot.
 
-### 4. Run Automated QA Smoke, Live-Host & Production Load Suites
+### 4. Run Automated QA Smoke, Static Bot, Security, Browser & Load Suites
 ```bash
-# Local integration smoke test suite
+# 1. Local integration smoke test suite (330+ assertions)
 npm test
 
-# Live Neocities & Nekoweb multi-account verification (requires qa-sessions.json from https://neogram.club/admin)
+# 2. Live Static-Site Bot & Remote Propagation Monitor (Neocities & Nekoweb delta rebuilds & JSON sync)
+npm run test:bot-static
+
+# 3. Social Graph Lifecycle & Adversarial Security Fuzzing Suite (XSS, SQLi, path traversal, IDOR)
+npm run test:social-security
+
+# 4. Multi-Resolution Playwright Chromium E2E Suite (320x568, 390x844, 768x1024, 1440x900)
+npm run test:browser
+
+# 5. Live Neocities & Nekoweb multi-account verification (requires qa-sessions.json from https://neogram.club/admin)
 npm run test:live-hosts
 
-# Multi-agent concurrent load & BuildQueue telemetry benchmark against https://neogram.club
+# 6. Multi-agent concurrent load & BuildQueue telemetry benchmark against https://neogram.club
 npm run test:load
+
+# 7. Unified full test run
+npm run test:all
 ```
 - **Production QA Fleet Manager (`https://neogram.club/admin`):** Provision `@qa_*` (`@qa.neogram.club`) test personas, attach encrypted Neocities/Nekoweb API keys directly to test accounts, export pre-authenticated 30-day `qa-sessions.json` session bundles for OTP-free browser/load testing, and purge QA test posts with 1 click after test runs.
 

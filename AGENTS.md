@@ -817,15 +817,30 @@ Neogram uses a **3-tier automated testing architecture** designed so lighter AI 
 
 #### B. Running the Automated Test Suites (Instructions for AI Testing Agents)
 ```bash
-# 1. Local / Self-Contained Integration Smoke Suite (220+ assertions)
+# 1. Local / Self-Contained Integration Smoke Suite (330+ assertions)
 npm test
 
-# 2. Live Static Host Verification (Publishes to Neocities & Nekoweb via qa-sessions.json and probes live feed.json URLs)
+# 2. Live Static-Site Bot & Remote Propagation Monitor (Neocities & Nekoweb delta rebuilds & JSON sync)
+npm run test:bot-static
+
+# 3. Social Graph Lifecycle & Adversarial Security Fuzzing Suite (XSS, SQLi, path traversal, IDOR)
+npm run test:social-security
+
+# 4. Multi-Resolution Playwright Chromium E2E Suite (320x568, 390x844, 768x1024, 1440x900)
+npm run test:browser
+
+# 5. Live Static Host Verification (Publishes to Neocities & Nekoweb via qa-sessions.json and probes live feed.json URLs)
 npm run test:live-hosts
 
-# 3. 20-Agent Simultaneous Production Load & Queue Drain Benchmark against https://neogram.club
+# 6. 20-Agent Simultaneous Production Load & Queue Drain Benchmark against https://neogram.club
 npm run test:load
+
+# 7. Unified Full Test Suite Execution
+npm run test:all
 ```
+- **Live Static-Site Bot Monitoring (`test:bot-static`):** Automated bot personas publish test photos to mounted live Neocities/Nekoweb targets, poll remote URLs with cache-busting until live (`feed.json`, `index.html`, `photos/<id>/index.html`, full/thumb WebP images, `.comments.json`), have visitor bots comment and like, and verify delta synchronization.
+- **Social Graph & Adversarial Fuzzing (`test:social-security`):** Validates follow/unfollow polymorphic lookups (handle, numeric UIN, UUID), concurrent comment locking with zero lost writes, in-app notifications inbox, stored XSS / script breakout prevention in rendered HTML, malicious URL scheme stripping (`javascript:`, `data:`, `vbscript:`), path traversal / shell command sanitation, SQL injection safety without database error leakage, corrupt polyglot image rejection, and IDOR tenant boundary enforcement.
+- **Multi-Resolution Playwright Browser Testing (`test:browser`):** Headless Chromium testing across 4 viewports (`320x568` Mobile-Small-SE, `390x844` Mobile-Standard, `768x1024` Tablet-Breakpoint, `1440x900` Desktop-Widescreen) validating zero unwanted horizontal overflow, responsive navigation visibility (mobile bottom dock vs. desktop retro taskbar), interactive profile follow toggles via AJAX, standard static BEM DOM structure, and DOM XSS canary dialog traps.
 - **Multi-Browser Persona Testing:** AI agents testing via browser tools should read `qa-sessions.json` from the repo root, set the `neogram_session` cookie (or `Authorization: Bearer <token>` header) for each persona in separate browser contexts, and test multi-site switching, photo uploads with shaders, live `.neocities.org` / `.nekoweb.org` rendering, Cyber-Pass SSO, guestbooks, SVG hit counters, and Pager chat.
 - **Post-Test Cleanup on Production:** After running load or E2E tests on `https://neogram.club`, click **`[🧹 Purge QA Test Posts]`** in `https://neogram.club/admin` (or `POST /api/admin/qa-fleet/purge-posts`). This deletes all test posts, comments, and guestbook entries created by `@qa.neogram.club` users while preserving the QA accounts, mounted sites, and encrypted API keys.
 
