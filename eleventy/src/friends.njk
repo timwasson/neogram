@@ -41,14 +41,15 @@ permalink: "friends/index.html"
 </section>
 
 <!-- ==============================================================
-     FRIENDS PHOTO GRID
+     FRIENDS PHOTO GRID (FEDERATED DYNAMIC CONTAINER)
      ============================================================== -->
+<div id="neogram-friends-grid" data-station="{{ site.author }}" data-api-host="{{ site.apiUrl or 'https://neogram.club' }}">
 {% if not friendsPosts or friendsPosts.length == 0 %}
   <div class="neogram-empty">
     <div class="neogram-empty__icon">📡</div>
-    <div class="neogram-empty__title">[:&gt; NO TRANSMISSIONS FROM FRIENDS YET]</div>
+    <div class="neogram-empty__title">[:&gt; FEDERATED FRIENDS STREAM READY]</div>
     <p class="neogram-empty__desc">
-      Your static friends archive is empty. Add fellow cyberspace surfers as friends on Neogram to follow their broadcasted photographs in this static grid.
+      Connecting to the Cyberspace Friends Mesh... When followed stations publish photographs, they will stream dynamically into this grid.
     </p>
     <div class="neogram-empty__action">
       <a href="{{ site.apiUrl or 'http://localhost:4000' }}/directory" target="_blank" class="neogram-btn neogram-btn--green neogram-btn--lg">
@@ -135,3 +136,7 @@ permalink: "friends/index.html"
     {% endfor %}
   </div>
 {% endif %}
+</div>
+
+<!-- Federated Client-Side Dynamic Stream Hydration -->
+<script src="{{ '/embed/friends.js' | url }}"></script>

@@ -58,7 +58,7 @@ Explore the topic guides below:
    - 1-click "Add Friend" on station profiles and static Neocities gallery headers
    - Dedicated workstation Friends console (`/friends`) with buddy roster and photo feed
    - Static photo grid compilation at `/friends/index.html` with cross-domain asset resolution
-   - Concurrency-safe cascading FIFO rebuild queue when friends broadcast new photographs
+   - Pure federated read aggregation of friends' `feed.json` files and client-side hydration (`embed/friends.js`) ensuring O(1) publishing speed
 
 8. **[Cyber Notification Dispatcher & Alert Protocols](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/notifications.md)**
    - Configurable event matrix across 8 retro-social triggers

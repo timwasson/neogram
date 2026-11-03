@@ -15,7 +15,7 @@ It provides:
 2. **Centralized & Self-Hosted Social Layer:** Embeddable async JS/iframes that inject styled feeds, guestbook ledgers, and zero-retention self-hosted comment files onto static sites with 1-click Cyber-Pass authentication.
 3. **Legacy Retro Widgets:** Dynamic web hit counter images (LED/Nixie/Odometer/VFD) and guestbook ledgers permanently anchored to immutable numeric node UINs.
 4. **Retro Chat Browser Extension:** A Chrome/Firefox Manifest V3 sidebar/popup emulating classic 90s AIM/ICQ mechanics with buddy lists, DMs, sound chimes, and status messages.
-5. **Cyberspace Friends Network & Static Follow Grid:** Simple "Friends" engine with reciprocal 1-click adding, dedicated workstation Friends console (`/friends`), static `/friends/index.html` photo grid on Neocities/Nekoweb, and concurrency-safe cascading FIFO rebuilds when friends broadcast new photographs.
+5. **Federated IndieWeb Friends Network & Static Follow Grid:** Decentralized "Friends" engine with reciprocal 1-click adding, dedicated workstation Friends console (`/friends`), public federated dynamic hydration widget (`embed/friends.js`), and static `/friends/index.html` photo grid on Neocities/Nekoweb. Employs client-side and server-side WAN `feed.json` aggregation to entwine friends' transmissions in real-time with O(1) publishing speed (no blocking cascades).
 6. **Cyberspace Station Directory & Presence Hub (`/directory`):** Public station white-pages categorizing registered nodes by live presence (Active 🟢, Away 🟡, Inactive ⚪) with deterministic alphabetical sorting and instant search filtering.
 7. **Interactive Cyberspace Documentation Center (`/docs`):** Complete user manuals, setup guides, and live session-interpolated embed snippets.
 8. **Configurable Cyberspace Notification Engine & In-App Alert Center (`[:> NOTIFY_CENTER.SYS]`):** Real-time WebSocket transmission alerts (`/ws/chat`), 8-bit synthesized audio chimes, native desktop/PWA service worker pushes, and a user dashboard configuration console (`[:> NOTIFICATION_DISPATCHER.CFG]`) to toggle delivery across 8 event types.
@@ -411,12 +411,19 @@ CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read, cr
 - **Production Container Hardening (Non-Root Execution):**
   - The production `Dockerfile` runs as non-root user `node` (UID 1000) with `/app` and subdirectories recursively owned by `node:node`, preventing container breakout.
 
-### 4.22 Zero-Retention Self-Hosted Social Layer (Comments & Guestbook JSON)
+### 4.22 Zero-Retention Self-Hosted Social Layer & Federated Friends
 - **Self-Hosted Storage on Static Host (0 MB Server Retention):**
   - Comments are stored in self-hosted JSON files directly alongside each photo on the user's connected static host (`uploads/images/<fileId>.comments.json`).
   - Visitor guestbook entries are stored in self-hosted JSON files under `data/guestbook.json`.
   - The Neogram server acts as a **stateless broker/dispatcher**: when an authenticated visitor submits a comment or signature, Neogram validates their JWT, reads the remote JSON from the host, appends the entry, and pushes the updated file directly to Neocities (or Nekoweb) via API. PostgreSQL retains 0 bytes of comments or guestbooks.
   - Concurrency and race conditions are eliminated using an in-memory sequential file lock (`withFileLock`).
+- **Pure IndieWeb Federated Friends Aggregation (O(1) Publishing):**
+  - Instead of requiring fan-out pushes to dozens or hundreds of remote follower static sites whenever an author snaps a photo, Neogram employs **Federated Read Aggregation**:
+    1. Each creator's host publishes a self-hosted `feed.json` containing their posts, captions, WebP image URLs, and likes.
+    2. Follower stations embed `<script src="/embed/friends.js"></script>` in their static `/friends/index.html`.
+    3. The widget dynamically fetches and entwines friends' public feeds in real-time, sorting them in reverse-chronological order.
+    4. The authenticated workstation (`/friends` and `GET /api/friends`) executes parallel WAN fetches (`server/services/federatedFriends.ts`) to merge feeds on demand with a local DB fallback.
+    5. This eliminates the multi-site background deploy bottleneck, achieving constant O(1) publishing speed regardless of follower count.
 - **Neogram Cyber-Pass Handshake (`/auth/connect`):**
   - Cross-domain static photo pages require a verified Neogram identity to prevent anonymous bot spam.
   - Clicking `[⚡ Connect Cyber-Pass]` triggers a lightweight 1-click popup handshake with `neogram.net/auth/connect`, transmitting `{ token, handle, uin }` back via `window.postMessage` and caching to the site's `localStorage.getItem('neogram_pass')`.

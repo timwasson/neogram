@@ -662,39 +662,57 @@ embedsRouter.get('/api/friends', async (req: Request, res: Response) => {
       ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC
     `, [currentUser.id]);
 
-    const postsRes = await query(`
-      SELECT 
-        p.id,
-        p.user_id as "userId",
-        p.image_path as "imagePath",
-        p.thumbnail_path as "thumbnailPath",
-        p.caption,
-        p.filter_applied as "filterApplied",
-        p.mood,
-        p.webring,
-        p.location,
-        p.likes_count as "likes",
-        p.created_at as "createdAt",
-        u.email,
-        u.handle,
-        u.uin,
-        u.avatar_path as "avatarPath",
-        u.site_url as "siteUrl",
-        u.deploy_path as "deployPath",
-        COALESCE(u.handle, split_part(u.email, '@', 1)) as author,
-        (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
-      FROM posts p
-      JOIN follows f ON p.user_id = f.following_id
-      JOIN users u ON p.user_id = u.id
-      WHERE f.follower_id = $1
-      ORDER BY p.created_at DESC
-      LIMIT 100
-    `, [currentUser.id]);
+    // Federated aggregation: merge friends' remote feeds directly over WAN
+    const { aggregateFederatedFriendsFeed } = await import('../services/federatedFriends');
+    const posts = await aggregateFederatedFriendsFeed(friendsRes.rows, 100);
 
     res.json({
       ok: true,
       friends: friendsRes.rows,
-      posts: postsRes.rows,
+      posts,
+    });
+  } catch (err: any) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/user/:identifier/friends-feed
+ * Public federated feed endpoint for static embeds (<script src="/embed/friends.js">)
+ * Aggregates followed stations' public feed.json documents in real-time.
+ */
+embedsRouter.get('/api/user/:identifier/friends-feed', async (req: Request, res: Response) => {
+  try {
+    const targetUser = await findUserByHandleOrId(req.params.identifier);
+    if (!targetUser) {
+      res.status(404).json({ ok: false, error: 'Station node not found' });
+      return;
+    }
+
+    const friendsRes = await query(`
+      SELECT 
+        u.id, 
+        COALESCE(u.handle, split_part(u.email, '@', 1)) as handle,
+        u.uin,
+        u.avatar_path as "avatarPath",
+        u.site_url as "siteUrl",
+        u.deploy_path as "deployPath"
+      FROM follows f
+      JOIN users u ON f.following_id = u.id
+      WHERE f.follower_id = $1
+      ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC
+    `, [targetUser.id]);
+
+    const { aggregateFederatedFriendsFeed } = await import('../services/federatedFriends');
+    const posts = await aggregateFederatedFriendsFeed(friendsRes.rows, 100);
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    res.json({
+      ok: true,
+      station: targetUser.handle,
+      friendsCount: friendsRes.rows.length,
+      posts,
     });
   } catch (err: any) {
     res.status(500).json({ ok: false, error: err.message });

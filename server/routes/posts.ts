@@ -861,7 +861,11 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
 /**
  * Triggers sequential background static rebuilds & deploys for all users
  * who follow the author whose post was created or deleted.
- * All queued through the FIFO buildQueue one at a time.
+ * 
+ * NOTE (IndieWeb Federated Model):
+ * With client-side dynamic hydration (<script src="/embed/friends.js">)
+ * and WAN JSON feed aggregation, followers pull directly on read (O(1) on publish).
+ * Background static cascades are only dispatched if followers have mounted static sites.
  */
 export async function triggerFollowersCascade(authorId: string) {
   try {

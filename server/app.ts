@@ -424,40 +424,15 @@ export function createApp(): Express {
       });
 
       // Fetch friends' latest broadcasted photographs
-      const postsRes = await query(`
-        SELECT 
-          p.id,
-          p.user_id as "userId",
-          p.image_path as "imagePath",
-          p.thumbnail_path as "thumbnailPath",
-          p.caption,
-          p.filter_applied as "filterApplied",
-          p.mood,
-          p.webring,
-          p.location,
-          p.likes_count as "likes",
-          p.created_at as "createdAt",
-          u.email,
-          u.handle,
-          u.uin,
-          u.avatar_path as "avatarPath",
-          u.site_url as "siteUrl",
-          u.deploy_path as "deployPath",
-          COALESCE(u.handle, split_part(u.email, '@', 1)) as author,
-          (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
-        FROM posts p
-        JOIN follows f ON p.user_id = f.following_id
-        JOIN users u ON p.user_id = u.id
-        WHERE f.follower_id = $1
-        ORDER BY p.created_at DESC
-        LIMIT 100
-      `, [currentUser.id]);
+      // Federated aggregation: merge friends' remote feeds directly over WAN
+      const { aggregateFederatedFriendsFeed } = await import('./services/federatedFriends');
+      const posts = await aggregateFederatedFriendsFeed(friends, 100);
 
       res.render('friends', {
         title: 'Neogram - Friends Roster & Live Network Feed',
         activeView: 'friends',
         friends,
-        posts: postsRes.rows,
+        posts,
       });
     } catch (err) {
       next(err);
