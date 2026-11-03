@@ -830,7 +830,14 @@
       return div.innerHTML;
     },
 
+    _lastToggleTime: 0,
+
     toggleWindow: function () {
+      var now = Date.now();
+      if (now - this._lastToggleTime < 250) {
+        return;
+      }
+      this._lastToggleTime = now;
       if (window.retroAudio) window.retroAudio.playClick();
       if (this.isOpen) {
         this.closeWindow();

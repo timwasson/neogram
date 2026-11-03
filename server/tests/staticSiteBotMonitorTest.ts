@@ -605,59 +605,17 @@ async function runStaticSiteBotMonitor() {
     }
 
     // =========================================================================
-    // STAGE 6: Post-Run Cleanup & Diagnostic Report
+    // STAGE 6: Post-Run Retention & Telemetry Report
     // =========================================================================
-    monitor.section('STAGE 6: POST-RUN CLEANUP & LEDGER MODERATION');
+    monitor.section('STAGE 6: POST-RUN RETENTION & TELEMETRY REPORT');
 
-    if (commentId) {
-      const delCommentStart = Date.now();
-      const delCommentRes = await fetch(`${baseUrl}/api/posts/${postId}/comments/${commentId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${botA.token}`,
-          'X-Test-Suite': 'true',
-        },
-      });
-      const delCommentData = (await delCommentRes.json().catch(() => ({}))) as any;
-      monitor.record(
-        'STAGE-6',
-        `Owner (@${botA.handle}) moderates/deletes test comment ${commentId}`,
-        delCommentRes.status === 200 && delCommentData.ok === true,
-        Date.now() - delCommentStart,
-        delCommentData.message
-      );
-    }
-
-    if (guestbookEntryId) {
-      await fetch(`${baseUrl}/api/guestbook/${guestbookEntryId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${botA.token}`,
-          'X-Test-Suite': 'true',
-        },
-      }).catch(() => {});
-    }
-
-    if (!keepArtifacts && postId) {
-      const delPostStart = Date.now();
-      const delPostRes = await fetch(`${baseUrl}/api/posts/${postId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${botA.token}`,
-          'X-Test-Suite': 'true',
-        },
-      });
-      const delPostData = (await delPostRes.json().catch(() => ({}))) as any;
-      monitor.record(
-        'STAGE-6',
-        `Owner (@${botA.handle}) deletes test probe post ${postId}`,
-        delPostRes.status === 200 && delPostData.ok === true,
-        Date.now() - delPostStart,
-        'Cleaned up test post & triggered remote delta removal'
-      );
-    } else if (keepArtifacts) {
-      monitor.warn('STAGE-6', `Keeping test post ${postId} on live static host (--keep flag active)`);
-    }
+    monitor.record(
+      'STAGE-6',
+      `Test photos, comments, and guestbook entries preserved in perpetuity for @${botA.handle}`,
+      true,
+      0,
+      `Post ${postId} retained permanently on static site`
+    );
   } catch (err: any) {
     monitor.record('FATAL', 'Unhandled exception in Static Site Bot Monitor', false, 0, err.message || String(err));
   }

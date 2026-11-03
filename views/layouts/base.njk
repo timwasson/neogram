@@ -820,11 +820,18 @@
       <!-- Notifications Client Engine -->
       <script src="/js/notifications.js"></script>
       <script>
-        document.addEventListener('DOMContentLoaded', function() {
-          if (window.AimClient) {
-            window.AimClient.init('{{ currentUser.handle }}');
+        (function() {
+          function bootAim() {
+            if (window.AimClient) {
+              window.AimClient.init('{{ currentUser.handle }}');
+            }
           }
-        });
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bootAim);
+          } else {
+            bootAim();
+          }
+        })();
       </script>
 
       <!-- Retro Mobile Bottom Navigation Bar (Screens < 768px) -->
@@ -878,7 +885,6 @@
           type="button"
           id="mobileTabAimBtn"
           class="retro-mobile-nav__item"
-          onclick="if(window.AimClient){ window.AimClient.toggleWindow(); } if(window.retroAudio) retroAudio.playClick();"
           title="Open Neogram Instant Messenger"
         >
           <span class="retro-mobile-nav__icon">💬</span>

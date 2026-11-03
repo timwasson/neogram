@@ -16,6 +16,7 @@ import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import sharp from 'sharp';
+import { fetchPicsumTestImage } from './helpers/qaHarness';
 
 const GREEN = '\x1b[32m';
 const RED = '\x1b[31m';
@@ -125,8 +126,7 @@ async function runLoadBenchmark() {
   console.log(`  Loaded QA Agents   : ${YELLOW}${agents.length} Pre-Authenticated Agent Sessions${RESET}`);
   console.log(`  Live API Key Sites : ${YELLOW}${keyedAgents.length} Agent(s) with Encrypted Neocities/Nekoweb Keys${RESET}\n`);
 
-  const sampleImageBuffer = await generateTestPhotoBuffer(1);
-  const sampleBase64 = `data:image/png;base64,${sampleImageBuffer.toString('base64')}`;
+  const { dataUri: sampleBase64 } = await fetchPicsumTestImage(800, 800);
   const shaders = ['none', 'crt', 'vga', 'gameboy', 'cyberpunk', 'sepia', 'lofi'];
 
   // ===========================================================================

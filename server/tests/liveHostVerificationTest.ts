@@ -12,6 +12,7 @@ import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import sharp from 'sharp';
+import { fetchPicsumTestImage } from './helpers/qaHarness';
 
 const GREEN = '\x1b[32m';
 const RED = '\x1b[31m';
@@ -39,19 +40,14 @@ async function runLiveHostVerification() {
   const baseUrl = (process.env.TARGET_URL || bundle.targetUrl || 'https://neogram.club').replace(/\/+$/, '');
   const agents = bundle.agents || [];
 
-  const sampleImg = await sharp({
-    create: { width: 600, height: 600, channels: 3, background: { r: 20, g: 180, b: 220 } },
-  })
-    .png()
-    .toBuffer();
-  const sampleBase64 = `data:image/png;base64,${sampleImg.toString('base64')}`;
-
   for (const agent of agents) {
     const keyedSites = (agent.sites || []).filter((s: any) => s.hasApiKey);
     if (keyedSites.length === 0) continue;
 
     console.log(`\n${CYAN}${BOLD}--> Testing @${agent.handle} (#${agent.uin}) — ${keyedSites.length} Live Keyed Site(s)${RESET}`);
     for (const site of keyedSites) {
+      // Fetch random real photograph from https://picsum.photos/
+      const { dataUri: sampleBase64 } = await fetchPicsumTestImage(800, 800);
       const t0 = Date.now();
       const res = await fetch(`${baseUrl}/api/posts`, {
         method: 'POST',

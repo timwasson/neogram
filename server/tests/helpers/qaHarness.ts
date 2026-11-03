@@ -267,41 +267,93 @@ async function provisionLocalQaPersonas(baseUrl: string): Promise<QaAgent[]> {
 }
 
 /**
- * 2. Test Image Generator (`createTestImageBase64(label, color)`)
- * Uses `sharp` to generate a `600x600` PNG buffer with a distinct RGB background
- * and returns `data:image/png;base64,...`.
+ * 2. Picsum Random Test Image Fetcher & Generator
+ * Grabs a random photograph from https://picsum.photos/ for automated QA tests
+ * so sample accounts and deployed pages display real photography rather than solid blue blocks.
+ * Falls back cleanly to an in-memory Sharp buffer if network is unreachable.
  */
-export async function createTestImageBase64(
-  label: string = 'NEOGRAM_QA_PROBE',
-  color: { r: number; g: number; b: number } = { r: 24, g: 160, b: 210 }
-): Promise<string> {
-  const safeLabel = label.replace(/[<>&"']/g, '').slice(0, 36);
-  const svgOverlay = Buffer.from(`
-    <svg width="600" height="600" xmlns="http://www.w3.org/2000/svg">
-      <rect x="20" y="20" width="560" height="560" fill="none" stroke="#00ffcc" stroke-width="6"/>
-      <rect x="40" y="220" width="520" height="160" fill="#000000" fill-opacity="0.78" stroke="#ffcc00" stroke-width="3"/>
-      <text x="300" y="285" font-family="monospace" font-size="26" font-weight="bold" fill="#00ffcc" text-anchor="middle">
-        [:&gt; NEOGRAM BOT PROBE]
-      </text>
-      <text x="300" y="335" font-family="monospace" font-size="20" fill="#ffcc00" text-anchor="middle">
-        ${safeLabel}
-      </text>
-    </svg>
-  `);
+export async function fetchPicsumTestImage(
+  width = 800,
+  height = 800
+): Promise<{ buffer: Buffer; mimeType: string; dataUri: string }> {
+  try {
+    const seed = Math.random().toString(36).substring(2, 10);
+    const res = await fetch(`https://picsum.photos/seed/${seed}/${width}/${height}`, {
+      signal: AbortSignal.timeout(5000),
+      redirect: 'follow',
+    });
+    if (res.ok) {
+      const buffer = Buffer.from(await res.arrayBuffer());
+      const mimeType = res.headers.get('content-type') || 'image/jpeg';
+      return {
+        buffer,
+        mimeType,
+        dataUri: `data:${mimeType};base64,${buffer.toString('base64')}`,
+      };
+    }
+  } catch {
+    // Offline / timeout fallback
+  }
 
-  const pngBuffer = await sharp({
+  const buffer = await sharp({
     create: {
-      width: 600,
-      height: 600,
+      width,
+      height,
       channels: 3,
-      background: color,
+      background: { r: 50, g: 70, b: 90 },
     },
   })
-    .composite([{ input: svgOverlay, top: 0, left: 0 }])
     .png()
     .toBuffer();
 
-  return `data:image/png;base64,${pngBuffer.toString('base64')}`;
+  return {
+    buffer,
+    mimeType: 'image/png',
+    dataUri: `data:image/png;base64,${buffer.toString('base64')}`,
+  };
+}
+
+/**
+ * Test Image Generator (`createTestImageBase64(label, color)`)
+ * Returns a data URI of a random photograph from https://picsum.photos/.
+ */
+export async function createTestImageBase64(
+  label: string = 'NEOGRAM_QA_PROBE',
+  color?: { r: number; g: number; b: number }
+): Promise<string> {
+  // If a non-default color was explicitly provided, honor it for targeted color tests
+  if (color && (color.r !== 24 || color.g !== 160 || color.b !== 210)) {
+    const safeLabel = label.replace(/[<>&"']/g, '').slice(0, 36);
+    const svgOverlay = Buffer.from(`
+      <svg width="600" height="600" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="20" width="560" height="560" fill="none" stroke="#00ffcc" stroke-width="6"/>
+        <rect x="40" y="220" width="520" height="160" fill="#000000" fill-opacity="0.78" stroke="#ffcc00" stroke-width="3"/>
+        <text x="300" y="285" font-family="monospace" font-size="26" font-weight="bold" fill="#00ffcc" text-anchor="middle">
+          [:&gt; NEOGRAM BOT PROBE]
+        </text>
+        <text x="300" y="335" font-family="monospace" font-size="20" fill="#ffcc00" text-anchor="middle">
+          ${safeLabel}
+        </text>
+      </svg>
+    `);
+
+    const pngBuffer = await sharp({
+      create: {
+        width: 600,
+        height: 600,
+        channels: 3,
+        background: color,
+      },
+    })
+      .composite([{ input: svgOverlay, top: 0, left: 0 }])
+      .png()
+      .toBuffer();
+
+    return `data:image/png;base64,${pngBuffer.toString('base64')}`;
+  }
+
+  const photo = await fetchPicsumTestImage(800, 800);
+  return photo.dataUri;
 }
 
 /**
