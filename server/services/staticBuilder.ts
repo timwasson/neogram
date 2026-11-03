@@ -22,97 +22,288 @@ export interface StaticBuildResult {
 export interface BuildJobRecord {
   id: string;
   taskName: string;
+  priority?: 'HIGH' | 'LOW';
   enqueuedAt?: string;
   startedAt: string;
   completedAt?: string;
   queueWaitMs?: number;
   durationMs?: number;
   totalTurnaroundMs?: number;
-  status: 'RUNNING' | 'SUCCESS' | 'ERROR';
+  status: 'RUNNING' | 'SUCCESS' | 'ERROR' | 'CANCELLED';
   error?: string;
+}
+
+export interface SweepTelemetry {
+  isActive: boolean;
+  mode: 'assets' | 'full' | null;
+  total: number;
+  processed: number;
+  succeeded: number;
+  failed: number;
+  currentSite: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  errors: Array<{ siteName: string; handle: string; error: string }>;
 }
 
 export interface BuildPipelineTelemetry {
   isBusy: boolean;
   activeCount: number;
+  highPendingCount: number;
+  lowPendingCount: number;
   peakQueueDepth: number;
   totalProcessed: number;
   currentJob: BuildJobRecord | null;
   history: BuildJobRecord[];
+  sweep: SweepTelemetry;
+}
+
+interface QueuedTask<T = any> {
+  id: string;
+  taskName: string;
+  priority: 'HIGH' | 'LOW';
+  task: () => Promise<T>;
+  resolve: (value: T) => void;
+  reject: (reason?: any) => void;
+  enqueueTime: number;
+  enqueuedAtIso: string;
+  throttleDelayMs?: number;
+  isSweepJob?: boolean;
+  siteInfo?: { siteName: string; handle: string };
 }
 
 /**
- * In-memory sequential FIFO build queue to prevent concurrency race conditions.
- * Ensures builds execute in strict order without collision on shared Eleventy data files.
+ * In-memory prioritized build queue (HIGH priority for live user activity,
+ * LOW priority for background emergency sweeps / maintenance with paced throttling).
+ * Ensures builds execute without collision on shared Eleventy data files.
  */
 class BuildQueue {
-  private queue: Promise<any> = Promise.resolve();
-  private activeCount: number = 0;
+  private highQueue: QueuedTask[] = [];
+  private lowQueue: QueuedTask[] = [];
+  private isProcessing: boolean = false;
   private peakQueueDepth: number = 0;
   private totalProcessed: number = 0;
   private currentActiveJob: BuildJobRecord | null = null;
   private jobHistory: BuildJobRecord[] = [];
+  private wakeSleep: (() => void) | null = null;
 
-  public enqueue<T>(taskName: string, task: () => Promise<T>): Promise<T> {
+  private sweepTelemetry: SweepTelemetry = {
+    isActive: false,
+    mode: null,
+    total: 0,
+    processed: 0,
+    succeeded: 0,
+    failed: 0,
+    currentSite: null,
+    startedAt: null,
+    completedAt: null,
+    errors: [],
+  };
+
+  public enqueue<T>(
+    taskName: string,
+    task: () => Promise<T>,
+    options: {
+      priority?: 'HIGH' | 'LOW';
+      throttleDelayMs?: number;
+      isSweepJob?: boolean;
+      siteInfo?: { siteName: string; handle: string };
+    } = {}
+  ): Promise<T> {
+    const priority = options.priority || 'HIGH';
     const enqueueTime = Date.now();
     const enqueuedAtIso = new Date(enqueueTime).toISOString();
+    const id = `build_${enqueueTime}_${Math.random().toString(36).substring(2, 7)}`;
 
     return new Promise<T>((resolve, reject) => {
-      this.activeCount++;
-      if (this.activeCount > this.peakQueueDepth) {
-        this.peakQueueDepth = this.activeCount;
+      const queuedTask: QueuedTask<T> = {
+        id,
+        taskName,
+        priority,
+        task,
+        resolve,
+        reject,
+        enqueueTime,
+        enqueuedAtIso,
+        throttleDelayMs: options.throttleDelayMs,
+        isSweepJob: options.isSweepJob,
+        siteInfo: options.siteInfo,
+      };
+
+      if (priority === 'HIGH') {
+        this.highQueue.push(queuedTask);
+        // Wake low-priority throttling delay immediately if high-priority job arrives
+        if (this.wakeSleep) {
+          this.wakeSleep();
+        }
+      } else {
+        this.lowQueue.push(queuedTask);
       }
-      console.log(`[:> BUILD QUEUE] Enqueued job '${taskName}'. Pending in queue: ${this.activeCount}`);
 
-      this.queue = this.queue
-        .then(async () => {
-          const startTime = Date.now();
-          const queueWaitMs = startTime - enqueueTime;
-          const jobRecord: BuildJobRecord = {
-            id: `build_${startTime}_${Math.random().toString(36).substring(2, 7)}`,
-            taskName,
-            enqueuedAt: enqueuedAtIso,
-            startedAt: new Date(startTime).toISOString(),
-            queueWaitMs,
-            status: 'RUNNING',
-          };
-          this.currentActiveJob = jobRecord;
-          console.log(`[:> BUILD QUEUE] Starting job '${taskName}' (waited ${queueWaitMs}ms in queue)...`);
+      const totalPending = this.activeCount;
+      if (totalPending > this.peakQueueDepth) {
+        this.peakQueueDepth = totalPending;
+      }
 
-          try {
-            const result = await task();
-            const finishTime = Date.now();
-            const durationMs = finishTime - startTime;
-            jobRecord.completedAt = new Date(finishTime).toISOString();
-            jobRecord.durationMs = durationMs;
-            jobRecord.totalTurnaroundMs = finishTime - enqueueTime;
-            jobRecord.status = 'SUCCESS';
-            this.totalProcessed++;
-            this.recordHistory(jobRecord);
-            resolve(result);
-          } catch (err: any) {
-            const finishTime = Date.now();
-            const durationMs = finishTime - startTime;
-            jobRecord.completedAt = new Date(finishTime).toISOString();
-            jobRecord.durationMs = durationMs;
-            jobRecord.totalTurnaroundMs = finishTime - enqueueTime;
-            jobRecord.status = 'ERROR';
-            jobRecord.error = err?.message || String(err);
-            this.totalProcessed++;
-            this.recordHistory(jobRecord);
-            reject(err);
-          }
-        })
-        .catch((err) => {
-          console.error(`[:> BUILD QUEUE] Job '${taskName}' failed:`, err);
-          reject(err);
-        })
-        .finally(() => {
-          this.activeCount--;
-          this.currentActiveJob = null;
-          console.log(`[:> BUILD QUEUE] Job '${taskName}' finalized. Remaining in queue: ${this.activeCount}`);
-        });
+      console.log(`[:> BUILD QUEUE] Enqueued [${priority}] job '${taskName}'. Pending (H:${this.highQueue.length}, L:${this.lowQueue.length})`);
+
+      if (!this.isProcessing) {
+        this.processQueue();
+      }
     });
+  }
+
+  private async processQueue(): Promise<void> {
+    if (this.isProcessing) return;
+    this.isProcessing = true;
+
+    while (this.highQueue.length > 0 || this.lowQueue.length > 0) {
+      let currentTask: QueuedTask;
+      let isLow = false;
+
+      // High priority items ALWAYS jump ahead of low priority maintenance
+      if (this.highQueue.length > 0) {
+        currentTask = this.highQueue.shift()!;
+      } else {
+        currentTask = this.lowQueue.shift()!;
+        isLow = true;
+      }
+
+      const startTime = Date.now();
+      const queueWaitMs = startTime - currentTask.enqueueTime;
+      const jobRecord: BuildJobRecord = {
+        id: currentTask.id,
+        taskName: currentTask.taskName,
+        priority: currentTask.priority,
+        enqueuedAt: currentTask.enqueuedAtIso,
+        startedAt: new Date(startTime).toISOString(),
+        queueWaitMs,
+        status: 'RUNNING',
+      };
+      this.currentActiveJob = jobRecord;
+      console.log(`[:> BUILD QUEUE] Starting [${currentTask.priority}] job '${currentTask.taskName}' (waited ${queueWaitMs}ms in queue)...`);
+
+      try {
+        const result = await currentTask.task();
+        const finishTime = Date.now();
+        const durationMs = finishTime - startTime;
+        jobRecord.completedAt = new Date(finishTime).toISOString();
+        jobRecord.durationMs = durationMs;
+        jobRecord.totalTurnaroundMs = finishTime - currentTask.enqueueTime;
+        jobRecord.status = 'SUCCESS';
+        this.totalProcessed++;
+        this.recordHistory(jobRecord);
+
+        if (currentTask.isSweepJob) {
+          this.sweepTelemetry.succeeded++;
+          this.sweepTelemetry.processed++;
+        }
+
+        currentTask.resolve(result);
+      } catch (err: any) {
+        const finishTime = Date.now();
+        const durationMs = finishTime - startTime;
+        jobRecord.completedAt = new Date(finishTime).toISOString();
+        jobRecord.durationMs = durationMs;
+        jobRecord.totalTurnaroundMs = finishTime - currentTask.enqueueTime;
+        jobRecord.status = 'ERROR';
+        jobRecord.error = err?.message || String(err);
+        this.totalProcessed++;
+        this.recordHistory(jobRecord);
+
+        if (currentTask.isSweepJob) {
+          this.sweepTelemetry.failed++;
+          this.sweepTelemetry.processed++;
+          if (currentTask.siteInfo) {
+            this.sweepTelemetry.errors.push({
+              siteName: currentTask.siteInfo.siteName,
+              handle: currentTask.siteInfo.handle,
+              error: err?.message || String(err),
+            });
+          }
+        }
+
+        currentTask.reject(err);
+      } finally {
+        this.currentActiveJob = null;
+        if (currentTask.isSweepJob && this.sweepTelemetry.processed >= this.sweepTelemetry.total) {
+          this.sweepTelemetry.isActive = false;
+          this.sweepTelemetry.completedAt = new Date().toISOString();
+          this.sweepTelemetry.currentSite = null;
+          console.log(`[:> FLEET SWEEP COMPLETE] Processed: ${this.sweepTelemetry.processed}, Succeeded: ${this.sweepTelemetry.succeeded}, Failed: ${this.sweepTelemetry.failed}`);
+        }
+      }
+
+      // If this was a low-priority job with throttle delay, and items remain in either queue, throttle pacing!
+      if (isLow && currentTask.throttleDelayMs && currentTask.throttleDelayMs > 0 && (this.highQueue.length > 0 || this.lowQueue.length > 0)) {
+        await this.sleepWithInterrupt(currentTask.throttleDelayMs);
+      }
+    }
+
+    this.isProcessing = false;
+  }
+
+  private sleepWithInterrupt(ms: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      let timer: NodeJS.Timeout | null = null;
+      const done = () => {
+        if (timer) clearTimeout(timer);
+        this.wakeSleep = null;
+        resolve();
+      };
+      this.wakeSleep = done;
+      timer = setTimeout(done, ms);
+    });
+  }
+
+  public cancelSweep(): { cancelledCount: number } {
+    let cancelledCount = 0;
+    const remainingLow: QueuedTask[] = [];
+
+    for (const task of this.lowQueue) {
+      if (task.isSweepJob) {
+        cancelledCount++;
+        task.reject(new Error('Fleet sweep cancelled by SysOp administrator.'));
+      } else {
+        remainingLow.push(task);
+      }
+    }
+
+    this.lowQueue = remainingLow;
+
+    if (this.sweepTelemetry.isActive) {
+      this.sweepTelemetry.isActive = false;
+      this.sweepTelemetry.completedAt = new Date().toISOString();
+      this.sweepTelemetry.currentSite = 'Cancelled by SysOp';
+    }
+
+    console.log(`[:> FLEET SWEEP CANCELLED] Cancelled ${cancelledCount} queued sweep jobs.`);
+    return { cancelledCount };
+  }
+
+  public startSweep(mode: 'assets' | 'full', total: number): void {
+    this.sweepTelemetry = {
+      isActive: true,
+      mode,
+      total,
+      processed: 0,
+      succeeded: 0,
+      failed: 0,
+      currentSite: 'Initializing sweep...',
+      startedAt: new Date().toISOString(),
+      completedAt: null,
+      errors: [],
+    };
+  }
+
+  public updateSweepCurrentSite(siteLabel: string): void {
+    if (this.sweepTelemetry.isActive) {
+      this.sweepTelemetry.currentSite = siteLabel;
+    }
+  }
+
+  public getSweepTelemetry(): SweepTelemetry {
+    return { ...this.sweepTelemetry, errors: [...this.sweepTelemetry.errors] };
   }
 
   private recordHistory(record: BuildJobRecord) {
@@ -129,17 +320,32 @@ class BuildQueue {
   }
 
   public get pending(): number {
-    return this.activeCount;
+    return this.highQueue.length + this.lowQueue.length;
+  }
+
+  public get highPending(): number {
+    return this.highQueue.length;
+  }
+
+  public get lowPending(): number {
+    return this.lowQueue.length;
+  }
+
+  public get activeCount(): number {
+    return (this.currentActiveJob ? 1 : 0) + this.pending;
   }
 
   public getTelemetry(): BuildPipelineTelemetry {
     return {
-      isBusy: this.activeCount > 0,
+      isBusy: this.currentActiveJob !== null || this.pending > 0,
       activeCount: this.activeCount,
+      highPendingCount: this.highQueue.length,
+      lowPendingCount: this.lowQueue.length,
       peakQueueDepth: this.peakQueueDepth,
       totalProcessed: this.totalProcessed,
       currentJob: this.currentActiveJob,
       history: [...this.jobHistory],
+      sweep: this.getSweepTelemetry(),
     };
   }
 }
@@ -180,7 +386,7 @@ async function cleanHtmlArtifacts(dir: string): Promise<void> {
  * Executes a static 11ty gallery compilation.
  * Internal worker function dispatched exclusively through buildQueue.
  */
-async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<StaticBuildResult> {
+export async function executeStaticBuild(options: StaticBuildOptions = {}): Promise<StaticBuildResult> {
   const startTime = Date.now();
   try {
     // 0. Ensure database is connected

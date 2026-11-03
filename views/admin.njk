@@ -147,6 +147,72 @@
         </div>
       </div>
 
+      <!-- Fleet Cyberspace Propagation Terminal -->
+      <div class="fleet-sweep-box" id="fleetSweepBox">
+        <div class="fleet-sweep-header">
+          <div class="flex items-center gap-2">
+            <span class="font-mono text-xs font-bold text-cyan">[:&gt; FLEET_PROPAGATION_TERMINAL.SYS // EMERGENCY_SWEEP]</span>
+            <span class="sysop-badge sysop-badge--online" id="sweepPacingBadge">2,500ms Baud Delay Active</span>
+          </div>
+          <div id="sweepStateTag" class="text-xs font-mono {% if pipelineTelemetry.sweep.isActive %}text-amber font-bold{% else %}text-muted{% endif %}">
+            {% if pipelineTelemetry.sweep.isActive %}SWEEP ACTIVE{% else %}IDLE{% endif %}
+          </div>
+        </div>
+
+        <p class="text-xs text-muted mb-3">
+          Propagate global template or stylesheet updates across all remote mounted stations (Neocities / Nekoweb).
+          Dispatched as <strong>LOW priority</strong> jobs with rate-limit pacing so live creator activity (photos, comments) takes immediate precedence.
+        </p>
+
+        <div class="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between mb-3">
+          <div class="flex flex-wrap items-center gap-4 text-xs font-mono">
+            <label class="flex items-center gap-1 cursor-pointer">
+              <input type="radio" name="fleetSweepMode" value="assets" id="sweepModeAssets" checked>
+              <span><strong>Asset Delta Sweep (CSS/JS)</strong> [~150ms/site, No 11ty compile]</span>
+            </label>
+            <label class="flex items-center gap-1 cursor-pointer">
+              <input type="radio" name="fleetSweepMode" value="full" id="sweepModeFull">
+              <span><strong>Full 11ty Rebuild (Markup)</strong> [~3s/site, Full compile]</span>
+            </label>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button type="button" class="pixel-btn pixel-btn--danger pixel-btn--sm {% if not pipelineTelemetry.sweep.isActive %}hidden{% endif %}" id="btnCancelSweep" onclick="cancelFleetSweep();">
+              ⏹ Abort Sweep
+            </button>
+            <button type="button" class="pixel-btn pixel-btn--primary pixel-btn--sm {% if pipelineTelemetry.sweep.isActive %}hidden{% endif %}" id="btnInitiateSweep" onclick="promptInitiateSweep();">
+              ⚡ Initiate Fleet Sweep
+            </button>
+          </div>
+        </div>
+
+        <!-- Sweep Live Telemetry Strip -->
+        <div id="sweepTelemetryStrip" class="{% if not pipelineTelemetry.sweep.isActive and (pipelineTelemetry.sweep.total | default(0)) == 0 %}hidden{% endif %}">
+          <div class="flex justify-between items-center text-xs font-mono mb-1">
+            <span id="sweepCurrentTarget">Target: {{ pipelineTelemetry.sweep.currentSite or 'Waiting...' }}</span>
+            <span id="sweepProgressText">
+              {{ pipelineTelemetry.sweep.processed | default(0) }} / {{ pipelineTelemetry.sweep.total | default(0) }} Stations
+            </span>
+          </div>
+          <div class="fleet-sweep-bar">
+            <div id="fleetSweepFill" class="fleet-sweep-fill {% if pipelineTelemetry.sweep.isActive %}fleet-sweep-fill--active{% endif %}"
+                 style="width: {% if (pipelineTelemetry.sweep.total | default(0)) > 0 %}{{ ((pipelineTelemetry.sweep.processed / pipelineTelemetry.sweep.total) * 100) | round }}{% else %}0{% endif %}%;"></div>
+          </div>
+          <div class="flex justify-between text-xs font-mono text-muted">
+            <span>Succeeded: <strong id="sweepSuccessCount" class="text-green">{{ pipelineTelemetry.sweep.succeeded | default(0) }}</strong> | Failed: <strong id="sweepFailCount" class="text-danger">{{ pipelineTelemetry.sweep.failed | default(0) }}</strong></span>
+            <span id="sweepQueueBreakdown">Priority Queue: High: <strong id="highQueueCount">{{ pipelineTelemetry.highPendingCount | default(0) }}</strong> | Low: <strong id="lowQueueCount">{{ pipelineTelemetry.lowPendingCount | default(0) }}</strong></span>
+          </div>
+          <div id="sweepErrorsBox" class="fleet-sweep-errors {% if (pipelineTelemetry.sweep.errors.length | default(0)) == 0 %}hidden{% endif %}">
+            <div class="font-bold mb-1">Host Deployment Errors:</div>
+            <ul id="sweepErrorsList" class="m-0 p-0 list-none">
+              {% for err in pipelineTelemetry.sweep.errors %}
+                <li>❌ [{{ err.handle }} - {{ err.siteName }}]: {{ err.error }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <!-- Recent Completed Builds Log -->
       <div class="font-mono text-xs mb-1 font-bold">Recent Pipeline Build Executions:</div>
       <div class="sysop-table-wrapper" tabindex="0" role="region" aria-label="Recent Pipeline Builds" style="max-block-size: 200px;">
@@ -781,6 +847,62 @@
           timerText.textContent = 'Baud: 28.8K V.34 OK';
         }
 
+        // Render queue breakdown & sweep telemetry
+        const highCount = document.getElementById('highQueueCount');
+        const lowCount = document.getElementById('lowQueueCount');
+        if (highCount) highCount.textContent = t.highPendingCount || 0;
+        if (lowCount) lowCount.textContent = t.lowPendingCount || 0;
+
+        if (t.sweep) {
+          const s = t.sweep;
+          const stripEl = document.getElementById('sweepTelemetryStrip');
+          const btnCancel = document.getElementById('btnCancelSweep');
+          const btnInit = document.getElementById('btnInitiateSweep');
+          const stateTag = document.getElementById('sweepStateTag');
+          const currentTarget = document.getElementById('sweepCurrentTarget');
+          const progressText = document.getElementById('sweepProgressText');
+          const fillBar = document.getElementById('fleetSweepFill');
+          const successCount = document.getElementById('sweepSuccessCount');
+          const failCount = document.getElementById('sweepFailCount');
+          const errorsBox = document.getElementById('sweepErrorsBox');
+          const errorsList = document.getElementById('sweepErrorsList');
+
+          if (s.isActive) {
+            if (stripEl) stripEl.classList.remove('hidden');
+            if (btnCancel) btnCancel.classList.remove('hidden');
+            if (btnInit) btnInit.classList.add('hidden');
+            if (stateTag) {
+              stateTag.textContent = 'SWEEP ACTIVE';
+              stateTag.className = 'text-xs font-mono text-amber font-bold';
+            }
+            if (fillBar) fillBar.classList.add('fleet-sweep-fill--active');
+          } else {
+            if (btnCancel) btnCancel.classList.add('hidden');
+            if (btnInit) btnInit.classList.remove('hidden');
+            if (stateTag) {
+              stateTag.textContent = s.total > 0 ? 'SWEEP FINISHED' : 'IDLE';
+              stateTag.className = 'text-xs font-mono text-muted';
+            }
+            if (fillBar) fillBar.classList.remove('fleet-sweep-fill--active');
+          }
+
+          if (currentTarget) currentTarget.textContent = `Target: ${s.currentSite || (s.isActive ? 'Pacing delay...' : 'Idle')}`;
+          const pct = s.total > 0 ? Math.round((s.processed / s.total) * 100) : 0;
+          if (progressText) progressText.textContent = `${s.processed} / ${s.total} Stations (${pct}%)`;
+          if (fillBar) fillBar.style.width = `${pct}%`;
+          if (successCount) successCount.textContent = s.succeeded;
+          if (failCount) failCount.textContent = s.failed;
+
+          if (errorsBox && errorsList) {
+            if (s.errors && s.errors.length > 0) {
+              errorsBox.classList.remove('hidden');
+              errorsList.innerHTML = s.errors.map(e => `<li>❌ [${e.handle} - ${e.siteName}]: ${e.error}</li>`).join('');
+            } else {
+              errorsBox.classList.add('hidden');
+            }
+          }
+        }
+
         // Render recent jobs
         if (t.history && t.history.length > 0) {
           const tbody = document.getElementById('pipelineHistoryBody');
@@ -809,6 +931,72 @@
 
   // Poll pipeline telemetry every 8 seconds while tab is active
   setInterval(pollPipelineTelemetry, 8000);
+
+  async function promptInitiateSweep() {
+    if (window.retroAudio) retroAudio.playClick();
+    const modeAssets = document.getElementById('sweepModeAssets');
+    const mode = (modeAssets && modeAssets.checked) ? 'assets' : 'full';
+    const modeLabel = mode === 'assets' ? 'ASSET DELTA SWEEP (CSS/JS)' : 'FULL 11TY STATIC REBUILD';
+
+    const confirmMsg = `WARNING: Initiate cyberspace deployment sweep across ALL active station nodes?\n\nMode: ${modeLabel}\nPacing: 2,500ms delay between hosts.\n\nType 'SWEEP' below to confirm:`;
+    const response = prompt(confirmMsg);
+    if (!response || response.trim().toUpperCase() !== 'SWEEP') {
+      if (response !== null) alert('Fleet sweep confirmation rejected: text did not match SWEEP.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/pipeline/sweep', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-neogram-sysop-op': '1',
+        },
+        body: JSON.stringify({ mode }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        alert(data.error || 'Failed to initiate fleet sweep.');
+        return;
+      }
+
+      if (window.retroAudio) retroAudio.playSuccess();
+      alert(`[:> FLEET SWEEP DISPATCHED]\n\n${data.message}`);
+      pollPipelineTelemetry();
+    } catch (err) {
+      alert('Network transmission failed: ' + err.message);
+    }
+  }
+
+  async function cancelFleetSweep() {
+    if (window.retroAudio) retroAudio.playClick();
+    if (!confirm('Are you sure you want to ABORT the active cyberspace fleet sweep? Pending station jobs will be cancelled.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/pipeline/sweep/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-neogram-sysop-op': '1',
+        },
+        body: JSON.stringify({}),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        alert(data.error || 'Failed to cancel fleet sweep.');
+        return;
+      }
+
+      alert(`[:> SWEEP CANCELLED]\n\n${data.message}`);
+      pollPipelineTelemetry();
+    } catch (err) {
+      alert('Network transmission failed: ' + err.message);
+    }
+  }
 
   function promptSoftBanUser(userId, handle) {
     if (window.retroAudio) retroAudio.playClick();

@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import { ZipArchive } from 'archiver';
 import { query } from '../db';
 import { decryptCredentials, NekowebCredentials } from '../utils/crypto';
-import { buildStaticGallery } from './staticBuilder';
+import { buildStaticGallery, executeStaticBuild } from './staticBuilder';
 import { DeltaFile } from './neocitiesPublisher';
 export type { DeltaFile };
 
@@ -119,7 +119,11 @@ async function getFilesRecursively(
  * Builds the user's static 11ty gallery and deploys all files directly to their Nekoweb site
  * using Nekoweb's official Big File + ZIP Import API.
  */
-export async function deployToNekoweb(targetId: string, isSiteId: boolean = false): Promise<DeployResult> {
+export async function deployToNekoweb(
+  targetId: string,
+  isSiteId: boolean = false,
+  deployOptions: { directBuild?: boolean } = {}
+): Promise<DeployResult> {
   const startTime = Date.now();
 
   // 1. Fetch site or user and encrypted credentials from database
@@ -176,11 +180,14 @@ export async function deployToNekoweb(targetId: string, isSiteId: boolean = fals
   console.log(`[:> NEKOWEB DEPLOY] Initiating deployment for @${user.handle || user.email} (site: "${site.name}", target folder: "${rawDeployPath || 'root'}")...`);
 
   // 2. Compile static gallery via 11ty
-  const buildResult = await buildStaticGallery({
+  const buildOptions = {
     siteId: site.id,
     userId: user.id,
     outputDir: userOutputDir,
-  });
+  };
+  const buildResult = deployOptions.directBuild
+    ? await executeStaticBuild(buildOptions)
+    : await buildStaticGallery(buildOptions);
 
   if (!buildResult.ok) {
     throw new Error(`Static compilation failed: ${buildResult.error}`);

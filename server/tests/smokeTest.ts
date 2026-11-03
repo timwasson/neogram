@@ -1442,6 +1442,7 @@ async function runSmokeTests() {
     assertTest('SysOp Terminal HTML contains SYSOP_CONTROL_TERMINAL.SYS', adminHtml.includes('SYSOP_CONTROL_TERMINAL.SYS'));
     assertTest('SysOp Terminal HTML contains MARQUEE_BROADCAST_CONTROLLER.CFG', adminHtml.includes('MARQUEE_BROADCAST_CONTROLLER.CFG'));
     assertTest('SysOp Terminal HTML contains PIPELINE_MONITOR.SYS', adminHtml.includes('PIPELINE_MONITOR.SYS'));
+    assertTest('SysOp Terminal HTML contains FLEET_PROPAGATION_TERMINAL.SYS', adminHtml.includes('FLEET_PROPAGATION_TERMINAL.SYS'));
 
     // Workstation top nav now includes SysOp button
     const mainViewRes = await fetch(`${API_BASE}/`, {
@@ -1450,7 +1451,7 @@ async function runSmokeTests() {
     const mainHtml = await mainViewRes.text();
     assertTest('Workstation navbar renders #tabSysopBtn for admin', mainHtml.includes('id="tabSysopBtn"'));
 
-    // 4. Live Build Pipeline Telemetry
+    // 4. Live Build Pipeline Telemetry & Prioritized Fleet Sweep
     const pipelineRes = await fetch(`${API_BASE}/api/admin/pipeline`, {
       headers: { 'Cookie': adminSessionCookie },
     });
@@ -1458,6 +1459,75 @@ async function runSmokeTests() {
     const pipelineData = await pipelineRes.json();
     assertTest('Pipeline telemetry indicates status', typeof pipelineData.telemetry.isBusy === 'boolean');
     assertTest('Pipeline telemetry contains execution history', Array.isArray(pipelineData.telemetry.history));
+    assertTest('Pipeline telemetry contains highPendingCount', typeof pipelineData.telemetry.highPendingCount === 'number');
+    assertTest('Pipeline telemetry contains lowPendingCount', typeof pipelineData.telemetry.lowPendingCount === 'number');
+    assertTest('Pipeline telemetry contains sweep status object', typeof pipelineData.telemetry.sweep === 'object');
+
+    // 4B. Prioritized BuildQueue Verification (HIGH jumps ahead of LOW)
+    const { buildQueue } = await import('../services/staticBuilder');
+    const executionOrder: string[] = [];
+
+    // Pause worker with an initial active task
+    let releaseFirst: () => void;
+    const firstPromise = new Promise<void>((resolve) => { releaseFirst = resolve; });
+
+    const pFirst = buildQueue.enqueue('TestFirstActive', async () => {
+      await firstPromise;
+      executionOrder.push('First');
+    }, { priority: 'HIGH' });
+
+    // While First is running, enqueue LOW job then HIGH job
+    const pLow = buildQueue.enqueue('TestLowJob', async () => {
+      executionOrder.push('Low');
+    }, { priority: 'LOW' });
+
+    const pHigh = buildQueue.enqueue('TestHighJob', async () => {
+      executionOrder.push('High');
+    }, { priority: 'HIGH' });
+
+    releaseFirst!();
+    await Promise.all([pFirst, pLow, pHigh]);
+
+    assertTest('Priority queue executed HIGH job before LOW job', 
+      executionOrder[0] === 'First' && executionOrder[1] === 'High' && executionOrder[2] === 'Low',
+      `Actual order: ${executionOrder.join(' -> ')}`
+    );
+
+    // 4C. Fleet Propagation Sweep Endpoints
+    const noHeaderSweep = await fetch(`${API_BASE}/api/admin/pipeline/sweep`, {
+      method: 'POST',
+      headers: {
+        'Cookie': adminSessionCookie,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ mode: 'assets' }),
+    });
+    assertTest('POST /api/admin/pipeline/sweep without header returns HTTP 400', noHeaderSweep.status === 400);
+
+    const initSweepRes = await fetch(`${API_BASE}/api/admin/pipeline/sweep`, {
+      method: 'POST',
+      headers: {
+        'Cookie': adminSessionCookie,
+        'Content-Type': 'application/json',
+        'x-neogram-sysop-op': '1',
+      },
+      body: JSON.stringify({ mode: 'assets' }),
+    });
+    assertTest('POST /api/admin/pipeline/sweep with header returns HTTP 200', initSweepRes.status === 200);
+    const initSweepData = await initSweepRes.json();
+    assertTest('Sweep response returns totalSites count', typeof initSweepData.totalSites === 'number');
+
+    // Cancel sweep
+    const cancelSweepRes = await fetch(`${API_BASE}/api/admin/pipeline/sweep/cancel`, {
+      method: 'POST',
+      headers: {
+        'Cookie': adminSessionCookie,
+        'Content-Type': 'application/json',
+        'x-neogram-sysop-op': '1',
+      },
+      body: JSON.stringify({}),
+    });
+    assertTest('POST /api/admin/pipeline/sweep/cancel returns HTTP 200', cancelSweepRes.status === 200);
 
     // 5. Dynamic Marquee Ticker Controller
     const testMarqueeText = ':> SPECIAL BROADCAST: 1996 CYBER-SPACE EXPO ONLINE // WELCOME SYSOP OPERATORS';

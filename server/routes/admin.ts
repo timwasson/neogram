@@ -3,6 +3,7 @@ import { query } from '../db';
 import { requireAdmin, requireAdminApi, validateAdminMutationHeader, AdminRequest } from '../middleware/adminGuard';
 import { getTickerAnnouncement, setTickerAnnouncement, logAdminAction } from '../services/systemSettings';
 import { buildQueue } from '../services/staticBuilder';
+import { initiateFleetSweep, cancelActiveFleetSweep } from '../services/fleetSweepService';
 import { activeSockets } from '../services/chatSocket';
 import { getUserSites, createSite, updateSite, Site } from '../services/siteService';
 import { signSessionToken, COOKIE_NAME } from '../auth/jwt';
@@ -193,6 +194,63 @@ adminRouter.get('/api/admin/pipeline', requireAdminApi, (_req: Request, res: Res
     telemetry: buildQueue.getTelemetry(),
   });
 });
+
+/**
+ * 2B. POST /api/admin/pipeline/sweep - Initiate Fleet Deployment Sweep
+ */
+adminRouter.post(
+  '/api/admin/pipeline/sweep',
+  requireAdminApi,
+  validateAdminMutationHeader,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const adminUser = (req as AdminRequest).adminUser!;
+      const mode = req.body.mode === 'full' ? 'full' : 'assets';
+      const throttleDelayMs = typeof req.body.throttleDelayMs === 'number' ? req.body.throttleDelayMs : 2500;
+
+      const result = await initiateFleetSweep({
+        mode,
+        throttleDelayMs,
+        adminEmail: adminUser.email,
+        adminId: adminUser.id,
+        ipAddress: req.ip,
+      });
+
+      res.json({
+        ok: true,
+        message: result.message,
+        totalSites: result.totalSites,
+        telemetry: buildQueue.getTelemetry(),
+      });
+    } catch (err: any) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * 2C. POST /api/admin/pipeline/sweep/cancel - Abort Active Fleet Sweep
+ */
+adminRouter.post(
+  '/api/admin/pipeline/sweep/cancel',
+  requireAdminApi,
+  validateAdminMutationHeader,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const adminUser = (req as AdminRequest).adminUser!;
+      const result = await cancelActiveFleetSweep(adminUser.email, adminUser.id, req.ip);
+
+      res.json({
+        ok: true,
+        message: result.message,
+        cancelledCount: result.cancelledCount,
+        telemetry: buildQueue.getTelemetry(),
+      });
+    } catch (err: any) {
+      next(err);
+    }
+  }
+);
 
 /**
  * 3. POST /api/admin/marquee - Modify System Marquee Ticker

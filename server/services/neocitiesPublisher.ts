@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { query } from '../db';
 import { decryptCredentials, NeocitiesCredentials } from '../utils/crypto';
-import { buildStaticGallery } from './staticBuilder';
+import { buildStaticGallery, executeStaticBuild } from './staticBuilder';
 
 export interface DeltaFile {
   relativePath: string;
@@ -105,7 +105,11 @@ async function getFilesRecursively(
 /**
  * Builds the user's static 11ty gallery and deploys all files directly to their Neocities site.
  */
-export async function deployToNeocities(targetId: string, isSiteId: boolean = false): Promise<DeployResult> {
+export async function deployToNeocities(
+  targetId: string,
+  isSiteId: boolean = false,
+  deployOptions: { directBuild?: boolean } = {}
+): Promise<DeployResult> {
   const startTime = Date.now();
 
   // 1. Fetch site or user and encrypted credentials from database
@@ -162,11 +166,14 @@ export async function deployToNeocities(targetId: string, isSiteId: boolean = fa
   console.log(`[:> NEOCITIES DEPLOY] Initiating deployment for @${user.handle || user.email} (site: "${site.name}", target folder: "${rawDeployPath || 'root'}")...`);
 
   // 2. Compile static gallery via 11ty
-  const buildResult = await buildStaticGallery({
+  const buildOptions = {
     siteId: site.id,
     userId: user.id,
     outputDir: userOutputDir,
-  });
+  };
+  const buildResult = deployOptions.directBuild
+    ? await executeStaticBuild(buildOptions)
+    : await buildStaticGallery(buildOptions);
 
   if (!buildResult.ok) {
     throw new Error(`Static compilation failed: ${buildResult.error}`);
