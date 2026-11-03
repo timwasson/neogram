@@ -50,6 +50,18 @@ apiRouter.post('/build-static', async (req: Request, res: Response, next) => {
     }
     const userId = payload.userId;
 
+    // Verify station status with remote source of truth
+    const { checkAndSyncStationFeed } = await import('../services/stationSync');
+    const syncStatus = await checkAndSyncStationFeed(userId);
+    if (syncStatus.wiped) {
+      res.json({
+        ok: true,
+        reset: true,
+        message: 'Remote feed.json was missing (HTTP 404). Station was wiped on remote host; local station has been reset to start from scratch.',
+      });
+      return;
+    }
+
     // Check if user has Neocities credentials linked for live deployment
     const { query } = await import('../db');
     const { decryptCredentials } = await import('../utils/crypto');

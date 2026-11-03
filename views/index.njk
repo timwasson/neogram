@@ -205,7 +205,7 @@
                       onclick="if(window.retroAudio) retroAudio.playClick();"
                     >
                       <img
-                        src="{{ post.thumbnailPath or post.imagePath }}"
+                        src="{{ post.thumbnailUrl or post.imageUrl or post.thumbnailPath or post.imagePath }}"
                         alt="{{ post.caption }}"
                         class="w-full h-56 object-cover filter-{{ post.filterApplied or 'none' }}"
                         loading="lazy"

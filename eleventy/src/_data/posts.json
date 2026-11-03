@@ -1,5 +1,59 @@
 [
   {
+    "id": "2ac56280-dc07-439e-8d9b-45ff11077c47",
+    "userId": "e5ca29f3-dd53-4c00-93f6-927bf2e69cf8",
+    "siteId": "5ce7904a-b96b-4459-b9bc-275b16a5a010",
+    "imagePath": "/uploads/images/1793718181505-u3nen2d.webp",
+    "thumbnailPath": "/uploads/thumbs/1793718181505-u3nen2d-thumb.webp",
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-03T15:03:01.593Z",
+    "email": "qa_surfer_1793718179988@neogram.retro",
+    "handle": "qa_surfer_1793718179",
+    "author": "qa_surfer_1793718179",
+    "comments": [
+      {
+        "id": "ca7d2f49-5366-4937-bc8b-e5cda5cd49ff",
+        "postId": "2ac56280-dc07-439e-8d9b-45ff11077c47",
+        "author": "qa_surfer_1793718179",
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-11-03T15:03:02.343Z"
+      }
+    ]
+  },
+  {
+    "id": "f0d08118-2909-40c8-beb4-157e374f1f18",
+    "userId": "9f6d0462-b3e3-449a-9c83-6c32ec8cd2a7",
+    "siteId": "d5911eb2-0177-4a19-b8fc-eaf675af85a1",
+    "imagePath": "/uploads/images/1793718122641-xdj50g1.webp",
+    "thumbnailPath": "/uploads/thumbs/1793718122641-xdj50g1-thumb.webp",
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-03T15:02:02.744Z",
+    "email": "qa_surfer_1793718120746@neogram.retro",
+    "handle": "qa_surfer_1793718120",
+    "author": "qa_surfer_1793718120",
+    "comments": [
+      {
+        "id": "d0da55f6-9154-40ef-862e-52b684e1ea19",
+        "postId": "f0d08118-2909-40c8-beb4-157e374f1f18",
+        "author": "qa_surfer_1793718120",
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-11-03T15:02:03.561Z"
+      }
+    ]
+  },
+  {
     "id": "479fe1a2-e282-4c3e-b9d7-830c9652287f",
     "userId": "08a2394b-bdfd-42bf-a5f6-44bbe565ee17",
     "siteId": "296eec78-f498-4752-b281-59b6b2a40590",

@@ -250,7 +250,7 @@ export function createApp(): Express {
         ? postsQuery.rows.filter((p: any) => p.userId === currentUser.id)
         : postsQuery.rows;
 
-      // Query Follower Feed for authenticated user (transmissions from stations they follow)
+      // Query Follower Feed for authenticated user strictly from friends' live feed.json
       let followerFeedPosts: any[] = [];
       let followedCount = 0;
       if (currentUser) {
@@ -260,39 +260,32 @@ export function createApp(): Express {
         );
         followedCount = parseInt(followsRes.rows[0]?.count || '0', 10);
 
-        const feedQuery = await query(`
+        const { aggregateFederatedFriendsFeed } = await import('./services/federatedFriends');
+        const friendsRes = await query(`
           SELECT 
-            p.id,
-            p.user_id as "userId",
-            p.site_id as "siteId",
-            s.name as "siteName",
-            s.slug as "siteSlug",
-            p.image_path as "imagePath",
-            p.thumbnail_path as "thumbnailPath",
-            p.caption,
-            p.filter_applied as "filterApplied",
-            p.mood,
-            p.webring,
-            p.location,
-            p.likes_count as "likes",
-            p.created_at as "createdAt",
-            u.email,
-            u.handle,
+            u.id, 
+            u.email, 
+            COALESCE(u.handle, split_part(u.email, '@', 1)) as handle,
             u.uin,
             u.avatar_path as "avatarPath",
             u.site_url as "siteUrl",
-            u.deploy_path as "deployPath",
-            COALESCE(u.handle, split_part(u.email, '@', 1)) as author,
-            (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
-          FROM posts p
-          JOIN follows f ON p.user_id = f.following_id
-          JOIN users u ON p.user_id = u.id
-          LEFT JOIN sites s ON p.site_id = s.id
+            u.deploy_path as "deployPath"
+          FROM follows f
+          JOIN users u ON f.following_id = u.id
           WHERE f.follower_id = $1
-          ORDER BY p.created_at DESC
-          LIMIT 50
+          ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC
         `, [currentUser.id]);
-        followerFeedPosts = feedQuery.rows;
+
+        const friendTargets = friendsRes.rows.map((r: any) => ({
+          id: r.id,
+          handle: r.handle,
+          uin: r.uin,
+          avatarPath: r.avatarPath,
+          siteUrl: r.siteUrl,
+          deployPath: r.deployPath,
+        }));
+
+        followerFeedPosts = await aggregateFederatedFriendsFeed(friendTargets, 50);
       }
 
       res.render('index', {
@@ -457,6 +450,13 @@ export function createApp(): Express {
       }
 
       const { query } = await import('./db');
+
+      // If station has been deployed to an external static host, check if remote feed.json was wiped
+      if (user.deployment_type && user.deployment_type !== 'none' && user.last_deployed_at) {
+        const { checkAndSyncStationFeed } = await import('./services/stationSync');
+        await checkAndSyncStationFeed(user.id);
+      }
+
       // Fetch public sites for this station node
       const sitesRes = await query(
         `SELECT id, name, slug, site_url as "siteUrl", deploy_path as "deployPath",

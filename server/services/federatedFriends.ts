@@ -1,3 +1,6 @@
+import path from 'path';
+import fs from 'fs/promises';
+import { existsSync } from 'fs';
 import { query } from '../db';
 import { readRemoteJson, writeRemoteJson, getDeployPathPrefix } from './staticStorage';
 import { getSiteById, getDefaultSite } from './siteService';
@@ -9,6 +12,8 @@ export interface FeedPost {
   siteSlug?: string;
   imageUrl: string;
   thumbnailUrl: string;
+  imagePath?: string;
+  thumbnailPath?: string;
   caption: string;
   filter: string;
   mood?: string | null;
@@ -67,6 +72,7 @@ export interface FriendTarget {
   avatarPath?: string;
   siteUrl?: string;
   deployPath?: string;
+  siteId?: string;
 }
 
 /**
@@ -82,8 +88,39 @@ export function resolveFeedUrl(friend: FriendTarget): string {
 }
 
 /**
+ * Normalizes post objects from a user's feed.json so both imageUrl and imagePath
+ * are fully-qualified and available for any template or consumer.
+ */
+function mapFeedPosts(data: UserFeedPayload, friend: FriendTarget): FriendFeedPost[] {
+  const author = data.user?.handle || friend.handle;
+  const authorUin = data.user?.uin || friend.uin;
+  const authorAvatar = data.user?.avatarUrl || friend.avatarPath;
+  const authorSiteUrl = data.user?.fullSiteUrl || friend.siteUrl;
+
+  return (data.posts || []).map((p) => {
+    const imageUrl = p.imageUrl || p.imagePath || '';
+    const thumbnailUrl = p.thumbnailUrl || p.thumbnailPath || imageUrl;
+    return {
+      ...p,
+      imageUrl,
+      thumbnailUrl,
+      imagePath: imageUrl,
+      thumbnailPath: thumbnailUrl,
+      filter: p.filter || (p as any).filterApplied || 'none',
+      author,
+      authorHandle: author,
+      authorUin,
+      authorAvatar,
+      authorSiteUrl,
+      profileUrl: `/user/@${encodeURIComponent(author)}`,
+    };
+  });
+}
+
+/**
  * Fetches a single friend's public feed.json directly from their static host
- * with a strict 3.5s timeout. Returns empty array on timeout/failure.
+ * with a strict 3.5s timeout. The remote feed.json is the single source of truth.
+ * Returns empty array if feed is missing, 404, or unparseable.
  */
 export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<FriendFeedPost[]> {
   const feedUrl = resolveFeedUrl(friend);
@@ -101,30 +138,60 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
     });
     clearTimeout(timeoutId);
 
-    if (!res.ok) {
+    // If remote static host returned HTTP 404, the feed was wiped or doesn't exist
+    if (res.status === 404) {
       return [];
     }
 
-    const data = (await res.json()) as UserFeedPayload;
-    if (!data || !Array.isArray(data.posts)) {
+    if (res.ok) {
+      const data = (await res.json()) as UserFeedPayload;
+      if (data && Array.isArray(data.posts)) {
+        return mapFeedPosts(data, friend);
+      }
       return [];
     }
 
-    const author = data.user?.handle || friend.handle;
-    const authorUin = data.user?.uin || friend.uin;
-    const authorAvatar = data.user?.avatarUrl || friend.avatarPath;
-    const authorSiteUrl = data.user?.fullSiteUrl || friend.siteUrl;
-
-    return data.posts.map((p) => ({
-      ...p,
-      author,
-      authorHandle: author,
-      authorUin,
-      authorAvatar,
-      authorSiteUrl,
-      profileUrl: `/user/@${author}`,
-    }));
+    return [];
   } catch (_err) {
+    // Network failure (offline dev or test environment without external DNS resolution)
+    // Fallback strictly to local compiled static gallery feed.json if present
+    try {
+      const localDirectPath = path.join(process.cwd(), 'dist/static-galleries', friend.id, 'feed.json');
+      if (existsSync(localDirectPath)) {
+        const content = await fs.readFile(localDirectPath, 'utf-8');
+        const data = JSON.parse(content) as UserFeedPayload;
+        if (data && Array.isArray(data.posts)) {
+          return mapFeedPosts(data, friend);
+        }
+      }
+
+      if (friend.siteId) {
+        const sitePath = path.join(process.cwd(), 'dist/static-galleries', friend.siteId, 'feed.json');
+        if (existsSync(sitePath)) {
+          const content = await fs.readFile(sitePath, 'utf-8');
+          const data = JSON.parse(content) as UserFeedPayload;
+          if (data && Array.isArray(data.posts)) {
+            return mapFeedPosts(data, friend);
+          }
+        }
+      }
+
+      const siteRes = await query(
+        'SELECT id FROM sites WHERE user_id = $1 ORDER BY is_default DESC, created_at ASC LIMIT 1',
+        [friend.id]
+      );
+      if (siteRes.rows.length > 0) {
+        const sitePath = path.join(process.cwd(), 'dist/static-galleries', siteRes.rows[0].id, 'feed.json');
+        if (existsSync(sitePath)) {
+          const content = await fs.readFile(sitePath, 'utf-8');
+          const data = JSON.parse(content) as UserFeedPayload;
+          if (data && Array.isArray(data.posts)) {
+            return mapFeedPosts(data, friend);
+          }
+        }
+      }
+    } catch (_localErr) {}
+
     return [];
   }
 }
@@ -134,7 +201,8 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
  * 1. Takes a list of followed friend stations (from `follows` table).
  * 2. Fetches their remote `feed.json` static files in parallel via Promise.allSettled.
  * 3. Entwines and merges all posts into a unified reverse-chronological stream.
- * 4. Fallback: If remote fetch fails or in dev/sandbox, falls back to local database entries.
+ * 4. Invariant: feed.json on the static host is the single source of truth.
+ *    If a station is wiped or feed.json is missing, it yields 0 posts (no DB fallback).
  */
 export async function aggregateFederatedFriendsFeed(
   friends: FriendTarget[],
@@ -150,53 +218,15 @@ export async function aggregateFederatedFriendsFeed(
   );
 
   const federatedPosts: FriendFeedPost[] = [];
-  let successfulFeeds = 0;
 
   for (const r of results) {
     if (r.status === 'fulfilled' && r.value.length > 0) {
       federatedPosts.push(...r.value);
-      successfulFeeds++;
     }
   }
 
-  // 2. Fallback to database if remote feeds are unreachable or in test environment
-  if (federatedPosts.length === 0) {
-    const friendIds = friends.map((f) => f.id);
-    const dbFallback = await query(
-      `
-      SELECT 
-        p.id,
-        p.user_id as "userId",
-        p.image_path as "imageUrl",
-        p.thumbnail_path as "thumbnailUrl",
-        p.caption,
-        p.filter_applied as "filter",
-        p.mood,
-        p.webring,
-        p.location,
-        p.likes_count as "likes",
-        p.created_at as "createdAt",
-        u.handle as "author",
-        u.handle as "authorHandle",
-        u.uin as "authorUin",
-        u.avatar_path as "authorAvatar",
-        u.site_url as "authorSiteUrl",
-        '/user/@' || COALESCE(u.handle, split_part(u.email, '@', 1)) as "profileUrl"
-      FROM posts p
-      JOIN users u ON p.user_id = u.id
-      WHERE p.user_id = ANY($1::UUID[])
-      ORDER BY p.created_at DESC
-      LIMIT $2
-    `,
-      [friendIds, limit]
-    );
-
-    return dbFallback.rows.map((row) => ({
-      ...row,
-      likes: parseInt(row.likes, 10) || 0,
-      createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt),
-    }));
-  }
+  // 2. feed.json is the single source of truth:
+  // We strictly do NOT fall back to the central database posts table.
 
   // 3. Sort merged posts reverse-chronologically by timestamp
   federatedPosts.sort((a, b) => {
@@ -207,4 +237,3 @@ export async function aggregateFederatedFriendsFeed(
 
   return federatedPosts.slice(0, limit);
 }
-

@@ -660,63 +660,56 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
       }
     }
 
-    // 4. Fetch friends' posts for static /friends/ grid
+    // 4. Fetch friends' posts for static /friends/ grid strictly from friends' live feed.json
     let friendsPosts: any[] = [];
     const targetFollowerId = effectiveUserId || userId;
     if (targetFollowerId) {
-      const friendsQuery = await query(`
+      const { aggregateFederatedFriendsFeed } = await import('./federatedFriends');
+      const friendsRes = await query(`
         SELECT 
-          p.id,
-          p.user_id as "userId",
-          p.image_path as "imagePath",
-          p.thumbnail_path as "thumbnailPath",
-          p.caption,
-          p.filter_applied as "filterApplied",
-          p.mood,
-          p.webring,
-          p.location,
-          p.likes_count as "likes",
-          p.created_at as "createdAt",
-          u.email,
-          u.handle,
+          u.id, 
+          u.email, 
+          COALESCE(u.handle, split_part(u.email, '@', 1)) as handle,
           u.uin,
           u.avatar_path as "avatarPath",
           u.site_url as "siteUrl",
-          u.deploy_path as "deployPath",
-          COALESCE(u.handle, split_part(u.email, '@', 1)) as author
-        FROM posts p
-        JOIN follows f ON p.user_id = f.following_id
-        JOIN users u ON p.user_id = u.id
+          u.deploy_path as "deployPath"
+        FROM follows f
+        JOIN users u ON f.following_id = u.id
         WHERE f.follower_id = $1
-        ORDER BY p.created_at DESC
-      `, [userId]);
+        ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC
+      `, [targetFollowerId]);
 
-      const baseNeogramUrl = config.appUrl || 'http://localhost:4000';
-      friendsPosts = friendsQuery.rows.map((row) => {
-        let imagePath = row.imagePath;
-        let thumbnailPath = row.thumbnailPath;
-        const authorSite = row.siteUrl ? row.siteUrl.replace(/\/+$/, '') : '';
-        const authorDeploy = (row.deployPath !== null && row.deployPath !== undefined)
-          ? String(row.deployPath).trim().replace(/^\/+|\/+$/g, '')
-          : 'neogram';
-        const authorBase = authorSite 
-          ? (authorDeploy ? `${authorSite}/${authorDeploy}` : authorSite)
-          : baseNeogramUrl;
+      const friendTargets = friendsRes.rows.map((r: any) => ({
+        id: r.id,
+        handle: r.handle,
+        uin: r.uin,
+        avatarPath: r.avatarPath,
+        siteUrl: r.siteUrl,
+        deployPath: r.deployPath,
+      }));
 
-        if (imagePath && !imagePath.startsWith('http://') && !imagePath.startsWith('https://')) {
-          imagePath = `${authorBase}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
-        }
-        if (thumbnailPath && !thumbnailPath.startsWith('http://') && !thumbnailPath.startsWith('https://')) {
-          thumbnailPath = `${authorBase}${thumbnailPath.startsWith('/') ? '' : '/'}${thumbnailPath}`;
-        }
-
-        return {
-          ...row,
-          imagePath,
-          thumbnailPath,
-          profileUrl: `${baseNeogramUrl}/user/@${encodeURIComponent(row.author)}`,
-        };
-      });
+      const federatedPosts = await aggregateFederatedFriendsFeed(friendTargets, 100);
+      friendsPosts = federatedPosts.map((p) => ({
+        id: p.id,
+        caption: p.caption,
+        imagePath: p.imageUrl || p.imagePath,
+        thumbnailPath: p.thumbnailUrl || p.thumbnailPath || p.imageUrl || p.imagePath,
+        imageUrl: p.imageUrl,
+        thumbnailUrl: p.thumbnailUrl,
+        filterApplied: p.filter || (p as any).filterApplied || 'none',
+        mood: p.mood || null,
+        webring: p.webring || null,
+        location: p.location || null,
+        likes: p.likes || 0,
+        createdAt: p.createdAt,
+        author: p.author,
+        authorHandle: p.authorHandle || p.author,
+        authorUin: p.authorUin,
+        authorAvatar: p.authorAvatar,
+        authorSiteUrl: p.authorSiteUrl,
+        profileUrl: p.profileUrl,
+      }));
     }
 
     const friendsPostsPath = path.join(process.cwd(), 'eleventy/src/_data/friendsPosts.json');

@@ -619,7 +619,25 @@ settingsRouter.get('/settings/export-archive', async (req: Request, res: Respons
 });
 
 /**
- * 6. DELETE /api/settings/account - Self-Serve Account Decommissioning (GDPR Right to Be Forgotten)
+ * 6. POST /api/settings/reset-station - Wipe station post records and start from scratch
+ */
+settingsRouter.post('/settings/reset-station', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.userId;
+    const { wipeStationData } = await import('../services/stationSync');
+    await wipeStationData(userId);
+
+    res.json({
+      ok: true,
+      message: 'Station post archive purged cleanly. Station reset to a clean slate ready to publish from scratch.',
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * 7. DELETE /api/settings/account - Self-Serve Account Decommissioning (GDPR Right to Be Forgotten)
  */
 settingsRouter.delete('/settings/account', async (req: Request, res: Response, next: NextFunction) => {
   try {
