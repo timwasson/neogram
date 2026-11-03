@@ -207,3 +207,4 @@ export async function aggregateFederatedFriendsFeed(
 
   return federatedPosts.slice(0, limit);
 }
+
