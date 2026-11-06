@@ -59,7 +59,21 @@ export async function checkAndSyncStationFeed(userId: string): Promise<StationSy
     }
 
     if (res.ok) {
-      return { checked: true, wiped: false };
+      try {
+        const data = await res.json();
+        if (!data || typeof data !== 'object') {
+          throw new Error('Invalid JSON structure');
+        }
+        return { checked: true, wiped: false };
+      } catch (_parseErr) {
+        console.warn(`[:> STATION SYNC] Remote feed.json at ${feedUrl} is corrupt/unparseable. Purging local post cache to start clean...`);
+        await wipeStationData(userId);
+        return {
+          checked: true,
+          wiped: true,
+          reason: 'Remote feed.json was corrupt or unparseable. Station reset to start from scratch.',
+        };
+      }
     }
 
     return { checked: true, wiped: false, reason: `HTTP status ${res.status}` };
