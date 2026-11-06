@@ -17,6 +17,7 @@ qa-sessions.json
 .vscode/
 *.local.*
 *.local.md
+.vapid-keys.json
 
 
 # User uploads & ephemeral static builds

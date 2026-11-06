@@ -18,6 +18,9 @@ export interface AppConfig {
   twilioAuthToken?: string;
   twilioPhoneNumber?: string;
   adminEmails: string[];
+  vapidPublicKey?: string;
+  vapidPrivateKey?: string;
+  vapidSubject: string;
 }
 
 export const config: AppConfig = {
@@ -34,6 +37,9 @@ export const config: AppConfig = {
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID,
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN,
   twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER,
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY,
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY,
+  vapidSubject: process.env.VAPID_SUBJECT || 'mailto:sysop@neogram.club',
   get adminEmails(): string[] {
     try {
       dotenv.config({ override: true });

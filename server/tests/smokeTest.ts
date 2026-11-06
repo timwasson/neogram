@@ -735,6 +735,69 @@ async function runSmokeTests() {
     assertTest('Settings dashboard contains notifySound input toggle', dashHtml.includes('id="notifySoundInput"'));
     assertTest('Settings dashboard contains notifyDesktopPush input toggle', dashHtml.includes('id="notifyDesktopPushInput"'));
 
+    // 11. W3C Web Push & VAPID Protocol Tests
+    const vapidKeyRes = await fetch(`${API_BASE}/api/notifications/vapid-public-key`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('GET /api/notifications/vapid-public-key returns HTTP 200', vapidKeyRes.status === 200);
+    const vapidKeyData = await vapidKeyRes.json();
+    assertTest('VAPID public key returned and is non-empty string', vapidKeyData.ok === true && typeof vapidKeyData.publicKey === 'string' && vapidKeyData.publicKey.length > 30);
+
+    // 12. Register device PushSubscription
+    const mockEndpoint = `https://fcm.googleapis.com/fcm/send/test-sub-${Date.now()}`;
+    const regSubRes = await fetch(`${API_BASE}/api/notifications/push-subscription`, {
+      method: 'POST',
+      headers: {
+        'Cookie': sessionCookie,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        endpoint: mockEndpoint,
+        keys: {
+          p256dh: 'BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QT9AcUbVlJx6',
+          auth: 'tBHItJI5svbpez7KI4CCXg',
+        },
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
+      }),
+    });
+    assertTest('POST /api/notifications/push-subscription returns HTTP 200', regSubRes.status === 200);
+    const regSubData = await regSubRes.json();
+    assertTest('PushSubscription confirmed registered', regSubData.ok === true);
+
+    // Verify subscription persisted in PostgreSQL
+    const dbSubRes = await query('SELECT * FROM push_subscriptions WHERE endpoint = $1', [mockEndpoint]);
+    assertTest('Push subscription stored in PostgreSQL push_subscriptions table', dbSubRes.rows.length === 1);
+    assertTest('Push subscription belongs to test user', dbSubRes.rows[0].user_id === testUser.id);
+
+    // Verify desktopPush was enabled in preferences
+    const autoPushPrefsRes = await fetch(`${API_BASE}/api/settings/notifications`, {
+      headers: { 'Cookie': sessionCookie },
+    });
+    const autoPushPrefsData = await autoPushPrefsRes.json();
+    assertTest('desktopPush preference automatically enabled after push registration', autoPushPrefsData.preferences.desktopPush === true);
+
+    // 13. Test dispatching push notification
+    const testPushRes = await fetch(`${API_BASE}/api/notifications/test-push`, {
+      method: 'POST',
+      headers: { 'Cookie': sessionCookie },
+    });
+    assertTest('POST /api/notifications/test-push returns HTTP 200', testPushRes.status === 200);
+    const testPushData = await testPushRes.json();
+    assertTest('test-push attempted delivery to registered endpoint', testPushData.ok === true);
+
+    // 14. Unregister device PushSubscription
+    const delSubRes = await fetch(`${API_BASE}/api/notifications/push-subscription`, {
+      method: 'DELETE',
+      headers: {
+        'Cookie': sessionCookie,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ endpoint: mockEndpoint }),
+    });
+    assertTest('DELETE /api/notifications/push-subscription returns HTTP 200', delSubRes.status === 200);
+    const postDelSubRes = await query('SELECT * FROM push_subscriptions WHERE endpoint = $1', [mockEndpoint]);
+    assertTest('Push subscription removed from PostgreSQL', postDelSubRes.rows.length === 0);
+
     // -------------------------------------------------------------------------
     // TEST 16: Headless Self-Hosted API & Static JSON Feeds
     // -------------------------------------------------------------------------

@@ -3,7 +3,7 @@
  * Offline caching, navigation fallback, and carrier status management.
  */
 
-const CACHE_NAME = 'neogram-shell-v2';
+const CACHE_NAME = 'neogram-shell-v3';
 
 const STATIC_PRECACHE = [
   '/',
@@ -134,6 +134,33 @@ async function syncBufferedPosts() {
     client.postMessage({ type: 'CARRIER_RESTORED' });
   }
 }
+
+// Push event: invoked when an OS-level web push alert arrives via APNs / FCM
+self.addEventListener('push', (event) => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (_err) {
+      data = { body: event.data.text() };
+    }
+  }
+
+  const title = data.title || '[:> NEOGRAM ALERT]';
+  const options = {
+    body: data.body || 'New cyberspace activity detected.',
+    icon: data.icon || '/icons/icon-192.png',
+    badge: data.badge || '/icons/icon-192.png',
+    tag: data.tag || 'neogram-' + Date.now(),
+    data: {
+      url: (data.data && data.data.url) || data.linkUrl || '/',
+      id: data.data && data.data.id,
+    },
+    vibrate: [200, 100, 200],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
 
 // Notification Click: Focus window and navigate to target URL
 self.addEventListener('notificationclick', (event) => {

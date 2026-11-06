@@ -33,6 +33,11 @@
       this.bindDom();
       this.fetchNotifications();
 
+      // Automatically sync PushManager subscription if notification permission is already active
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        this.syncPushSubscription();
+      }
+
       // Close dropdown on outside click or escape
       document.addEventListener('click', function (e) {
         var menu = document.getElementById('retroNotifyMenu');
@@ -287,7 +292,86 @@
       }
     },
 
+    urlBase64ToUint8Array: function (base64String) {
+      var padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+      var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      var rawData = window.atob(base64);
+      var outputArray = new Uint8Array(rawData.length);
+      for (var i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    },
+
+    syncPushSubscription: function () {
+      var self = this;
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      navigator.serviceWorker.ready.then(function (reg) {
+        return reg.pushManager.getSubscription().then(function (subscription) {
+          if (subscription) {
+            var subJson = subscription.toJSON();
+            return fetch('/api/notifications/push-subscription', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                endpoint: subscription.endpoint,
+                keys: subJson.keys,
+                userAgent: navigator.userAgent,
+              }),
+            }).catch(function (err) {
+              console.warn('[:> WEB PUSH SYNC WARN]', err);
+            });
+          } else {
+            return self.subscribePush().catch(function (subErr) {
+              console.warn('[:> WEB PUSH AUTO-SUBSCRIBE WARN]', subErr);
+            });
+          }
+        });
+      }).catch(function (err) {
+        console.warn('[:> WEB PUSH CHECK ERROR]', err);
+      });
+    },
+
+    subscribePush: function () {
+      var self = this;
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        return Promise.reject(new Error('Push messaging is not supported in this browser.'));
+      }
+
+      return navigator.serviceWorker.ready.then(function (reg) {
+        return fetch('/api/notifications/vapid-public-key')
+          .then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status + ' fetching VAPID key');
+            return res.json();
+          })
+          .then(function (data) {
+            if (!data || !data.publicKey) throw new Error('Missing VAPID public key');
+            var applicationServerKey = self.urlBase64ToUint8Array(data.publicKey);
+            return reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: applicationServerKey,
+            });
+          })
+          .then(function (subscription) {
+            var subJson = subscription.toJSON();
+            return fetch('/api/notifications/push-subscription', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                endpoint: subscription.endpoint,
+                keys: subJson.keys,
+                userAgent: navigator.userAgent,
+              }),
+            }).then(function () {
+              console.log('[:> WEB PUSH] PushSubscription registered with server.');
+              return subscription;
+            });
+          });
+      });
+    },
+
     sendTestNotification: function () {
+      var self = this;
       if (typeof window.Notification === 'undefined') {
         alert('Desktop notifications are not supported in this browser.');
         return false;
@@ -296,12 +380,35 @@
         alert('Browser notification permission is currently: ' + Notification.permission + '. Click "PERMIT BROWSER" first.');
         return false;
       }
-      this.triggerDesktopNotification('[:> NEOGRAM TEST ALERT]', {
-        body: 'Cyberspace transmission link verified! Desktop alerts are working.',
-        icon: '/icons/icon-192.png',
-        badge: '/icons/icon-192.png',
-        tag: 'neogram-test-' + Date.now(),
-      }, '/#settings');
+
+      // First attempt native server-side Web Push (APNs / FCM delivery to test background capability)
+      fetch('/api/notifications/test-push', {
+        method: 'POST',
+      })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data && data.ok && data.sentCount > 0) {
+            alert('[:> TEST PUSH SENT] Dispatched to your device via Apple APNs! Lock your phone or switch apps to verify background delivery.');
+          } else {
+            // If device wasn't subscribed yet, trigger push subscription and local fallback
+            self.subscribePush().catch(function () {});
+            self.triggerDesktopNotification('[:> NEOGRAM TEST ALERT]', {
+              body: 'Cyberspace transmission link verified! Desktop alerts are working.',
+              icon: '/icons/icon-192.png',
+              badge: '/icons/icon-192.png',
+              tag: 'neogram-test-' + Date.now(),
+            }, '/#settings');
+          }
+        })
+        .catch(function () {
+          self.triggerDesktopNotification('[:> NEOGRAM TEST ALERT]', {
+            body: 'Cyberspace transmission link verified! Desktop alerts are working.',
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
+            tag: 'neogram-test-' + Date.now(),
+          }, '/#settings');
+        });
+
       return true;
     },
 

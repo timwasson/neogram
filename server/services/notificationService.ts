@@ -1,6 +1,7 @@
 import { query } from '../db';
 import { activeSockets } from './chatSocket';
 import { WebSocket } from 'ws';
+import { sendPushNotificationToUser } from './webPushService';
 
 export type NotificationType =
   | 'nim'
@@ -310,6 +311,24 @@ export async function dispatchNotification(params: {
         })
       );
       console.log(`[:> NOTIFY WS SENT] Pushed ${params.type} notification to user @${session.handle}`);
+    }
+
+    // Dispatch native W3C Web Push to registered devices (APNs / FCM) for inactive / locked delivery
+    if (prefs.desktopPush) {
+      sendPushNotificationToUser(params.userId, {
+        title: record.title,
+        body: record.body,
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        linkUrl: record.linkUrl,
+        tag: `neogram-${record.id}`,
+        data: {
+          url: record.linkUrl || '/',
+          id: record.id,
+        },
+      }).catch((pushErr) => {
+        console.warn('[:> WEB PUSH DISPATCH ERROR]', pushErr);
+      });
     }
 
     return record;

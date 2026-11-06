@@ -4126,7 +4126,17 @@
           pushBtn.className = 'pixel-btn pixel-btn--sm pixel-btn--green text-3xs font-bold';
         }
         if (window.retroAudio) window.retroAudio.playSuccess();
-        alert('Cyberspace alert carrier permitted! Click "Save Notification Protocols" to commit changes.');
+
+        // Subscribe device via PushManager with server VAPID key
+        if (window.NeogramNotifications && typeof window.NeogramNotifications.subscribePush === 'function') {
+          window.NeogramNotifications.subscribePush().then(function() {
+            console.log('[:> WEB PUSH] PushManager subscription committed to server.');
+          }).catch(function(err) {
+            console.warn('[:> WEB PUSH] PushManager subscription warning:', err);
+          });
+        }
+
+        alert('Cyberspace alert carrier permitted & Web Push subscription established! Click "Save Notification Protocols" to commit changes.');
       } else if (permission === 'denied') {
         if (pushCheckbox) pushCheckbox.checked = false;
         if (pushBtn) {

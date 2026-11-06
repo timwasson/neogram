@@ -46,10 +46,14 @@ Every registered station has granular control over their incoming alerts. In the
     "desktopPush": false
   }
   ```
+- `GET /api/notifications/vapid-public-key`: Retrieves the station's VAPID public key for `PushManager.subscribe`.
+- `POST /api/notifications/push-subscription`: Registers a client device's `PushSubscription` (`endpoint`, `p256dh`, `auth`).
+- `DELETE /api/notifications/push-subscription`: Unregisters a device's push subscription endpoint.
+- `POST /api/notifications/test-push`: Dispatches a real test push packet through Apple APNs / Google FCM to registered devices.
 
 ---
 
-## 3. Real-Time Delivery Pipeline
+## 3. Real-Time & Background Web Push Delivery Pipeline
 
 ```
 +-------------------------------------------------------------+
@@ -73,26 +77,33 @@ Every registered station has granular control over their incoming alerts. In the
     |  0 rows, 0 msgs   |           |  (notifications)  |
     +-------------------+           +-------------------+
                                               |
-                                              v
-                                    +-------------------+
-                                    | WEBSOCKET ACTIVE? |
-                                    +-------------------+
-                                      /               \
-                                   [Yes]              [No]
-                                    /                   \
-                                   v                     v
-                        +--------------------+    +-------------+
-                        | ROUTE WS PACKET    |    | REMAINS IN  |
-                        | { type: 'notification' } | INBOX AS   |
-                        | + Audio Beep       |    | UNREAD (1)  |
-                        | + Desktop Push     |    +-------------+
-                        +--------------------+
+                     +------------------------+------------------------+
+                     |                                                 |
+                     v                                                 v
+           +-------------------+                             +-------------------+
+           | WEBSOCKET ACTIVE? |                             | DESKTOP PUSH ON?  |
+           +-------------------+                             +-------------------+
+             /               \                                         |
+          [Yes]              [No]                                      v
+          /                   \                              +-------------------+
+         v                     v                             | DISPATCH WEB PUSH |
++--------------------+    +-------------+                    | (VAPID via APNs / |
+| ROUTE WS PACKET    |    | REMAINS IN  |                    |  FCM to Devices)  |
+| { type: 'notif' }  |    | INBOX AS    |                    +-------------------+
+| + Audio Beep       |    | UNREAD (1)  |                              |
+| + Instant Toast    |    +-------------+                              v
++--------------------+                                       +-------------------+
+                                                             | iOS LOCK SCREEN / |
+                                                             | PWA BACKGROUND    |
+                                                             | NOTIFICATION BANNER
+                                                             +-------------------+
 ```
 
 1. **Suppression Check:** Before doing any work, `dispatchNotification()` checks the recipient's `notification_preferences`. If the category is disabled, execution exits cleanly.
 2. **Persistent Inbox:** If enabled, a record is added to the `notifications` table (`is_read = FALSE`).
 3. **Immediate WebSocket Relay:** If the user has an active connection on `/ws/chat`, the server pushes `{ type: 'notification', notification: { ... } }` in real-time.
-4. **Offline Resilience:** If offline, the unread count awaits the user on their next workstation login.
+4. **Native Web Push (APNs / FCM):** If `desktopPush` is active, `sendPushNotificationToUser` encrypts and dispatches a W3C Web Push payload via `web-push` to all registered subscriptions in `push_subscriptions`. Apple's APNs delivers the notification even if the iOS PWA is suspended, minimized, or the phone screen is locked.
+5. **Offline Resilience:** If offline, the unread count awaits the user on their next workstation login.
 
 ---
 
