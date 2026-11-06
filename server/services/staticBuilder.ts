@@ -673,7 +673,8 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
           u.uin,
           u.avatar_path as "avatarPath",
           u.site_url as "siteUrl",
-          u.deploy_path as "deployPath"
+          u.deploy_path as "deployPath",
+          u.last_deployed_at as "lastDeployedAt"
         FROM follows f
         JOIN users u ON f.following_id = u.id
         WHERE f.follower_id = $1
@@ -687,6 +688,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
         avatarPath: r.avatarPath,
         siteUrl: r.siteUrl,
         deployPath: r.deployPath,
+        lastDeployedAt: r.lastDeployedAt,
       }));
 
       const federatedPosts = await aggregateFederatedFriendsFeed(friendTargets, 100);

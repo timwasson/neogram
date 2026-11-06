@@ -73,6 +73,7 @@ export interface FriendTarget {
   siteUrl?: string;
   deployPath?: string;
   siteId?: string;
+  lastDeployedAt?: Date | string | null;
 }
 
 /**
@@ -124,37 +125,9 @@ function mapFeedPosts(data: UserFeedPayload, friend: FriendTarget): FriendFeedPo
  */
 export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<FriendFeedPost[]> {
   const feedUrl = resolveFeedUrl(friend);
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
 
-    const res = await fetch(feedUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache',
-      },
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    // If remote static host returned HTTP 404, the feed was wiped or doesn't exist
-    if (res.status === 404) {
-      return [];
-    }
-
-    if (res.ok) {
-      const data = (await res.json()) as UserFeedPayload;
-      if (data && Array.isArray(data.posts)) {
-        return mapFeedPosts(data, friend);
-      }
-      return [];
-    }
-
-    return [];
-  } catch (_err) {
-    // Network failure (offline dev or test environment without external DNS resolution)
-    // Fallback strictly to local compiled static gallery feed.json if present
+  // Helper to check local static gallery compilation (for test runners & sandbox stations)
+  const tryLocalFeed = async (): Promise<FriendFeedPost[] | null> => {
     try {
       const localDirectPath = path.join(process.cwd(), 'dist/static-galleries', friend.id, 'feed.json');
       if (existsSync(localDirectPath)) {
@@ -191,8 +164,47 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
         }
       }
     } catch (_localErr) {}
+    return null;
+  };
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+    const res = await fetch(feedUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = (await res.json()) as UserFeedPayload;
+      if (data && Array.isArray(data.posts)) {
+        return mapFeedPosts(data, friend);
+      }
+      return [];
+    }
+
+    // If remote static host returned HTTP 404:
+    // If user has actively deployed to live host, it was wiped via FTP (yields 0 posts).
+    // If user has NOT actively deployed live (sandbox / test runner), check local compiled static gallery.
+    if (res.status === 404) {
+      if (!friend.lastDeployedAt) {
+        const local = await tryLocalFeed();
+        if (local) return local;
+      }
+      return [];
+    }
 
     return [];
+  } catch (_err) {
+    // Network failure (offline dev or test environment without external DNS resolution)
+    const local = await tryLocalFeed();
+    return local || [];
   }
 }
 
