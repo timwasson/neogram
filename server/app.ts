@@ -483,11 +483,20 @@ export function createApp(): Express {
         [user.id]
       );
 
+      // Primary / default site priority for station profile
+      const primarySite = sitesRes.rows[0];
+      const targetSiteUrl = primarySite?.siteUrl || user.site_url || '';
+      const targetDeployPath = (primarySite?.deployPath !== null && primarySite?.deployPath !== undefined)
+        ? String(primarySite.deployPath).trim().replace(/^\/+|\/+$/g, '')
+        : ((user.deploy_path !== null && user.deploy_path !== undefined)
+            ? String(user.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+            : 'neogram');
+
       // Clean root personal site URL (strips any deploy_path subdirectory)
       let cleanRootSiteUrl = '';
-      if (user.site_url && user.site_url.trim()) {
+      if (targetSiteUrl && targetSiteUrl.trim()) {
         try {
-          const parsed = new URL(user.site_url);
+          const parsed = new URL(targetSiteUrl);
           if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
             cleanRootSiteUrl = `${parsed.protocol}//${parsed.host}`;
           }
@@ -499,11 +508,8 @@ export function createApp(): Express {
       }
 
       // Static photo gallery URL
-      const deployPath = (user.deploy_path !== null && user.deploy_path !== undefined)
-        ? String(user.deploy_path).trim().replace(/^\/+|\/+$/g, '')
-        : 'neogram';
       const galleryUrl = cleanRootSiteUrl
-        ? (deployPath ? `${cleanRootSiteUrl}/${deployPath}/` : `${cleanRootSiteUrl}/`)
+        ? (targetDeployPath ? `${cleanRootSiteUrl}/${targetDeployPath}/` : `${cleanRootSiteUrl}/`)
         : '';
 
       // Hit counter telemetry
@@ -536,7 +542,7 @@ export function createApp(): Express {
           handle: stationHandle,
           uin: user.uin,
           email: user.email,
-          siteUrl: user.site_url,
+          siteUrl: targetSiteUrl || user.site_url,
           cleanRootSiteUrl,
           galleryUrl,
           avatarPath: user.avatar_path || '/icons/default-avatar.svg',

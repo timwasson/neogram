@@ -43,11 +43,12 @@ export async function fetchCategorizedDirectory(): Promise<CategorizedDirectory>
       u.avatar_path as "avatarPath",
       u.status_message as "statusMessage",
       u.is_away as "isAway",
-      u.site_url as "siteUrl",
-      u.deploy_path as "deployPath",
+      COALESCE(s.site_url, u.site_url) as "siteUrl",
+      COALESCE(s.deploy_path, u.deploy_path) as "deployPath",
       u.created_at as "createdAt",
       (SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id) as "postCount"
     FROM users u
+    LEFT JOIN sites s ON s.user_id = u.id AND s.is_default = TRUE
     WHERE COALESCE(u.is_banned, false) = false
     ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC, u.uin ASC
   `);

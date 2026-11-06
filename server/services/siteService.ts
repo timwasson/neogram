@@ -321,6 +321,13 @@ export async function createSite(userId: string, input: CreateSiteInput): Promis
 
   const newSite = formatSiteRow(insertRes.rows[0]);
 
+  if (isDefault) {
+    await query(
+      `UPDATE users SET site_url = $1, deploy_path = $2, deployment_type = $3 WHERE id = $4`,
+      [newSite.siteUrl, newSite.deployPath, newSite.deploymentType, userId]
+    );
+  }
+
   // Trigger background 11ty static compilation for this new site
   import('./staticBuilder')
     .then((m) => m.buildStaticGallery({ siteId: newSite.id }))
@@ -423,6 +430,13 @@ export async function updateSite(siteId: string, userId: string, input: UpdateSi
   );
 
   const updatedSite = formatSiteRow(updateRes.rows[0]);
+
+  if (isDefault) {
+    await query(
+      `UPDATE users SET site_url = $1, deploy_path = $2, deployment_type = $3 WHERE id = $4`,
+      [updatedSite.siteUrl, updatedSite.deployPath, updatedSite.deploymentType, userId]
+    );
+  }
 
   // Trigger background static rebuild
   import('./staticBuilder')

@@ -555,7 +555,7 @@ adminRouter.post(
             name: 'Friend Cascade Receiver',
             slug: 'main',
             deploymentType: 'neocities',
-            siteUrl: 'https://qa-friend.neocities.org',
+            siteUrl: 'https://qa-neogram--1.neocities.org',
             deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,
