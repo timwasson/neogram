@@ -51,15 +51,17 @@ Neogram uses standard HTML5 hardware integration:
 - **Desktop Browsers:** Opens the native system file selector and supports drag-and-drop onto the CRT viewfinder.
 - **No WebRTC Overhead:** Avoids heavy video streams, battery drain, and browser permission modals.
 
-### 25MB Streaming Allowance
-Modern smartphones take photos exceeding 15–20MB. Neogram's upload middleware (`handleUploadMiddleware`) configures Multer to ingest up to **25MB in memory**:
+### Multi-Photo Gallery Support & 25MB Streaming Allowance
+Modern smartphones take photos exceeding 15–20MB. Neogram's upload middleware (`handleUploadMiddleware`) configures Multer to ingest up to **5 photos per gallery**, up to **25MB per file in memory**:
 ```typescript
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
+  limits: { fileSize: 25 * 1024 * 1024, files: 5 }, // 25MB limit per file, max 5 photos per gallery
 });
 ```
-Photos buffer directly into RAM and stream immediately into Sharp without intermediate temp files on the OS filesystem.
+- **Single Filter Uniformity:** One selected retro shader (CRT Phosphor, VGA, GameBoy, Sepia, etc.) is applied across all uploaded frames in the gallery post.
+- **Instagram-Style Raw CSS Slider:** Multi-photo posts compile with standard semantic BEM classes (`.neogram-slider`, `.neogram-slider__track`, `.neogram-slider__slide`, `.neogram-slider__nav`) providing touch-swiping and smooth horizontal scroll snapping without any client-side JavaScript libraries.
+- Photos buffer directly into RAM and stream immediately into Sharp without intermediate temp files on the OS filesystem.
 
 ---
 

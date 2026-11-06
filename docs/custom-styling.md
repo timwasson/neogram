@@ -71,12 +71,23 @@ All elements in the generated static site (`dist/static-galleries/<userId>/`) fo
 | Class | Description |
 |---|---|
 | `.neogram-detail` | Container for single photo view (`photos/<id>/index.html`) |
-| `.neogram-detail__viewport` | High-res 1200px image display viewport |
+| `.neogram-detail__viewport` | High-res 1200px image display viewport (single photo) |
 | `.neogram-comments` | Interactive comments ledger container |
 | `.neogram-comments__item` | Individual comment bubble |
 | `.neogram-comments__author` | Commenter's handle and avatar |
 | `.neogram-comments__body` | Comment message text |
 | `.neogram-comments__form` | New comment submission form |
+
+### Multi-Photo Carousel Slider (Instagram-Style Pure CSS)
+| Class | Modifiers | Description |
+|---|---|---|
+| `.neogram-slider` | `--card` | Container for multi-photo gallery posts on photo detail and gallery cards |
+| `.neogram-slider__track` | | Smooth horizontal scroll-snap track (`scroll-snap-type: x mandatory`) |
+| `.neogram-slider__slide` | | Individual frame wrapper aligned to snap points (`scroll-snap-align: center`) |
+| `.neogram-slider__image` | | The `<img>` element displaying the gallery photo frame |
+| `.neogram-slider__nav` | | Instagram-style centered dot indicator cluster |
+| `.neogram-slider__dot` | | Individual slide anchor dot |
+| `.neogram-slider__counter` | | Badge pill indicating total frames in the gallery post (e.g. `📷 3 PHOTOS`) |
 
 ### Buttons & Badges
 | Class | Modifiers | Description |

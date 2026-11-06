@@ -1154,13 +1154,13 @@
             <div class="p-3 bg-black border border-main text-xs space-y-1">
               <span class="text-mac font-bold uppercase tracking-wider text-xxs">ISOLATED FIFO PIPELINE EXECUTION</span>
               <pre class="text-prompt text-xxs leading-normal overflow-x-auto m-0 select-all">
-POST /api/posts (Multer 25MB Buffer)
-  └─► sharp(buffer).rotate()
+POST /api/posts (Multer 25MB Buffer, 1-5 Photos Per Gallery)
+  └─► sharp(buffer).rotate() [Uniform Filter Shader Applied Across All Frames]
         ├─► resize(1200, 1200).webp(85)  ──► uploads/images/*.webp
         └─► resize(400, 400).webp(80)    ──► uploads/thumbs/*.webp
               └─► buildQueue.enqueue('User:<userId>')
                     ├─► setUseTemplateCache(false)
-                    ├─► Eleventy compiles HTML/CSS
+                    ├─► Eleventy compiles HTML/CSS & .neogram-slider
                     └─► deployToNeocities() 
                           ├─► POST https://neocities.org/api/upload
                           └─► fs.rm(uploadsDir) [0 MB DISK RETENTION]</pre>
@@ -1211,6 +1211,9 @@ POST /api/posts (Multer 25MB Buffer)
                     <tr><td class="text-prompt font-bold"><code>.neogram-card__image</code></td><td class="text-muted">Photo thumbnail element</td></tr>
                     <tr><td class="text-prompt font-bold"><code>.neogram-card__caption</code></td><td class="text-muted">Post caption text</td></tr>
                     <tr><td class="text-prompt font-bold"><code>.neogram-detail</code></td><td class="text-muted">Photo detail page view (photos/&lt;id&gt;/)</td></tr>
+                    <tr><td class="text-prompt font-bold"><code>.neogram-slider</code></td><td class="text-muted">Pure raw CSS Instagram-style slider container for multi-photo galleries</td></tr>
+                    <tr><td class="text-prompt font-bold"><code>.neogram-slider__track</code></td><td class="text-muted">Horizontal scroll-snap track with touch swiping</td></tr>
+                    <tr><td class="text-prompt font-bold"><code>.neogram-slider__nav</code></td><td class="text-muted">Centered slide pagination dot anchors</td></tr>
                     <tr><td class="text-prompt font-bold"><code>.neogram-comments</code></td><td class="text-muted">Comment ledger and entry form container</td></tr>
                     <tr><td class="text-prompt font-bold"><code>.neogram-btn</code></td><td class="text-muted">Base retro push button</td></tr>
                   </tbody>

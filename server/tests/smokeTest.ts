@@ -62,6 +62,7 @@ async function runSmokeTests() {
 
   let testUser: any = null;
   let testPostId: string | null = null;
+  let multiPostId: string | null = null;
   let sessionCookie: string = '';
   let authToken: string = '';
 
@@ -218,6 +219,53 @@ async function runSmokeTests() {
     assertTest('Post record persisted in PostgreSQL', dbPostRes.rows.length === 1, `Post ID: ${testPostId}`);
 
     // -------------------------------------------------------------------------
+    // TEST 7.1: Multi-Photo Gallery Ingestion & 5-Photo Limit Enforcement
+    // -------------------------------------------------------------------------
+    logHeader('7.1. MULTI-PHOTO GALLERY INGESTION & LIMIT ENFORCEMENT');
+
+    // A. Verify 5-photo limit barrier (uploading 6 photos must return HTTP 400)
+    const excessFormData = new FormData();
+    excessFormData.append('caption', 'Excessive photos test');
+    excessFormData.append('filterApplied', 'vga');
+    for (let i = 1; i <= 6; i++) {
+      excessFormData.append('imageFiles', new Blob([new Uint8Array(testImageBuffer)], { type: testMimeType }), `excess_${i}.jpg`);
+    }
+    const excessUploadRes = await fetch(`${API_BASE}/api/posts`, {
+      method: 'POST',
+      headers: { 'Cookie': sessionCookie },
+      body: excessFormData,
+    });
+    assertTest('Uploading > 5 photos is blocked with HTTP 400', excessUploadRes.status === 400, `Status: ${excessUploadRes.status}`);
+    const excessUploadData = await excessUploadRes.json() as any;
+    assertTest('Error message explicitly identifies 5-photo maximum limit', excessUploadData.error && excessUploadData.error.includes('5 photos'), excessUploadData.error);
+
+    // B. Upload 3 photos into a single gallery with a single retro filter
+    const multiFormData = new FormData();
+    multiFormData.append('caption', '[:> Multi-photo transmission — 3 frames in 1 gallery]');
+    multiFormData.append('filterApplied', 'vga');
+    multiFormData.append('mood', 'MultiFrame');
+    for (let i = 1; i <= 3; i++) {
+      multiFormData.append('imageFiles', new Blob([new Uint8Array(testImageBuffer)], { type: testMimeType }), `frame_${i}.jpg`);
+    }
+
+    const multiUploadRes = await fetch(`${API_BASE}/api/posts`, {
+      method: 'POST',
+      headers: { 'Cookie': sessionCookie },
+      body: multiFormData,
+    });
+    assertTest('Multi-photo upload (3 photos) returns HTTP 201 Created', multiUploadRes.status === 201, `Status: ${multiUploadRes.status}`);
+    const multiUploadData = await multiUploadRes.json() as any;
+    const multiPost = multiUploadData.post;
+    multiPostId = multiPost?.id || null;
+    assertTest('Upload response contains photos array with exactly 3 frames', Array.isArray(multiPost?.photos) && multiPost.photos.length === 3, `Count: ${multiPost?.photos?.length}`);
+    assertTest('All photos in gallery converted to WebP', multiPost?.photos?.every((p: any) => p.imagePath?.endsWith('.webp') && p.thumbnailPath?.endsWith('.webp')));
+    assertTest('Primary imagePath and thumbnailPath match first frame for backward compatibility', multiPost?.imagePath === multiPost?.photos[0]?.imagePath);
+
+    // Verify multi-photo persistence in PostgreSQL
+    const dbMultiPostRes = await query('SELECT photos FROM posts WHERE id = $1', [multiPostId]);
+    assertTest('Multi-photo post records photos JSONB array in PostgreSQL', dbMultiPostRes.rows.length === 1 && (Array.isArray(dbMultiPostRes.rows[0].photos) ? dbMultiPostRes.rows[0].photos.length === 3 : JSON.parse(dbMultiPostRes.rows[0].photos).length === 3));
+
+    // -------------------------------------------------------------------------
     // TEST 8: 11ty Multi-Tenant Static Compilation
     // -------------------------------------------------------------------------
     logHeader('8. 11TY MULTI-TENANT ISOLATED COMPILATION');
@@ -231,9 +279,13 @@ async function runSmokeTests() {
 
     let indexExists = false;
     let photoExists = false;
+    let multiPhotoExists = false;
     let hasAuthorHeader = false;
     let hasCorrectAssetPrefix = false;
     let hasEmbedAssets = false;
+    let hasSliderTrack = false;
+    let hasSliderNav = false;
+    let hasCardSlider = false;
 
     try {
       const indexContent = await fs.readFile(indexHtmlPath, 'utf-8');
@@ -241,8 +293,18 @@ async function runSmokeTests() {
       hasAuthorHeader = indexContent.includes(testUser.handle.toUpperCase());
       hasCorrectAssetPrefix = indexContent.includes('/photos/css/neogram.css') && indexContent.includes('/photos/embed/neogram-embed.css');
       hasEmbedAssets = await fs.stat(path.join(userGalleryDir, 'embed/neogram-embed.css')).then(() => true).catch(() => false);
+      hasCardSlider = indexContent.includes('neogram-slider--card') && indexContent.includes('⧉ 3');
+
       const photoContent = await fs.readFile(photoHtmlPath, 'utf-8');
       photoExists = true;
+
+      if (multiPostId) {
+        const multiPhotoHtmlPath = path.join(userGalleryDir, 'photos', multiPostId, 'index.html');
+        const multiPhotoContent = await fs.readFile(multiPhotoHtmlPath, 'utf-8').catch(() => '');
+        multiPhotoExists = multiPhotoContent.length > 0;
+        hasSliderTrack = multiPhotoContent.includes('neogram-slider') && multiPhotoContent.includes('neogram-slider__track');
+        hasSliderNav = multiPhotoContent.includes('neogram-slider__nav') && multiPhotoContent.includes('neogram-slider__dot');
+      }
     } catch (err: any) {
       console.error('File read error:', err.message);
     }
@@ -252,6 +314,10 @@ async function runSmokeTests() {
     assertTest('Static gallery assets correctly prepended with deploy pathPrefix (/photos/)', hasCorrectAssetPrefix);
     assertTest('Passthrough copies embed assets to embed/ folder', hasEmbedAssets);
     assertTest('Single photo detail page (photos/<id>/index.html) generated', photoExists);
+    assertTest('Multi-photo detail page (photos/<multiId>/index.html) generated', multiPhotoExists);
+    assertTest('Multi-photo detail renders .neogram-slider and .neogram-slider__track', hasSliderTrack);
+    assertTest('Multi-photo detail renders .neogram-slider__nav dot pagination anchors', hasSliderNav);
+    assertTest('Gallery index renders .neogram-slider--card with multi-photo badge (⧉ 3)', hasCardSlider);
 
     // -------------------------------------------------------------------------
     // TEST 9: Dynamic SVG Hit Counter (By Handle & By UIN)
@@ -1673,7 +1739,7 @@ async function runSmokeTests() {
     }
 
     // Retain all test photos, primary and secondary posts, and user accounts in perpetuity
-    const checkRetained = await query('SELECT COUNT(*) as count FROM posts WHERE id IN ($1, $2)', [testPostId, secondaryPostId]);
+    const checkRetained = await query('SELECT COUNT(*) as count FROM posts WHERE id IN ($1, $2, $3)', [testPostId, secondaryPostId, multiPostId]);
     assertTest('Test photos and posts preserved in perpetuity', parseInt(checkRetained.rows[0]?.count || '0', 10) >= 1);
     assertTest('Temporary QA test user and photos preserved in perpetuity', true);
 

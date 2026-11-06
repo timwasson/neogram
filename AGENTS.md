@@ -103,6 +103,7 @@ CREATE TABLE posts (
     site_id UUID REFERENCES sites(id) ON DELETE CASCADE,
     image_path VARCHAR(500) NOT NULL,
     thumbnail_path VARCHAR(500) NOT NULL,
+    photos JSONB DEFAULT '[]'::jsonb, -- Multi-photo gallery frames (up to 5 photos with imagePath, thumbnailPath, width, height)
     caption TEXT,
     filter_applied VARCHAR(50) DEFAULT 'none',
     mood VARCHAR(100), -- Optional legacy field (default NULL)
@@ -221,6 +222,7 @@ CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read, cr
 | **`.neogram-banner`** | `__header`, `__title`, `__status`, `__body`, `__info`, `__desc`, `__node`, `__actions` | Header info window card on gallery index & static friends stream; hosts `#staticFriendBtn` |
 | **`.neogram-grid`** | *(Container)* | Multi-column responsive CSS grid for photos (`index.html` and `friends/index.html`) |
 | **`.neogram-card`** | `__header`, `__author`, `__shader`, `__media`, `__image`, `__overlay`, `__overlay-btn`, `__body`, `__content`, `__meta`, `__location`, `__date`, `__caption`, `__tags`, `__footer`, `__likes` | Individual photo window card (`index.njk` & `friends.njk`) |
+| **`.neogram-slider`** | `__track`, `__slide`, `__image`, `__nav`, `__dot`, `__counter`, `--card` | Pure raw CSS Instagram-style slider for multi-photo gallery carousels with horizontal scroll snapping, touch swipe, dot anchors, and count badges |
 | **`.neogram-detail`** | `__header`, `__title`, `__status`, `__status-shader`, `__status-sub`, `__body`, `__layout`, `__media-col`, `__viewport`, `__image`, `__tags`, `__info-col`, `__author-box`, `__author-meta`, `__author-handle`, `__author-date`, `__caption`, `__reactions` | Detail photo page (`photos/<id>/index.html`) |
 | **`.neogram-comments`** | `__header`, `__title`, `__status`, `__ledger`, `__empty`, `__item`, `__item-header`, `__item-author`, `__item-time`, `__item-body`, `__form`, `__form-row`, `__input`, `__submit` | Live comments ledger & form (`photo.njk`) |
 | **`.neogram-btn`** | `--sm`, `--lg`, `--primary`, `--yellow`, `--accent`, `--cyan`, `--success`, `--green`, `--danger`, `--red` | Reusable retro push button (`(0, 1, 0)` specificity) |
@@ -252,17 +254,17 @@ CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read, cr
   - Authentication endpoints (`/api/auth/verify-otp`, `/api/auth/magic-login`) return both `Set-Cookie` and JSON responses `{ success: true, token, user }` to support programmatic consumers.
 
 ### 4.3 Static Publishing Pipeline (Dual-Tier: Eleventy Full Builds + High-Speed Delta Engine)
-1. User uploads photo payload and post metadata in Neogram Creator Studio (`POST /api/posts`).
-2. Server validates session and processes image via `sharp` (scale to max 1200px, create 400px thumbnail, optimize to WebP).
-3. Server commits record to PostgreSQL `posts` table.
+1. User uploads photo payload (1 to 5 photos per gallery) and post metadata in Neogram Creator Studio (`POST /api/posts`).
+2. Server validates session, enforces the strict 5-photo limit per gallery, and processes all images via `sharp` (scale to max 1200px, create 400px thumbnail, optimize to WebP, applying the chosen retro shader filter across all frames).
+3. Server commits record to PostgreSQL `posts` table with full `photos` JSONB array while anchoring the primary frame to `image_path` and `thumbnail_path`.
 4. **Dual-Tier Static Site Engine:**
    - **Tier 1 — Eleventy Full Multi-Tenant Builds (`server/services/staticBuilder.ts`):** Used for initial site provisioning, full manual re-syncs (`POST /api/build-static`), or structural template modifications. Serialized through `buildQueue.enqueue` with template caching disabled.
    - **Tier 2 — High-Speed Incremental Delta Builder (`server/services/incrementalBuilder.ts`):** Used for high-frequency operations:
-     - **New Photo Snaps:** Compiles *only* the new photo HTML (`photos/<id>/index.html`), updates the main gallery grid (`index.html`), and updates `feed.json` / `posts.json` in **~10–25ms**. Existing photo pages and static assets are untouched.
+     - **New Photo Snaps:** Compiles *only* the new photo HTML (`photos/<id>/index.html`) with Instagram-style raw CSS sliding (`.neogram-slider`), updates the main gallery grid (`index.html`), and updates `feed.json` / `posts.json` in **~10–25ms**. Existing photo pages and static assets are untouched.
      - **Comment & Like Reactions:** Re-renders *only* the single affected photo's HTML page (`photos/<id>/index.html`), comment ledger JSON (`<file>.comments.json`), and feeds in **~15ms**. Zero full rebuilds.
      - **Friends Network Cascade:** Re-renders *only* the follower's `friends/index.html` and `friendsPosts.json` in **~10ms**. Follower's friend grid strictly references the original author's host URL for image and thumbnail assets (**0 bytes of media copied or uploaded to follower's site**).
 5. **Deployment Adapters & Delta Uploader (`neocitiesPublisher.ts` & `nekowebPublisher.ts`):**
-   - **Neocities Delta Upload (`deployFilesToNeocities`):** Direct multipart POST to `https://neocities.org/api/upload` transferring strictly the delta files (e.g. 1–5 files), bypassing full-directory scans.
+   - **Neocities Delta Upload (`deployFilesToNeocities`):** Direct multipart POST to `https://neocities.org/api/upload` transferring strictly the delta files (including all multi-photo assets in the gallery post, e.g. 1–10 files), bypassing full-directory scans.
    - **Nekoweb Delta Upload (`deployFilesToNekoweb`):** Uploads individual files or folder batches directly via `POST https://nekoweb.org/api/files/upload`. **Does NOT require a ZIP archive for incremental updates**, reducing deployment latency from 2.5s+ down to ~100–200ms. Bulk ZIP import (`/api/files/big/*` + `/api/files/import/:id`) is strictly reserved as an initial site setup fallback.
    - Initial site deployment seeds base assets (`css/`, `js/`, `icons/`, `embed/`), after which all publishing operations utilize the lightning-fast delta pipeline.
 6. Centralized social layer: Visitors to static sites react and comment; comments post back to `/api/posts/:id/comments` and trigger an automated background delta rebuild and deploy.
