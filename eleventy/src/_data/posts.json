@@ -1,10 +1,899 @@
 [
   {
+    "id": "77d28357-1916-4141-bb0c-b9652fcfcc2b",
+    "userId": "89f042b8-fa62-410c-b444-a3893172b294",
+    "siteId": "89614fac-3fa7-49a9-a0aa-b35326ac3c5a",
+    "siteName": "qa-multiphoto-station",
+    "siteSlug": "qa-multiphoto-station",
+    "imagePath": "/uploads/images/1793988995050-p1k98ir.webp",
+    "thumbnailPath": "/uploads/thumbs/1793988995050-p1k98ir-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793988995050-p1k98ir.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793988995050-p1k98ir-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793988995050-p1k98ir.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793988995050-p1k98ir-thumb.webp"
+      },
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793988995066-sswgtik.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793988995066-sswgtik-thumb.webp"
+      },
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793988995081-1peyv2e.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793988995081-1peyv2e-thumb.webp"
+      }
+    ],
+    "caption": "Multi-photo sunset in cyberspace",
+    "filterApplied": "crt",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T18:16:35.096Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793988995050-p1k98ir.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/77d28357-1916-4141-bb0c-b9652fcfcc2b/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/77d28357-1916-4141-bb0c-b9652fcfcc2b/comments"
+    }
+  },
+  {
+    "id": "edaa7575-6db8-42ba-afab-5953c4434eaa",
+    "userId": "d086ff64-ac1b-427f-9d4d-f10856582cc7",
+    "siteId": "53f3cfd2-b79f-488f-8b84-a243b5e7d041",
+    "imagePath": "/uploads/images/1793988966000-64lfw65.webp",
+    "thumbnailPath": "/uploads/thumbs/1793988966000-64lfw65-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793988966000-64lfw65.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793988966000-64lfw65-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988966000-64lfw65.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988966000-64lfw65-thumb.webp"
+      },
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988966082-3l26njc.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988966082-3l26njc-thumb.webp"
+      },
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988966164-68i7l9d.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988966164-68i7l9d-thumb.webp"
+      }
+    ],
+    "caption": "[:> Multi-photo transmission — 3 frames in 1 gallery]",
+    "filterApplied": "vga",
+    "mood": "MultiFrame",
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T18:16:06.246Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793988966000-64lfw65.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/edaa7575-6db8-42ba-afab-5953c4434eaa/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/edaa7575-6db8-42ba-afab-5953c4434eaa/comments"
+    }
+  },
+  {
+    "id": "20933b6f-0ce8-4cbd-a94e-6b699dbc07d0",
+    "userId": "d086ff64-ac1b-427f-9d4d-f10856582cc7",
+    "siteId": "53f3cfd2-b79f-488f-8b84-a243b5e7d041",
+    "imagePath": "/uploads/images/1793988965857-nu95qkn.webp",
+    "thumbnailPath": "/uploads/thumbs/1793988965857-nu95qkn-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793988965857-nu95qkn.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793988965857-nu95qkn-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988965857-nu95qkn.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988965857-nu95qkn-thumb.webp"
+      }
+    ],
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T18:16:05.950Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793988965857-nu95qkn.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/20933b6f-0ce8-4cbd-a94e-6b699dbc07d0/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/20933b6f-0ce8-4cbd-a94e-6b699dbc07d0/comments"
+    }
+  },
+  {
+    "id": "10109b0b-a62c-4bfb-a3f9-a79e6ade9e58",
+    "userId": "ac6e190e-3138-4cd1-abfb-1ebb3cbcb628",
+    "imagePath": "/uploads/images/1793988622421-7izmold.webp",
+    "thumbnailPath": "/uploads/thumbs/1793988622421-7izmold-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793988622421-7izmold.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793988622421-7izmold-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988622421-7izmold.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988622421-7izmold-thumb.webp"
+      },
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988622484-fy08slp.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988622484-fy08slp-thumb.webp"
+      },
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988622546-p60fc2r.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988622546-p60fc2r-thumb.webp"
+      }
+    ],
+    "caption": "[:> Multi-photo transmission — 3 frames in 1 gallery]",
+    "filterApplied": "vga",
+    "mood": "MultiFrame",
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T18:10:22.608Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793988622421-7izmold.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/10109b0b-a62c-4bfb-a3f9-a79e6ade9e58/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/10109b0b-a62c-4bfb-a3f9-a79e6ade9e58/comments"
+    }
+  },
+  {
+    "id": "888d3127-a285-446d-9212-388cb261b2ca",
+    "userId": "ac6e190e-3138-4cd1-abfb-1ebb3cbcb628",
+    "imagePath": "/uploads/images/1793988622301-iau1w5r.webp",
+    "thumbnailPath": "/uploads/thumbs/1793988622301-iau1w5r-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793988622301-iau1w5r.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793988622301-iau1w5r-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988622301-iau1w5r.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988622301-iau1w5r-thumb.webp"
+      }
+    ],
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T18:10:22.368Z",
+    "author": "surfer",
+    "commentsCount": 1,
+    "comments": [
+      {
+        "id": "c_mw5ai8vf_anf3n",
+        "userId": "ac6e190e-3138-4cd1-abfb-1ebb3cbcb628",
+        "author": "qa_surfer_1793988620",
+        "uin": 100671,
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-11-06T18:10:23.211Z",
+        "siteUrl": "https://qa-station.neocities.org"
+      }
+    ],
+    "commentsUrl": "uploads/images/1793988622301-iau1w5r.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/888d3127-a285-446d-9212-388cb261b2ca/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/888d3127-a285-446d-9212-388cb261b2ca/comments"
+    }
+  },
+  {
+    "id": "15ce10eb-ef26-484c-a4f9-5606fa924b7a",
+    "userId": "a7cdb8b1-8c5a-43d7-a25e-08a95ba65bb5",
+    "siteId": "e5da0eb6-f619-4ad4-ae59-61c6bed6a54f",
+    "siteName": "Cyber Shrine 99",
+    "siteSlug": "shrine",
+    "imagePath": "/uploads/images/1793988533421-f2ntswi.webp",
+    "thumbnailPath": "/uploads/thumbs/1793988533421-f2ntswi-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793988533421-f2ntswi.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793988533421-f2ntswi-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793988533421-f2ntswi.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793988533421-f2ntswi-thumb.webp"
+      }
+    ],
+    "caption": "[:> Shrine Exclusive Cyber Photograph]",
+    "filterApplied": "none",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T18:08:53.504Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793988533421-f2ntswi.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/15ce10eb-ef26-484c-a4f9-5606fa924b7a/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/15ce10eb-ef26-484c-a4f9-5606fa924b7a/comments"
+    }
+  },
+  {
+    "id": "59d2bef8-6800-4294-b026-398484c49591",
+    "userId": "a7cdb8b1-8c5a-43d7-a25e-08a95ba65bb5",
+    "imagePath": "/uploads/images/1793988530850-dhu92ig.webp",
+    "thumbnailPath": "/uploads/thumbs/1793988530850-dhu92ig-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793988530850-dhu92ig.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793988530850-dhu92ig-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988530850-dhu92ig.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988530850-dhu92ig-thumb.webp"
+      },
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988530923-3ue5r4c.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988530923-3ue5r4c-thumb.webp"
+      },
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988530994-cvawuik.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988530994-cvawuik-thumb.webp"
+      }
+    ],
+    "caption": "[:> Multi-photo transmission — 3 frames in 1 gallery]",
+    "filterApplied": "vga",
+    "mood": "MultiFrame",
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T18:08:51.067Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793988530850-dhu92ig.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/59d2bef8-6800-4294-b026-398484c49591/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/59d2bef8-6800-4294-b026-398484c49591/comments"
+    }
+  },
+  {
+    "id": "770d686c-1240-40ce-879c-e2621dbd68a5",
+    "userId": "a7cdb8b1-8c5a-43d7-a25e-08a95ba65bb5",
+    "imagePath": "/uploads/images/1793988530725-n3lpcz5.webp",
+    "thumbnailPath": "/uploads/thumbs/1793988530725-n3lpcz5-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793988530725-n3lpcz5.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793988530725-n3lpcz5-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988530725-n3lpcz5.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988530725-n3lpcz5-thumb.webp"
+      }
+    ],
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T18:08:50.807Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793988530725-n3lpcz5.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/770d686c-1240-40ce-879c-e2621dbd68a5/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/770d686c-1240-40ce-879c-e2621dbd68a5/comments"
+    }
+  },
+  {
+    "id": "d5d814f1-0b3c-4bdc-8c23-137206c641e7",
+    "userId": "5366ad1b-f917-4bc4-a767-03f29073219d",
+    "imagePath": "/uploads/images/1793988356352-san0q34.webp",
+    "thumbnailPath": "/uploads/thumbs/1793988356352-san0q34-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793988356352-san0q34.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793988356352-san0q34-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988356352-san0q34.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988356352-san0q34-thumb.webp"
+      },
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988356419-ne7hcuz.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988356419-ne7hcuz-thumb.webp"
+      },
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988356481-5a1415j.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988356481-5a1415j-thumb.webp"
+      }
+    ],
+    "caption": "[:> Multi-photo transmission — 3 frames in 1 gallery]",
+    "filterApplied": "vga",
+    "mood": "MultiFrame",
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T18:05:56.545Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793988356352-san0q34.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/d5d814f1-0b3c-4bdc-8c23-137206c641e7/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/d5d814f1-0b3c-4bdc-8c23-137206c641e7/comments"
+    }
+  },
+  {
+    "id": "364a3f2d-e25e-45d2-9b0f-cae5bc50908a",
+    "userId": "5366ad1b-f917-4bc4-a767-03f29073219d",
+    "imagePath": "/uploads/images/1793988356256-pim8zww.webp",
+    "thumbnailPath": "/uploads/thumbs/1793988356256-pim8zww-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793988356256-pim8zww.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793988356256-pim8zww-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988356256-pim8zww.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988356256-pim8zww-thumb.webp"
+      }
+    ],
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T18:05:56.322Z",
+    "author": "surfer",
+    "commentsCount": 1,
+    "comments": [
+      {
+        "id": "c_mw5acjnj_8sdfj",
+        "userId": "5366ad1b-f917-4bc4-a767-03f29073219d",
+        "author": "qa_surfer_1793988354",
+        "uin": 100659,
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-11-06T18:05:57.247Z",
+        "siteUrl": "https://qa-station.neocities.org"
+      }
+    ],
+    "commentsUrl": "uploads/images/1793988356256-pim8zww.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/364a3f2d-e25e-45d2-9b0f-cae5bc50908a/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/364a3f2d-e25e-45d2-9b0f-cae5bc50908a/comments"
+    }
+  },
+  {
+    "id": "03e5a358-c9c2-458d-994a-4d0b3e1558d3",
+    "userId": "0039bfbc-e988-40e4-b2bc-9b9757235eba",
+    "imagePath": "/uploads/images/1793988313682-6taa1iy.webp",
+    "thumbnailPath": "/uploads/thumbs/1793988313682-6taa1iy-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793988313682-6taa1iy.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793988313682-6taa1iy-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988313682-6taa1iy.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988313682-6taa1iy-thumb.webp"
+      },
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988313735-w7qnh80.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988313735-w7qnh80-thumb.webp"
+      },
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988313785-x9x8a74.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988313785-x9x8a74-thumb.webp"
+      }
+    ],
+    "caption": "[:> Multi-photo transmission — 3 frames in 1 gallery]",
+    "filterApplied": "vga",
+    "mood": "MultiFrame",
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T18:05:13.836Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793988313682-6taa1iy.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/03e5a358-c9c2-458d-994a-4d0b3e1558d3/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/03e5a358-c9c2-458d-994a-4d0b3e1558d3/comments"
+    }
+  },
+  {
+    "id": "0cdb82e1-0438-4701-a264-b7a48ae17784",
+    "userId": "0039bfbc-e988-40e4-b2bc-9b9757235eba",
+    "imagePath": "/uploads/images/1793988313593-z5gd659.webp",
+    "thumbnailPath": "/uploads/thumbs/1793988313593-z5gd659-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793988313593-z5gd659.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793988313593-z5gd659-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793988313593-z5gd659.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793988313593-z5gd659-thumb.webp"
+      }
+    ],
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T18:05:13.648Z",
+    "author": "surfer",
+    "commentsCount": 1,
+    "comments": [
+      {
+        "id": "c_mw5abmls_dnz4l",
+        "userId": "0039bfbc-e988-40e4-b2bc-9b9757235eba",
+        "author": "qa_surfer_1793988311",
+        "uin": 100653,
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-11-06T18:05:14.416Z",
+        "siteUrl": "https://qa-station.neocities.org"
+      }
+    ],
+    "commentsUrl": "uploads/images/1793988313593-z5gd659.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/0cdb82e1-0438-4701-a264-b7a48ae17784/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/0cdb82e1-0438-4701-a264-b7a48ae17784/comments"
+    }
+  },
+  {
+    "id": "f568ba7d-b6a9-4932-98ce-20bdf832a44d",
+    "userId": "f6cf4756-021d-45e0-a51a-1f7867abe1f9",
+    "siteId": "60f984ae-b250-4afd-a880-2141b240577d",
+    "imagePath": "/uploads/images/1793988284100-jrvwq52.webp",
+    "thumbnailPath": "/uploads/thumbs/1793988284100-jrvwq52-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793988284100-jrvwq52.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793988284100-jrvwq52-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://qa-multiphoto-station.neocities.org/photos/uploads/images/1793988284100-jrvwq52.webp",
+        "thumbnailPath": "https://qa-multiphoto-station.neocities.org/photos/uploads/thumbs/1793988284100-jrvwq52-thumb.webp"
+      },
+      {
+        "imagePath": "https://qa-multiphoto-station.neocities.org/photos/uploads/images/1793988284117-s4f2k7e.webp",
+        "thumbnailPath": "https://qa-multiphoto-station.neocities.org/photos/uploads/thumbs/1793988284117-s4f2k7e-thumb.webp"
+      },
+      {
+        "imagePath": "https://qa-multiphoto-station.neocities.org/photos/uploads/images/1793988284133-vltkipt.webp",
+        "thumbnailPath": "https://qa-multiphoto-station.neocities.org/photos/uploads/thumbs/1793988284133-vltkipt-thumb.webp"
+      }
+    ],
+    "caption": "Multi-photo sunset in cyberspace",
+    "filterApplied": "crt",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T18:04:44.149Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793988284100-jrvwq52.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/f568ba7d-b6a9-4932-98ce-20bdf832a44d/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/f568ba7d-b6a9-4932-98ce-20bdf832a44d/comments"
+    }
+  },
+  {
+    "id": "a7ed28ec-0087-4db5-abf5-cd1d542bd368",
+    "userId": "956aaa74-8227-441f-96d5-05965203b586",
+    "siteId": "7e2e9da4-d4db-4551-8719-751b6c8bd6a7",
+    "siteName": "qa-multiphoto-station",
+    "siteSlug": "qa-multiphoto-station",
+    "imagePath": "/uploads/images/1793988269063-9r43r8w.webp",
+    "thumbnailPath": "/uploads/thumbs/1793988269063-9r43r8w-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793988269063-9r43r8w.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793988269063-9r43r8w-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793988269063-9r43r8w.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793988269063-9r43r8w-thumb.webp"
+      },
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793988269083-9qvy9fs.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793988269083-9qvy9fs-thumb.webp"
+      },
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793988269098-hg7bcxp.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793988269098-hg7bcxp-thumb.webp"
+      }
+    ],
+    "caption": "Multi-photo sunset in cyberspace",
+    "filterApplied": "crt",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T18:04:29.114Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793988269063-9r43r8w.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/a7ed28ec-0087-4db5-abf5-cd1d542bd368/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/a7ed28ec-0087-4db5-abf5-cd1d542bd368/comments"
+    }
+  },
+  {
+    "id": "bc4558f1-2e3a-45e9-9fe3-b111af753b1d",
+    "userId": "33f686fd-3da8-48d7-ab6f-ca5464db1dce",
+    "siteId": "3243ff88-2f10-422e-b048-31d0497c5ccf",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
+    "imagePath": "/uploads/images/1793986531276-l348a1v.webp",
+    "thumbnailPath": "/uploads/thumbs/1793986531276-l348a1v-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793986531276-l348a1v.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793986531276-l348a1v-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793986531276-l348a1v.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793986531276-l348a1v-thumb.webp"
+      },
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793986531376-o2ibvwc.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793986531376-o2ibvwc-thumb.webp"
+      },
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793986531474-ioxjses.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793986531474-ioxjses-thumb.webp"
+      }
+    ],
+    "caption": "[:> Multi-photo transmission — 3 frames in 1 gallery]",
+    "filterApplied": "vga",
+    "mood": "MultiFrame",
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T17:35:31.572Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793986531276-l348a1v.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/bc4558f1-2e3a-45e9-9fe3-b111af753b1d/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/bc4558f1-2e3a-45e9-9fe3-b111af753b1d/comments"
+    }
+  },
+  {
+    "id": "9205d7c9-0f78-42a1-9e04-4db805448b12",
+    "userId": "33f686fd-3da8-48d7-ab6f-ca5464db1dce",
+    "siteId": "3243ff88-2f10-422e-b048-31d0497c5ccf",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
+    "imagePath": "/uploads/images/1793986531135-z1xafgo.webp",
+    "thumbnailPath": "/uploads/thumbs/1793986531135-z1xafgo-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793986531135-z1xafgo.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793986531135-z1xafgo-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793986531135-z1xafgo.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793986531135-z1xafgo-thumb.webp"
+      }
+    ],
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T17:35:31.242Z",
+    "author": "surfer",
+    "commentsCount": 1,
+    "comments": [
+      {
+        "id": "5e114a8a-5e6a-4546-91de-781bdf350ae7",
+        "postId": "9205d7c9-0f78-42a1-9e04-4db805448b12",
+        "author": "qa_surfer_1793986529",
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-11-06T17:35:32.262Z"
+      }
+    ],
+    "commentsUrl": "uploads/images/1793986531135-z1xafgo.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/9205d7c9-0f78-42a1-9e04-4db805448b12/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/9205d7c9-0f78-42a1-9e04-4db805448b12/comments"
+    }
+  },
+  {
+    "id": "fea2671d-d9be-4b70-b582-9b3ac2ca3081",
+    "userId": "9993c6c4-92c2-4155-b124-f2167ed10aed",
+    "siteId": "c8b6681c-fcf7-4c87-87cd-3a170b38b32c",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
+    "imagePath": "/uploads/images/1793985027093-dxf8uot.webp",
+    "thumbnailPath": "/uploads/thumbs/1793985027093-dxf8uot-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793985027093-dxf8uot.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793985027093-dxf8uot-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793985027093-dxf8uot.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793985027093-dxf8uot-thumb.webp"
+      }
+    ],
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T17:10:27.138Z",
+    "author": "surfer",
+    "commentsCount": 1,
+    "comments": [
+      {
+        "id": "36bb8501-86d4-4b18-8429-a44e798d2a62",
+        "postId": "fea2671d-d9be-4b70-b582-9b3ac2ca3081",
+        "author": "qa_surfer_1793985025",
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-11-06T17:10:27.768Z"
+      }
+    ],
+    "commentsUrl": "uploads/images/1793985027093-dxf8uot.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/fea2671d-d9be-4b70-b582-9b3ac2ca3081/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/fea2671d-d9be-4b70-b582-9b3ac2ca3081/comments"
+    }
+  },
+  {
+    "id": "73f1d2ba-1846-4d2e-9db2-c81aa4173b24",
+    "userId": "a8f962b1-8cf0-427f-a11e-ec597fba9ac3",
+    "siteId": "b319bfe1-5572-42d5-a325-f9ace49e1dfc",
+    "siteName": "qa-multiphoto-station",
+    "siteSlug": "qa-multiphoto-station",
+    "imagePath": "/uploads/images/1793985018471-b996iod.webp",
+    "thumbnailPath": "/uploads/thumbs/1793985018471-b996iod-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793985018471-b996iod.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793985018471-b996iod-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793985018471-b996iod.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793985018471-b996iod-thumb.webp"
+      },
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793985018489-6e9slv0.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793985018489-6e9slv0-thumb.webp"
+      },
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793985018504-mzof0ii.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793985018504-mzof0ii-thumb.webp"
+      }
+    ],
+    "caption": "Multi-photo sunset in cyberspace",
+    "filterApplied": "crt",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T17:10:18.521Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793985018471-b996iod.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/73f1d2ba-1846-4d2e-9db2-c81aa4173b24/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/73f1d2ba-1846-4d2e-9db2-c81aa4173b24/comments"
+    }
+  },
+  {
+    "id": "4569c75d-0f86-4250-b1ac-a095d1f0aee7",
+    "userId": "d36c1886-a223-496c-a41d-7b1f7b7c7c30",
+    "siteId": "89999728-c28a-4f9c-a284-044dac506cb8",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
+    "imagePath": "/uploads/images/1793984778137-e9gvzy6.webp",
+    "thumbnailPath": "/uploads/thumbs/1793984778137-e9gvzy6-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793984778137-e9gvzy6.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793984778137-e9gvzy6-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://qa-station.neocities.org/photos/uploads/images/1793984778137-e9gvzy6.webp",
+        "thumbnailPath": "https://qa-station.neocities.org/photos/uploads/thumbs/1793984778137-e9gvzy6-thumb.webp"
+      }
+    ],
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T17:06:18.206Z",
+    "author": "surfer",
+    "commentsCount": 1,
+    "comments": [
+      {
+        "id": "26e50ce0-dde7-40c1-8892-c374bf917004",
+        "postId": "4569c75d-0f86-4250-b1ac-a095d1f0aee7",
+        "author": "qa_surfer_1793984776",
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-11-06T17:06:18.995Z"
+      }
+    ],
+    "commentsUrl": "uploads/images/1793984778137-e9gvzy6.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/4569c75d-0f86-4250-b1ac-a095d1f0aee7/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/4569c75d-0f86-4250-b1ac-a095d1f0aee7/comments"
+    }
+  },
+  {
+    "id": "27ef2376-9c8d-47e1-9621-bb1a5bd37a76",
+    "userId": "2ed894f9-7a93-42f1-a578-20767365fe41",
+    "siteId": "e073c4bd-1ac8-4631-9b19-dc782074c70d",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
+    "imagePath": "/uploads/images/1793984309462-h8elobj.webp",
+    "thumbnailPath": "/uploads/thumbs/1793984309462-h8elobj-thumb.webp",
+    "imageUrl": "/uploads/images/1793984309462-h8elobj.webp",
+    "thumbnailUrl": "/uploads/thumbs/1793984309462-h8elobj-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "/uploads/images/1793984309462-h8elobj.webp",
+        "thumbnailPath": "/uploads/thumbs/1793984309462-h8elobj-thumb.webp"
+      }
+    ],
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T16:58:29.527Z",
+    "email": "qa_surfer_1793984307873@neogram.retro",
+    "handle": "qa_surfer_1793984307",
+    "author": "qa_surfer_1793984307",
+    "commentsCount": 1,
+    "comments": [
+      {
+        "id": "46076cbf-355b-4783-acca-17daeaf7a155",
+        "postId": "27ef2376-9c8d-47e1-9621-bb1a5bd37a76",
+        "author": "qa_surfer_1793984307",
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-11-06T16:58:30.196Z"
+      }
+    ]
+  },
+  {
+    "id": "e130d6d2-d16e-47be-aa79-8a246bb2c730",
+    "userId": "48e50ffb-d7bb-4bb9-8b97-8cf81e0cba0b",
+    "siteId": "895d8c32-45e0-4b28-8ae6-6973a4c93d16",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
+    "imagePath": "/uploads/images/1793984270488-cxyf7jn.webp",
+    "thumbnailPath": "/uploads/thumbs/1793984270488-cxyf7jn-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793984270488-cxyf7jn.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793984270488-cxyf7jn-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793984270488-cxyf7jn.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793984270488-cxyf7jn-thumb.webp"
+      }
+    ],
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T16:57:50.557Z",
+    "author": "surfer",
+    "commentsCount": 1,
+    "comments": [
+      {
+        "id": "e6911f33-d54b-416c-84a4-b5dd0885fc27",
+        "postId": "e130d6d2-d16e-47be-aa79-8a246bb2c730",
+        "author": "qa_surfer_1793984269",
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-11-06T16:57:51.142Z"
+      }
+    ],
+    "commentsUrl": "uploads/images/1793984270488-cxyf7jn.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/e130d6d2-d16e-47be-aa79-8a246bb2c730/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/e130d6d2-d16e-47be-aa79-8a246bb2c730/comments"
+    }
+  },
+  {
+    "id": "45d26b65-cb5c-4eba-aef3-d7b4e21ba59e",
+    "userId": "97e995d1-2abf-49a7-9215-59a6e5ff6886",
+    "siteId": "86ea2416-0a5a-48f9-8b48-024322023f55",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
+    "imagePath": "/uploads/images/1793934716007-lxgron5.webp",
+    "thumbnailPath": "/uploads/thumbs/1793934716007-lxgron5-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793934716007-lxgron5.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793934716007-lxgron5-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793934716007-lxgron5.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793934716007-lxgron5-thumb.webp"
+      }
+    ],
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T03:11:56.076Z",
+    "author": "surfer",
+    "commentsCount": 1,
+    "comments": [
+      {
+        "id": "0d42ba6f-df9e-48ba-936e-9c7d6741a884",
+        "postId": "45d26b65-cb5c-4eba-aef3-d7b4e21ba59e",
+        "author": "qa_surfer_1793934714",
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-11-06T03:11:56.717Z"
+      }
+    ],
+    "commentsUrl": "uploads/images/1793934716007-lxgron5.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/45d26b65-cb5c-4eba-aef3-d7b4e21ba59e/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/45d26b65-cb5c-4eba-aef3-d7b4e21ba59e/comments"
+    }
+  },
+  {
+    "id": "8e2e55dc-7fa6-4e88-a169-8bbccf632845",
+    "userId": "b44dd2b0-d381-4ebd-8827-91bbabb3a3a6",
+    "siteId": "b6347966-c1cf-42b4-bcf1-ad6b6847d787",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
+    "imagePath": "/uploads/images/1793933543380-ss9o73b.webp",
+    "thumbnailPath": "/uploads/thumbs/1793933543380-ss9o73b-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793933543380-ss9o73b.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793933543380-ss9o73b-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793933543380-ss9o73b.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793933543380-ss9o73b-thumb.webp"
+      }
+    ],
+    "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
+    "filterApplied": "none",
+    "mood": "Radical",
+    "webring": "RetroStatic",
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T02:52:23.450Z",
+    "author": "surfer",
+    "commentsCount": 1,
+    "comments": [
+      {
+        "id": "311c3ccf-e362-4cbb-ad3c-dade195bb1c6",
+        "postId": "8e2e55dc-7fa6-4e88-a169-8bbccf632845",
+        "author": "qa_surfer_1793933542",
+        "avatar": "💬",
+        "text": "This photograph looks radical on my Netscape Navigator browser!",
+        "timestamp": "2026-11-06T02:52:24.041Z"
+      }
+    ],
+    "commentsUrl": "uploads/images/1793933543380-ss9o73b.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/8e2e55dc-7fa6-4e88-a169-8bbccf632845/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/8e2e55dc-7fa6-4e88-a169-8bbccf632845/comments"
+    }
+  },
+  {
     "id": "53b2cf95-a924-4da2-ab3b-f7069a0734aa",
     "userId": "604dca83-df90-4ae9-b243-6b330615884a",
     "siteId": "a28f4126-6b11-4934-9cf1-ad3e3d1290c4",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
     "imagePath": "/uploads/images/1793933520131-snxetmn.webp",
     "thumbnailPath": "/uploads/thumbs/1793933520131-snxetmn-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793933520131-snxetmn.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793933520131-snxetmn-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793933520131-snxetmn.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793933520131-snxetmn-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "none",
     "mood": "Radical",
@@ -12,9 +901,8 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-06T02:52:00.209Z",
-    "email": "qa_surfer_1793933518775@neogram.retro",
-    "handle": "qa_surfer_1793933518",
-    "author": "qa_surfer_1793933518",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "37162e47-f664-4384-bfec-70220f6584cc",
@@ -24,14 +912,29 @@
         "text": "This photograph looks radical on my Netscape Navigator browser!",
         "timestamp": "2026-11-06T02:52:00.786Z"
       }
-    ]
+    ],
+    "commentsUrl": "uploads/images/1793933520131-snxetmn.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/53b2cf95-a924-4da2-ab3b-f7069a0734aa/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/53b2cf95-a924-4da2-ab3b-f7069a0734aa/comments"
+    }
   },
   {
     "id": "753496de-35d0-432e-a9f3-119590c3ba5c",
     "userId": "c015ed36-ffac-42a1-ab75-9c596e617b93",
     "siteId": "0bd8b902-980b-4e6e-8206-f8e91339beb8",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
     "imagePath": "/uploads/images/1793933399967-wds3sdb.webp",
     "thumbnailPath": "/uploads/thumbs/1793933399967-wds3sdb-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793933399967-wds3sdb.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793933399967-wds3sdb-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793933399967-wds3sdb.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793933399967-wds3sdb-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "none",
     "mood": "Radical",
@@ -39,9 +942,8 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-06T02:50:00.033Z",
-    "email": "qa_surfer_1793933398875@neogram.retro",
-    "handle": "qa_surfer_1793933398",
-    "author": "qa_surfer_1793933398",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "2e58e778-3e7a-427d-bc09-352b1be6b6d7",
@@ -51,14 +953,58 @@
         "text": "This photograph looks radical on my Netscape Navigator browser!",
         "timestamp": "2026-11-06T02:50:00.592Z"
       }
-    ]
+    ],
+    "commentsUrl": "uploads/images/1793933399967-wds3sdb.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/753496de-35d0-432e-a9f3-119590c3ba5c/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/753496de-35d0-432e-a9f3-119590c3ba5c/comments"
+    }
+  },
+  {
+    "id": "2f9fe9b9-44aa-4f70-a9df-ff90853ce859",
+    "userId": "33cc694e-f8e4-49df-a7d8-fe533812d7e1",
+    "imagePath": "/uploads/images/1793933390024-v7m6yko.webp",
+    "thumbnailPath": "/uploads/thumbs/1793933390024-v7m6yko-thumb.webp",
+    "imageUrl": "https://shrine.neocities.org/shrine/uploads/images/1793933390024-v7m6yko.webp",
+    "thumbnailUrl": "https://shrine.neocities.org/shrine/uploads/thumbs/1793933390024-v7m6yko-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "/uploads/images/1793933390024-v7m6yko.webp",
+        "thumbnailPath": "/uploads/thumbs/1793933390024-v7m6yko-thumb.webp"
+      }
+    ],
+    "caption": "[:> Shrine Exclusive Cyber Photograph]",
+    "filterApplied": "none",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-06T02:49:50.104Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793933390024-v7m6yko.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/2f9fe9b9-44aa-4f70-a9df-ff90853ce859/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/2f9fe9b9-44aa-4f70-a9df-ff90853ce859/comments"
+    }
   },
   {
     "id": "b09720e0-d134-4213-89fd-d9a84417da66",
     "userId": "33cc694e-f8e4-49df-a7d8-fe533812d7e1",
     "siteId": "c783a44b-37e3-4584-8a92-8dc8c2baeec9",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
     "imagePath": "/uploads/images/1793933387571-6xqrels.webp",
     "thumbnailPath": "/uploads/thumbs/1793933387571-6xqrels-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793933387571-6xqrels.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793933387571-6xqrels-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793933387571-6xqrels.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793933387571-6xqrels-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "none",
     "mood": "Radical",
@@ -66,9 +1012,8 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-06T02:49:47.655Z",
-    "email": "qa_surfer_1793933386141@neogram.retro",
-    "handle": "qa_surfer_1793933386",
-    "author": "qa_surfer_1793933386",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "d2893c12-f4e3-4b02-bff9-d69ca7fe4532",
@@ -78,14 +1023,29 @@
         "text": "This photograph looks radical on my Netscape Navigator browser!",
         "timestamp": "2026-11-06T02:49:48.325Z"
       }
-    ]
+    ],
+    "commentsUrl": "uploads/images/1793933387571-6xqrels.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/b09720e0-d134-4213-89fd-d9a84417da66/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/b09720e0-d134-4213-89fd-d9a84417da66/comments"
+    }
   },
   {
     "id": "1813efeb-e3a8-4479-91d8-8be3fc3452df",
     "userId": "60294e10-6de2-427a-86c5-177f8794fe1d",
     "siteId": "8e6335b5-26be-41ca-94a7-2b8af127885d",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
     "imagePath": "/uploads/images/1793748919832-ui31f1x.webp",
     "thumbnailPath": "/uploads/thumbs/1793748919832-ui31f1x-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793748919832-ui31f1x.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793748919832-ui31f1x-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793748919832-ui31f1x.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793748919832-ui31f1x-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "none",
     "mood": "Radical",
@@ -93,9 +1053,8 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-03T23:35:19.930Z",
-    "email": "qa_surfer_1793748918410@neogram.retro",
-    "handle": "qa_surfer_1793748918",
-    "author": "qa_surfer_1793748918",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "31873f23-febe-40ec-aa2f-4819a577d327",
@@ -105,14 +1064,29 @@
         "text": "This photograph looks radical on my Netscape Navigator browser!",
         "timestamp": "2026-11-03T23:35:20.579Z"
       }
-    ]
+    ],
+    "commentsUrl": "uploads/images/1793748919832-ui31f1x.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/1813efeb-e3a8-4479-91d8-8be3fc3452df/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/1813efeb-e3a8-4479-91d8-8be3fc3452df/comments"
+    }
   },
   {
     "id": "2ac56280-dc07-439e-8d9b-45ff11077c47",
     "userId": "e5ca29f3-dd53-4c00-93f6-927bf2e69cf8",
     "siteId": "5ce7904a-b96b-4459-b9bc-275b16a5a010",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
     "imagePath": "/uploads/images/1793718181505-u3nen2d.webp",
     "thumbnailPath": "/uploads/thumbs/1793718181505-u3nen2d-thumb.webp",
+    "imageUrl": "https://qa-station.neocities.org/photos/uploads/images/1793718181505-u3nen2d.webp",
+    "thumbnailUrl": "https://qa-station.neocities.org/photos/uploads/thumbs/1793718181505-u3nen2d-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "/uploads/images/1793718181505-u3nen2d.webp",
+        "thumbnailPath": "/uploads/thumbs/1793718181505-u3nen2d-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "none",
     "mood": "Radical",
@@ -120,9 +1094,8 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-03T15:03:01.593Z",
-    "email": "qa_surfer_1793718179988@neogram.retro",
-    "handle": "qa_surfer_1793718179",
-    "author": "qa_surfer_1793718179",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "ca7d2f49-5366-4937-bc8b-e5cda5cd49ff",
@@ -132,14 +1105,29 @@
         "text": "This photograph looks radical on my Netscape Navigator browser!",
         "timestamp": "2026-11-03T15:03:02.343Z"
       }
-    ]
+    ],
+    "commentsUrl": "uploads/images/1793718181505-u3nen2d.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/2ac56280-dc07-439e-8d9b-45ff11077c47/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/2ac56280-dc07-439e-8d9b-45ff11077c47/comments"
+    }
   },
   {
     "id": "f0d08118-2909-40c8-beb4-157e374f1f18",
     "userId": "9f6d0462-b3e3-449a-9c83-6c32ec8cd2a7",
     "siteId": "d5911eb2-0177-4a19-b8fc-eaf675af85a1",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
     "imagePath": "/uploads/images/1793718122641-xdj50g1.webp",
     "thumbnailPath": "/uploads/thumbs/1793718122641-xdj50g1-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793718122641-xdj50g1.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793718122641-xdj50g1-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793718122641-xdj50g1.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793718122641-xdj50g1-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "none",
     "mood": "Radical",
@@ -147,9 +1135,8 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-03T15:02:02.744Z",
-    "email": "qa_surfer_1793718120746@neogram.retro",
-    "handle": "qa_surfer_1793718120",
-    "author": "qa_surfer_1793718120",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "d0da55f6-9154-40ef-862e-52b684e1ea19",
@@ -159,14 +1146,59 @@
         "text": "This photograph looks radical on my Netscape Navigator browser!",
         "timestamp": "2026-11-03T15:02:03.561Z"
       }
-    ]
+    ],
+    "commentsUrl": "uploads/images/1793718122641-xdj50g1.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/f0d08118-2909-40c8-beb4-157e374f1f18/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/f0d08118-2909-40c8-beb4-157e374f1f18/comments"
+    }
+  },
+  {
+    "id": "808513ce-6218-4573-9a7d-483e5d94553a",
+    "userId": "08a2394b-bdfd-42bf-a5f6-44bbe565ee17",
+    "siteId": "296eec78-f498-4752-b281-59b6b2a40590",
+    "imagePath": "https://neogramtest.neocities.org/neogram/uploads/images/1793680891241-yggsi09.webp",
+    "thumbnailPath": "https://neogramtest.neocities.org/neogram/uploads/thumbs/1793680891241-yggsi09-thumb.webp",
+    "imageUrl": "https://neogramtest.neocities.org/neogram/uploads/images/1793680891241-yggsi09.webp",
+    "thumbnailUrl": "https://neogramtest.neocities.org/neogram/uploads/thumbs/1793680891241-yggsi09-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://neogramtest.neocities.org/neogram/uploads/images/1793680891241-yggsi09.webp",
+        "thumbnailPath": "https://neogramtest.neocities.org/neogram/uploads/thumbs/1793680891241-yggsi09-thumb.webp"
+      }
+    ],
+    "caption": "Modal manual dismiss test",
+    "filterApplied": "none",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-03T04:41:31.256Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793680891241-yggsi09.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/808513ce-6218-4573-9a7d-483e5d94553a/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/808513ce-6218-4573-9a7d-483e5d94553a/comments"
+    }
   },
   {
     "id": "479fe1a2-e282-4c3e-b9d7-830c9652287f",
     "userId": "08a2394b-bdfd-42bf-a5f6-44bbe565ee17",
     "siteId": "296eec78-f498-4752-b281-59b6b2a40590",
+    "siteName": "neogramtest",
+    "siteSlug": "default",
     "imagePath": "https://neogramtest.neocities.org/neogram/uploads/images/1793680685964-hz9auej.webp",
     "thumbnailPath": "https://neogramtest.neocities.org/neogram/uploads/thumbs/1793680685964-hz9auej-thumb.webp",
+    "imageUrl": "https://neogramtest.neocities.org/neogram/uploads/images/1793680685964-hz9auej.webp",
+    "thumbnailUrl": "https://neogramtest.neocities.org/neogram/uploads/thumbs/1793680685964-hz9auej-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://neogramtest.neocities.org/neogram/uploads/images/1793680685964-hz9auej.webp",
+        "thumbnailPath": "https://neogramtest.neocities.org/neogram/uploads/thumbs/1793680685964-hz9auej-thumb.webp"
+      }
+    ],
     "caption": "nevermind",
     "filterApplied": "none",
     "mood": null,
@@ -174,17 +1206,31 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-03T04:38:06.113Z",
-    "email": "wasson@gmail.com",
-    "handle": "wasson",
-    "author": "wasson",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793680685964-hz9auej.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/479fe1a2-e282-4c3e-b9d7-830c9652287f/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/479fe1a2-e282-4c3e-b9d7-830c9652287f/comments"
+    }
   },
   {
     "id": "5337a484-a2ea-4c6b-a276-d0e50b6fe021",
     "userId": "08a2394b-bdfd-42bf-a5f6-44bbe565ee17",
     "siteId": "296eec78-f498-4752-b281-59b6b2a40590",
+    "siteName": "neogramtest",
+    "siteSlug": "default",
     "imagePath": "https://neogramtest.neocities.org/neogram/uploads/images/1793679790224-g1ivhvz.webp",
     "thumbnailPath": "https://neogramtest.neocities.org/neogram/uploads/thumbs/1793679790224-g1ivhvz-thumb.webp",
+    "imageUrl": "https://neogramtest.neocities.org/neogram/uploads/images/1793679790224-g1ivhvz.webp",
+    "thumbnailUrl": "https://neogramtest.neocities.org/neogram/uploads/thumbs/1793679790224-g1ivhvz-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://neogramtest.neocities.org/neogram/uploads/images/1793679790224-g1ivhvz.webp",
+        "thumbnailPath": "https://neogramtest.neocities.org/neogram/uploads/thumbs/1793679790224-g1ivhvz-thumb.webp"
+      }
+    ],
     "caption": "Sweet shop.",
     "filterApplied": "vga",
     "mood": null,
@@ -192,53 +1238,31 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-03T04:23:10.395Z",
-    "email": "wasson@gmail.com",
-    "handle": "wasson",
-    "author": "wasson",
-    "comments": []
-  },
-  {
-    "id": "3b032460-4385-434a-a43c-2209dcf51c47",
-    "userId": "665326d3-0896-4b5e-b78e-7c3ede0216cd",
-    "siteId": "58e81514-7a6b-4534-8578-9e5e02100819",
-    "imagePath": "/uploads/images/1793652780834-t3sjk8a.webp",
-    "thumbnailPath": "/uploads/thumbs/1793652780834-t3sjk8a-thumb.webp",
-    "caption": "Storm photo from @agent_8_mvzqjynd",
-    "filterApplied": "none",
-    "mood": null,
-    "webring": null,
-    "location": null,
-    "likes": 0,
-    "createdAt": "2026-11-02T20:53:00.930Z",
-    "email": "agent_8_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_8_mvzqjynd",
-    "author": "agent_8_mvzqjynd",
-    "comments": []
-  },
-  {
-    "id": "569dbe84-ad0a-4de6-943b-1874d1cd1d97",
-    "userId": "f70b47c2-ce1f-45f4-a3c4-462eda3a5ffb",
-    "siteId": "086d083a-cce1-45f8-8f4a-98abab7dafbb",
-    "imagePath": "/uploads/images/1793652780831-fsb9ubj.webp",
-    "thumbnailPath": "/uploads/thumbs/1793652780831-fsb9ubj-thumb.webp",
-    "caption": "Storm photo from @agent_6_mvzqjynd",
-    "filterApplied": "none",
-    "mood": null,
-    "webring": null,
-    "location": null,
-    "likes": 0,
-    "createdAt": "2026-11-02T20:53:00.930Z",
-    "email": "agent_6_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_6_mvzqjynd",
-    "author": "agent_6_mvzqjynd",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793679790224-g1ivhvz.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/5337a484-a2ea-4c6b-a276-d0e50b6fe021/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/5337a484-a2ea-4c6b-a276-d0e50b6fe021/comments"
+    }
   },
   {
     "id": "89aad369-22e3-4855-b8a9-395a4e191c44",
     "userId": "28b652bc-d9aa-4ce9-ba5d-c819c83bcadc",
     "siteId": "032db463-b786-4386-9a66-59ad406ed055",
+    "siteName": "agent_9_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780834-o761osf.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780834-o761osf-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780834-o761osf.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780834-o761osf-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780834-o761osf.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780834-o761osf-thumb.webp"
+      }
+    ],
     "caption": "Storm photo from @agent_9_mvzqjynd",
     "filterApplied": "none",
     "mood": null,
@@ -246,17 +1270,95 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-02T20:53:00.930Z",
-    "email": "agent_9_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_9_mvzqjynd",
-    "author": "agent_9_mvzqjynd",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780834-o761osf.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/89aad369-22e3-4855-b8a9-395a4e191c44/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/89aad369-22e3-4855-b8a9-395a4e191c44/comments"
+    }
+  },
+  {
+    "id": "569dbe84-ad0a-4de6-943b-1874d1cd1d97",
+    "userId": "f70b47c2-ce1f-45f4-a3c4-462eda3a5ffb",
+    "siteId": "086d083a-cce1-45f8-8f4a-98abab7dafbb",
+    "siteName": "agent_6_mvzqjynd Primary Site",
+    "siteSlug": "main",
+    "imagePath": "/uploads/images/1793652780831-fsb9ubj.webp",
+    "thumbnailPath": "/uploads/thumbs/1793652780831-fsb9ubj-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780831-fsb9ubj.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780831-fsb9ubj-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780831-fsb9ubj.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780831-fsb9ubj-thumb.webp"
+      }
+    ],
+    "caption": "Storm photo from @agent_6_mvzqjynd",
+    "filterApplied": "none",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-02T20:53:00.930Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780831-fsb9ubj.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/569dbe84-ad0a-4de6-943b-1874d1cd1d97/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/569dbe84-ad0a-4de6-943b-1874d1cd1d97/comments"
+    }
+  },
+  {
+    "id": "3b032460-4385-434a-a43c-2209dcf51c47",
+    "userId": "665326d3-0896-4b5e-b78e-7c3ede0216cd",
+    "siteId": "58e81514-7a6b-4534-8578-9e5e02100819",
+    "siteName": "agent_8_mvzqjynd Primary Site",
+    "siteSlug": "main",
+    "imagePath": "/uploads/images/1793652780834-t3sjk8a.webp",
+    "thumbnailPath": "/uploads/thumbs/1793652780834-t3sjk8a-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780834-t3sjk8a.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780834-t3sjk8a-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780834-t3sjk8a.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780834-t3sjk8a-thumb.webp"
+      }
+    ],
+    "caption": "Storm photo from @agent_8_mvzqjynd",
+    "filterApplied": "none",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-02T20:53:00.930Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780834-t3sjk8a.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/3b032460-4385-434a-a43c-2209dcf51c47/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/3b032460-4385-434a-a43c-2209dcf51c47/comments"
+    }
   },
   {
     "id": "8f4f726b-244a-43f6-9ebb-caa4bfdd9436",
     "userId": "eec2fb0d-7391-4b25-a2f3-4c6029c3e262",
     "siteId": "a0897804-f9e6-402f-84b6-5cfd37229f75",
+    "siteName": "agent_10_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780832-qv43xjz.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780832-qv43xjz-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780832-qv43xjz.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780832-qv43xjz-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780832-qv43xjz.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780832-qv43xjz-thumb.webp"
+      }
+    ],
     "caption": "Storm photo from @agent_10_mvzqjynd",
     "filterApplied": "none",
     "mood": null,
@@ -264,17 +1366,31 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-02T20:53:00.930Z",
-    "email": "agent_10_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_10_mvzqjynd",
-    "author": "agent_10_mvzqjynd",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780832-qv43xjz.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/8f4f726b-244a-43f6-9ebb-caa4bfdd9436/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/8f4f726b-244a-43f6-9ebb-caa4bfdd9436/comments"
+    }
   },
   {
     "id": "d3eca46b-c2ec-4d05-a29c-61db417756d5",
     "userId": "4581df14-b4db-4a5e-a879-8e8262a35fd4",
     "siteId": "15984e04-1970-4518-9700-03065aaad40f",
+    "siteName": "agent_2_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780831-hiybc7f.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780831-hiybc7f-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780831-hiybc7f.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780831-hiybc7f-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780831-hiybc7f.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780831-hiybc7f-thumb.webp"
+      }
+    ],
     "caption": "Storm photo from @agent_2_mvzqjynd",
     "filterApplied": "none",
     "mood": null,
@@ -282,35 +1398,31 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-02T20:53:00.929Z",
-    "email": "agent_2_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_2_mvzqjynd",
-    "author": "agent_2_mvzqjynd",
-    "comments": []
-  },
-  {
-    "id": "31f95693-9fa1-4294-bcb0-3a87218b03b8",
-    "userId": "fdaaa88c-e160-4855-8ac1-67730fc58100",
-    "siteId": "997d10c1-4a0e-480b-ab45-c7db6f1067bb",
-    "imagePath": "/uploads/images/1793652780831-khypj02.webp",
-    "thumbnailPath": "/uploads/thumbs/1793652780831-khypj02-thumb.webp",
-    "caption": "Storm photo from @agent_5_mvzqjynd",
-    "filterApplied": "none",
-    "mood": null,
-    "webring": null,
-    "location": null,
-    "likes": 0,
-    "createdAt": "2026-11-02T20:53:00.929Z",
-    "email": "agent_5_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_5_mvzqjynd",
-    "author": "agent_5_mvzqjynd",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780831-hiybc7f.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/d3eca46b-c2ec-4d05-a29c-61db417756d5/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/d3eca46b-c2ec-4d05-a29c-61db417756d5/comments"
+    }
   },
   {
     "id": "62cf9b2d-7347-4405-87fc-9af8dcb8f11b",
     "userId": "3ce8d86f-76d6-4a7c-8150-40d34cbfeadc",
     "siteId": "29743a76-6db2-45ab-919e-25605252c6c8",
+    "siteName": "agent_3_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780831-rxi7jmd.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780831-rxi7jmd-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780831-rxi7jmd.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780831-rxi7jmd-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780831-rxi7jmd.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780831-rxi7jmd-thumb.webp"
+      }
+    ],
     "caption": "Storm photo from @agent_3_mvzqjynd",
     "filterApplied": "none",
     "mood": null,
@@ -318,17 +1430,31 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-02T20:53:00.929Z",
-    "email": "agent_3_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_3_mvzqjynd",
-    "author": "agent_3_mvzqjynd",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780831-rxi7jmd.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/62cf9b2d-7347-4405-87fc-9af8dcb8f11b/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/62cf9b2d-7347-4405-87fc-9af8dcb8f11b/comments"
+    }
   },
   {
     "id": "c83b02df-0005-4c98-bd2c-ac51367be3fb",
     "userId": "d8b721e2-f1ab-4348-82a7-1c0a686bd505",
     "siteId": "6373377f-424a-43fb-91a4-6457009c86f2",
+    "siteName": "agent_4_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780831-y61hcqi.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780831-y61hcqi-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780831-y61hcqi.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780831-y61hcqi-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780831-y61hcqi.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780831-y61hcqi-thumb.webp"
+      }
+    ],
     "caption": "Storm photo from @agent_4_mvzqjynd",
     "filterApplied": "none",
     "mood": null,
@@ -336,17 +1462,63 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-02T20:53:00.929Z",
-    "email": "agent_4_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_4_mvzqjynd",
-    "author": "agent_4_mvzqjynd",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780831-y61hcqi.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/c83b02df-0005-4c98-bd2c-ac51367be3fb/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/c83b02df-0005-4c98-bd2c-ac51367be3fb/comments"
+    }
+  },
+  {
+    "id": "31f95693-9fa1-4294-bcb0-3a87218b03b8",
+    "userId": "fdaaa88c-e160-4855-8ac1-67730fc58100",
+    "siteId": "997d10c1-4a0e-480b-ab45-c7db6f1067bb",
+    "siteName": "agent_5_mvzqjynd Primary Site",
+    "siteSlug": "main",
+    "imagePath": "/uploads/images/1793652780831-khypj02.webp",
+    "thumbnailPath": "/uploads/thumbs/1793652780831-khypj02-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780831-khypj02.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780831-khypj02-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780831-khypj02.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780831-khypj02-thumb.webp"
+      }
+    ],
+    "caption": "Storm photo from @agent_5_mvzqjynd",
+    "filterApplied": "none",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-02T20:53:00.929Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780831-khypj02.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/31f95693-9fa1-4294-bcb0-3a87218b03b8/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/31f95693-9fa1-4294-bcb0-3a87218b03b8/comments"
+    }
   },
   {
     "id": "3fbffff2-4e44-4f73-8591-0bd459251d79",
     "userId": "1e11668e-f440-4ed5-be77-ed57d10cd814",
     "siteId": "e3da3e6f-031b-4fd4-8435-1e30e4fdc8d9",
+    "siteName": "agent_7_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780829-vw2msm4.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780829-vw2msm4-thumb.webp",
+    "imageUrl": "/uploads/images/1793652780829-vw2msm4.webp",
+    "thumbnailUrl": "/uploads/thumbs/1793652780829-vw2msm4-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "/uploads/images/1793652780829-vw2msm4.webp",
+        "thumbnailPath": "/uploads/thumbs/1793652780829-vw2msm4-thumb.webp"
+      }
+    ],
     "caption": "Storm photo from @agent_7_mvzqjynd",
     "filterApplied": "none",
     "mood": null,
@@ -357,14 +1529,25 @@
     "email": "agent_7_mvzqjynd@loadtest.neogram.retro",
     "handle": "agent_7_mvzqjynd",
     "author": "agent_7_mvzqjynd",
+    "commentsCount": 0,
     "comments": []
   },
   {
     "id": "bbfdc2e5-7498-4c28-b834-63de44d6586b",
     "userId": "0dc326ce-f86d-432c-945c-77c1d0b0e923",
     "siteId": "17727b64-4b91-477a-88ba-d4f407d61615",
+    "siteName": "agent_1_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780828-y8yl174.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780828-y8yl174-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780828-y8yl174.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780828-y8yl174-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780828-y8yl174.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780828-y8yl174-thumb.webp"
+      }
+    ],
     "caption": "Storm photo from @agent_1_mvzqjynd",
     "filterApplied": "none",
     "mood": null,
@@ -372,17 +1555,31 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-02T20:53:00.907Z",
-    "email": "agent_1_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_1_mvzqjynd",
-    "author": "agent_1_mvzqjynd",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780828-y8yl174.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/bbfdc2e5-7498-4c28-b834-63de44d6586b/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/bbfdc2e5-7498-4c28-b834-63de44d6586b/comments"
+    }
   },
   {
     "id": "92a46a79-42a0-4abe-8584-a59ed10bf447",
     "userId": "0dc326ce-f86d-432c-945c-77c1d0b0e923",
     "siteId": "17727b64-4b91-477a-88ba-d4f407d61615",
+    "siteName": "agent_1_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780670-y1zwia0.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780670-y1zwia0-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780670-y1zwia0.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780670-y1zwia0-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780670-y1zwia0.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780670-y1zwia0-thumb.webp"
+      }
+    ],
     "caption": "Broadcast to 15 followers!",
     "filterApplied": "crt",
     "mood": null,
@@ -390,17 +1587,31 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-02T20:53:00.696Z",
-    "email": "agent_1_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_1_mvzqjynd",
-    "author": "agent_1_mvzqjynd",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780670-y1zwia0.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/92a46a79-42a0-4abe-8584-a59ed10bf447/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/92a46a79-42a0-4abe-8584-a59ed10bf447/comments"
+    }
   },
   {
     "id": "19ac2f36-0a0d-4563-8949-f29f1f709ac6",
     "userId": "eec2fb0d-7391-4b25-a2f3-4c6029c3e262",
     "siteId": "a0897804-f9e6-402f-84b6-5cfd37229f75",
+    "siteName": "agent_10_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780158-dbngu7u.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780158-dbngu7u-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780158-dbngu7u.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780158-dbngu7u-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780158-dbngu7u.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780158-dbngu7u-thumb.webp"
+      }
+    ],
     "caption": "Simultaneous burst snap from @agent_10_mvzqjynd [Agent #10]",
     "filterApplied": "vga",
     "mood": null,
@@ -408,17 +1619,31 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-02T20:53:00.320Z",
-    "email": "agent_10_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_10_mvzqjynd",
-    "author": "agent_10_mvzqjynd",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780158-dbngu7u.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/19ac2f36-0a0d-4563-8949-f29f1f709ac6/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/19ac2f36-0a0d-4563-8949-f29f1f709ac6/comments"
+    }
   },
   {
     "id": "fa4fb8f0-9b49-47c4-b00a-1787d77b75c0",
     "userId": "28b652bc-d9aa-4ce9-ba5d-c819c83bcadc",
     "siteId": "032db463-b786-4386-9a66-59ad406ed055",
+    "siteName": "agent_9_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780158-jv3x612.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780158-jv3x612-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780158-jv3x612.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780158-jv3x612-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780158-jv3x612.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780158-jv3x612-thumb.webp"
+      }
+    ],
     "caption": "Simultaneous burst snap from @agent_9_mvzqjynd [Agent #9]",
     "filterApplied": "crt",
     "mood": null,
@@ -426,17 +1651,95 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-02T20:53:00.308Z",
-    "email": "agent_9_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_9_mvzqjynd",
-    "author": "agent_9_mvzqjynd",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780158-jv3x612.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/fa4fb8f0-9b49-47c4-b00a-1787d77b75c0/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/fa4fb8f0-9b49-47c4-b00a-1787d77b75c0/comments"
+    }
+  },
+  {
+    "id": "07f671d6-70ae-4712-95a9-cca9f266f020",
+    "userId": "f70b47c2-ce1f-45f4-a3c4-462eda3a5ffb",
+    "siteId": "086d083a-cce1-45f8-8f4a-98abab7dafbb",
+    "siteName": "agent_6_mvzqjynd Primary Site",
+    "siteSlug": "main",
+    "imagePath": "/uploads/images/1793652780157-otzwq1q.webp",
+    "thumbnailPath": "/uploads/thumbs/1793652780157-otzwq1q-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780157-otzwq1q.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780157-otzwq1q-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780157-otzwq1q.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780157-otzwq1q-thumb.webp"
+      }
+    ],
+    "caption": "Simultaneous burst snap from @agent_6_mvzqjynd [Agent #6]",
+    "filterApplied": "sepia",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-02T20:53:00.308Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780157-otzwq1q.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/07f671d6-70ae-4712-95a9-cca9f266f020/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/07f671d6-70ae-4712-95a9-cca9f266f020/comments"
+    }
+  },
+  {
+    "id": "21109508-a8f0-46c0-8428-060044cbb9d5",
+    "userId": "665326d3-0896-4b5e-b78e-7c3ede0216cd",
+    "siteId": "58e81514-7a6b-4534-8578-9e5e02100819",
+    "siteName": "agent_8_mvzqjynd Primary Site",
+    "siteSlug": "main",
+    "imagePath": "/uploads/images/1793652780158-9l5dl99.webp",
+    "thumbnailPath": "/uploads/thumbs/1793652780158-9l5dl99-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780158-9l5dl99.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780158-9l5dl99-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780158-9l5dl99.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780158-9l5dl99-thumb.webp"
+      }
+    ],
+    "caption": "Simultaneous burst snap from @agent_8_mvzqjynd [Agent #8]",
+    "filterApplied": "none",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-02T20:53:00.308Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780158-9l5dl99.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/21109508-a8f0-46c0-8428-060044cbb9d5/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/21109508-a8f0-46c0-8428-060044cbb9d5/comments"
+    }
   },
   {
     "id": "351da384-d355-4541-9918-a87f968bcfb9",
     "userId": "1e11668e-f440-4ed5-be77-ed57d10cd814",
     "siteId": "e3da3e6f-031b-4fd4-8435-1e30e4fdc8d9",
+    "siteName": "agent_7_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780157-l1r6hzz.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780157-l1r6hzz-thumb.webp",
+    "imageUrl": "/uploads/images/1793652780157-l1r6hzz.webp",
+    "thumbnailUrl": "/uploads/thumbs/1793652780157-l1r6hzz-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "/uploads/images/1793652780157-l1r6hzz.webp",
+        "thumbnailPath": "/uploads/thumbs/1793652780157-l1r6hzz-thumb.webp"
+      }
+    ],
     "caption": "Simultaneous burst snap from @agent_7_mvzqjynd [Agent #7]",
     "filterApplied": "lofi",
     "mood": null,
@@ -447,50 +1750,25 @@
     "email": "agent_7_mvzqjynd@loadtest.neogram.retro",
     "handle": "agent_7_mvzqjynd",
     "author": "agent_7_mvzqjynd",
-    "comments": []
-  },
-  {
-    "id": "07f671d6-70ae-4712-95a9-cca9f266f020",
-    "userId": "f70b47c2-ce1f-45f4-a3c4-462eda3a5ffb",
-    "siteId": "086d083a-cce1-45f8-8f4a-98abab7dafbb",
-    "imagePath": "/uploads/images/1793652780157-otzwq1q.webp",
-    "thumbnailPath": "/uploads/thumbs/1793652780157-otzwq1q-thumb.webp",
-    "caption": "Simultaneous burst snap from @agent_6_mvzqjynd [Agent #6]",
-    "filterApplied": "sepia",
-    "mood": null,
-    "webring": null,
-    "location": null,
-    "likes": 0,
-    "createdAt": "2026-11-02T20:53:00.308Z",
-    "email": "agent_6_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_6_mvzqjynd",
-    "author": "agent_6_mvzqjynd",
-    "comments": []
-  },
-  {
-    "id": "21109508-a8f0-46c0-8428-060044cbb9d5",
-    "userId": "665326d3-0896-4b5e-b78e-7c3ede0216cd",
-    "siteId": "58e81514-7a6b-4534-8578-9e5e02100819",
-    "imagePath": "/uploads/images/1793652780158-9l5dl99.webp",
-    "thumbnailPath": "/uploads/thumbs/1793652780158-9l5dl99-thumb.webp",
-    "caption": "Simultaneous burst snap from @agent_8_mvzqjynd [Agent #8]",
-    "filterApplied": "none",
-    "mood": null,
-    "webring": null,
-    "location": null,
-    "likes": 0,
-    "createdAt": "2026-11-02T20:53:00.308Z",
-    "email": "agent_8_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_8_mvzqjynd",
-    "author": "agent_8_mvzqjynd",
+    "commentsCount": 0,
     "comments": []
   },
   {
     "id": "b7626717-3886-4110-a5cf-d8e0e23070f4",
     "userId": "fdaaa88c-e160-4855-8ac1-67730fc58100",
     "siteId": "997d10c1-4a0e-480b-ab45-c7db6f1067bb",
+    "siteName": "agent_5_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780157-g28dd4w.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780157-g28dd4w-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780157-g28dd4w.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780157-g28dd4w-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780157-g28dd4w.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780157-g28dd4w-thumb.webp"
+      }
+    ],
     "caption": "Simultaneous burst snap from @agent_5_mvzqjynd [Agent #5]",
     "filterApplied": "cyberpunk",
     "mood": null,
@@ -498,17 +1776,31 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-02T20:53:00.306Z",
-    "email": "agent_5_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_5_mvzqjynd",
-    "author": "agent_5_mvzqjynd",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780157-g28dd4w.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/b7626717-3886-4110-a5cf-d8e0e23070f4/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/b7626717-3886-4110-a5cf-d8e0e23070f4/comments"
+    }
   },
   {
     "id": "e938f394-633c-43bd-9b03-e7fa74568d04",
     "userId": "92bd0aae-c5e8-423a-9069-229461060ce0",
     "siteId": "fdae5a4e-bf38-43f8-bd53-fbd2896437bb",
+    "siteName": "agent_20_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780157-gspa1ar.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780157-gspa1ar-thumb.webp",
+    "imageUrl": "/uploads/images/1793652780157-gspa1ar.webp",
+    "thumbnailUrl": "/uploads/thumbs/1793652780157-gspa1ar-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "/uploads/images/1793652780157-gspa1ar.webp",
+        "thumbnailPath": "/uploads/thumbs/1793652780157-gspa1ar-thumb.webp"
+      }
+    ],
     "caption": "Simultaneous burst snap from @agent_20_mvzqjynd [Agent #20]",
     "filterApplied": "sepia",
     "mood": null,
@@ -519,14 +1811,25 @@
     "email": "agent_20_mvzqjynd@loadtest.neogram.retro",
     "handle": "agent_20_mvzqjynd",
     "author": "agent_20_mvzqjynd",
+    "commentsCount": 0,
     "comments": []
   },
   {
     "id": "0c308a74-288b-459b-9c41-2e577b2e19ee",
     "userId": "871e435a-7c2e-4f9f-9b99-a7295a71ceff",
     "siteId": "e27bec00-12e6-46a4-b6da-14f733ee82ce",
+    "siteName": "agent_18_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780156-dr8fh3f.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780156-dr8fh3f-thumb.webp",
+    "imageUrl": "/uploads/images/1793652780156-dr8fh3f.webp",
+    "thumbnailUrl": "/uploads/thumbs/1793652780156-dr8fh3f-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "/uploads/images/1793652780156-dr8fh3f.webp",
+        "thumbnailPath": "/uploads/thumbs/1793652780156-dr8fh3f-thumb.webp"
+      }
+    ],
     "caption": "Simultaneous burst snap from @agent_18_mvzqjynd [Agent #18]",
     "filterApplied": "gameboy",
     "mood": null,
@@ -537,86 +1840,89 @@
     "email": "agent_18_mvzqjynd@loadtest.neogram.retro",
     "handle": "agent_18_mvzqjynd",
     "author": "agent_18_mvzqjynd",
+    "commentsCount": 0,
     "comments": []
   },
   {
-    "id": "263dceca-266c-4529-a501-3b3bf5a6a4b8",
-    "userId": "a3fe2bd4-ad50-4ce9-afa3-7a66def0658c",
-    "siteId": "84d671eb-fe9f-4c0a-a690-45c3aefc4b5f",
-    "imagePath": "/uploads/images/1793652780156-qxux0ga.webp",
-    "thumbnailPath": "/uploads/thumbs/1793652780156-qxux0ga-thumb.webp",
-    "caption": "Simultaneous burst snap from @agent_16_mvzqjynd [Agent #16]",
+    "id": "4319e856-26e9-4519-80ba-b6c8de95554f",
+    "userId": "0ee72a56-d49a-474d-8ce1-d34934a71f0a",
+    "siteId": "0f5fc47d-0906-4bd0-926d-d81a44112caa",
+    "siteName": "agent_11_mvzqjynd Primary Site",
+    "siteSlug": "main",
+    "imagePath": "/uploads/images/1793652780148-1lb0dyx.webp",
+    "thumbnailPath": "/uploads/thumbs/1793652780148-1lb0dyx-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780148-1lb0dyx.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780148-1lb0dyx-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780148-1lb0dyx.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780148-1lb0dyx-thumb.webp"
+      }
+    ],
+    "caption": "Simultaneous burst snap from @agent_11_mvzqjynd [Agent #11]",
+    "filterApplied": "gameboy",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-02T20:53:00.304Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780148-1lb0dyx.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/4319e856-26e9-4519-80ba-b6c8de95554f/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/4319e856-26e9-4519-80ba-b6c8de95554f/comments"
+    }
+  },
+  {
+    "id": "6397b4f0-4fc8-4b15-8472-8377c0601c04",
+    "userId": "4581df14-b4db-4a5e-a879-8e8262a35fd4",
+    "siteId": "15984e04-1970-4518-9700-03065aaad40f",
+    "siteName": "agent_2_mvzqjynd Primary Site",
+    "siteSlug": "main",
+    "imagePath": "/uploads/images/1793652780155-ncnj7tf.webp",
+    "thumbnailPath": "/uploads/thumbs/1793652780155-ncnj7tf-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780155-ncnj7tf.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780155-ncnj7tf-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780155-ncnj7tf.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780155-ncnj7tf-thumb.webp"
+      }
+    ],
+    "caption": "Simultaneous burst snap from @agent_2_mvzqjynd [Agent #2]",
     "filterApplied": "crt",
     "mood": null,
     "webring": null,
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-02T20:53:00.304Z",
-    "email": "agent_16_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_16_mvzqjynd",
-    "author": "agent_16_mvzqjynd",
-    "comments": []
-  },
-  {
-    "id": "455b1470-d5db-4d1d-9097-b96fae758b2b",
-    "userId": "1b8836c8-8fed-46b5-bbf0-5ea94ed541a2",
-    "siteId": "9cb0d0f2-0183-4a64-9dcd-43179018d342",
-    "imagePath": "/uploads/images/1793652780156-emq5ysh.webp",
-    "thumbnailPath": "/uploads/thumbs/1793652780156-emq5ysh-thumb.webp",
-    "caption": "Simultaneous burst snap from @agent_19_mvzqjynd [Agent #19]",
-    "filterApplied": "cyberpunk",
-    "mood": null,
-    "webring": null,
-    "location": null,
-    "likes": 0,
-    "createdAt": "2026-11-02T20:53:00.304Z",
-    "email": "agent_19_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_19_mvzqjynd",
-    "author": "agent_19_mvzqjynd",
-    "comments": []
-  },
-  {
-    "id": "22319892-715f-44b8-9b2a-b98890bf976e",
-    "userId": "b4ac3b85-3bee-4199-8911-b9c5c0df5fda",
-    "siteId": "4910fc9d-a49a-44ea-8b95-d40c680ffe03",
-    "imagePath": "/uploads/images/1793652780156-58prch1.webp",
-    "thumbnailPath": "/uploads/thumbs/1793652780156-58prch1-thumb.webp",
-    "caption": "Simultaneous burst snap from @agent_17_mvzqjynd [Agent #17]",
-    "filterApplied": "vga",
-    "mood": null,
-    "webring": null,
-    "location": null,
-    "likes": 0,
-    "createdAt": "2026-11-02T20:53:00.304Z",
-    "email": "agent_17_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_17_mvzqjynd",
-    "author": "agent_17_mvzqjynd",
-    "comments": []
-  },
-  {
-    "id": "97b604aa-92fe-4219-9d9c-ca1b1d1d0cb4",
-    "userId": "1ff0273a-f90d-453d-8471-892d7184c68f",
-    "siteId": "a4b3bbde-807d-435b-b74c-dc64748ab592",
-    "imagePath": "/uploads/images/1793652780151-vxaqgy3.webp",
-    "thumbnailPath": "/uploads/thumbs/1793652780151-vxaqgy3-thumb.webp",
-    "caption": "Simultaneous burst snap from @agent_13_mvzqjynd [Agent #13]",
-    "filterApplied": "sepia",
-    "mood": null,
-    "webring": null,
-    "location": null,
-    "likes": 0,
-    "createdAt": "2026-11-02T20:53:00.304Z",
-    "email": "agent_13_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_13_mvzqjynd",
-    "author": "agent_13_mvzqjynd",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780155-ncnj7tf.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/6397b4f0-4fc8-4b15-8472-8377c0601c04/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/6397b4f0-4fc8-4b15-8472-8377c0601c04/comments"
+    }
   },
   {
     "id": "34957680-69f5-40e5-b367-eb19456465a8",
     "userId": "3ce8d86f-76d6-4a7c-8150-40d34cbfeadc",
     "siteId": "29743a76-6db2-45ab-919e-25605252c6c8",
+    "siteName": "agent_3_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780155-z115qcx.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780155-z115qcx-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780155-z115qcx.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780155-z115qcx-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780155-z115qcx.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780155-z115qcx-thumb.webp"
+      }
+    ],
     "caption": "Simultaneous burst snap from @agent_3_mvzqjynd [Agent #3]",
     "filterApplied": "vga",
     "mood": null,
@@ -624,17 +1930,223 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-02T20:53:00.304Z",
-    "email": "agent_3_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_3_mvzqjynd",
-    "author": "agent_3_mvzqjynd",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780155-z115qcx.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/34957680-69f5-40e5-b367-eb19456465a8/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/34957680-69f5-40e5-b367-eb19456465a8/comments"
+    }
+  },
+  {
+    "id": "22319892-715f-44b8-9b2a-b98890bf976e",
+    "userId": "b4ac3b85-3bee-4199-8911-b9c5c0df5fda",
+    "siteId": "4910fc9d-a49a-44ea-8b95-d40c680ffe03",
+    "siteName": "agent_17_mvzqjynd Primary Site",
+    "siteSlug": "main",
+    "imagePath": "/uploads/images/1793652780156-58prch1.webp",
+    "thumbnailPath": "/uploads/thumbs/1793652780156-58prch1-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780156-58prch1.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780156-58prch1-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780156-58prch1.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780156-58prch1-thumb.webp"
+      }
+    ],
+    "caption": "Simultaneous burst snap from @agent_17_mvzqjynd [Agent #17]",
+    "filterApplied": "vga",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-02T20:53:00.304Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780156-58prch1.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/22319892-715f-44b8-9b2a-b98890bf976e/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/22319892-715f-44b8-9b2a-b98890bf976e/comments"
+    }
+  },
+  {
+    "id": "e01ccf5b-324d-44a8-94d0-c48e0031e4c3",
+    "userId": "d8b721e2-f1ab-4348-82a7-1c0a686bd505",
+    "siteId": "6373377f-424a-43fb-91a4-6457009c86f2",
+    "siteName": "agent_4_mvzqjynd Primary Site",
+    "siteSlug": "main",
+    "imagePath": "/uploads/images/1793652780149-mzpeo3y.webp",
+    "thumbnailPath": "/uploads/thumbs/1793652780149-mzpeo3y-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780149-mzpeo3y.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780149-mzpeo3y-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780149-mzpeo3y.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780149-mzpeo3y-thumb.webp"
+      }
+    ],
+    "caption": "Simultaneous burst snap from @agent_4_mvzqjynd [Agent #4]",
+    "filterApplied": "gameboy",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-02T20:53:00.304Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780149-mzpeo3y.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/e01ccf5b-324d-44a8-94d0-c48e0031e4c3/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/e01ccf5b-324d-44a8-94d0-c48e0031e4c3/comments"
+    }
+  },
+  {
+    "id": "acfb4298-3a06-4cb1-9f19-a144c545897d",
+    "userId": "6c28166d-e196-4762-80e6-077405c16c59",
+    "siteId": "7979103f-14f3-449b-9a3a-c890bc3947c7",
+    "siteName": "agent_12_mvzqjynd Primary Site",
+    "siteSlug": "main",
+    "imagePath": "/uploads/images/1793652780148-hlszo1h.webp",
+    "thumbnailPath": "/uploads/thumbs/1793652780148-hlszo1h-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780148-hlszo1h.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780148-hlszo1h-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780148-hlszo1h.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780148-hlszo1h-thumb.webp"
+      }
+    ],
+    "caption": "Simultaneous burst snap from @agent_12_mvzqjynd [Agent #12]",
+    "filterApplied": "cyberpunk",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-02T20:53:00.304Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780148-hlszo1h.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/acfb4298-3a06-4cb1-9f19-a144c545897d/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/acfb4298-3a06-4cb1-9f19-a144c545897d/comments"
+    }
+  },
+  {
+    "id": "263dceca-266c-4529-a501-3b3bf5a6a4b8",
+    "userId": "a3fe2bd4-ad50-4ce9-afa3-7a66def0658c",
+    "siteId": "84d671eb-fe9f-4c0a-a690-45c3aefc4b5f",
+    "siteName": "agent_16_mvzqjynd Primary Site",
+    "siteSlug": "main",
+    "imagePath": "/uploads/images/1793652780156-qxux0ga.webp",
+    "thumbnailPath": "/uploads/thumbs/1793652780156-qxux0ga-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780156-qxux0ga.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780156-qxux0ga-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780156-qxux0ga.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780156-qxux0ga-thumb.webp"
+      }
+    ],
+    "caption": "Simultaneous burst snap from @agent_16_mvzqjynd [Agent #16]",
+    "filterApplied": "crt",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-02T20:53:00.304Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780156-qxux0ga.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/263dceca-266c-4529-a501-3b3bf5a6a4b8/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/263dceca-266c-4529-a501-3b3bf5a6a4b8/comments"
+    }
+  },
+  {
+    "id": "455b1470-d5db-4d1d-9097-b96fae758b2b",
+    "userId": "1b8836c8-8fed-46b5-bbf0-5ea94ed541a2",
+    "siteId": "9cb0d0f2-0183-4a64-9dcd-43179018d342",
+    "siteName": "agent_19_mvzqjynd Primary Site",
+    "siteSlug": "main",
+    "imagePath": "/uploads/images/1793652780156-emq5ysh.webp",
+    "thumbnailPath": "/uploads/thumbs/1793652780156-emq5ysh-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780156-emq5ysh.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780156-emq5ysh-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780156-emq5ysh.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780156-emq5ysh-thumb.webp"
+      }
+    ],
+    "caption": "Simultaneous burst snap from @agent_19_mvzqjynd [Agent #19]",
+    "filterApplied": "cyberpunk",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-02T20:53:00.304Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780156-emq5ysh.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/455b1470-d5db-4d1d-9097-b96fae758b2b/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/455b1470-d5db-4d1d-9097-b96fae758b2b/comments"
+    }
+  },
+  {
+    "id": "97b604aa-92fe-4219-9d9c-ca1b1d1d0cb4",
+    "userId": "1ff0273a-f90d-453d-8471-892d7184c68f",
+    "siteId": "a4b3bbde-807d-435b-b74c-dc64748ab592",
+    "siteName": "agent_13_mvzqjynd Primary Site",
+    "siteSlug": "main",
+    "imagePath": "/uploads/images/1793652780151-vxaqgy3.webp",
+    "thumbnailPath": "/uploads/thumbs/1793652780151-vxaqgy3-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780151-vxaqgy3.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780151-vxaqgy3-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780151-vxaqgy3.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780151-vxaqgy3-thumb.webp"
+      }
+    ],
+    "caption": "Simultaneous burst snap from @agent_13_mvzqjynd [Agent #13]",
+    "filterApplied": "sepia",
+    "mood": null,
+    "webring": null,
+    "location": null,
+    "likes": 0,
+    "createdAt": "2026-11-02T20:53:00.304Z",
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1793652780151-vxaqgy3.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/97b604aa-92fe-4219-9d9c-ca1b1d1d0cb4/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/97b604aa-92fe-4219-9d9c-ca1b1d1d0cb4/comments"
+    }
   },
   {
     "id": "dadaec11-96fa-4d2e-9884-460cc584b210",
     "userId": "e6dec464-c922-4c95-bfc3-01bbd36dfa3e",
     "siteId": "ee719861-2afb-462a-9425-1e1f8b9e1823",
+    "siteName": "agent_15_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780150-3kkcfzz.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780150-3kkcfzz-thumb.webp",
+    "imageUrl": "/uploads/images/1793652780150-3kkcfzz.webp",
+    "thumbnailUrl": "/uploads/thumbs/1793652780150-3kkcfzz-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "/uploads/images/1793652780150-3kkcfzz.webp",
+        "thumbnailPath": "/uploads/thumbs/1793652780150-3kkcfzz-thumb.webp"
+      }
+    ],
     "caption": "Simultaneous burst snap from @agent_15_mvzqjynd [Agent #15]",
     "filterApplied": "none",
     "mood": null,
@@ -645,86 +2157,25 @@
     "email": "agent_15_mvzqjynd@loadtest.neogram.retro",
     "handle": "agent_15_mvzqjynd",
     "author": "agent_15_mvzqjynd",
-    "comments": []
-  },
-  {
-    "id": "4319e856-26e9-4519-80ba-b6c8de95554f",
-    "userId": "0ee72a56-d49a-474d-8ce1-d34934a71f0a",
-    "siteId": "0f5fc47d-0906-4bd0-926d-d81a44112caa",
-    "imagePath": "/uploads/images/1793652780148-1lb0dyx.webp",
-    "thumbnailPath": "/uploads/thumbs/1793652780148-1lb0dyx-thumb.webp",
-    "caption": "Simultaneous burst snap from @agent_11_mvzqjynd [Agent #11]",
-    "filterApplied": "gameboy",
-    "mood": null,
-    "webring": null,
-    "location": null,
-    "likes": 0,
-    "createdAt": "2026-11-02T20:53:00.304Z",
-    "email": "agent_11_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_11_mvzqjynd",
-    "author": "agent_11_mvzqjynd",
-    "comments": []
-  },
-  {
-    "id": "6397b4f0-4fc8-4b15-8472-8377c0601c04",
-    "userId": "4581df14-b4db-4a5e-a879-8e8262a35fd4",
-    "siteId": "15984e04-1970-4518-9700-03065aaad40f",
-    "imagePath": "/uploads/images/1793652780155-ncnj7tf.webp",
-    "thumbnailPath": "/uploads/thumbs/1793652780155-ncnj7tf-thumb.webp",
-    "caption": "Simultaneous burst snap from @agent_2_mvzqjynd [Agent #2]",
-    "filterApplied": "crt",
-    "mood": null,
-    "webring": null,
-    "location": null,
-    "likes": 0,
-    "createdAt": "2026-11-02T20:53:00.304Z",
-    "email": "agent_2_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_2_mvzqjynd",
-    "author": "agent_2_mvzqjynd",
-    "comments": []
-  },
-  {
-    "id": "e01ccf5b-324d-44a8-94d0-c48e0031e4c3",
-    "userId": "d8b721e2-f1ab-4348-82a7-1c0a686bd505",
-    "siteId": "6373377f-424a-43fb-91a4-6457009c86f2",
-    "imagePath": "/uploads/images/1793652780149-mzpeo3y.webp",
-    "thumbnailPath": "/uploads/thumbs/1793652780149-mzpeo3y-thumb.webp",
-    "caption": "Simultaneous burst snap from @agent_4_mvzqjynd [Agent #4]",
-    "filterApplied": "gameboy",
-    "mood": null,
-    "webring": null,
-    "location": null,
-    "likes": 0,
-    "createdAt": "2026-11-02T20:53:00.304Z",
-    "email": "agent_4_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_4_mvzqjynd",
-    "author": "agent_4_mvzqjynd",
-    "comments": []
-  },
-  {
-    "id": "acfb4298-3a06-4cb1-9f19-a144c545897d",
-    "userId": "6c28166d-e196-4762-80e6-077405c16c59",
-    "siteId": "7979103f-14f3-449b-9a3a-c890bc3947c7",
-    "imagePath": "/uploads/images/1793652780148-hlszo1h.webp",
-    "thumbnailPath": "/uploads/thumbs/1793652780148-hlszo1h-thumb.webp",
-    "caption": "Simultaneous burst snap from @agent_12_mvzqjynd [Agent #12]",
-    "filterApplied": "cyberpunk",
-    "mood": null,
-    "webring": null,
-    "location": null,
-    "likes": 0,
-    "createdAt": "2026-11-02T20:53:00.304Z",
-    "email": "agent_12_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_12_mvzqjynd",
-    "author": "agent_12_mvzqjynd",
+    "commentsCount": 0,
     "comments": []
   },
   {
     "id": "45f41a45-1901-4e3a-8fab-ac0b5d6d2d4a",
     "userId": "47706587-4008-4d9b-9d10-0a5a43deceb3",
     "siteId": "ec0722bd-1a1d-4a29-b89f-4f5fa061c1c1",
+    "siteName": "agent_14_mvzqjynd Primary Site",
+    "siteSlug": "main",
     "imagePath": "/uploads/images/1793652780149-6pugdsl.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780149-6pugdsl-thumb.webp",
+    "imageUrl": "/uploads/images/1793652780149-6pugdsl.webp",
+    "thumbnailUrl": "/uploads/thumbs/1793652780149-6pugdsl-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "/uploads/images/1793652780149-6pugdsl.webp",
+        "thumbnailPath": "/uploads/thumbs/1793652780149-6pugdsl-thumb.webp"
+      }
+    ],
     "caption": "Simultaneous burst snap from @agent_14_mvzqjynd [Agent #14]",
     "filterApplied": "lofi",
     "mood": null,
@@ -735,14 +2186,25 @@
     "email": "agent_14_mvzqjynd@loadtest.neogram.retro",
     "handle": "agent_14_mvzqjynd",
     "author": "agent_14_mvzqjynd",
+    "commentsCount": 0,
     "comments": []
   },
   {
     "id": "113ec723-7d54-495e-8b81-face8f9cb000",
     "userId": "0dc326ce-f86d-432c-945c-77c1d0b0e923",
     "siteId": "aa816c77-c76e-453d-943a-c704066c0541",
+    "siteName": "agent_1_mvzqjynd Zine Site",
+    "siteSlug": "zine",
     "imagePath": "/uploads/images/1793652780134-o98vgwu.webp",
     "thumbnailPath": "/uploads/thumbs/1793652780134-o98vgwu-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793652780134-o98vgwu.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793652780134-o98vgwu-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793652780134-o98vgwu.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793652780134-o98vgwu-thumb.webp"
+      }
+    ],
     "caption": "Simultaneous burst snap from @agent_1_mvzqjynd [Agent #1]",
     "filterApplied": "none",
     "mood": null,
@@ -750,9 +2212,8 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-11-02T20:53:00.297Z",
-    "email": "agent_1_mvzqjynd@loadtest.neogram.retro",
-    "handle": "agent_1_mvzqjynd",
-    "author": "agent_1_mvzqjynd",
+    "author": "surfer",
+    "commentsCount": 10,
     "comments": [
       {
         "id": "b4c6eb8a-b422-4b00-a5a9-a0602839b2fa",
@@ -834,14 +2295,29 @@
         "text": "Concurrent comment #7 during traffic storm!",
         "timestamp": "2026-11-02T20:53:01.984Z"
       }
-    ]
+    ],
+    "commentsUrl": "uploads/images/1793652780134-o98vgwu.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/113ec723-7d54-495e-8b81-face8f9cb000/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/113ec723-7d54-495e-8b81-face8f9cb000/comments"
+    }
   },
   {
     "id": "1db34c62-e5ad-4743-b3f6-5afc973763fa",
     "userId": "28e47c9c-c606-41a9-9e3a-3ee971b0a00b",
     "siteId": "632feae4-27ea-4c5f-87e2-5aa5b58d2e72",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
     "imagePath": "/uploads/images/1793159525737-5qr19u9.webp",
     "thumbnailPath": "/uploads/thumbs/1793159525737-5qr19u9-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793159525737-5qr19u9.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793159525737-5qr19u9-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793159525737-5qr19u9.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793159525737-5qr19u9-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "none",
     "mood": "Radical",
@@ -849,9 +2325,8 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-10-28T03:52:05.768Z",
-    "email": "qa_surfer_1793159524801@neogram.retro",
-    "handle": "qa_surfer_1793159524",
-    "author": "qa_surfer_1793159524",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "b7e13c1b-738a-41af-b361-96403da1d24c",
@@ -861,14 +2336,29 @@
         "text": "This photograph looks radical on my Netscape Navigator browser!",
         "timestamp": "2026-10-28T03:52:06.357Z"
       }
-    ]
+    ],
+    "commentsUrl": "uploads/images/1793159525737-5qr19u9.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/1db34c62-e5ad-4743-b3f6-5afc973763fa/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/1db34c62-e5ad-4743-b3f6-5afc973763fa/comments"
+    }
   },
   {
     "id": "db39b8ac-1665-4134-b01b-6d87734cdfe4",
     "userId": "e8ea4d10-4fec-43b4-902c-cf19f08745cf",
     "siteId": "a730c801-5415-4815-babc-9eca9cc5eb3d",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
     "imagePath": "/uploads/images/1793046281967-a3pk24y.webp",
     "thumbnailPath": "/uploads/thumbs/1793046281967-a3pk24y-thumb.webp",
+    "imageUrl": "https://qa-station.neocities.org/photos/uploads/images/1793046281967-a3pk24y.webp",
+    "thumbnailUrl": "https://qa-station.neocities.org/photos/uploads/thumbs/1793046281967-a3pk24y-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "/uploads/images/1793046281967-a3pk24y.webp",
+        "thumbnailPath": "/uploads/thumbs/1793046281967-a3pk24y-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "none",
     "mood": "Radical",
@@ -876,9 +2366,8 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-10-26T20:24:41.992Z",
-    "email": "qa_surfer_1793046279222@neogram.retro",
-    "handle": "qa_surfer_1793046279",
-    "author": "qa_surfer_1793046279",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "5b5a42da-9008-46f3-b537-3a26c73d3c77",
@@ -888,14 +2377,29 @@
         "text": "This photograph looks radical on my Netscape Navigator browser!",
         "timestamp": "2026-10-26T20:24:42.852Z"
       }
-    ]
+    ],
+    "commentsUrl": "uploads/images/1793046281967-a3pk24y.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/db39b8ac-1665-4134-b01b-6d87734cdfe4/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/db39b8ac-1665-4134-b01b-6d87734cdfe4/comments"
+    }
   },
   {
     "id": "0a287cc8-d96a-4add-b229-7600cee34054",
     "userId": "7d012d11-23ce-4ce6-8b47-8807e413bf8e",
     "siteId": "ed3fcfdc-3cfa-4856-9443-75e06b890340",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
     "imagePath": "/uploads/images/1793038763275-ggq7jym.webp",
     "thumbnailPath": "/uploads/thumbs/1793038763275-ggq7jym-thumb.webp",
+    "imageUrl": "/uploads/images/1793038763275-ggq7jym.webp",
+    "thumbnailUrl": "/uploads/thumbs/1793038763275-ggq7jym-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "/uploads/images/1793038763275-ggq7jym.webp",
+        "thumbnailPath": "/uploads/thumbs/1793038763275-ggq7jym-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "none",
     "mood": "Radical",
@@ -906,6 +2410,7 @@
     "email": "qa_surfer_1793038762025@neogram.retro",
     "handle": "qa_surfer_1793038762",
     "author": "qa_surfer_1793038762",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "7a616b60-779b-4e5d-a344-255e306c2d1c",
@@ -921,8 +2426,18 @@
     "id": "a8224260-5f9d-4e08-8b40-5864576e1640",
     "userId": "c94d1daa-e363-4de5-a3f3-eda194e52f0d",
     "siteId": "fb8fecf9-34a6-492d-9ce8-2eb6a392086f",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
     "imagePath": "/uploads/images/1793038681378-e3rtp64.webp",
     "thumbnailPath": "/uploads/thumbs/1793038681378-e3rtp64-thumb.webp",
+    "imageUrl": "/uploads/images/1793038681378-e3rtp64.webp",
+    "thumbnailUrl": "/uploads/thumbs/1793038681378-e3rtp64-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "/uploads/images/1793038681378-e3rtp64.webp",
+        "thumbnailPath": "/uploads/thumbs/1793038681378-e3rtp64-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "none",
     "mood": "Radical",
@@ -933,6 +2448,7 @@
     "email": "qa_surfer_1793038679803@neogram.retro",
     "handle": "qa_surfer_1793038679",
     "author": "qa_surfer_1793038679",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "42ea9878-3816-4361-a715-15abf8757428",
@@ -948,8 +2464,18 @@
     "id": "3050e8d9-7d4c-49c0-a1ce-0e5032f239c7",
     "userId": "4ad06202-fb0c-4bd2-a22b-a6b97a3e2b7f",
     "siteId": "598c1e08-2d96-441b-9f5e-6c07a91a7fc6",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
     "imagePath": "/uploads/images/1793031839492-0fyq3nz.webp",
     "thumbnailPath": "/uploads/thumbs/1793031839492-0fyq3nz-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1793031839492-0fyq3nz.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1793031839492-0fyq3nz-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1793031839492-0fyq3nz.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1793031839492-0fyq3nz-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "none",
     "mood": "Radical",
@@ -957,9 +2483,8 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-10-26T16:23:59.519Z",
-    "email": "qa_surfer_1793031838266@neogram.retro",
-    "handle": "qa_surfer_1793031838",
-    "author": "qa_surfer_1793031838",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "4330ef97-c8a7-486f-bebb-e768965d17a0",
@@ -969,14 +2494,29 @@
         "text": "This photograph looks radical on my Netscape Navigator browser!",
         "timestamp": "2026-10-26T16:24:00.668Z"
       }
-    ]
+    ],
+    "commentsUrl": "uploads/images/1793031839492-0fyq3nz.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/3050e8d9-7d4c-49c0-a1ce-0e5032f239c7/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/3050e8d9-7d4c-49c0-a1ce-0e5032f239c7/comments"
+    }
   },
   {
     "id": "70b7eaec-be64-4d3b-aa3f-ab6ee69b6a5b",
     "userId": "841fe047-78bb-43b1-b91a-d91ebb12ff61",
     "siteId": "a8c343ff-04a6-463d-9092-1a80727f32af",
+    "siteName": "qa-station",
+    "siteSlug": "qa-station",
     "imagePath": "/uploads/images/1792943922063-oar1wxv.webp",
     "thumbnailPath": "/uploads/thumbs/1792943922063-oar1wxv-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1792943922063-oar1wxv.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1792943922063-oar1wxv-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1792943922063-oar1wxv.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1792943922063-oar1wxv-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "none",
     "mood": "Radical",
@@ -984,9 +2524,8 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-10-25T15:58:42.093Z",
-    "email": "qa_surfer_1792943921284@neogram.retro",
-    "handle": "qa_surfer_1792943921",
-    "author": "qa_surfer_1792943921",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "24775cc7-550f-47ab-92b9-9c7c36e286f4",
@@ -996,14 +2535,29 @@
         "text": "This photograph looks radical on my Netscape Navigator browser!",
         "timestamp": "2026-10-25T15:58:42.633Z"
       }
-    ]
+    ],
+    "commentsUrl": "uploads/images/1792943922063-oar1wxv.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/70b7eaec-be64-4d3b-aa3f-ab6ee69b6a5b/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/70b7eaec-be64-4d3b-aa3f-ab6ee69b6a5b/comments"
+    }
   },
   {
     "id": "672456cf-5dea-42b9-9306-6ae403215ee4",
     "userId": "c118cbc7-e146-4845-8b48-020aeafdd412",
     "siteId": "15118b64-009b-4038-9ced-80e39dbd19de",
+    "siteName": "qa-station",
+    "siteSlug": "default",
     "imagePath": "/uploads/images/1792940710070-qcwsh6c.webp",
     "thumbnailPath": "/uploads/thumbs/1792940710070-qcwsh6c-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1792940710070-qcwsh6c.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1792940710070-qcwsh6c-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1792940710070-qcwsh6c.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1792940710070-qcwsh6c-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "none",
     "mood": "Radical",
@@ -1011,9 +2565,8 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-10-25T15:05:10.175Z",
-    "email": "qa_surfer_1792940709130@neogram.retro",
-    "handle": "qa_surfer_1792940709",
-    "author": "qa_surfer_1792940709",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "24017691-7157-4303-8177-8c01ae6d1d2a",
@@ -1023,14 +2576,29 @@
         "text": "This photograph looks radical on my Netscape Navigator browser!",
         "timestamp": "2026-10-25T15:05:10.766Z"
       }
-    ]
+    ],
+    "commentsUrl": "uploads/images/1792940710070-qcwsh6c.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/672456cf-5dea-42b9-9306-6ae403215ee4/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/672456cf-5dea-42b9-9306-6ae403215ee4/comments"
+    }
   },
   {
     "id": "a869d038-1e71-4071-a99b-b3bd2262f9bb",
     "userId": "34d59ecb-e391-4660-838c-9597bc78baf8",
     "siteId": "e1ce2fd1-7d0c-4aca-8ea5-8dc9fa2d5c4a",
+    "siteName": "qa_surfer_1792871035 Site",
+    "siteSlug": "default",
     "imagePath": "/uploads/images/1792871036400-3gegyeh.webp",
     "thumbnailPath": "/uploads/thumbs/1792871036400-3gegyeh-thumb.webp",
+    "imageUrl": "/uploads/images/1792871036400-3gegyeh.webp",
+    "thumbnailUrl": "/uploads/thumbs/1792871036400-3gegyeh-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "/uploads/images/1792871036400-3gegyeh.webp",
+        "thumbnailPath": "/uploads/thumbs/1792871036400-3gegyeh-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "scanlines",
     "mood": "Radical",
@@ -1041,6 +2609,7 @@
     "email": "qa_surfer_1792871035590@neogram.retro",
     "handle": "qa_surfer_1792871035",
     "author": "qa_surfer_1792871035",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "8139a921-7a85-4a0a-9525-7d8fa67b2a34",
@@ -1056,8 +2625,18 @@
     "id": "febd4c55-3921-4eaa-835c-1219c5bfe673",
     "userId": "2107b9f0-badd-4c3a-8d81-e8f7301e0778",
     "siteId": "c2e52d81-e3db-4f74-8972-e06298f595e9",
+    "siteName": "qa_surfer_1792866009 Site",
+    "siteSlug": "default",
     "imagePath": "/uploads/images/1792866010387-zuvc4o8.webp",
     "thumbnailPath": "/uploads/thumbs/1792866010387-zuvc4o8-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1792866010387-zuvc4o8.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1792866010387-zuvc4o8-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1792866010387-zuvc4o8.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1792866010387-zuvc4o8-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "scanlines",
     "mood": "Radical",
@@ -1065,9 +2644,8 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-10-24T18:20:10.407Z",
-    "email": "qa_surfer_1792866009524@neogram.retro",
-    "handle": "qa_surfer_1792866009",
-    "author": "qa_surfer_1792866009",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "6d6b91ad-daf1-4e8b-aeb2-4e8d855a6654",
@@ -1077,14 +2655,29 @@
         "text": "This photograph looks radical on my Netscape Navigator browser!",
         "timestamp": "2026-10-24T18:20:11.152Z"
       }
-    ]
+    ],
+    "commentsUrl": "uploads/images/1792866010387-zuvc4o8.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/febd4c55-3921-4eaa-835c-1219c5bfe673/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/febd4c55-3921-4eaa-835c-1219c5bfe673/comments"
+    }
   },
   {
     "id": "5b22b83d-fa03-4841-ae91-198c72a22ef9",
     "userId": "b67886a3-9083-4650-907b-b51219910bb4",
     "siteId": "d5a5dfd9-6cd1-43c7-9cea-8c18f4f32351",
+    "siteName": "qa_surfer_1792865991 Site",
+    "siteSlug": "default",
     "imagePath": "/uploads/images/1792865992324-hu0uxd6.webp",
     "thumbnailPath": "/uploads/thumbs/1792865992324-hu0uxd6-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1792865992324-hu0uxd6.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1792865992324-hu0uxd6-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1792865992324-hu0uxd6.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1792865992324-hu0uxd6-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "scanlines",
     "mood": "Radical",
@@ -1092,9 +2685,8 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-10-24T18:19:52.346Z",
-    "email": "qa_surfer_1792865991493@neogram.retro",
-    "handle": "qa_surfer_1792865991",
-    "author": "qa_surfer_1792865991",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "a240e6cb-fc8c-49b7-890c-5dbadf919fc0",
@@ -1104,14 +2696,29 @@
         "text": "This photograph looks radical on my Netscape Navigator browser!",
         "timestamp": "2026-10-24T18:19:52.952Z"
       }
-    ]
+    ],
+    "commentsUrl": "uploads/images/1792865992324-hu0uxd6.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/5b22b83d-fa03-4841-ae91-198c72a22ef9/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/5b22b83d-fa03-4841-ae91-198c72a22ef9/comments"
+    }
   },
   {
     "id": "7d661a8c-30dd-467a-989a-d6371df05e9e",
     "userId": "90811a09-edbc-420f-83ae-f3351d007abe",
     "siteId": "8a79e3b8-d70b-4663-8a45-e92be394eba3",
+    "siteName": "qa_surfer_1792635760 Site",
+    "siteSlug": "default",
     "imagePath": "/uploads/images/1792635760719-ugl333e.webp",
     "thumbnailPath": "/uploads/thumbs/1792635760719-ugl333e-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1792635760719-ugl333e.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1792635760719-ugl333e-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1792635760719-ugl333e.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1792635760719-ugl333e-thumb.webp"
+      }
+    ],
     "caption": "[:> Automated QA Test Photograph — Netscape 4.0 compliant]",
     "filterApplied": "scanlines",
     "mood": "Radical",
@@ -1119,17 +2726,31 @@
     "location": null,
     "likes": 0,
     "createdAt": "2026-10-22T02:22:40.743Z",
-    "email": "qa_surfer_1792635760569@neogram.retro",
-    "handle": "qa_surfer_1792635760",
-    "author": "qa_surfer_1792635760",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1792635760719-ugl333e.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/7d661a8c-30dd-467a-989a-d6371df05e9e/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/7d661a8c-30dd-467a-989a-d6371df05e9e/comments"
+    }
   },
   {
     "id": "5e5a825e-e0ae-4f69-9fd2-a18d5075c396",
     "userId": "08a2394b-bdfd-42bf-a5f6-44bbe565ee17",
     "siteId": "296eec78-f498-4752-b281-59b6b2a40590",
+    "siteName": "neogramtest",
+    "siteSlug": "default",
     "imagePath": "/uploads/images/1792544470418-n58damm.webp",
     "thumbnailPath": "/uploads/thumbs/1792544470418-n58damm-thumb.webp",
+    "imageUrl": "https://user.neocities.org/neogram/uploads/images/1792544470418-n58damm.webp",
+    "thumbnailUrl": "https://user.neocities.org/neogram/uploads/thumbs/1792544470418-n58damm-thumb.webp",
+    "photos": [
+      {
+        "imagePath": "https://user.neocities.org/neogram/uploads/images/1792544470418-n58damm.webp",
+        "thumbnailPath": "https://user.neocities.org/neogram/uploads/thumbs/1792544470418-n58damm-thumb.webp"
+      }
+    ],
     "caption": "yooooo",
     "filterApplied": "crt",
     "mood": "[:> CODING IN THE DARK]",
@@ -1137,17 +2758,31 @@
     "location": "Sparcstation // Node #4",
     "likes": 0,
     "createdAt": "2026-10-21T01:01:10.610Z",
-    "email": "wasson@gmail.com",
-    "handle": "wasson",
-    "author": "wasson",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "uploads/images/1792544470418-n58damm.comments.json",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/5e5a825e-e0ae-4f69-9fd2-a18d5075c396/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/5e5a825e-e0ae-4f69-9fd2-a18d5075c396/comments"
+    }
   },
   {
     "id": "04d1e552-8040-4981-a0cc-80b2a4e25c84",
     "userId": "08a2394b-bdfd-42bf-a5f6-44bbe565ee17",
     "siteId": "296eec78-f498-4752-b281-59b6b2a40590",
+    "siteName": "neogramtest",
+    "siteSlug": "default",
     "imagePath": "https://picsum.photos/id/1062/800/800",
     "thumbnailPath": "https://picsum.photos/id/1062/400/400",
+    "imageUrl": "https://picsum.photos/id/1062/800/800",
+    "thumbnailUrl": "https://picsum.photos/id/1062/400/400",
+    "photos": [
+      {
+        "imagePath": "https://picsum.photos/id/1062/800/800",
+        "thumbnailPath": "https://picsum.photos/id/1062/400/400"
+      }
+    ],
     "caption": "[:> ARCHIVE EDIT] Modified caption live from Neogram Archive Manager. Edited.",
     "filterApplied": "vga",
     "mood": "[:> CODING IN THE DARK]",
@@ -1155,17 +2790,31 @@
     "location": "Sparcstation // Node #4",
     "likes": 0,
     "createdAt": "2026-10-20T03:52:11.692Z",
-    "email": "wasson@gmail.com",
-    "handle": "wasson",
-    "author": "wasson",
-    "comments": []
+    "author": "surfer",
+    "commentsCount": 0,
+    "comments": [],
+    "commentsUrl": "id/1062/800/800",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/04d1e552-8040-4981-a0cc-80b2a4e25c84/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/04d1e552-8040-4981-a0cc-80b2a4e25c84/comments"
+    }
   },
   {
     "id": "807bf3dc-9722-4b95-b201-df3f966fdb26",
     "userId": "43eacf27-22f8-4557-9850-a68a8198c6e9",
     "siteId": "db56d210-284b-4c35-86df-1c5c5239760e",
+    "siteName": "surfer96 Site",
+    "siteSlug": "default",
     "imagePath": "https://picsum.photos/id/96/800/800",
     "thumbnailPath": "https://picsum.photos/id/96/400/400",
+    "imageUrl": "https://picsum.photos/id/96/800/800",
+    "thumbnailUrl": "https://picsum.photos/id/96/400/400",
+    "photos": [
+      {
+        "imagePath": "https://picsum.photos/id/96/800/800",
+        "thumbnailPath": "https://picsum.photos/id/96/400/400"
+      }
+    ],
     "caption": "Testing direct publishing from Creator Studio",
     "filterApplied": "vga",
     "mood": "[:> COMPILING KERNEL]",
@@ -1173,9 +2822,8 @@
     "location": "Node #4",
     "likes": 0,
     "createdAt": "2026-10-20T03:47:31.065Z",
-    "email": "surfer96@neocities.org",
-    "handle": "surfer96",
-    "author": "surfer96",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "9561ab6f-19f2-48b3-975e-33e703951b55",
@@ -1185,14 +2833,29 @@
         "text": "Testing newly published post!",
         "timestamp": "2026-10-20T03:50:27.298Z"
       }
-    ]
+    ],
+    "commentsUrl": "id/96/800/800",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/807bf3dc-9722-4b95-b201-df3f966fdb26/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/807bf3dc-9722-4b95-b201-df3f966fdb26/comments"
+    }
   },
   {
     "id": "52c1e571-93aa-4f14-bc9e-0e41762d726d",
     "userId": "5c21e35c-a50a-4b0b-8364-7af48bfbdafe",
     "siteId": "bec7a33f-8091-43f0-8254-ad095f651a11",
+    "siteName": "root Site",
+    "siteSlug": "default",
     "imagePath": "https://placebear.com/800/800",
     "thumbnailPath": "https://placebear.com/400/400",
+    "imageUrl": "https://placebear.com/800/800",
+    "thumbnailUrl": "https://placebear.com/400/400",
+    "photos": [
+      {
+        "imagePath": "https://placebear.com/800/800",
+        "thumbnailPath": "https://placebear.com/400/400"
+      }
+    ],
     "caption": ":> Corner arcade down on 5th Street. The CRT scanlines on this cabinet are legendary. Dropped 4 quarters on 1UP high score.",
     "filterApplied": "vga",
     "mood": "[:> SURFING WEBRINGS]",
@@ -1200,9 +2863,8 @@
     "location": "Tokyo Funland Arcade // Cabinet 04",
     "likes": 95,
     "createdAt": "2026-10-20T03:24:01.934Z",
-    "email": "root@neogram.retro",
-    "handle": null,
-    "author": "root",
+    "author": "surfer",
+    "commentsCount": 2,
     "comments": [
       {
         "id": "9404489b-8885-437b-8271-587c7aa3904f",
@@ -1220,14 +2882,29 @@
         "text": "This looks incredible! Testing centralized comment from static gallery on Port 3000.",
         "timestamp": "2026-10-20T03:40:42.901Z"
       }
-    ]
+    ],
+    "commentsUrl": "800/800",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/52c1e571-93aa-4f14-bc9e-0e41762d726d/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/52c1e571-93aa-4f14-bc9e-0e41762d726d/comments"
+    }
   },
   {
     "id": "a39c594c-5374-414e-b673-ad70760ff1d7",
     "userId": "5c21e35c-a50a-4b0b-8364-7af48bfbdafe",
     "siteId": "bec7a33f-8091-43f0-8254-ad095f651a11",
+    "siteName": "root Site",
+    "siteSlug": "default",
     "imagePath": "https://picsum.photos/id/338/800/800",
     "thumbnailPath": "https://picsum.photos/id/338/400/400",
+    "imageUrl": "https://picsum.photos/id/338/800/800",
+    "thumbnailUrl": "https://picsum.photos/id/338/400/400",
+    "photos": [
+      {
+        "imagePath": "https://picsum.photos/id/338/800/800",
+        "thumbnailPath": "https://picsum.photos/id/338/400/400"
+      }
+    ],
     "caption": ":> Found my old 1996 mixtapes in a shoebox. Recorded off FM radio late at night. Rewound using a hexagon pencil.",
     "filterApplied": "sepia",
     "mood": "[:> DOWNLOADING MIDI]",
@@ -1235,9 +2912,8 @@
     "location": "Basement Studio // Tape Deck #2",
     "likes": 67,
     "createdAt": "2026-10-20T03:24:01.860Z",
-    "email": "root@neogram.retro",
-    "handle": null,
-    "author": "root",
+    "author": "surfer",
+    "commentsCount": 1,
     "comments": [
       {
         "id": "d750b8a9-b430-4036-8087-c2bd5edbc654",
@@ -1247,14 +2923,29 @@
         "text": ":> The pencil rewind trick! That brings back memories.",
         "timestamp": "2026-10-20T03:24:01.864Z"
       }
-    ]
+    ],
+    "commentsUrl": "id/338/800/800",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/a39c594c-5374-414e-b673-ad70760ff1d7/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/a39c594c-5374-414e-b673-ad70760ff1d7/comments"
+    }
   },
   {
     "id": "1b43b468-52d1-4c15-99c8-7826b069e92d",
     "userId": "5c21e35c-a50a-4b0b-8364-7af48bfbdafe",
     "siteId": "bec7a33f-8091-43f0-8254-ad095f651a11",
+    "siteName": "root Site",
+    "siteSlug": "default",
     "imagePath": "https://picsum.photos/id/1/800/800",
     "thumbnailPath": "https://picsum.photos/id/1/400/400",
+    "imageUrl": "https://picsum.photos/id/1/800/800",
+    "thumbnailUrl": "https://picsum.photos/id/1/400/400",
+    "photos": [
+      {
+        "imagePath": "https://picsum.photos/id/1/800/800",
+        "thumbnailPath": "https://picsum.photos/id/1/400/400"
+      }
+    ],
     "caption": ":> Neon dusk over Akihabara. Snapped with my low-res digital camera. Check the blinking radio tower beacon on the skyline.",
     "filterApplied": "cyberpunk",
     "mood": "[:> VIBING TO CITY POP]",
@@ -1262,9 +2953,8 @@
     "location": "Electric Town Chome 4",
     "likes": 88,
     "createdAt": "2026-10-20T03:24:01.800Z",
-    "email": "root@neogram.retro",
-    "handle": null,
-    "author": "root",
+    "author": "surfer",
+    "commentsCount": 2,
     "comments": [
       {
         "id": "fc1deded-29c1-47f5-89a4-836dbc67edf7",
@@ -1282,14 +2972,29 @@
         "text": ":> The pink and cyan dithering is pure 1996 aesthetic.",
         "timestamp": "2026-10-20T03:24:01.801Z"
       }
-    ]
+    ],
+    "commentsUrl": "id/1/800/800",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/1b43b468-52d1-4c15-99c8-7826b069e92d/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/1b43b468-52d1-4c15-99c8-7826b069e92d/comments"
+    }
   },
   {
     "id": "515d5215-0526-4462-bb0b-2524c05481a1",
     "userId": "5c21e35c-a50a-4b0b-8364-7af48bfbdafe",
     "siteId": "bec7a33f-8091-43f0-8254-ad095f651a11",
+    "siteName": "root Site",
+    "siteSlug": "default",
     "imagePath": "https://picsum.photos/id/250/800/800",
     "thumbnailPath": "https://picsum.photos/id/250/400/400",
+    "imageUrl": "https://picsum.photos/id/250/800/800",
+    "thumbnailUrl": "https://picsum.photos/id/250/400/400",
+    "photos": [
+      {
+        "imagePath": "https://picsum.photos/id/250/800/800",
+        "thumbnailPath": "https://picsum.photos/id/250/400/400"
+      }
+    ],
     "caption": ":> Booted custom BSD workstation. Check the pixel desk setup: large steaming coffee mug, compact keyboard, oversized mousepad, and potted cactus up on the top shelf. Blinking monitor & keyboard LEDs are soothing during late night dial-up compiles.",
     "filterApplied": "crt",
     "mood": "[:> CODING IN THE DARK]",
@@ -1297,9 +3002,8 @@
     "location": "Sparcstation // Node #4",
     "likes": 42,
     "createdAt": "2026-10-20T03:24:01.772Z",
-    "email": "root@neogram.retro",
-    "handle": null,
-    "author": "root",
+    "author": "surfer",
+    "commentsCount": 2,
     "comments": [
       {
         "id": "3cdda2e6-3ff5-41fe-8c50-3920063a9785",
@@ -1317,6 +3021,11 @@
         "text": ":> Love the clean borderless LEDs and the compact keyboard balance!",
         "timestamp": "2026-10-20T03:24:01.780Z"
       }
-    ]
+    ],
+    "commentsUrl": "id/250/800/800",
+    "actions": {
+      "likeUrl": "http://127.0.0.1:4000/api/posts/515d5215-0526-4462-bb0b-2524c05481a1/like",
+      "commentUrl": "http://127.0.0.1:4000/api/posts/515d5215-0526-4462-bb0b-2524c05481a1/comments"
+    }
   }
 ]
