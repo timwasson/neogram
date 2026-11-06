@@ -59,8 +59,17 @@ export const PLACEHOLDER_IMAGES = [
 
 export async function seedInitialPostsIfEmpty() {
   try {
-    // 1. Ensure a default root user exists
-    let userResult = await query("SELECT * FROM users WHERE email = 'root@neogram.retro'");
+    // 1. Check if posts already exist
+    const existing = await query('SELECT COUNT(*) as count FROM posts');
+    const count = parseInt(existing.rows[0].count, 10);
+
+    if (count > 0) {
+      console.log(`[:> DB SEED] Database has ${count} posts. Seed check complete.`);
+      return;
+    }
+
+    // 2. Only if posts table is completely empty, find an existing user or create a seed root user
+    let userResult = await query("SELECT id FROM users ORDER BY created_at ASC LIMIT 1");
     let userId: string;
 
     if (userResult.rows.length === 0) {
@@ -74,30 +83,6 @@ export async function seedInitialPostsIfEmpty() {
       userId = newUser.rows[0].id;
     } else {
       userId = userResult.rows[0].id;
-    }
-
-    // 2. Check if posts already exist
-    const existing = await query('SELECT COUNT(*) as count FROM posts');
-    const count = parseInt(existing.rows[0].count, 10);
-
-    // If existing posts were using old local sample SVGs, update them to the fresh placeholder URLs
-    const oldSamplePosts = await query(
-      "SELECT id FROM posts WHERE image_path LIKE '%1792466641%' OR image_path LIKE '%1792468331669%' OR image_path LIKE '%1792468051032%'"
-    );
-    if (oldSamplePosts.rows.length > 0) {
-      console.log(`[:> DB SEED] Updating ${oldSamplePosts.rows.length} legacy sample posts to interesting placeholder URLs...`);
-      for (let i = 0; i < oldSamplePosts.rows.length; i++) {
-        const placeholder = PLACEHOLDER_IMAGES[i % PLACEHOLDER_IMAGES.length];
-        await query(
-          'UPDATE posts SET image_path = $1, thumbnail_path = $2 WHERE id = $3',
-          [placeholder.imagePath, placeholder.thumbnailPath, oldSamplePosts.rows[i].id]
-        );
-      }
-    }
-
-    if (count > 0) {
-      console.log(`[:> DB SEED] Database has ${count} posts. Seed check complete.`);
-      return;
     }
 
     console.log('[:> DB SEED] Seeding initial retro posts with interesting placeholder URLs into PostgreSQL...');
