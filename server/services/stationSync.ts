@@ -87,10 +87,7 @@ export async function checkAndSyncStationFeed(userId: string): Promise<StationSy
  * Clears all local post records, resets deployment timestamps, and cleans up local static build files.
  */
 export async function wipeStationData(userId: string): Promise<void> {
-  // 1. Purge posts from database
-  await query('DELETE FROM posts WHERE user_id = $1', [userId]);
-
-  // 2. Reset deployment tracking
+  // 1. Reset deployment tracking
   await query('UPDATE users SET last_deployed_at = NULL WHERE id = $1', [userId]);
   await query('UPDATE sites SET last_deployed_at = NULL WHERE user_id = $1', [userId]);
 

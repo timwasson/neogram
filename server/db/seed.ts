@@ -57,63 +57,78 @@ export const PLACEHOLDER_IMAGES = [
   }
 ];
 
+import { getAllPosts, savePost } from '../services/postStorage';
+
 export async function seedInitialPostsIfEmpty() {
   try {
-    // 1. Check if posts already exist
-    const existing = await query('SELECT COUNT(*) as count FROM posts');
-    const count = parseInt(existing.rows[0].count, 10);
+    // 1. Check if posts already exist on disk
+    const existingPosts = await getAllPosts();
+    const count = existingPosts.length;
 
     if (count > 0) {
-      console.log(`[:> DB SEED] Database has ${count} posts. Seed check complete.`);
+      console.log(`[:> DB SEED] Found ${count} posts in static storage. Seed check complete.`);
       return;
     }
 
-    // 2. Only if posts table is completely empty, find an existing user or create a seed root user
-    let userResult = await query("SELECT id FROM users ORDER BY created_at ASC LIMIT 1");
+    // 2. Only if static storage is completely empty, find an existing user or create a seed root user
+    let userResult = await query("SELECT id, handle, email FROM users ORDER BY created_at ASC LIMIT 1");
     let userId: string;
+    let handle = 'cyber_phantom';
+    let email = 'root@neogram.retro';
 
     if (userResult.rows.length === 0) {
       const newUser = await query(
         `
-        INSERT INTO users (email, site_url, deployment_type)
-        VALUES ('root@neogram.retro', 'http://cyber_phantom.neocities.org', 'neocities')
-        RETURNING id
+        INSERT INTO users (email, handle, site_url, deployment_type)
+        VALUES ('root@neogram.retro', 'cyber_phantom', 'http://cyber_phantom.neocities.org', 'neocities')
+        RETURNING id, handle, email
       `
       );
       userId = newUser.rows[0].id;
+      handle = newUser.rows[0].handle || handle;
+      email = newUser.rows[0].email || email;
     } else {
       userId = userResult.rows[0].id;
+      handle = userResult.rows[0].handle || handle;
+      email = userResult.rows[0].email || email;
     }
 
-    console.log('[:> DB SEED] Seeding initial retro posts with interesting placeholder URLs into PostgreSQL...');
+    console.log('[:> DB SEED] Seeding initial retro posts into static storage JSON...');
 
-    for (const p of PLACEHOLDER_IMAGES) {
+    for (let i = 0; i < PLACEHOLDER_IMAGES.length; i++) {
+      const p = PLACEHOLDER_IMAGES[i];
       try {
-        const postInsert = await query(
-          `
-          INSERT INTO posts (user_id, image_path, thumbnail_path, caption, filter_applied, mood, webring, location, likes_count)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-          RETURNING id
-        `,
-          [userId, p.imagePath, p.thumbnailPath, p.caption, p.filter, p.mood, p.webring, p.location, p.likes]
-        );
-
-        const postId = postInsert.rows[0].id;
-        for (const c of p.comments) {
-          await query(
-            `
-            INSERT INTO comments (post_id, author_name, body)
-            VALUES ($1, $2, $3)
-          `,
-            [postId, c.author, c.text]
-          );
-        }
+        const postId = crypto.randomUUID();
+        await savePost({
+          id: postId,
+          userId,
+          imagePath: p.imagePath,
+          thumbnailPath: p.thumbnailPath,
+          photos: [{ imagePath: p.imagePath, thumbnailPath: p.thumbnailPath }],
+          caption: p.caption,
+          filterApplied: p.filter,
+          mood: p.mood,
+          webring: p.webring,
+          location: p.location,
+          likes: p.likes,
+          createdAt: new Date(Date.now() - (PLACEHOLDER_IMAGES.length - i) * 3600000).toISOString(),
+          handle,
+          email,
+          author: handle,
+          comments: p.comments.map((c) => ({
+            id: crypto.randomUUID(),
+            postId,
+            author: c.author,
+            text: c.text,
+            timestamp: new Date().toISOString(),
+          })),
+        });
       } catch (err) {
         console.error('[:> DB SEED ERROR] Failed to seed post:', err);
       }
     }
 
-    console.log('[:> DB SEED] Successfully seeded initial placeholder posts and comments.');
+    console.log('[:> DB SEED] Successfully seeded initial placeholder posts to static JSON.');
   } catch (err) {
     console.error('[:> DB SEED ERROR]', err);
   }

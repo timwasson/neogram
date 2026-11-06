@@ -4,6 +4,7 @@ import { query } from '../db';
 import { generateCounterSvg, CounterStyle } from '../services/counterSvg';
 import { COOKIE_NAME, verifySessionToken, extractToken } from '../auth/jwt';
 import { getUserById } from '../auth/service';
+import { getPostsForSite, getPostsForUser, getPostCountForUser } from '../services/postStorage';
 
 export const embedsRouter = Router();
 
@@ -451,49 +452,14 @@ embedsRouter.get(['/api/users/:identifier/feed.json', '/feed/:identifier.json'],
       targetSite = await getSiteBySlug(user.id, reqSiteSlug);
     }
 
-    const postsSql = targetSite
-      ? `SELECT 
-          p.id,
-          p.image_path as "imagePath",
-          p.thumbnail_path as "thumbnailPath",
-          p.photos,
-          p.caption,
-          p.filter_applied as "filterApplied",
-          p.mood,
-          p.webring,
-          p.location,
-          p.likes_count as "likes",
-          p.created_at as "createdAt",
-          (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
-         FROM posts p
-         WHERE p.user_id = $1 AND p.site_id = $2
-         ORDER BY p.created_at DESC`
-      : `SELECT 
-          p.id,
-          p.image_path as "imagePath",
-          p.thumbnail_path as "thumbnailPath",
-          p.photos,
-          p.caption,
-          p.filter_applied as "filterApplied",
-          p.mood,
-          p.webring,
-          p.location,
-          p.likes_count as "likes",
-          p.created_at as "createdAt",
-          (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
-         FROM posts p
-         WHERE p.user_id = $1
-         ORDER BY p.created_at DESC`;
+    const rawPosts = targetSite
+      ? await getPostsForSite(targetSite.id)
+      : await getPostsForUser(user.id);
 
-    const postsParams = targetSite ? [user.id, targetSite.id] : [user.id];
-    const postsRes = await query(postsSql, postsParams);
-
-    const posts = postsRes.rows.map((p) => {
+    const posts = rawPosts.map((p) => {
       let parsedPhotos: any[] = [];
       if (Array.isArray(p.photos) && p.photos.length > 0) {
         parsedPhotos = p.photos;
-      } else if (typeof p.photos === 'string' && p.photos.startsWith('[')) {
-        try { parsedPhotos = JSON.parse(p.photos); } catch (_e) {}
       }
       if (!parsedPhotos || parsedPhotos.length === 0) {
         parsedPhotos = [{ imagePath: p.imagePath, thumbnailPath: p.thumbnailPath }];
@@ -513,8 +479,8 @@ embedsRouter.get(['/api/users/:identifier/feed.json', '/feed/:identifier.json'],
         mood: p.mood,
         webring: p.webring,
         location: p.location,
-        likes: parseInt(p.likes, 10),
-        commentCount: parseInt(p.commentCount, 10),
+        likes: p.likes || 0,
+        commentCount: p.commentsCount || (p.comments || []).length,
         url: `${baseUrl}/photos/${p.id}/`,
         createdAt: p.createdAt,
       };
@@ -559,7 +525,7 @@ embedsRouter.get('/api/network/users', async (req: Request, res: Response) => {
         COALESCE(u.handle, split_part(u.email, '@', 1)) as handle,
         u.site_url as "siteUrl",
         u.created_at as "createdAt",
-        (SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id) as "postCount",
+        0 as "postCount",
         (SELECT COUNT(*) FROM follows f WHERE f.following_id = u.id) as "followersCount",
         CASE 
           WHEN $1::UUID IS NOT NULL AND EXISTS (
@@ -568,21 +534,23 @@ embedsRouter.get('/api/network/users', async (req: Request, res: Response) => {
           ELSE false 
         END as "isFollowing"
       FROM users u
-      ORDER BY "postCount" DESC, u.created_at ASC
+      ORDER BY u.created_at ASC
     `, [currentUserId]);
+
+    const users = await Promise.all(usersRes.rows.map(async (u) => ({
+      id: u.id,
+      handle: u.handle,
+      email: u.email,
+      siteUrl: u.siteUrl,
+      postCount: await getPostCountForUser(u.id),
+      followersCount: parseInt(u.followersCount, 10),
+      isFollowing: !!u.isFollowing,
+      isSelf: currentUserId === u.id,
+    })));
 
     res.json({
       ok: true,
-      users: usersRes.rows.map((u) => ({
-        id: u.id,
-        handle: u.handle,
-        email: u.email,
-        siteUrl: u.siteUrl,
-        postCount: parseInt(u.postCount, 10),
-        followersCount: parseInt(u.followersCount, 10),
-        isFollowing: !!u.isFollowing,
-        isSelf: currentUserId === u.id,
-      })),
+      users,
     });
   } catch (err: any) {
     res.status(500).json({ ok: false, error: err.message });
@@ -675,7 +643,7 @@ embedsRouter.get('/api/friends', async (req: Request, res: Response) => {
         u.deploy_path as "deployPath",
         u.last_deployed_at as "lastDeployedAt",
         f.created_at as "friendedAt",
-        (SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id) as "postCount"
+        0 as "postCount"
       FROM follows f
       JOIN users u ON f.following_id = u.id
       WHERE f.follower_id = $1
@@ -909,29 +877,15 @@ embedsRouter.get('/embed/feed/:identifier', async (req: Request, res: Response) 
 
     const handle = user.handle || user.email.split('@')[0];
 
-    const postsRes = await query(
-      `SELECT 
-        p.id,
-        p.image_path as "imagePath",
-        p.caption,
-        p.filter_applied as "filterApplied",
-        p.mood,
-        p.likes_count as "likes",
-        p.created_at as "createdAt",
-        (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
-       FROM posts p
-       WHERE p.user_id = $1
-       ORDER BY p.created_at DESC
-       LIMIT 6`,
-      [user.id]
-    );
+    const userPosts = await getPostsForUser(user.id);
+    const feedPosts = userPosts.slice(0, 6);
 
     res.render('embeds/feed', {
       title: `${handle}'s Neogram Feed`,
       handle,
       userId: user.id,
       siteUrl: user.site_url,
-      posts: postsRes.rows,
+      posts: feedPosts,
     });
   } catch (err: any) {
     res.status(500).send(`Feed Error: ${err.message}`);

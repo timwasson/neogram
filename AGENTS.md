@@ -96,32 +96,11 @@ CREATE TABLE sites (
 
 CREATE INDEX idx_sites_user_id ON sites(user_id);
 
--- Posts Published to Static Sites & Social Feed
-CREATE TABLE posts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    site_id UUID REFERENCES sites(id) ON DELETE CASCADE,
-    image_path VARCHAR(500) NOT NULL,
-    thumbnail_path VARCHAR(500) NOT NULL,
-    photos JSONB DEFAULT '[]'::jsonb, -- Multi-photo gallery frames (up to 5 photos with imagePath, thumbnailPath, width, height)
-    caption TEXT,
-    filter_applied VARCHAR(50) DEFAULT 'none',
-    mood VARCHAR(100), -- Optional legacy field (default NULL)
-    webring VARCHAR(100), -- Optional legacy field (default NULL)
-    location VARCHAR(200), -- Optional legacy field (default NULL)
-    likes_count INTEGER DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
--- Centralized Comments on Static Site Embeds
-CREATE TABLE comments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-    author_name VARCHAR(100) NOT NULL,
-    author_avatar VARCHAR(50) DEFAULT '💬',
-    body TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
+-- NOTE: Posts and comments tables were REMOVED from PostgreSQL in migration 015.
+-- Photo details, gallery frames, captions, and comments are stored with 100% data sovereignty
+-- directly in the static site JSONs (posts.json, feed.json, and <photo>.comments.json).
+-- The database is strictly reserved for user authentication, encrypted site credentials,
+-- web counter hits, and notification dispatch preferences.
 
 -- Social Following
 CREATE TABLE follows (

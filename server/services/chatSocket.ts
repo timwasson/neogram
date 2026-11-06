@@ -387,7 +387,7 @@ async function sendInitialState(ws: WebSocket, currentUserId: string) {
         COALESCE(u.handle, split_part(u.email, '@', 1)) as handle,
         u.status_message as "statusMessage",
         u.is_away as "isAway",
-        (SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id) as "postCount"
+        0 as "postCount"
       FROM users u
       ORDER BY u.created_at ASC
     `);

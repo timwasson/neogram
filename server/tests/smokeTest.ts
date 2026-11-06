@@ -214,9 +214,10 @@ async function runSmokeTests() {
     assertTest('Image converted to WebP', uploadData.post.imagePath.endsWith('.webp'), uploadData.post.imagePath);
     assertTest('Square thumbnail generated', uploadData.post.thumbnailPath.endsWith('.webp'), uploadData.post.thumbnailPath);
 
-    // Verify record in PostgreSQL database
-    const dbPostRes = await query('SELECT * FROM posts WHERE id = $1', [testPostId]);
-    assertTest('Post record persisted in PostgreSQL', dbPostRes.rows.length === 1, `Post ID: ${testPostId}`);
+    // Verify record in sovereign JSON storage
+    const getPostCheck = await fetch(`${API_BASE}/api/posts/${testPostId}`);
+    const getPostCheckData = await getPostCheck.json() as any;
+    assertTest('Post record persisted in sovereign JSON storage', getPostCheck.status === 200 && getPostCheckData.post.id === testPostId, `Post ID: ${testPostId}`);
 
     // -------------------------------------------------------------------------
     // TEST 7.1: Multi-Photo Gallery Ingestion & 5-Photo Limit Enforcement
@@ -261,9 +262,10 @@ async function runSmokeTests() {
     assertTest('All photos in gallery converted to WebP', multiPost?.photos?.every((p: any) => p.imagePath?.endsWith('.webp') && p.thumbnailPath?.endsWith('.webp')));
     assertTest('Primary imagePath and thumbnailPath match first frame for backward compatibility', multiPost?.imagePath === multiPost?.photos[0]?.imagePath);
 
-    // Verify multi-photo persistence in PostgreSQL
-    const dbMultiPostRes = await query('SELECT photos FROM posts WHERE id = $1', [multiPostId]);
-    assertTest('Multi-photo post records photos JSONB array in PostgreSQL', dbMultiPostRes.rows.length === 1 && (Array.isArray(dbMultiPostRes.rows[0].photos) ? dbMultiPostRes.rows[0].photos.length === 3 : JSON.parse(dbMultiPostRes.rows[0].photos).length === 3));
+    // Verify multi-photo persistence via GET /api/posts/:id
+    const multiPostCheck = await fetch(`${API_BASE}/api/posts/${multiPostId}`);
+    const multiPostCheckData = await multiPostCheck.json() as any;
+    assertTest('Multi-photo post records photos array in sovereign JSON storage', multiPostCheck.status === 200 && Array.isArray(multiPostCheckData.post.photos) && multiPostCheckData.post.photos.length === 3);
 
     // -------------------------------------------------------------------------
     // TEST 8: 11ty Multi-Tenant Static Compilation
@@ -1070,9 +1072,10 @@ async function runSmokeTests() {
     const checkSiteDeleted = await query('SELECT id FROM sites WHERE id = $1', [secondarySiteId]);
     assertTest('Site deleted from PostgreSQL database', checkSiteDeleted.rows.length === 0);
 
-    // Verify CASCADE cleanup of secondary site post, counter, and guestbook
-    const checkSecPostDeleted = await query('SELECT id FROM posts WHERE id = $1', [secondaryPostId]);
-    assertTest('Secondary post cascade deleted with site', checkSecPostDeleted.rows.length === 0);
+    // Verify cleanup of secondary site post, counter, and guestbook
+    const { getPostById } = await import('../services/postStorage');
+    const checkSecPostDeleted = await getPostById(secondaryPostId);
+    assertTest('Secondary post deleted with site directory cleanup', !checkSecPostDeleted);
     const checkSecGbDeleted = await query('SELECT id FROM guestbook_entries WHERE site_id = $1', [secondarySiteId]);
     assertTest('Secondary guestbook cascade deleted with site', checkSecGbDeleted.rows.length === 0);
     const checkSecCounterDeleted = await query('SELECT hits FROM web_counters WHERE site_id = $1', [secondarySiteId]);
@@ -1731,16 +1734,19 @@ async function runSmokeTests() {
       });
       assertTest('DELETE /api/posts/:id returns HTTP 200', deletePostRes.status === 200);
 
-      const checkDeleted = await query('SELECT * FROM posts WHERE id = $1', [probePostId]);
-      assertTest('Probe post deleted from PostgreSQL database', checkDeleted.rows.length === 0);
+      const { getPostById } = await import('../services/postStorage');
+      const checkDeleted = await getPostById(probePostId);
+      assertTest('Probe post deleted from sovereign static storage', !checkDeleted);
     } else {
       assertTest('DELETE /api/posts/:id returns HTTP 200', true);
       assertTest('Probe post deleted from PostgreSQL database', true);
     }
 
     // Retain all test photos, primary and secondary posts, and user accounts in perpetuity
-    const checkRetained = await query('SELECT COUNT(*) as count FROM posts WHERE id IN ($1, $2, $3)', [testPostId, secondaryPostId, multiPostId]);
-    assertTest('Test photos and posts preserved in perpetuity', parseInt(checkRetained.rows[0]?.count || '0', 10) >= 1);
+    const { getPostById: checkPostById } = await import('../services/postStorage');
+    const testP = testPostId ? await checkPostById(testPostId) : null;
+    const multiP = multiPostId ? await checkPostById(multiPostId) : null;
+    assertTest('Test photos and posts preserved in perpetuity', !!(testP || multiP));
     assertTest('Temporary QA test user and photos preserved in perpetuity', true);
 
     // Wait briefly for background 11ty rebuild triggered by DELETE /api/posts to finalize

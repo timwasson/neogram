@@ -6,6 +6,7 @@ import { config } from '../config';
 import { buildQueue } from './staticBuilder';
 import { renderPhotoPage, renderGalleryIndex, renderFriendsPage, ensureStaticAssets } from './incrementalRenderer';
 import { getCommentsRelativePath } from './staticStorage';
+import { getPostsForSite, getPostsForUser } from './postStorage';
 import { deployFilesToNeocities, DeltaFile } from './neocitiesPublisher';
 import { deployFilesToNekoweb } from './nekowebPublisher';
 import { decryptCredentials, NeocitiesCredentials, NekowebCredentials } from '../utils/crypto';
@@ -188,72 +189,11 @@ async function dispatchDeltaDeploy(
  * Helper to fetch and format all posts for a site/user.
  */
 async function fetchFormattedPosts(siteId?: string, userId?: string, fullSiteUrl: string = '', baseNeogramUrl: string = '') {
-  let postsRes;
-  if (siteId) {
-    postsRes = await query(
-      `SELECT 
-        p.id,
-        p.user_id as "userId",
-        p.site_id as "siteId",
-        p.image_path as "imagePath",
-        p.thumbnail_path as "thumbnailPath",
-        p.photos,
-        p.caption,
-        p.filter_applied as "filterApplied",
-        p.mood,
-        p.webring,
-        p.location,
-        p.likes_count as "likes",
-        p.created_at as "createdAt",
-        u.email,
-        u.handle,
-        COALESCE(u.handle, split_part(u.email, '@', 1)) as author
-      FROM posts p
-      JOIN users u ON p.user_id = u.id
-      WHERE p.site_id = $1
-      ORDER BY p.created_at DESC`,
-      [siteId]
-    );
-  } else {
-    postsRes = await query(
-      `SELECT 
-        p.id,
-        p.user_id as "userId",
-        p.site_id as "siteId",
-        p.image_path as "imagePath",
-        p.thumbnail_path as "thumbnailPath",
-        p.photos,
-        p.caption,
-        p.filter_applied as "filterApplied",
-        p.mood,
-        p.webring,
-        p.location,
-        p.likes_count as "likes",
-        p.created_at as "createdAt",
-        u.email,
-        u.handle,
-        COALESCE(u.handle, split_part(u.email, '@', 1)) as author
-      FROM posts p
-      JOIN users u ON p.user_id = u.id
-      WHERE p.user_id = $1
-      ORDER BY p.created_at DESC`,
-      [userId]
-    );
-  }
+  const posts = siteId
+    ? await getPostsForSite(siteId)
+    : (userId ? await getPostsForUser(userId) : []);
 
-  // Fetch comments from database
-  const commentsRes = await query(`
-    SELECT id, post_id as "postId", author_name as "author", author_avatar as "avatar", body as "text", created_at as "timestamp"
-    FROM comments
-    ORDER BY created_at ASC
-  `);
-  const commentsByPost: Record<string, any[]> = {};
-  for (const c of commentsRes.rows) {
-    if (!commentsByPost[c.postId]) commentsByPost[c.postId] = [];
-    commentsByPost[c.postId].push(c);
-  }
-
-  return postsRes.rows.map((post) => {
+  return posts.map((post) => {
     let imageUrl = post.imagePath;
     let thumbnailUrl = post.thumbnailPath;
     if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
@@ -263,21 +203,7 @@ async function fetchFormattedPosts(siteId?: string, userId?: string, fullSiteUrl
       thumbnailUrl = `${fullSiteUrl}${thumbnailUrl.startsWith('/') ? '' : '/'}${thumbnailUrl}`;
     }
 
-    let parsedPhotos: any[] = [];
-    if (Array.isArray(post.photos) && post.photos.length > 0) {
-      parsedPhotos = post.photos;
-    } else if (typeof post.photos === 'string' && post.photos.startsWith('[')) {
-      try {
-        parsedPhotos = JSON.parse(post.photos);
-      } catch (_e) {
-        parsedPhotos = [];
-      }
-    }
-    if (!parsedPhotos || parsedPhotos.length === 0) {
-      parsedPhotos = [{ imagePath: post.imagePath, thumbnailPath: post.thumbnailPath }];
-    }
-
-    const formattedPhotos = parsedPhotos.map((pic: any) => {
+    const formattedPhotos = (post.photos || []).map((pic: any) => {
       let pImg = pic.imagePath;
       let pThumb = pic.thumbnailPath || pic.imagePath;
       if (pImg && !pImg.startsWith('http://') && !pImg.startsWith('https://')) {
@@ -292,7 +218,7 @@ async function fetchFormattedPosts(siteId?: string, userId?: string, fullSiteUrl
       };
     });
 
-    const comments = commentsByPost[post.id] || [];
+    const comments = Array.isArray(post.comments) ? post.comments : [];
 
     return {
       id: post.id,
@@ -309,7 +235,7 @@ async function fetchFormattedPosts(siteId?: string, userId?: string, fullSiteUrl
       mood: post.mood || null,
       webring: post.webring || null,
       location: post.location || null,
-      likes: parseInt(post.likes, 10) || 0,
+      likes: typeof post.likes === 'number' ? post.likes : (parseInt(String(post.likes || '0'), 10) || 0),
       createdAt: post.createdAt,
       commentsCount: comments.length,
       comments,

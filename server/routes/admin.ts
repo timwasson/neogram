@@ -6,6 +6,7 @@ import { buildQueue } from '../services/staticBuilder';
 import { initiateFleetSweep, cancelActiveFleetSweep } from '../services/fleetSweepService';
 import { activeSockets } from '../services/chatSocket';
 import { getUserSites, createSite, updateSite, Site } from '../services/siteService';
+import { getAllPosts, getPostCountForUser, getPostsForUser, deletePost } from '../services/postStorage';
 import { signSessionToken, COOKIE_NAME } from '../auth/jwt';
 import { config } from '../config';
 
@@ -29,7 +30,7 @@ async function getQaFleetUsers(): Promise<QaFleetUser[]> {
       u.handle,
       u.uin,
       u.status_message as "statusMessage",
-      (SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id) as "postCount"
+      0 as "postCount"
     FROM users u
     WHERE u.email LIKE '%@qa.neogram.club'
     ORDER BY u.handle ASC
@@ -38,13 +39,14 @@ async function getQaFleetUsers(): Promise<QaFleetUser[]> {
   const fleet: QaFleetUser[] = [];
   for (const row of res.rows) {
     const sites = await getUserSites(row.id);
+    const postCount = await getPostCountForUser(row.id);
     fleet.push({
       id: row.id,
       email: row.email,
       handle: row.handle,
       uin: Number(row.uin),
       statusMessage: row.statusMessage || 'QA Test Persona',
-      postCount: parseInt(row.postCount || '0', 10),
+      postCount,
       sites,
     });
   }
@@ -101,8 +103,8 @@ adminRouter.get('/admin', requireAdmin, async (req: Request, res: Response, next
     deployBreakdown.sandbox = deployBreakdown.none;
 
     // 3. System Load & Counters
-    const postsRes = await query('SELECT COUNT(*) as count FROM posts');
-    const totalPosts = parseInt(postsRes.rows[0]?.count || '0', 10);
+    const allPosts = await getAllPosts();
+    const totalPosts = allPosts.length;
 
     const hitsRes = await query('SELECT COALESCE(SUM(hits), 0) as total FROM web_counters');
     const totalHits = parseInt(hitsRes.rows[0]?.total || '0', 10);
@@ -123,7 +125,7 @@ adminRouter.get('/admin', requireAdmin, async (req: Request, res: Response, next
         u.is_banned as "isBanned",
         u.ban_reason as "banReason",
         u.banned_at as "bannedAt",
-        (SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id) as "postCount",
+        0 as "postCount",
         (SELECT COUNT(*) FROM sites s WHERE s.user_id = u.id) as "siteCount"
       FROM users u
       ORDER BY u.created_at DESC
@@ -131,15 +133,16 @@ adminRouter.get('/admin', requireAdmin, async (req: Request, res: Response, next
     `);
 
     // Attach real-time connection status
-    const users = usersListRes.rows.map((u) => {
+    const users = await Promise.all(usersListRes.rows.map(async (u) => {
       const isOnline = activeSockets.has(u.id);
+      const postCount = await getPostCountForUser(u.id);
       return {
         ...u,
         isOnline,
-        postCount: parseInt(u.postCount || '0', 10),
+        postCount,
         siteCount: parseInt(u.siteCount || '0', 10),
       };
-    });
+    }));
 
     // 5. Active Marquee Announcement Ticker
     const currentTicker = await getTickerAnnouncement();
@@ -780,9 +783,15 @@ adminRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const adminUser = (req as AdminRequest).adminUser!;
-      const delPosts = await query(
-        `DELETE FROM posts WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club') RETURNING id`
-      );
+      const qaUsersRes = await query(`SELECT id FROM users WHERE email LIKE '%@qa.neogram.club'`);
+      let deletedCount = 0;
+      for (const qaUser of qaUsersRes.rows) {
+        const posts = await getPostsForUser(qaUser.id);
+        for (const post of posts) {
+          await deletePost(post.id);
+          deletedCount++;
+        }
+      }
       await query(
         `DELETE FROM guestbook_entries WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club')`
       );
@@ -791,13 +800,13 @@ adminRouter.post(
         adminId: adminUser.id,
         adminEmail: adminUser.email,
         action: 'PURGE_QA_POSTS',
-        details: { deletedPostsCount: delPosts.rowCount || 0 },
+        details: { deletedPostsCount: deletedCount },
         ipAddress: req.ip,
       });
 
       res.json({
         ok: true,
-        message: `Purged ${delPosts.rowCount || 0} QA test post(s) and comments. All QA users, sites, and encrypted API keys were preserved.`,
+        message: `Purged ${deletedCount} QA test post(s) and comments. All QA users, sites, and encrypted API keys were preserved.`,
       });
     } catch (err) {
       next(err);

@@ -22,14 +22,15 @@ apiRouter.use(notificationsRouter);
 apiRouter.get('/stats', async (_req: Request, res: Response, next) => {
   try {
     const usersCount = await query('SELECT COUNT(*) as count FROM users');
-    const postsCount = await query('SELECT COUNT(*) as count FROM posts');
+    const { getAllPosts } = await import('../services/postStorage');
+    const allPosts = await getAllPosts();
     const guestbookCount = await query('SELECT COUNT(*) as count FROM guestbook_entries');
 
     res.json({
       ok: true,
       stats: {
         users: parseInt(usersCount.rows[0].count, 10),
-        posts: parseInt(postsCount.rows[0].count, 10),
+        posts: allPosts.length,
         guestbookEntries: parseInt(guestbookCount.rows[0].count, 10),
       },
     });

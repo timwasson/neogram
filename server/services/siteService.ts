@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import { query } from '../db';
 import { encryptCredentials, decryptCredentials, maskApiKey, NeocitiesCredentials } from '../utils/crypto';
+import { getPostCountForSite } from './postStorage';
 
 export interface Site {
   id: string;
@@ -104,15 +105,18 @@ export function sanitizeSlug(input: string, fallback: string = 'site'): string {
  */
 export async function getUserSites(userId: string): Promise<Site[]> {
   const res = await query(
-    `SELECT s.*, 
-            (SELECT COUNT(*) FROM posts p WHERE p.site_id = s.id) as post_count
+    `SELECT s.*, 0 as post_count
      FROM sites s
      WHERE s.user_id = $1
      ORDER BY s.is_default DESC, s.created_at ASC`,
     [userId]
   );
 
-  return res.rows.map(formatSiteRow);
+  const sites = res.rows.map(formatSiteRow);
+  for (const s of sites) {
+    s.postCount = await getPostCountForSite(s.id);
+  }
+  return sites;
 }
 
 /**
@@ -122,14 +126,14 @@ export async function getSiteById(siteId: string, userId?: string): Promise<Site
   let res;
   if (userId) {
     res = await query(
-      `SELECT s.*, (SELECT COUNT(*) FROM posts p WHERE p.site_id = s.id) as post_count
+      `SELECT s.*, 0 as post_count
        FROM sites s
        WHERE s.id = $1 AND s.user_id = $2`,
       [siteId, userId]
     );
   } else {
     res = await query(
-      `SELECT s.*, (SELECT COUNT(*) FROM posts p WHERE p.site_id = s.id) as post_count
+      `SELECT s.*, 0 as post_count
        FROM sites s
        WHERE s.id = $1`,
       [siteId]
@@ -137,7 +141,9 @@ export async function getSiteById(siteId: string, userId?: string): Promise<Site
   }
 
   if (res.rows.length === 0) return null;
-  return formatSiteRow(res.rows[0]);
+  const site = formatSiteRow(res.rows[0]);
+  site.postCount = await getPostCountForSite(site.id);
+  return site;
 }
 
 /**
@@ -146,13 +152,15 @@ export async function getSiteById(siteId: string, userId?: string): Promise<Site
 export async function getSiteBySlug(userId: string, slug: string): Promise<Site | null> {
   const cleanSlug = sanitizeSlug(slug);
   const res = await query(
-    `SELECT s.*, (SELECT COUNT(*) FROM posts p WHERE p.site_id = s.id) as post_count
+    `SELECT s.*, 0 as post_count
      FROM sites s
      WHERE s.user_id = $1 AND s.slug = $2`,
     [userId, cleanSlug]
   );
   if (res.rows.length === 0) return null;
-  return formatSiteRow(res.rows[0]);
+  const site = formatSiteRow(res.rows[0]);
+  site.postCount = await getPostCountForSite(site.id);
+  return site;
 }
 
 /**
@@ -160,7 +168,7 @@ export async function getSiteBySlug(userId: string, slug: string): Promise<Site 
  */
 export async function getDefaultSite(userId: string): Promise<Site | null> {
   const res = await query(
-    `SELECT s.*, (SELECT COUNT(*) FROM posts p WHERE p.site_id = s.id) as post_count
+    `SELECT s.*, 0 as post_count
      FROM sites s
      WHERE s.user_id = $1 AND s.is_default = TRUE
      LIMIT 1`,
@@ -168,12 +176,14 @@ export async function getDefaultSite(userId: string): Promise<Site | null> {
   );
 
   if (res.rows.length > 0) {
-    return formatSiteRow(res.rows[0]);
+    const site = formatSiteRow(res.rows[0]);
+    site.postCount = await getPostCountForSite(site.id);
+    return site;
   }
 
   // Fallback: Check if user has ANY site
   const anySiteRes = await query(
-    `SELECT s.*, (SELECT COUNT(*) FROM posts p WHERE p.site_id = s.id) as post_count
+    `SELECT s.*, 0 as post_count
      FROM sites s
      WHERE s.user_id = $1
      ORDER BY s.created_at ASC
@@ -185,7 +195,9 @@ export async function getDefaultSite(userId: string): Promise<Site | null> {
     // Mark this first site as default
     await query('UPDATE sites SET is_default = TRUE WHERE id = $1', [anySiteRes.rows[0].id]);
     anySiteRes.rows[0].is_default = true;
-    return formatSiteRow(anySiteRes.rows[0]);
+    const site = formatSiteRow(anySiteRes.rows[0]);
+    site.postCount = await getPostCountForSite(site.id);
+    return site;
   }
 
   return null;
@@ -236,8 +248,7 @@ export async function ensureDefaultSite(userId: string): Promise<Site> {
 
   const newSite = insertRes.rows[0];
 
-  // Backfill any orphaned posts for this user
-  await query('UPDATE posts SET site_id = $1 WHERE user_id = $2 AND site_id IS NULL', [newSite.id, userId]).catch(() => {});
+  // Backfill any orphaned counters or guestbooks for this user
   await query('UPDATE web_counters SET site_id = $1 WHERE user_id = $2 AND site_id IS NULL', [newSite.id, userId]).catch(() => {});
   await query('UPDATE guestbook_entries SET site_id = $1 WHERE user_id = $2 AND site_id IS NULL', [newSite.id, userId]).catch(() => {});
 
@@ -468,15 +479,13 @@ export async function deleteSite(siteId: string, userId: string): Promise<{ ok: 
     );
   }
 
-  // Delete site from database (CASCADE deletes associated posts, counters, guestbooks)
+  // Delete site from database (CASCADE deletes associated counters, guestbooks)
   await query('DELETE FROM sites WHERE id = $1', [siteId]);
 
-  // Clean up static build directory
+  // Clean up static build directory and purge site posts from static storage
   try {
-    const siteOutputDir = path.join(process.cwd(), 'dist/static-galleries', siteId);
-    if (existsSync(siteOutputDir)) {
-      await fs.rm(siteOutputDir, { recursive: true, force: true });
-    }
+    const { deletePostsForSite } = await import('./postStorage');
+    await deletePostsForSite(siteId);
   } catch (_e) {}
 
   return { ok: true, message: `Site "${site.name}" unmounted and deleted successfully.` };

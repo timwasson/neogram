@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { query } from '../db';
 import { activeSockets } from '../services/chatSocket';
+import { getPostCountForUser } from '../services/postStorage';
 
 export const directoryRouter = Router();
 
@@ -46,7 +47,7 @@ export async function fetchCategorizedDirectory(): Promise<CategorizedDirectory>
       COALESCE(s.site_url, u.site_url) as "siteUrl",
       COALESCE(s.deploy_path, u.deploy_path) as "deployPath",
       u.created_at as "createdAt",
-      (SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id) as "postCount"
+      0 as "postCount"
     FROM users u
     LEFT JOIN sites s ON s.user_id = u.id AND s.is_default = TRUE
     WHERE COALESCE(u.is_banned, false) = false
@@ -61,7 +62,7 @@ export async function fetchCategorizedDirectory(): Promise<CategorizedDirectory>
     const handle = (row.handle || row.email.split('@')[0] || 'surfer').trim();
     const uin = row.uin ? parseInt(row.uin, 10) : 100101;
     const avatarPath = row.avatarPath && row.avatarPath.trim() ? row.avatarPath : '/icons/default-avatar.svg';
-    const postCount = parseInt(row.postCount, 10) || 0;
+    const postCount = await getPostCountForUser(row.id);
 
     const socketSession = activeSockets.get(row.id);
     let status: 'active' | 'away' | 'inactive' = 'inactive';

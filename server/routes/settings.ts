@@ -564,25 +564,8 @@ settingsRouter.get('/settings/export-archive', async (req: Request, res: Respons
     }
     const user = userRes.rows[0];
 
-    const postsRes = await query('SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
-    const commentsRes = await query(
-      `SELECT c.* FROM comments c
-       JOIN posts p ON c.post_id = p.id
-       WHERE p.user_id = $1
-       ORDER BY c.created_at ASC`,
-      [userId]
-    );
-
-    const commentsByPost: Record<string, any[]> = {};
-    for (const c of commentsRes.rows) {
-      if (!commentsByPost[c.post_id]) commentsByPost[c.post_id] = [];
-      commentsByPost[c.post_id].push(c);
-    }
-
-    const postsWithComments = postsRes.rows.map((p) => ({
-      ...p,
-      comments: commentsByPost[p.id] || [],
-    }));
+    const { getPostsForUser } = await import('../services/postStorage');
+    const postsWithComments = await getPostsForUser(userId);
 
     const guestbookRes = await query('SELECT * FROM guestbook_entries WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
     const followsRes = await query('SELECT * FROM follows WHERE follower_id = $1 OR following_id = $1', [userId]);

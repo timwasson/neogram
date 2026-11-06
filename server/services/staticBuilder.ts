@@ -431,110 +431,16 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
             : path.join(process.cwd(), 'dist/static-galleries/default'))
     );
 
-    // 1. Fetch posts from PostgreSQL (filtered by site or user)
-    let postsQuery;
-    if (siteId) {
-      postsQuery = await query(
-        `SELECT 
-          p.id,
-          p.user_id as "userId",
-          p.site_id as "siteId",
-          p.image_path as "imagePath",
-          p.thumbnail_path as "thumbnailPath",
-          p.photos,
-          p.caption,
-          p.filter_applied as "filterApplied",
-          p.mood,
-          p.webring,
-          p.location,
-          p.likes_count as "likes",
-          p.created_at as "createdAt",
-          u.email,
-          u.handle,
-          COALESCE(u.handle, split_part(u.email, '@', 1)) as author
-        FROM posts p
-        JOIN users u ON p.user_id = u.id
-        WHERE p.site_id = $1
-        ORDER BY p.created_at DESC`,
-        [siteId]
-      );
-    } else if (userId) {
-      postsQuery = await query(
-        `SELECT 
-          p.id,
-          p.user_id as "userId",
-          p.site_id as "siteId",
-          p.image_path as "imagePath",
-          p.thumbnail_path as "thumbnailPath",
-          p.photos,
-          p.caption,
-          p.filter_applied as "filterApplied",
-          p.mood,
-          p.webring,
-          p.location,
-          p.likes_count as "likes",
-          p.created_at as "createdAt",
-          u.email,
-          u.handle,
-          COALESCE(u.handle, split_part(u.email, '@', 1)) as author
-        FROM posts p
-        JOIN users u ON p.user_id = u.id
-        WHERE p.user_id = $1
-        ORDER BY p.created_at DESC`,
-        [userId]
-      );
-    } else {
-      postsQuery = await query(`
-        SELECT 
-          p.id,
-          p.user_id as "userId",
-          p.site_id as "siteId",
-          p.image_path as "imagePath",
-          p.thumbnail_path as "thumbnailPath",
-          p.photos,
-          p.caption,
-          p.filter_applied as "filterApplied",
-          p.mood,
-          p.webring,
-          p.location,
-          p.likes_count as "likes",
-          p.created_at as "createdAt",
-          u.email,
-          u.handle,
-          COALESCE(u.handle, split_part(u.email, '@', 1)) as author
-        FROM posts p
-        JOIN users u ON p.user_id = u.id
-        ORDER BY p.created_at DESC
-      `);
-    }
-
-    // 2. Fetch comments
-    const commentsQuery = await query(`
-      SELECT 
-        c.id,
-        c.post_id as "postId",
-        c.author_name as "author",
-        c.author_avatar as "avatar",
-        c.body as "text",
-        c.created_at as "timestamp"
-      FROM comments c
-      ORDER BY c.created_at ASC
-    `);
-
-    // 2. Fetch comments from self-hosted comments.json files (with fallback to database)
+    // 1. Fetch posts from static storage
+    const { getPostsForSite, getPostsForUser, getAllPosts } = await import('./postStorage');
     const { getCommentsRelativePath } = await import('./staticStorage');
+
+    const rawPosts = siteId
+      ? await getPostsForSite(siteId)
+      : (userId ? await getPostsForUser(userId) : await getAllPosts());
+
     const commentsByPost: Record<string, any[]> = {};
-
-    // Group database comments first as baseline
-    for (const comment of commentsQuery.rows) {
-      if (!commentsByPost[comment.postId]) {
-        commentsByPost[comment.postId] = [];
-      }
-      commentsByPost[comment.postId].push(comment);
-    }
-
-    // Overlay or populate from self-hosted comments.json files
-    for (const post of postsQuery.rows) {
+    for (const post of rawPosts) {
       if (post.imagePath) {
         const relPath = getCommentsRelativePath(post.imagePath);
         const jsonFilePath = path.join(targetOutputDir, relPath);
@@ -551,45 +457,34 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
 
         try {
           if (!existsSync(jsonFilePath)) {
-            // Write initial comments JSON to ensure static host serves 200 OK without 404
             await fs.mkdir(path.dirname(jsonFilePath), { recursive: true });
             const initialData = {
               version: 'neogram-comments-v1',
               postId: post.id,
               updatedAt: new Date().toISOString(),
-              comments: commentsByPost[post.id] || [],
+              comments: post.comments || [],
             };
             await fs.writeFile(jsonFilePath, JSON.stringify(initialData, null, 2), 'utf-8');
+            commentsByPost[post.id] = post.comments || [];
           } else {
             const raw = await fs.readFile(jsonFilePath, 'utf-8');
             const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed.comments) && parsed.comments.length > 0) {
+            if (Array.isArray(parsed.comments)) {
               commentsByPost[post.id] = parsed.comments;
+            } else {
+              commentsByPost[post.id] = post.comments || [];
             }
           }
         } catch (_err) {
-          // File error; keeps DB comments or empty array
+          commentsByPost[post.id] = post.comments || [];
         }
       }
     }
 
-    const posts = postsQuery.rows.map((post) => {
-      let parsedPhotos: any[] = [];
-      if (Array.isArray(post.photos) && post.photos.length > 0) {
-        parsedPhotos = post.photos;
-      } else if (typeof post.photos === 'string' && post.photos.startsWith('[')) {
-        try { parsedPhotos = JSON.parse(post.photos); } catch (_e) { parsedPhotos = []; }
-      }
-      if (!parsedPhotos || parsedPhotos.length === 0) {
-        parsedPhotos = [{ imagePath: post.imagePath, thumbnailPath: post.thumbnailPath }];
-      }
-
-      return {
-        ...post,
-        photos: parsedPhotos,
-        comments: commentsByPost[post.id] || [],
-      };
-    });
+    const posts = rawPosts.map((post) => ({
+      ...post,
+      comments: commentsByPost[post.id] || post.comments || [],
+    }));
 
     // 3. User metadata & Headless API configuration
     let author = 'user';
@@ -772,6 +667,9 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
       return {
         id: post.id,
         userId: post.userId,
+        siteId: post.siteId,
+        siteName: post.siteName,
+        siteSlug: post.siteSlug,
         caption: post.caption,
         imagePath: post.imagePath,
         thumbnailPath: post.thumbnailPath,
@@ -782,7 +680,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
         mood: post.mood || null,
         webring: post.webring || null,
         location: post.location || null,
-        likes: parseInt(post.likes, 10) || 0,
+        likes: typeof post.likes === 'number' ? post.likes : (parseInt(String(post.likes || '0'), 10) || 0),
         createdAt: post.createdAt,
         commentsCount: (post.comments || []).length,
         comments: post.comments || [],

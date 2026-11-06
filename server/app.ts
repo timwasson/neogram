@@ -219,37 +219,12 @@ export function createApp(): Express {
   app.get('/', async (_req: Request, res: Response, next: NextFunction) => {
     try {
       const { query } = await import('./db');
-      const postsQuery = await query(`
-        SELECT 
-          p.id,
-          p.user_id as "userId",
-          p.site_id as "siteId",
-          s.name as "siteName",
-          s.slug as "siteSlug",
-          p.image_path as "imagePath",
-          p.thumbnail_path as "thumbnailPath",
-          p.photos,
-          p.caption,
-          p.filter_applied as "filterApplied",
-          p.mood,
-          p.webring,
-          p.location,
-          p.likes_count as "likes",
-          p.created_at as "createdAt",
-          u.email,
-          split_part(u.email, '@', 1) as author,
-          (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as "commentCount"
-        FROM posts p
-        JOIN users u ON p.user_id = u.id
-        LEFT JOIN sites s ON p.site_id = s.id
-        ORDER BY p.created_at DESC
-      `);
+      const { getAllPosts, getPostsForUser } = await import('./services/postStorage');
 
-      // Filter personal archive posts to the authenticated user so other users' posts are isolated
+      // Fetch personal archive posts from static JSON for authenticated user
       const currentUser = res.locals.currentUser;
-      const userArchivePosts = currentUser
-        ? postsQuery.rows.filter((p: any) => p.userId === currentUser.id)
-        : postsQuery.rows;
+      const userArchivePosts = currentUser ? await getPostsForUser(currentUser.id) : [];
+      const allPosts = await getAllPosts();
 
       // Query Follower Feed for authenticated user strictly from friends' live feed.json
       let followerFeedPosts: any[] = [];
@@ -299,7 +274,7 @@ export function createApp(): Express {
         appUrl: res.locals.appUrl,
         tickerAnnouncement: res.locals.tickerAnnouncement,
         posts: userArchivePosts,
-        allPosts: postsQuery.rows,
+        allPosts,
         followerFeedPosts,
         followedCount,
         userSites: res.locals.userSites || [],
@@ -380,7 +355,7 @@ export function createApp(): Express {
           u.deploy_path as "deployPath",
           u.last_deployed_at as "lastDeployedAt",
           f.created_at as "friendedAt",
-          (SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id) as "postCount"
+          0 as "postCount"
         FROM follows f
         JOIN users u ON f.following_id = u.id
         WHERE f.follower_id = $1
@@ -471,18 +446,9 @@ export function createApp(): Express {
         [user.id]
       );
 
-      // Fetch public transmissions from this user with site metadata
-      const postsRes = await query(
-        `SELECT p.id, p.site_id as "siteId", s.name as "siteName", s.slug as "siteSlug",
-                p.image_path as "imagePath", p.thumbnail_path as "thumbnailPath", p.photos, p.caption,
-                p.filter_applied as "filterApplied", mood, webring, location, likes_count as "likes",
-                p.created_at as "createdAt"
-         FROM posts p
-         LEFT JOIN sites s ON p.site_id = s.id
-         WHERE p.user_id = $1
-         ORDER BY p.created_at DESC`,
-        [user.id]
-      );
+      // Fetch public transmissions from static JSON for this user
+      const { getPostsForUser } = await import('./services/postStorage');
+      const userPosts = await getPostsForUser(user.id);
 
       // Primary / default site priority for station profile
       const primarySite = sitesRes.rows[0];
@@ -519,7 +485,7 @@ export function createApp(): Express {
       const counterStyle = counterRes.rows.length > 0 ? counterRes.rows[0].style : 'green_led';
 
       // Aggregate likes
-      const totalLikes = postsRes.rows.reduce((sum: number, p: any) => sum + (p.likes || 0), 0);
+      const totalLikes = userPosts.reduce((sum: number, p: any) => sum + (p.likes || 0), 0);
 
       const stationHandle = user.handle || user.email.split('@')[0] || 'surfer';
 
@@ -556,7 +522,7 @@ export function createApp(): Express {
           totalLikes,
         },
         sites: sitesRes.rows,
-        posts: postsRes.rows,
+        posts: userPosts,
       });
     } catch (err) {
       next(err);

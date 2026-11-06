@@ -5,6 +5,16 @@ import { query } from '../db';
 import { COOKIE_NAME, verifySessionToken, extractToken } from '../auth/jwt';
 import { getUserById } from '../auth/service';
 import { processImageBuffer, processBase64Image } from '../services/imageProcessor';
+import {
+  getAllPosts,
+  getPostsForSite,
+  getPostsForUser,
+  getPostById,
+  savePost,
+  updatePost,
+  deletePost,
+  PostRecord,
+} from '../services/postStorage';
 
 export const postsRouter = Router();
 
@@ -51,91 +61,21 @@ async function getSessionUser(req: Request) {
 }
 
 /**
- * 1. GET /api/posts - Fetch all posts with user metadata & comments
+ * 1. GET /api/posts - Fetch all posts with user metadata & comments from static JSON
  */
 postsRouter.get('/posts', async (req: Request, res: Response, next) => {
   try {
     const siteIdFilter = (req.query.siteId as string) || '';
     const userIdFilter = (req.query.userId as string) || '';
 
-    let whereClause = '';
-    const params: any[] = [];
+    let posts: PostRecord[] = [];
     if (siteIdFilter) {
-      params.push(siteIdFilter);
-      whereClause = 'WHERE p.site_id = $1';
+      posts = await getPostsForSite(siteIdFilter);
     } else if (userIdFilter) {
-      params.push(userIdFilter);
-      whereClause = 'WHERE p.user_id = $1';
+      posts = await getPostsForUser(userIdFilter);
+    } else {
+      posts = await getAllPosts();
     }
-
-    const postsQuery = await query(`
-      SELECT 
-        p.id,
-        p.user_id as "userId",
-        p.site_id as "siteId",
-        p.image_path as "imagePath",
-        p.thumbnail_path as "thumbnailPath",
-        p.photos,
-        p.caption,
-        p.filter_applied as "filterApplied",
-        p.mood,
-        p.webring,
-        p.location,
-        p.likes_count as "likes",
-        p.created_at as "createdAt",
-        u.email,
-        u.handle,
-        split_part(u.email, '@', 1) as author,
-        s.name as "siteName",
-        s.slug as "siteSlug"
-      FROM posts p
-      JOIN users u ON p.user_id = u.id
-      LEFT JOIN sites s ON p.site_id = s.id
-      ${whereClause}
-      ORDER BY p.created_at DESC
-    `, params);
-
-    // Fetch comments for all posts
-    const commentsQuery = await query(`
-      SELECT 
-        c.id,
-        c.post_id as "postId",
-        c.author_name as "author",
-        c.author_avatar as "avatar",
-        c.body as "text",
-        c.created_at as "timestamp"
-      FROM comments c
-      ORDER BY c.created_at ASC
-    `);
-
-    // Group comments by postId
-    const commentsByPost: Record<string, any[]> = {};
-    for (const c of commentsQuery.rows) {
-      if (!commentsByPost[c.postId]) commentsByPost[c.postId] = [];
-      commentsByPost[c.postId].push(c);
-    }
-
-    const posts = postsQuery.rows.map((post) => {
-      let parsedPhotos = [];
-      if (Array.isArray(post.photos) && post.photos.length > 0) {
-        parsedPhotos = post.photos;
-      } else if (typeof post.photos === 'string' && post.photos.startsWith('[')) {
-        try {
-          parsedPhotos = JSON.parse(post.photos);
-        } catch (_e) {
-          parsedPhotos = [];
-        }
-      }
-      if (!parsedPhotos || parsedPhotos.length === 0) {
-        parsedPhotos = [{ imagePath: post.imagePath, thumbnailPath: post.thumbnailPath }];
-      }
-
-      return {
-        ...post,
-        photos: parsedPhotos,
-        comments: commentsByPost[post.id] || [],
-      };
-    });
 
     res.json({ ok: true, posts });
   } catch (err) {
@@ -144,73 +84,17 @@ postsRouter.get('/posts', async (req: Request, res: Response, next) => {
 });
 
 /**
- * 2. GET /api/posts/:id - Fetch single post with full comments
+ * 2. GET /api/posts/:id - Fetch single post with full comments from static JSON
  */
 postsRouter.get('/posts/:id', async (req: Request, res: Response, next) => {
   try {
     const { id } = req.params;
-    const postQuery = await query(
-      `
-      SELECT 
-        p.id,
-        p.user_id as "userId",
-        p.image_path as "imagePath",
-        p.thumbnail_path as "thumbnailPath",
-        p.photos,
-        p.caption,
-        p.filter_applied as "filterApplied",
-        p.mood,
-        p.webring,
-        p.location,
-        p.likes_count as "likes",
-        p.created_at as "createdAt",
-        u.email,
-        split_part(u.email, '@', 1) as author
-      FROM posts p
-      JOIN users u ON p.user_id = u.id
-      WHERE p.id = $1
-    `,
-      [id]
-    );
+    const post = await getPostById(id);
 
-    if (postQuery.rows.length === 0) {
+    if (!post) {
       res.status(404).json({ ok: false, error: 'Post not found.' });
       return;
     }
-
-    const post = postQuery.rows[0];
-
-    let parsedPhotos = [];
-    if (Array.isArray(post.photos) && post.photos.length > 0) {
-      parsedPhotos = post.photos;
-    } else if (typeof post.photos === 'string' && post.photos.startsWith('[')) {
-      try {
-        parsedPhotos = JSON.parse(post.photos);
-      } catch (_e) {
-        parsedPhotos = [];
-      }
-    }
-    if (!parsedPhotos || parsedPhotos.length === 0) {
-      parsedPhotos = [{ imagePath: post.imagePath, thumbnailPath: post.thumbnailPath }];
-    }
-    post.photos = parsedPhotos;
-
-    const commentsQuery = await query(
-      `
-      SELECT 
-        id,
-        author_name as "author",
-        author_avatar as "avatar",
-        body as "text",
-        created_at as "timestamp"
-      FROM comments
-      WHERE post_id = $1
-      ORDER BY created_at ASC
-    `,
-      [id]
-    );
-
-    post.comments = commentsQuery.rows;
 
     res.json({ ok: true, post });
   } catch (err) {
@@ -339,33 +223,35 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
     const finalImagePath = photosList[0].imagePath;
     const finalThumbPath = photosList[0].thumbnailPath;
 
-    // 4. Commit post record to PostgreSQL with photos gallery array
-    const insertResult = await query(
-      `
-      INSERT INTO posts (user_id, site_id, image_path, thumbnail_path, caption, filter_applied, mood, webring, location, photos)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *
-    `,
-      [
-        user.id,
-        targetSite.id,
-        finalImagePath,
-        finalThumbPath,
-        safeCaption,
-        safeFilter,
-        safeMood,
-        safeWebring,
-        safeLocation,
-        JSON.stringify(photosList),
-      ]
-    );
-
-    const newPost = insertResult.rows[0];
+    // 4. Save post record to static storage
+    const postId = crypto.randomUUID();
+    const newPost: PostRecord = {
+      id: postId,
+      userId: user.id,
+      siteId: targetSite.id,
+      siteName: targetSite.name,
+      siteSlug: targetSite.slug,
+      imagePath: finalImagePath,
+      thumbnailPath: finalThumbPath,
+      photos: photosList,
+      caption: safeCaption,
+      filterApplied: safeFilter,
+      mood: safeMood,
+      webring: safeWebring,
+      location: safeLocation,
+      likes: 0,
+      createdAt: new Date().toISOString(),
+      email: user.email,
+      handle: user.handle,
+      author: user.handle || user.email.split('@')[0],
+      comments: [],
+    };
+    await savePost(newPost);
 
     // Pre-initialize empty comments JSON on static bundle so client doesn't 404
     try {
       const { getCommentsRelativePath } = await import('../services/staticStorage');
-      const commentsRelPath = getCommentsRelativePath(newPost.image_path);
+      const commentsRelPath = getCommentsRelativePath(newPost.imagePath);
       const initialCommentsPath = path.join(userStaticDir, commentsRelPath);
       await (await import('fs/promises')).mkdir(path.dirname(initialCommentsPath), { recursive: true });
       await (await import('fs/promises')).writeFile(
@@ -400,8 +286,8 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
         siteId: targetSite.id,
         userId: user.id,
         postId: newPost.id,
-        imagePath: newPost.image_path,
-        thumbnailPath: newPost.thumbnail_path,
+        imagePath: newPost.imagePath,
+        thumbnailPath: newPost.thumbnailPath,
         photos: photosList,
       });
     }
@@ -439,20 +325,20 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
       isSandbox: !hasApiKey,
       post: {
         id: newPost.id,
-        userId: newPost.user_id,
-        siteId: newPost.site_id,
+        userId: newPost.userId,
+        siteId: newPost.siteId,
         siteName: targetSite.name,
         siteSlug: targetSite.slug,
-        imagePath: newPost.image_path,
-        thumbnailPath: newPost.thumbnail_path,
+        imagePath: newPost.imagePath,
+        thumbnailPath: newPost.thumbnailPath,
         photos: photosList,
         caption: newPost.caption,
-        filterApplied: newPost.filter_applied,
+        filterApplied: newPost.filterApplied,
         mood: newPost.mood,
         webring: newPost.webring,
         location: newPost.location,
-        likes: newPost.likes_count,
-        createdAt: newPost.created_at,
+        likes: newPost.likes,
+        createdAt: newPost.createdAt,
         author: user.handle || user.email.split('@')[0],
         comments: [],
       },
@@ -468,27 +354,22 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
 postsRouter.post('/posts/:id/like', async (req: Request, res: Response, next) => {
   try {
     const { id } = req.params;
-    const result = await query(
-      `
-      UPDATE posts 
-      SET likes_count = likes_count + 1 
-      WHERE id = $1 
-      RETURNING likes_count as "likes", user_id as "userId"
-    `,
-      [id]
-    );
+    const updatedPost = await updatePost(id, (p) => ({
+      ...p,
+      likes: (p.likes || 0) + 1,
+    }));
 
-    if (result.rows.length === 0) {
+    if (!updatedPost) {
       res.status(404).json({ ok: false, error: 'Post not found.' });
       return;
     }
 
-    const postOwnerId = result.rows[0].userId;
+    const postOwnerId = updatedPost.userId;
 
     // Trigger incremental static update in background for post owner
     import('../services/incrementalBuilder')
       .then((m) => m.buildAndDeployComment({
-        siteId: result.rows[0].siteId,
+        siteId: updatedPost.siteId,
         userId: postOwnerId,
         postId: id,
       }))
@@ -510,7 +391,7 @@ postsRouter.post('/posts/:id/like', async (req: Request, res: Response, next) =>
       }).catch(() => {});
     }
 
-    res.json({ ok: true, likes: result.rows[0].likes });
+    res.json({ ok: true, likes: updatedPost.likes });
   } catch (err) {
     next(err);
   }
@@ -553,24 +434,23 @@ postsRouter.post('/posts/:id/comments', commentRateLimiter, async (req: Request,
     }
     const cleanText = text.trim().slice(0, 1000);
 
-    // Fetch target post
-    const postRes = await query('SELECT * FROM posts WHERE id = $1', [id]);
-    if (postRes.rows.length === 0) {
+    // Fetch target post from static storage
+    const post = await getPostById(id);
+    if (!post) {
       res.status(404).json({ ok: false, error: 'Post not found in terminal registry.' });
       return;
     }
-    const post = postRes.rows[0];
 
     // Fetch post owner and target site to access deployment credentials
-    const ownerRes = await query('SELECT * FROM users WHERE id = $1', [post.user_id]);
+    const ownerRes = await query('SELECT * FROM users WHERE id = $1', [post.userId]);
     if (ownerRes.rows.length === 0) {
       res.status(404).json({ ok: false, error: 'Post owner not found.' });
       return;
     }
     const ownerUser = ownerRes.rows[0];
     let storageTarget = ownerUser;
-    if (post.site_id) {
-      const siteRes = await query('SELECT * FROM sites WHERE id = $1', [post.site_id]);
+    if (post.siteId) {
+      const siteRes = await query('SELECT * FROM sites WHERE id = $1', [post.siteId]);
       if (siteRes.rows.length > 0) {
         storageTarget = { ...ownerUser, ...siteRes.rows[0], handle: ownerUser.handle };
       }
@@ -604,18 +484,20 @@ postsRouter.post('/posts/:id/comments', commentRateLimiter, async (req: Request,
       cleanText
     );
 
-    // Mirror to database comments table for legacy smoke tests and queries
-    await query(
-      `INSERT INTO comments (id, post_id, author_name, author_avatar, body)
-       VALUES (gen_random_uuid(), $1, $2, $3, $4)
-       ON CONFLICT DO NOTHING`,
-      [id, user.handle || 'visitor', user.avatarPath || '💬', cleanText]
-    ).catch(() => {});
+    // Save comment into static storage posts.json
+    await updatePost(id, (p) => {
+      const currentComments = Array.isArray(p.comments) ? p.comments : [];
+      return {
+        ...p,
+        comments: [...currentComments, comment],
+        commentsCount: currentComments.length + 1,
+      };
+    });
 
     // Trigger incremental static update in background for post owner
     import('../services/incrementalBuilder')
       .then((m) => m.buildAndDeployComment({
-        siteId: post.site_id,
+        siteId: post.siteId,
         userId: ownerUser.id,
         postId: id,
       }))
@@ -637,29 +519,26 @@ postsRouter.post('/posts/:id/comments', commentRateLimiter, async (req: Request,
     }
 
     // 2. Dispatch comment_thread notifications to previous thread participants
-    query(
-      `SELECT DISTINCT u.id as "userId"
-       FROM comments c
-       JOIN users u ON c.author_name = u.handle OR c.author_name = split_part(u.email, '@', 1)
-       WHERE c.post_id = $1 AND u.id != $2 AND u.id != $3`,
-      [id, user.id, ownerUser.id]
-    ).then((threadRes) => {
-      if (threadRes.rows.length > 0) {
-        import('../services/notificationService').then((m) => {
-          for (const participant of threadRes.rows) {
-            m.dispatchNotification({
-              userId: participant.userId,
-              actorId: user.id,
-              type: 'comment_thread',
-              title: `@${user.handle || 'visitor'} replied to a photo thread you joined`,
-              body: cleanText.slice(0, 150),
-              linkUrl: `/#photo-${id}`,
-              icon: '🧵',
-            }).catch(() => {});
-          }
-        }).catch(() => {});
-      }
-    }).catch(() => {});
+    const otherCommenters = (post.comments || [])
+      .map((c: any) => c.userId)
+      .filter((uId: string) => uId && uId !== user.id && uId !== ownerUser.id);
+    const uniqueCommenters = Array.from(new Set(otherCommenters));
+
+    if (uniqueCommenters.length > 0) {
+      import('../services/notificationService').then((m) => {
+        for (const participantId of uniqueCommenters) {
+          m.dispatchNotification({
+            userId: participantId as string,
+            actorId: user.id,
+            type: 'comment_thread',
+            title: `@${user.handle || 'visitor'} replied to a photo thread you joined`,
+            body: cleanText.slice(0, 150),
+            linkUrl: `/#photo-${id}`,
+            icon: '🧵',
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+    }
 
     res.status(201).json({
       ok: true,
@@ -691,39 +570,29 @@ postsRouter.get('/posts/:id/comments', async (req: Request, res: Response, next)
       res.status(404).json({ ok: false, error: 'Post not found.' });
       return;
     }
-    const postRes = await query('SELECT * FROM posts WHERE id = $1', [id]);
-    if (postRes.rows.length === 0) {
+    const post = await getPostById(id);
+    if (!post) {
       res.status(404).json({ ok: false, error: 'Post not found.' });
       return;
     }
-    const post = postRes.rows[0];
 
-    const ownerRes = await query('SELECT * FROM users WHERE id = $1', [post.user_id]);
+    const ownerRes = await query('SELECT * FROM users WHERE id = $1', [post.userId]);
     const ownerUser = ownerRes.rows[0];
     let storageTarget = ownerUser;
-    if (post.site_id) {
-      const siteRes = await query('SELECT * FROM sites WHERE id = $1', [post.site_id]);
+    if (post.siteId) {
+      const siteRes = await query('SELECT * FROM sites WHERE id = $1', [post.siteId]);
       if (siteRes.rows.length > 0) {
         storageTarget = { ...ownerUser, ...siteRes.rows[0], handle: ownerUser?.handle };
       }
     }
 
     const { readRemoteJson, getCommentsRelativePath } = await import('../services/staticStorage');
-    const relPath = getCommentsRelativePath(post.image_path);
+    const relPath = getCommentsRelativePath(post.imagePath);
     const commentsData = await readRemoteJson<any>(storageTarget, relPath, { comments: [] });
 
-    // Fallback to mirrored database comments if static host returned empty list (e.g. newly deployed)
-    let comments = Array.isArray(commentsData.comments) ? commentsData.comments : [];
-    if (comments.length === 0) {
-      const dbComments = await query(
-        `SELECT id, author_name as "author", author_avatar as "avatar", body as "text", created_at as "timestamp"
-         FROM comments WHERE post_id = $1 ORDER BY created_at ASC`,
-        [id]
-      );
-      if (dbComments.rows.length > 0) {
-        comments = dbComments.rows;
-      }
-    }
+    const comments = Array.isArray(commentsData.comments) && commentsData.comments.length > 0
+      ? commentsData.comments
+      : (Array.isArray(post.comments) ? post.comments : []);
 
     res.json({
       ok: true,
@@ -746,21 +615,20 @@ postsRouter.delete('/posts/:postId/comments/:commentId', async (req: Request, re
     }
 
     const { postId, commentId } = req.params;
-    const postRes = await query('SELECT * FROM posts WHERE id = $1', [postId]);
-    if (postRes.rows.length === 0) {
+    const post = await getPostById(postId);
+    if (!post) {
       res.status(404).json({ ok: false, error: 'Post not found.' });
       return;
     }
-    const post = postRes.rows[0];
 
-    if (post.user_id !== user.id) {
+    if (post.userId !== user.id) {
       res.status(403).json({ ok: false, error: 'Access denied: You can only moderate comments on your own station photos.' });
       return;
     }
 
     let storageTarget: any = user;
-    if (post.site_id) {
-      const siteRes = await query('SELECT * FROM sites WHERE id = $1', [post.site_id]);
+    if (post.siteId) {
+      const siteRes = await query('SELECT * FROM sites WHERE id = $1', [post.siteId]);
       if (siteRes.rows.length > 0) {
         storageTarget = { ...user, ...siteRes.rows[0], handle: user.handle };
       }
@@ -769,13 +637,21 @@ postsRouter.delete('/posts/:postId/comments/:commentId', async (req: Request, re
     const { deletePostComment } = await import('../services/staticStorage');
     const deleted = await deletePostComment(storageTarget, post, commentId);
 
-    // Clean up legacy table if exists
-    await query('DELETE FROM comments WHERE id::text = $1 OR body = $1', [commentId]).catch(() => {});
+    // Update post record in static storage
+    await updatePost(postId, (p) => {
+      const currentComments = Array.isArray(p.comments) ? p.comments : [];
+      const filtered = currentComments.filter((c: any) => c.id !== commentId && c.text !== commentId && c.body !== commentId);
+      return {
+        ...p,
+        comments: filtered,
+        commentsCount: filtered.length,
+      };
+    });
 
     // Trigger incremental static update in background for post owner
     import('../services/incrementalBuilder')
       .then((m) => m.buildAndDeployComment({
-        siteId: post.site_id,
+        siteId: post.siteId,
         userId: user.id,
         postId: post.id,
       }))
@@ -803,67 +679,49 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
     }
 
     const { id } = req.params;
-
-    // Check post exists and verify ownership
-    const postCheck = await query('SELECT user_id, site_id FROM posts WHERE id = $1', [id]);
-    if (postCheck.rows.length === 0) {
+    const post = await getPostById(id);
+    if (!post) {
       res.status(404).json({ ok: false, error: 'Post not found in terminal registry.' });
       return;
     }
 
-    if (postCheck.rows[0].user_id !== user.id) {
+    if (post.userId !== user.id) {
       res.status(403).json({ ok: false, error: 'Access denied: You are not authorized to edit this station post.' });
       return;
     }
 
-    const postSiteId = postCheck.rows[0].site_id;
     const { caption, mood, webring, location, filterApplied } = req.body;
+    const updated = await updatePost(id, (p) => ({
+      ...p,
+      caption: caption !== undefined ? caption : p.caption,
+      mood: mood !== undefined ? mood : p.mood,
+      webring: webring !== undefined ? webring : p.webring,
+      location: location !== undefined ? location : p.location,
+      filterApplied: filterApplied !== undefined ? filterApplied : p.filterApplied,
+    }));
 
-    const updateResult = await query(
-      `
-      UPDATE posts
-      SET 
-        caption = COALESCE($1, caption),
-        mood = COALESCE($2, mood),
-        webring = COALESCE($3, webring),
-        location = COALESCE($4, location),
-        filter_applied = COALESCE($5, filter_applied)
-      WHERE id = $6
-      RETURNING *
-    `,
-      [caption, mood, webring, location, filterApplied, id]
-    );
-
-    const updated = updateResult.rows[0];
+    if (!updated) {
+      res.status(500).json({ ok: false, error: 'Failed to update post.' });
+      return;
+    }
 
     // Trigger 11ty static rebuild so static gallery immediately reflects edits
     import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery({ siteId: postSiteId, userId: updated.user_id }))
+      .then((m) => m.buildStaticGallery({ siteId: updated.siteId, userId: updated.userId }))
       .catch((err) => console.error('[:> 11ty] Rebuild error after edit:', err));
 
     // Trigger auto-deploy if enabled
     import('../services/neocitiesPublisher')
-      .then((m) => m.triggerAutoDeployIfEnabled(postSiteId || updated.user_id))
+      .then((m) => m.triggerAutoDeployIfEnabled(updated.siteId || updated.userId))
       .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
     import('../services/nekowebPublisher')
-      .then((m) => m.triggerNekowebAutoDeployIfEnabled(postSiteId || updated.user_id))
+      .then((m) => m.triggerNekowebAutoDeployIfEnabled(updated.siteId || updated.userId))
       .catch((err) => console.error('[:> NEKOWEB AUTO-DEPLOY] Hook error:', err));
 
     res.json({
       ok: true,
       message: 'Post updated successfully.',
-      post: {
-        id: updated.id,
-        imagePath: updated.image_path,
-        thumbnailPath: updated.thumbnail_path,
-        caption: updated.caption,
-        filterApplied: updated.filter_applied,
-        mood: updated.mood,
-        webring: updated.webring,
-        location: updated.location,
-        likes: updated.likes_count,
-        createdAt: updated.created_at,
-      },
+      post: updated,
     });
   } catch (err) {
     next(err);
@@ -871,7 +729,7 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
 });
 
 /**
- * 7. DELETE /api/posts/:id - Delete post from database, remove assets, and rebuild static gallery
+ * 7. DELETE /api/posts/:id - Delete post from static storage, remove assets, and rebuild static gallery
  */
 postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
   try {
@@ -882,37 +740,26 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     }
 
     const { id } = req.params;
-
-    // 1. Fetch post to verify ownership and get image and thumbnail paths for disk cleanup
-    const postQuery = await query('SELECT user_id, site_id, image_path, thumbnail_path, photos FROM posts WHERE id = $1', [id]);
-    if (postQuery.rows.length === 0) {
+    const existingPost = await getPostById(id);
+    if (!existingPost) {
       res.status(404).json({ ok: false, error: 'Post not found in terminal registry.' });
       return;
     }
 
-    const { user_id, site_id, image_path, thumbnail_path, photos } = postQuery.rows[0];
-
-    if (user_id !== user.id) {
+    if (existingPost.userId !== user.id) {
       res.status(403).json({ ok: false, error: 'Access denied: You are not authorized to delete this station post.' });
       return;
     }
 
-    // 2. Delete post row from PostgreSQL (comments cascade delete)
-    await query('DELETE FROM posts WHERE id = $1', [id]);
+    const deleted = await deletePost(id);
+    const { siteId, imagePath, thumbnailPath, photos } = existingPost;
 
-    let parsedPhotos: any[] = [];
-    if (Array.isArray(photos)) {
-      parsedPhotos = photos;
-    } else if (typeof photos === 'string' && photos.startsWith('[')) {
-      try { parsedPhotos = JSON.parse(photos); } catch (_e) {}
-    }
-
-    // 3. Purge remote files from host if post was hosted externally
+    // Purge remote files from host if post was hosted externally
     const cleanRel = (p: string) => p.replace(/^https?:\/\/[^\/]+\//, '').replace(/^\/+/, '');
     const filesToDelete = new Set<string>();
-    if (image_path) filesToDelete.add(cleanRel(image_path));
-    if (thumbnail_path) filesToDelete.add(cleanRel(thumbnail_path));
-    for (const pic of parsedPhotos) {
+    if (imagePath) filesToDelete.add(cleanRel(imagePath));
+    if (thumbnailPath) filesToDelete.add(cleanRel(thumbnailPath));
+    for (const pic of (photos || [])) {
       if (pic.imagePath) filesToDelete.add(cleanRel(pic.imagePath));
       if (pic.thumbnailPath) filesToDelete.add(cleanRel(pic.thumbnailPath));
     }
@@ -921,12 +768,12 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
 
     if (deleteList.length > 0) {
       const { deleteFromNeocities } = await import('../services/neocitiesPublisher');
-      deleteFromNeocities(site_id || user.id, deleteList).catch((err) => {
+      deleteFromNeocities(siteId || user.id, deleteList).catch((err) => {
         console.warn('[:> NEOCITIES DELETE] Warning: could not purge remote files:', err);
       });
 
       const { deleteFromNekoweb } = await import('../services/nekowebPublisher');
-      deleteFromNekoweb(site_id || user.id, deleteList).catch((err) => {
+      deleteFromNekoweb(siteId || user.id, deleteList).catch((err) => {
         console.warn('[:> NEKOWEB DELETE] Warning: could not purge remote files:', err);
       });
     }
@@ -935,39 +782,31 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     const fs = await import('fs/promises');
     const path = await import('path');
 
-    for (const picPath of [image_path, thumbnail_path, ...parsedPhotos.map(p => p.imagePath), ...parsedPhotos.map(p => p.thumbnailPath)]) {
+    for (const picPath of [imagePath, thumbnailPath, ...(photos || []).map(p => p.imagePath), ...(photos || []).map(p => p.thumbnailPath)]) {
       if (picPath && typeof picPath === 'string' && picPath.startsWith('/uploads/')) {
         const fullLocalPath = path.join(process.cwd(), 'public', picPath);
         fs.unlink(fullLocalPath).catch(() => {});
       }
     }
 
-    // 4. Trigger 11ty static rebuild so the static gallery no longer contains the deleted post
-    if (user_id) {
-      import('../services/staticBuilder')
-        .then((m) => m.buildStaticGallery({ siteId: site_id, userId: user_id }))
-        .catch((err) => console.error('[:> 11ty] Rebuild error after delete:', err));
-    }
+    // Trigger 11ty static rebuild so the static gallery no longer contains the deleted post
+    import('../services/staticBuilder')
+      .then((m) => m.buildStaticGallery({ siteId, userId: user.id }))
+      .catch((err) => console.error('[:> 11ty] Rebuild error after delete:', err));
 
-    // Trigger auto-deploy if enabled
-    if (user_id) {
-      import('../services/neocitiesPublisher')
-        .then((m) => m.triggerAutoDeployIfEnabled(site_id || user_id))
-        .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
-      import('../services/nekowebPublisher')
-        .then((m) => m.triggerNekowebAutoDeployIfEnabled(site_id || user_id))
-        .catch((err) => console.error('[:> NEKOWEB AUTO-DEPLOY] Hook error:', err));
-    }
+    import('../services/neocitiesPublisher')
+      .then((m) => m.triggerAutoDeployIfEnabled(siteId || user.id))
+      .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
+    import('../services/nekowebPublisher')
+      .then((m) => m.triggerNekowebAutoDeployIfEnabled(siteId || user.id))
+      .catch((err) => console.error('[:> NEKOWEB AUTO-DEPLOY] Hook error:', err));
 
-    // Cascading rebuild of all friends/followers who follow this user
-    if (user_id) {
-      triggerFollowersCascade(user_id);
-    }
+    triggerFollowersCascade(user.id);
 
     res.json({
       ok: true,
-      message: 'Post deleted successfully from database and static archive.',
-      id,
+      message: 'Post and associated static assets purged successfully.',
+      deletedPost: deleted || existingPost,
     });
   } catch (err) {
     next(err);
