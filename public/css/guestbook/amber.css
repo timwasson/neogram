@@ -1,0 +1,142 @@
+/**
+ * Neogram Guestbook Skin: Amber Phosphor Terminal
+ * Warm glowing amber monochrome vintage CRT aesthetics.
+ */
+
+body {
+  background-color: #0d0a02;
+  color: #ffb000;
+  font-family: 'Space Mono', 'Courier New', monospace;
+  text-shadow: 0 0 2px rgba(255, 176, 0, 0.4);
+}
+
+.neogram-guestbook {
+  background-color: transparent;
+}
+
+/* Form Window */
+.neogram-guestbook__form {
+  background: #171205;
+  border: 2px solid #ffb000;
+  box-shadow: 0 0 8px rgba(255, 176, 0, 0.25), 3px 3px 0px #382400;
+  padding: 14px;
+}
+
+.neogram-guestbook__label {
+  color: #ffb000;
+  letter-spacing: 0.5px;
+}
+
+.neogram-guestbook__input {
+  background: #000000;
+  color: #ffb000;
+  border: 1px solid #cc8800;
+  box-shadow: inset 0 0 4px rgba(255, 176, 0, 0.2);
+  outline: none;
+}
+
+.neogram-guestbook__input:focus {
+  border-color: #ffcc00;
+  box-shadow: 0 0 6px rgba(255, 204, 0, 0.6);
+}
+
+.neogram-guestbook__auth-inline {
+  color: #cc8800;
+}
+
+.neogram-guestbook__auth-link {
+  color: #ffcc00;
+  font-weight: bold;
+}
+
+.neogram-guestbook__auth-link:hover {
+  color: #ffffff;
+  text-shadow: 0 0 6px #ffcc00;
+}
+
+.neogram-guestbook__textarea {
+  background: #000000;
+  color: #ffb000;
+  border: 1px solid #cc8800;
+  box-shadow: inset 0 0 4px rgba(255, 176, 0, 0.2);
+  outline: none;
+}
+
+.neogram-guestbook__textarea:focus {
+  border-color: #ffcc00;
+  box-shadow: 0 0 6px rgba(255, 204, 0, 0.6);
+}
+
+.neogram-guestbook__btn-submit {
+  background: #2a1b02;
+  color: #ffb000;
+  border: 1px solid #ffb000;
+  box-shadow: 2px 2px 0px #ffb000;
+  padding: 6px 18px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.neogram-guestbook__btn-submit:hover {
+  background: #ffb000;
+  color: #000000;
+  text-shadow: none;
+}
+
+.neogram-guestbook__btn-submit:active {
+  box-shadow: none;
+  transform: translate(1px, 1px);
+}
+
+.neogram-guestbook__alert {
+  background: #2b1f00;
+  border: 1px solid #ffb000;
+  color: #ffb000;
+}
+
+.neogram-guestbook__alert--error {
+  background: #2b0000;
+  border: 1px solid #ff4444;
+  color: #ff8888;
+}
+
+/* Ledger Cards */
+.neogram-guestbook__item {
+  background: #171205;
+  border: 1px solid #cc8800;
+  box-shadow: 2px 2px 0px rgba(255, 176, 0, 0.2);
+  padding: 12px;
+}
+
+.neogram-guestbook__item-header {
+  border-bottom: 1px dashed #664400;
+  padding-bottom: 4px;
+}
+
+.neogram-guestbook__item-author {
+  color: #ffcc00;
+}
+
+.neogram-guestbook__item-author-link {
+  color: #ffcc00;
+  text-shadow: 0 0 3px rgba(255, 204, 0, 0.5);
+}
+
+.neogram-guestbook__item-author-link:hover {
+  color: #ffffff;
+}
+
+.neogram-guestbook__item-date {
+  color: #cc8800;
+}
+
+.neogram-guestbook__item-message {
+  color: #fff0d0;
+  padding-top: 4px;
+}
+
+.neogram-guestbook__empty {
+  border: 1px dashed #664400;
+  color: #cc8800;
+}
+

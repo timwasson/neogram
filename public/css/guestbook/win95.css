@@ -1,0 +1,143 @@
+/**
+ * Neogram Guestbook Skin: Classic Windows 95
+ * Authentic bevels, MS Sans Serif system typography, and gray palette.
+ */
+
+body {
+  background-color: #c0c0c0;
+  color: #000000;
+  font-family: 'MS Sans Serif', Tahoma, 'Segoe UI', system-ui, sans-serif;
+}
+
+.neogram-guestbook {
+  background-color: #c0c0c0;
+}
+
+/* Form Window */
+.neogram-guestbook__form {
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  box-shadow: 1px 1px 0px #000000;
+  padding: 14px;
+}
+
+.neogram-guestbook__label {
+  color: #000000;
+}
+
+.neogram-guestbook__input {
+  background: #ffffff;
+  color: #000000;
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  box-shadow: inset 1px 1px 0px #000000;
+  outline: none;
+}
+
+.neogram-guestbook__input:focus {
+  outline: 1px dotted #000000;
+}
+
+.neogram-guestbook__auth-inline {
+  color: #333333;
+}
+
+.neogram-guestbook__auth-link {
+  color: #000080;
+  font-weight: bold;
+}
+
+.neogram-guestbook__auth-link:hover {
+  color: #0000ff;
+}
+
+.neogram-guestbook__textarea {
+  background: #ffffff;
+  color: #000000;
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  box-shadow: inset 1px 1px 0px #000000;
+  outline: none;
+}
+
+.neogram-guestbook__textarea:focus {
+  outline: 1px dotted #000000;
+}
+
+.neogram-guestbook__btn-submit {
+  background: #c0c0c0;
+  color: #000000;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  box-shadow: 1px 1px 0px #000000;
+  padding: 5px 16px;
+  font-weight: bold;
+  user-select: none;
+}
+
+.neogram-guestbook__btn-submit:active {
+  border-color: #808080 #ffffff #ffffff #808080;
+  box-shadow: none;
+  transform: translate(1px, 1px);
+}
+
+.neogram-guestbook__alert {
+  background: #ffffcc;
+  border: 1px solid #999900;
+  color: #000000;
+}
+
+.neogram-guestbook__alert--error {
+  background: #ffcccc;
+  border: 1px solid #cc0000;
+  color: #990000;
+}
+
+/* Ledger Cards */
+.neogram-guestbook__item {
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  box-shadow: 1px 1px 0px #000000;
+  padding: 10px;
+}
+
+.neogram-guestbook__item-header {
+  border-bottom: 1px solid #808080;
+  padding-bottom: 4px;
+}
+
+.neogram-guestbook__item-author {
+  color: #000080;
+}
+
+.neogram-guestbook__item-author-link {
+  color: #000080;
+}
+
+.neogram-guestbook__item-author-link:hover {
+  color: #0000ff;
+}
+
+.neogram-guestbook__item-date {
+  color: #555555;
+}
+
+.neogram-guestbook__item-message {
+  background: #ffffff;
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  box-shadow: inset 1px 1px 0px #000000;
+  padding: 8px 10px;
+  margin-top: 4px;
+  color: #000000;
+}
+
+.neogram-guestbook__empty {
+  background: #ffffff;
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  color: #555555;
+}
+

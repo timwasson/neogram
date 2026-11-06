@@ -1981,21 +1981,34 @@
 
                 <!-- Guestbook Style Palette Selector -->
                 <div class="mb-3 font-mono">
-                  <label class="block text-xs font-bold mb-1">GUESTBOOK STYLE SKIN:</label>
+                  <label class="block text-xs font-bold mb-1">GUESTBOOK STYLE THEME:</label>
                   <div class="grid grid-cols-2 gap-2 text-xs">
-                    <button type="button" id="btnGbDark" onclick="selectGuestbookSkin('dark')" class="pixel-btn pixel-btn--yellow text-xs py-1">
-                      📟 CRT Green Phosphor
-                    </button>
-                    <button type="button" id="btnGbWin95" onclick="selectGuestbookSkin('win95')" class="pixel-btn text-xs py-1">
+                    <button type="button" id="btnGbWin95" onclick="selectGuestbookSkin('win95')" class="pixel-btn pixel-btn--yellow text-xs py-1">
                       🖥️ Classic Gray Win95
+                    </button>
+                    <button type="button" id="btnGbDark" onclick="selectGuestbookSkin('dark')" class="pixel-btn text-xs py-1">
+                      📟 CRT Green Phosphor
                     </button>
                     <button type="button" id="btnGbAmber" onclick="selectGuestbookSkin('amber')" class="pixel-btn text-xs py-1">
                       🟠 Amber Phosphor
                     </button>
                     <button type="button" id="btnGbClean" onclick="selectGuestbookSkin('clean')" class="pixel-btn text-xs py-1">
-                      ✨ Clean Frameless
+                      ✨ Clean Minimalist
                     </button>
                   </div>
+                </div>
+
+                <!-- Custom CSS Link Option -->
+                <div class="mb-3 font-mono text-xs">
+                  <label for="gbCustomCssInput" class="block font-bold mb-1">CUSTOM CSS URL (OPTIONAL):</label>
+                  <input
+                    type="url"
+                    id="gbCustomCssInput"
+                    placeholder="https://mysite.neocities.org/guestbook.css"
+                    oninput="updateGuestbookPreviewAndSnippet()"
+                    class="w-full p-2 border border-main font-mono text-xs bg-window text-main"
+                  />
+                  <span class="text-3xs text-muted block mt-1">If specified, your external CSS will override the built-in themes.</span>
                 </div>
 
                 <!-- Guestbook Anonymous Signatures Toggle -->
@@ -2007,15 +2020,33 @@
                   <input type="checkbox" id="gbAllowAnonInput" onchange="toggleGuestbookAllowAnon()" class="cursor-pointer" checked />
                 </div>
 
+                <!-- Live Guestbook Interactive Preview Window -->
+                <div class="mb-3 font-mono text-xs">
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="font-bold">LIVE GUESTBOOK PREVIEW:</label>
+                    <span class="text-3xs text-muted font-mono">[INTERACTIVE PREVIEW]</span>
+                  </div>
+                  <div class="border-2 border-main bg-window overflow-hidden" style="height: 380px;">
+                    <iframe
+                      id="guestbookPreviewIframe"
+                      src="/embed/guestbook/{{ currentUser.handle }}?theme=win95"
+                      width="100%"
+                      height="100%"
+                      frameborder="0"
+                      style="width: 100%; height: 100%; border: none; display: block;"
+                    ></iframe>
+                  </div>
+                </div>
+
                 <!-- Guestbook HTML Embed Snippet Box -->
                 <div class="font-mono text-xs mb-3">
                   <div class="flex items-center justify-between mb-1">
                     <label class="font-bold">IFRAME EMBED SNIPPET:</label>
                     <span class="text-3xs text-muted font-mono">PASTE IN YOUR HTML</span>
                   </div>
-                  <pre id="guestbookCodeSnippet" class="p-2 bg-window border border-main text-xs font-mono overflow-x-auto select-all mb-2">&lt;!-- Neogram Public Visitor Guestbook --&gt;
+                  <pre id="guestbookCodeSnippet" class="p-2 bg-window border border-main text-xs font-mono overflow-x-auto select-all mb-2">&lt;!-- Neogram Visitor Guestbook --&gt;
 &lt;!-- Paste anywhere inside your HTML --&gt;
-&lt;iframe src="{{ appUrl if appUrl else 'https://neogram.club' }}/embed/guestbook/{{ currentUser.handle }}" width="100%" height="550" frameborder="0" style="border: 2px solid #00ff00; background: #000;"&gt;&lt;/iframe&gt;</pre>
+&lt;iframe src="{{ appUrl if appUrl else 'https://neogram.club' }}/embed/guestbook/{{ currentUser.handle }}?theme=win95" width="100%" height="550" frameborder="0" style="border: none;"&gt;&lt;/iframe&gt;</pre>
                   <div class="flex items-center gap-2 flex-wrap">
                     <button
                       type="button"
@@ -2027,7 +2058,7 @@
                     </button>
                     <a
                       id="btnOpenGuestbookLink"
-                      href="/embed/guestbook/{{ currentUser.handle }}"
+                      href="/embed/guestbook/{{ currentUser.handle }}?theme=win95"
                       target="_blank"
                       class="pixel-btn pixel-btn--yellow font-bold text-xs"
                     >
@@ -3077,30 +3108,50 @@
     }
   }
 
-  var currentGuestbookSkin = 'dark';
+  var currentGuestbookSkin = 'win95';
+
   function selectGuestbookSkin(skin) {
     if (window.retroAudio) window.retroAudio.playClick();
     currentGuestbookSkin = skin;
-    ['btnGbDark', 'btnGbWin95', 'btnGbAmber', 'btnGbClean'].forEach(function(id) {
+    ['btnGbWin95', 'btnGbDark', 'btnGbAmber', 'btnGbClean'].forEach(function(id) {
       var btn = document.getElementById(id);
       if (btn) btn.classList.remove('pixel-btn--yellow');
     });
     var skinBtn = document.getElementById('btnGb' + skin.charAt(0).toUpperCase() + skin.slice(1));
     if (skinBtn) skinBtn.classList.add('pixel-btn--yellow');
 
-    var snippet = document.getElementById('guestbookCodeSnippet');
-    var slugPart = currentEmbedSiteSlug ? ('/' + currentEmbedSiteSlug) : '';
-    var fullUrl = publicEmbedOrigin + '/embed/guestbook/' + userHandle + slugPart + (skin !== 'dark' ? ('?skin=' + skin) : '');
-    var openBtn = document.getElementById('btnOpenGuestbookLink');
-    if (openBtn) openBtn.href = '/embed/guestbook/' + userHandle + slugPart;
+    updateGuestbookPreviewAndSnippet();
+  }
 
-    var styleAttr = 'border: 2px solid #00ff00; background: #000;';
-    if (skin === 'win95') styleAttr = 'border: 3px outset #c0c0c0; background: #c0c0c0;';
-    if (skin === 'amber') styleAttr = 'border: 2px solid #ffb000; background: #000;';
-    if (skin === 'clean') styleAttr = 'border: 0; background: transparent;';
+  function updateGuestbookPreviewAndSnippet() {
+    var snippet = document.getElementById('guestbookCodeSnippet');
+    var slugPart = currentEmbedSiteSlug ? ('/' + encodeURIComponent(currentEmbedSiteSlug)) : '';
+    var customCssInput = document.getElementById('gbCustomCssInput');
+    var customCss = customCssInput ? customCssInput.value.trim() : '';
+
+    var queryParams = [];
+    if (customCss) {
+      queryParams.push('css=' + encodeURIComponent(customCss));
+    } else {
+      queryParams.push('theme=' + encodeURIComponent(currentGuestbookSkin));
+    }
+    var queryString = queryParams.length ? ('?' + queryParams.join('&')) : '';
+
+    var fullPublicUrl = publicEmbedOrigin + '/embed/guestbook/' + userHandle + slugPart + queryString;
+    var localPreviewUrl = '/embed/guestbook/' + userHandle + slugPart + queryString;
+
+    var previewIframe = document.getElementById('guestbookPreviewIframe');
+    if (previewIframe) {
+      previewIframe.src = localPreviewUrl;
+    }
+
+    var openBtn = document.getElementById('btnOpenGuestbookLink');
+    if (openBtn) {
+      openBtn.href = localPreviewUrl;
+    }
 
     if (snippet) {
-      snippet.textContent = '\x3c!-- Neogram Public Visitor Guestbook --\x3e\n\x3c!-- Paste anywhere inside your HTML --\x3e\n\x3ciframe src="' + fullUrl + '" width="100%" height="550" frameborder="0" style="' + styleAttr + '"\x3e\x3c/iframe\x3e';
+      snippet.textContent = '\x3c!-- Neogram Visitor Guestbook --\x3e\n\x3c!-- Paste anywhere inside your HTML --\x3e\n\x3ciframe src="' + fullPublicUrl + '" width="100%" height="550" frameborder="0" style="border: none;"\x3e\x3c/iframe\x3e';
     }
   }
 
@@ -3108,7 +3159,10 @@
     if (window.retroAudio) window.retroAudio.playClick();
     var snippet = document.getElementById('guestbookCodeSnippet');
     var slugPart = currentEmbedSiteSlug ? ('/' + currentEmbedSiteSlug) : '';
-    var iframeText = snippet ? snippet.textContent : ('\x3ciframe src="' + publicEmbedOrigin + '/embed/guestbook/' + userHandle + slugPart + '" width="100%" height="550" frameborder="0"\x3e\x3c/iframe\x3e');
+    var customCssInput = document.getElementById('gbCustomCssInput');
+    var customCss = customCssInput ? customCssInput.value.trim() : '';
+    var queryStr = customCss ? ('?css=' + encodeURIComponent(customCss)) : ('?theme=' + currentGuestbookSkin);
+    var iframeText = snippet ? snippet.textContent : ('\x3ciframe src="' + publicEmbedOrigin + '/embed/guestbook/' + userHandle + slugPart + queryStr + '" width="100%" height="550" frameborder="0" style="border: none;"\x3e\x3c/iframe\x3e');
     navigator.clipboard?.writeText(iframeText);
     var btn = document.getElementById('btnCopyGuestbookIframe');
     if (btn) {
@@ -3172,12 +3226,17 @@
           authorHtml = '<a href="/user/@' + encodeURIComponent(entry.visitorName) + '" target="_blank" class="font-bold text-mac hover:underline">@' + escapeHtml(entry.visitorName) + '</a>' + uinBadge;
         }
 
+        var metaParts = [];
+        if (entry.visitorLocation && entry.visitorLocation !== 'Cyberspace') metaParts.push(escapeHtml(entry.visitorLocation));
+        var metaStr = metaParts.length ? (' <span class="text-muted text-3xs">(' + metaParts.join(', ') + ')</span>') : '';
+        var moodStr = (entry.moodIcon && entry.moodIcon !== '😎') ? ('<span>' + escapeHtml(entry.moodIcon) + '</span> ') : '';
+
         html += '<div class="retro-card p-2 flex flex-col gap-1 text-xs border border-main">' +
           '<div class="flex items-center justify-between border-b border-main pb-1">' +
             '<div class="flex items-center gap-1.5 flex-wrap">' +
-              '<span>' + escapeHtml(entry.moodIcon || '😎') + '</span>' +
+              moodStr +
               authorHtml +
-              '<span class="text-muted text-xs">(' + escapeHtml(entry.visitorLocation || 'Cyberspace') + ')</span>' +
+              metaStr +
             '</div>' +
             '<button type="button" onclick="deleteGuestbookEntry(\'' + escapeHtml(entry.id) + '\')" class="text-crimson font-bold text-xs hover:underline" title="Delete signature">[Delete]</button>' +
           '</div>' + site +

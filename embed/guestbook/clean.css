@@ -1,0 +1,150 @@
+/**
+ * Neogram Guestbook Skin: Clean Frameless Minimalist
+ * Warm paper neutral palette, modern system typography, and subtle borders.
+ */
+
+body {
+  background-color: #fdfdfc;
+  color: #1e293b;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  text-shadow: none;
+}
+
+.neogram-guestbook {
+  background-color: transparent;
+}
+
+/* Form Window */
+.neogram-guestbook__form {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  padding: 16px;
+}
+
+.neogram-guestbook__label {
+  color: #334155;
+  font-size: 13px;
+}
+
+.neogram-guestbook__input {
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: none;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.neogram-guestbook__input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  background: #ffffff;
+}
+
+.neogram-guestbook__auth-inline {
+  color: #64748b;
+}
+
+.neogram-guestbook__auth-link {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.neogram-guestbook__auth-link:hover {
+  color: #1d4ed8;
+}
+
+.neogram-guestbook__textarea {
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: none;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.neogram-guestbook__textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  background: #ffffff;
+}
+
+.neogram-guestbook__btn-submit {
+  background: #0f172a;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: 8px 18px;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+
+.neogram-guestbook__btn-submit:hover {
+  background: #334155;
+}
+
+.neogram-guestbook__btn-submit:active {
+  transform: translateY(1px);
+}
+
+.neogram-guestbook__alert {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  border-radius: 6px;
+}
+
+.neogram-guestbook__alert--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  border-radius: 6px;
+}
+
+/* Ledger Cards */
+.neogram-guestbook__item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  padding: 14px;
+}
+
+.neogram-guestbook__item-header {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 6px;
+}
+
+.neogram-guestbook__item-author {
+  color: #0f172a;
+}
+
+.neogram-guestbook__item-author-link {
+  color: #2563eb;
+}
+
+.neogram-guestbook__item-author-link:hover {
+  color: #1d4ed8;
+}
+
+.neogram-guestbook__item-date {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.neogram-guestbook__item-message {
+  color: #334155;
+  padding-top: 4px;
+}
+
+.neogram-guestbook__empty {
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+}

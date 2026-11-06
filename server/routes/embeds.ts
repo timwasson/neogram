@@ -869,6 +869,19 @@ embedsRouter.get(['/embed/guestbook/:identifier', '/embed/guestbook/:identifier/
     const prefs = await getNotificationPreferences(user.id);
     const allowAnonymous = (prefs.allowAnonGuestbook !== false) && (targetSite ? targetSite.allowAnonGuestbook !== false : true);
 
+    // Theme skin selection & custom CSS resolution
+    const requestedTheme = (req.query.theme || req.query.skin || 'win95').toString().trim().toLowerCase();
+    const validThemes = ['win95', 'dark', 'amber', 'clean'];
+    const theme = validThemes.includes(requestedTheme) ? requestedTheme : 'win95';
+
+    let customCssUrl: string | null = null;
+    const rawCss = (req.query.css || req.query.customCss || '').toString().trim();
+    if (rawCss && (/^https?:\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=]+$/i.test(rawCss) || rawCss.startsWith('/'))) {
+      customCssUrl = rawCss.slice(0, 500);
+    } else if (targetSite && targetSite.customCssUrl && req.query.theme === undefined && req.query.skin === undefined) {
+      customCssUrl = targetSite.customCssUrl;
+    }
+
     const { readRemoteJson, getGuestbookRelativePath } = await import('../services/staticStorage');
     const gbData = await readRemoteJson<any>(targetSite, getGuestbookRelativePath(), { entries: [] });
     let entries = Array.isArray(gbData.entries) ? gbData.entries : [];
@@ -887,13 +900,15 @@ embedsRouter.get(['/embed/guestbook/:identifier', '/embed/guestbook/:identifier/
     }
 
     res.render('embeds/guestbook', {
-      title: `${handle}'s Public Guestbook (${targetSite.name}) — Neogram`,
+      title: `${handle}'s Guestbook (${targetSite.name}) — Neogram`,
       handle,
       userId: user.id,
       siteId: targetSite.id,
       siteSlug: targetSite.slug,
       siteName: targetSite.name,
       allowAnonymous,
+      theme,
+      customCssUrl,
       entries,
     });
   } catch (err: any) {

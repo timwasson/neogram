@@ -1,0 +1,166 @@
+/**
+ * Neogram Guestbook Base Stylesheet (v3.0)
+ * Pure BEM structure for embeddable guestbook ledger.
+ */
+
+:root {
+  --neogram-gb-font-mono: 'Space Mono', 'Courier New', monospace;
+  --neogram-gb-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.neogram-guestbook {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.neogram-guestbook *,
+.neogram-guestbook *::before,
+.neogram-guestbook *::after {
+  box-sizing: border-box;
+}
+
+/* Form Layout */
+.neogram-guestbook__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.neogram-guestbook__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.neogram-guestbook__field--inline {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.neogram-guestbook__label {
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.neogram-guestbook__input {
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  width: 180px;
+  max-width: 100%;
+}
+
+.neogram-guestbook__auth-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.neogram-guestbook__auth-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  text-decoration: underline;
+}
+
+.neogram-guestbook__textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.neogram-guestbook__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.neogram-guestbook__btn-submit {
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: bold;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.neogram-guestbook__alert {
+  padding: 8px 12px;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+/* Ledger List */
+.neogram-guestbook__ledger {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.neogram-guestbook__item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+}
+
+.neogram-guestbook__item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.neogram-guestbook__item-author {
+  font-weight: bold;
+}
+
+.neogram-guestbook__item-author-link {
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.neogram-guestbook__item-date {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.neogram-guestbook__item-message {
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.neogram-guestbook__empty {
+  text-align: center;
+  padding: 24px 12px;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.neogram-guestbook__hidden {
+  display: none !important;
+}
+

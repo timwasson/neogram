@@ -1112,6 +1112,16 @@ async function runSmokeTests() {
     const embedGbHtml = await embedGbRes.text();
     assertTest('Embed guestbook renders anonymous visitorName without /user/@ hyperlink', embedGbHtml.includes('RetroSurfer42') && !embedGbHtml.includes('/user/@RetroSurfer42'));
     assertTest('Embed guestbook renders authenticated visitorName WITH /user/@ hyperlink', embedGbHtml.includes(`/user/@${testUser.handle}`));
+    assertTest('Embed guestbook defaults to separate win95.css theme without neogram.css', embedGbHtml.includes('/css/guestbook/win95.css') && !embedGbHtml.includes('/css/neogram.css'));
+
+    // Verify theme selector and custom CSS link query params
+    const darkGbRes = await fetch(`${API_BASE}/embed/guestbook/${testUser.handle}/shrine?theme=dark`);
+    const darkGbHtml = await darkGbRes.text();
+    assertTest('Embed guestbook ?theme=dark loads separate dark.css', darkGbHtml.includes('/css/guestbook/dark.css'));
+
+    const customGbRes = await fetch(`${API_BASE}/embed/guestbook/${testUser.handle}/shrine?css=https://myhost.org/custom-theme.css`);
+    const customGbHtml = await customGbRes.text();
+    assertTest('Embed guestbook ?css=... loads custom external stylesheet', customGbHtml.includes('href="https://myhost.org/custom-theme.css"'));
 
     // Creator toggle: disable anonymous guestbook signatures
     const updateGbPrefsRes = await fetch(`${API_BASE}/api/settings/notifications`, {
@@ -1517,6 +1527,8 @@ async function runSmokeTests() {
     assertTest('Workstation dashboard contains #guestbookCodeSnippet with https://neogram.club domain',
       pagerDashHtml.includes('https://neogram.club/embed/guestbook/')
     );
+    assertTest('Workstation dashboard contains #guestbookPreviewIframe live preview window', pagerDashHtml.includes('id="guestbookPreviewIframe"'));
+    assertTest('Workstation dashboard contains #gbCustomCssInput custom CSS option', pagerDashHtml.includes('id="gbCustomCssInput"'));
     assertTest('Workstation dashboard contains #btnCopyPagerScript button', pagerDashHtml.includes('id="btnCopyPagerScript"'));
     assertTest('Workstation dashboard contains #testPushPermissionBtn button', pagerDashHtml.includes('id="testPushPermissionBtn"'));
 

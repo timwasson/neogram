@@ -7,144 +7,98 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/neogram.css">
-    <link rel="stylesheet" href="/embed/neogram-embed.css">
+    {% if customCssUrl %}
+      <link rel="stylesheet" href="{{ customCssUrl }}">
+    {% else %}
+      <link rel="stylesheet" href="/css/guestbook/base.css">
+      <link rel="stylesheet" href="/css/guestbook/{{ theme | default('win95') }}.css">
+    {% endif %}
     <script src="/js/retroAudio.js?v=2.2.0"></script>
   </head>
-  <body class="p-4 bg-desktop">
-    <div class="neogram-guestbook max-w-2xl mx-auto">
-      <div class="neogram-guestbook__header flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span>✍️</span>
-          <span>guestbook_daemon.cgi — @{{ handle }}'s VISITOR LEDGER</span>
-        </div>
-        <span class="text-xs font-mono font-normal">[{{ entries.length }} Signatures]</span>
-      </div>
-
-      <p class="text-xs font-mono text-muted mb-4">
-        :&gt; Leave a note on this retro station! Signatures are logged directly to the visitor ledger.
-      </p>
-
+  <body>
+    <div class="neogram-guestbook">
       <!-- Signature Form -->
-      <form id="guestbookForm" class="retro-card p-3 mb-6 flex flex-col gap-3 font-mono text-xs hidden">
-        <!-- Sub-state 1: Identified Callsign Bar (when Cyber-Pass is active) -->
-        <div id="gbIdentifiedCallsignBar" class="hidden flex items-center justify-between text-xs font-mono p-1 border border-main bg-window">
-          <div class="flex items-center gap-1">
-            <span>⚡ IDENTIFIED CALLSIGN:</span>
-            <span id="gbAuthHandle" class="font-bold text-mac">@visitor</span>
-            <span id="gbAuthUin" class="text-muted font-normal text-3xs">[#000000]</span>
+      <form id="guestbookForm" class="neogram-guestbook__form">
+        <!-- Inline Name & Login Controls -->
+        <div class="neogram-guestbook__field neogram-guestbook__field--inline">
+          <label for="gbVisitorName" class="neogram-guestbook__label">Name:</label>
+          <input
+            type="text"
+            id="gbVisitorName"
+            name="visitorName"
+            maxlength="50"
+            required
+            autocomplete="name"
+            autocorrect="off"
+            spellcheck="false"
+            class="neogram-guestbook__input"
+            value="Guest"
+          />
+          <div class="neogram-guestbook__auth-inline">
+            <span id="gbAuthDivider">| or</span>
+            <button
+              type="button"
+              id="gbAuthBtn"
+              class="neogram-guestbook__auth-link"
+              onclick="handleAuthClick()"
+            >
+              login to Neogram
+            </button>
           </div>
-          <button type="button" onclick="disconnectGbPass()" class="text-muted text-xs hover:underline" title="Disconnect pass">[Disconnect ✕]</button>
         </div>
 
-        <!-- Sub-state 2: Anonymous Callsign Bar (when anonymous allowed) -->
-        <div id="gbAnonCallsignBar" class="hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-1.5 border border-main bg-window">
-          <div class="flex items-center gap-2 flex-1 w-full">
-            <label for="gbVisitorName" class="font-bold whitespace-nowrap text-mac">YOUR CALLSIGN / NAME: *</label>
-            <input type="text" id="gbVisitorName" name="visitorName" placeholder="Surfer_99" maxlength="50" class="p-1 border border-main font-mono text-xs flex-1 bg-black text-white" />
-          </div>
-          <button type="button" onclick="openGbPassModal()" class="text-xs text-muted hover:text-white underline whitespace-nowrap" title="Have a Neogram Cyber-Pass? Connect your station">
-            [⚡ Have Cyber-Pass? Connect :&gt;]
+        <!-- Message Field -->
+        <div class="neogram-guestbook__field">
+          <textarea
+            id="gbMessage"
+            name="message"
+            rows="3"
+            required
+            placeholder="Write a message in the guestbook..."
+            class="neogram-guestbook__textarea"
+          ></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="neogram-guestbook__actions">
+          <button type="submit" id="gbSubmitBtn" class="neogram-guestbook__btn-submit">
+            Sign Guestbook
           </button>
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-3">
-          <div class="flex-1 flex flex-col gap-1">
-            <label for="gbWebsite" class="font-bold">HOMEPAGE URL:</label>
-            <input type="text" id="gbWebsite" name="visitorWebsite" placeholder="https://..." class="p-2 border-2 border-main font-mono text-xs" />
-          </div>
-          <div class="flex-1 flex flex-col gap-1">
-            <label for="gbLocation" class="font-bold">LOCATION / BBS NODE:</label>
-            <input type="text" id="gbLocation" name="visitorLocation" placeholder="Node #313 // Cyberspace" class="p-2 border-2 border-main font-mono text-xs" />
-          </div>
-          <div class="w-full sm:w-40 flex flex-col gap-1">
-            <label for="gbMood" class="font-bold">MOOD:</label>
-            <select id="gbMood" name="moodIcon" class="p-2 border-2 border-main font-mono text-xs cursor-pointer">
-              <option value="😎">😎 Radical</option>
-              <option value="💾">💾 Techie</option>
-              <option value="🕹️">🕹️ Gamer</option>
-              <option value="✨">✨ Surfer</option>
-              <option value="👾">👾 Cyber</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-1">
-          <label for="gbMessage" class="font-bold">MESSAGE / GREETS: *</label>
-          <textarea id="gbMessage" name="message" rows="3" required placeholder="Great photos and aesthetic! Greetings from the dial-up web..." class="p-2 border-2 border-main font-mono text-xs"></textarea>
-        </div>
-
-        <div class="flex items-center justify-between pt-1">
-          <span class="text-xs text-muted">* Written to self-hosted JSON ledger</span>
-          <button type="submit" id="gbSubmitBtn" class="pixel-btn pixel-btn--blue font-bold px-4 py-2">
-            <span>✍️ Sign Guestbook</span>
-          </button>
-        </div>
-
-        <div id="gbStatusMsg" class="hidden text-xs font-mono font-bold p-2 retro-alert retro-alert--success"></div>
+        <div id="gbStatusMsg" class="neogram-guestbook__alert neogram-guestbook__hidden" role="status" aria-live="polite"></div>
       </form>
 
-      <!-- State B: Unauthenticated Lock Banner (when anonymous is NOT allowed) -->
-      <div id="gbPassPrompt" class="p-3 border-2 border-dashed border-main text-center bg-window mb-6 hidden">
-        <div class="text-xs font-bold text-mac mb-1">🔒 NEOGRAM CYBER-PASS REQUIRED</div>
-        <p class="text-xs text-muted mb-3">
-          Visitors must identify via their Neogram station to sign this public visitor ledger.
-        </p>
-        <button
-          type="button"
-          onclick="openGbPassModal()"
-          class="pixel-btn pixel-btn--yellow font-bold text-xs py-2 px-4"
-        >
-          <span>⚡ Connect Cyber-Pass / Login :&gt;</span>
-        </button>
-      </div>
-
       <!-- Ledger of Signatures -->
-      <div class="flex flex-col gap-3 font-mono">
-        <div class="flex items-center justify-between border-b-2 border-main pb-1 font-bold text-xs">
-          <span>PUBLIC SIGNATURE ARCHIVE</span>
-          <span class="text-xs font-normal text-muted">Latest signatures first</span>
-        </div>
-
-        <div id="signaturesList" class="flex flex-col gap-3">
-          {% for entry in entries %}
-            <div class="retro-card p-3 flex flex-col gap-2 text-xs">
-              <div class="flex items-center justify-between border-b border-main pb-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-base">{{ entry.moodIcon }}</span>
-                  {% if entry.isAnonymous %}
-                    <span class="font-bold">{{ entry.visitorName }}</span>
-                  {% else %}
-                    <a href="/user/@{{ entry.visitorName }}" target="_blank" rel="noopener noreferrer" class="font-bold text-mac hover:underline" title="View @{{ entry.visitorName }} on Neogram">
-                      @{{ entry.visitorName }}
-                    </a>
-                    {% if entry.uin %}
-                      <span class="text-muted font-normal text-3xs">[#{{ entry.uin }}]</span>
-                    {% endif %}
-                  {% endif %}
-                  <span class="text-muted text-xs">from {{ entry.visitorLocation }}</span>
-                </div>
-                <span class="text-xs text-muted">{{ entry.createdAt | formatDate }}</span>
-              </div>
-
-              {% if entry.visitorWebsite %}
-                <div class="text-xs">
-                  <a href="{{ entry.visitorWebsite }}" target="_blank" rel="noopener noreferrer" class="text-mac underline">
-                    🌐 {{ entry.visitorWebsite }}
-                  </a>
-                </div>
+      <div id="signaturesList" class="neogram-guestbook__ledger">
+        {% for entry in entries %}
+          <div class="neogram-guestbook__item">
+            <div class="neogram-guestbook__item-header">
+              {% if entry.isAnonymous %}
+                <span class="neogram-guestbook__item-author">{{ entry.visitorName }}</span>
+              {% else %}
+                <a
+                  href="/user/@{{ entry.visitorName }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="neogram-guestbook__item-author-link"
+                  title="View @{{ entry.visitorName }} on Neogram"
+                >
+                  @{{ entry.visitorName }}
+                </a>
+                {% if entry.uin %}
+                  <span class="neogram-guestbook__item-date">[#{{ entry.uin }}]</span>
+                {% endif %}
               {% endif %}
-
-              <p class="whitespace-pre-wrap p-2 border border-main text-xs font-mono bg-window">
-                "{{ entry.message }}"
-              </p>
+              <span class="neogram-guestbook__item-date">{{ entry.createdAt | formatDate }}</span>
             </div>
-          {% else %}
-            <div id="noEntriesMsg" class="text-center py-6 text-xs text-muted font-mono">
-              :&gt; No entries logged yet. Be the first visitor to sign this guestbook!
-            </div>
-          {% endfor %}
-        </div>
+            <p class="neogram-guestbook__item-message">{{ entry.message }}</p>
+          </div>
+        {% else %}
+          <div id="noEntriesMsg" class="neogram-guestbook__empty">
+            No messages yet. Be the first to leave a note!
+          </div>
+        {% endfor %}
       </div>
     </div>
 
@@ -162,15 +116,6 @@
             .replace(/'/g, '&#039;');
         }
 
-        function sanitizeUrl(url) {
-          if (!url) return '';
-          var clean = String(url).trim();
-          if (/^https?:\/\//i.test(clean)) {
-            return clean;
-          }
-          return '';
-        }
-
         function getStoredPass() {
           try {
             var raw = localStorage.getItem('neogram_pass');
@@ -182,45 +127,72 @@
 
         function renderGbAuthUI() {
           var pass = getStoredPass();
-          var form = document.getElementById('guestbookForm');
-          var prompt = document.getElementById('gbPassPrompt');
-          var idBar = document.getElementById('gbIdentifiedCallsignBar');
-          var anonBar = document.getElementById('gbAnonCallsignBar');
-          var handleEl = document.getElementById('gbAuthHandle');
-          var uinEl = document.getElementById('gbAuthUin');
+          var nameInput = document.getElementById('gbVisitorName');
+          var authDivider = document.getElementById('gbAuthDivider');
+          var authBtn = document.getElementById('gbAuthBtn');
+          var submitBtn = document.getElementById('gbSubmitBtn');
 
           if (pass && pass.token) {
-            if (form) form.classList.remove('hidden');
-            if (prompt) prompt.classList.add('hidden');
-            if (idBar) idBar.classList.remove('hidden');
-            if (anonBar) anonBar.classList.add('hidden');
-            if (handleEl) handleEl.textContent = '@' + pass.handle;
-            if (uinEl) uinEl.textContent = pass.uin ? '[#' + pass.uin + ']' : '';
-          } else if (allowAnonymous) {
-            if (form) form.classList.remove('hidden');
-            if (prompt) prompt.classList.add('hidden');
-            if (idBar) idBar.classList.add('hidden');
-            if (anonBar) anonBar.classList.remove('hidden');
+            if (nameInput) {
+              nameInput.value = pass.handle;
+              nameInput.disabled = false;
+            }
+            if (authDivider) authDivider.textContent = '| logged in as @' + pass.handle;
+            if (authBtn) {
+              authBtn.textContent = '[logout]';
+              authBtn.title = 'Disconnect Cyber-Pass session';
+            }
+            if (submitBtn) submitBtn.disabled = false;
           } else {
-            if (form) form.classList.add('hidden');
-            if (prompt) prompt.classList.remove('hidden');
-            if (idBar) idBar.classList.add('hidden');
-            if (anonBar) anonBar.classList.add('hidden');
+            if (allowAnonymous) {
+              if (nameInput && (nameInput.value === '' || nameInput.value === 'visitor')) {
+                nameInput.value = 'Guest';
+              }
+              if (nameInput) nameInput.disabled = false;
+              if (authDivider) authDivider.textContent = '| or';
+              if (authBtn) {
+                authBtn.textContent = 'login to Neogram';
+                authBtn.title = 'Connect Neogram Cyber-Pass';
+              }
+              if (submitBtn) submitBtn.disabled = false;
+            } else {
+              if (nameInput) {
+                nameInput.value = '';
+                nameInput.placeholder = 'Login required';
+                nameInput.disabled = true;
+              }
+              if (authDivider) authDivider.textContent = '|';
+              if (authBtn) {
+                authBtn.textContent = 'login to Neogram to sign';
+                authBtn.title = 'Connect Neogram Cyber-Pass to sign';
+              }
+            }
           }
         }
+
+        window.handleAuthClick = function() {
+          var pass = getStoredPass();
+          if (pass && pass.token) {
+            window.disconnectGbPass();
+          } else {
+            window.openGbPassModal();
+          }
+        };
 
         window.disconnectGbPass = function() {
           try {
             localStorage.removeItem('neogram_pass');
           } catch (_err) {}
           if (window.retroAudio) retroAudio.playClick();
+          var nameInput = document.getElementById('gbVisitorName');
+          if (nameInput) nameInput.value = 'Guest';
           renderGbAuthUI();
         };
 
         window.openGbPassModal = function() {
           if (window.retroAudio) retroAudio.playClick();
           var origin = encodeURIComponent(window.location.origin);
-          var popup = window.open(
+          window.open(
             '/auth/connect?origin=' + origin,
             'neogram_auth',
             'width=440,height=480,menubar=no,toolbar=no,location=no,status=no'
@@ -259,29 +231,29 @@
             return;
           }
 
-          var anonName = '';
-          if (isAnon) {
-            var nameInput = document.getElementById('gbVisitorName');
-            anonName = nameInput ? nameInput.value.trim() : '';
-            if (!anonName) {
-              alert('Please enter your callsign or name.');
-              if (nameInput) nameInput.focus();
-              return;
-            }
+          var nameInput = document.getElementById('gbVisitorName');
+          var finalName = nameInput ? nameInput.value.trim() : '';
+          if (!finalName) {
+            finalName = isAnon ? 'Guest' : pass.handle;
+          }
+
+          var messageInput = document.getElementById('gbMessage');
+          var messageText = messageInput ? messageInput.value.trim() : '';
+          if (!messageText) {
+            alert('Please enter a message.');
+            if (messageInput) messageInput.focus();
+            return;
           }
 
           if (window.retroAudio) retroAudio.playClick();
 
           submitBtn.disabled = true;
-          submitBtn.innerHTML = '<span>⏳ Signing...</span>';
-          statusMsg.classList.add('hidden');
+          submitBtn.textContent = 'Posting...';
+          statusMsg.className = 'neogram-guestbook__alert neogram-guestbook__hidden';
 
           var payload = {
-            visitorName: isAnon ? anonName : undefined,
-            visitorWebsite: document.getElementById('gbWebsite').value,
-            visitorLocation: document.getElementById('gbLocation').value,
-            moodIcon: document.getElementById('gbMood').value,
-            message: document.getElementById('gbMessage').value,
+            visitorName: finalName,
+            message: messageText,
           };
 
           var headers = { 'Content-Type': 'application/json' };
@@ -305,48 +277,42 @@
 
             if (window.retroAudio) retroAudio.playSuccess();
 
-            statusMsg.textContent = '✓ Signature committed to self-hosted ledger on static host!';
-            statusMsg.className = 'text-xs font-mono font-bold p-2 retro-alert retro-alert--success';
-            statusMsg.classList.remove('hidden');
+            statusMsg.textContent = '✓ Message posted to the guestbook!';
+            statusMsg.className = 'neogram-guestbook__alert';
+            statusMsg.classList.remove('neogram-guestbook__hidden');
 
-            document.getElementById('gbMessage').value = '';
+            if (messageInput) messageInput.value = '';
 
             // Prepend new signature to list
             if (noEntries) noEntries.remove();
             var card = document.createElement('div');
-            card.className = 'retro-card p-3 flex flex-col gap-2 text-xs';
-            var safeUrl = sanitizeUrl(payload.visitorWebsite);
-            var siteHtml = safeUrl ? '<div class="text-xs"><a href="' + escapeHtml(safeUrl) + '" target="_blank" rel="noopener noreferrer" class="text-mac underline">🌐 ' + escapeHtml(safeUrl) + '</a></div>' : '';
+            card.className = 'neogram-guestbook__item';
 
             var authorHtml = '';
             if (data.entry && data.entry.isAnonymous) {
-              authorHtml = '<span class="font-bold">' + escapeHtml(data.entry.visitorName) + '</span>';
+              authorHtml = '<span class="neogram-guestbook__item-author">' + escapeHtml(data.entry.visitorName) + '</span>';
             } else {
-              var authorName = pass ? pass.handle : (data.entry ? data.entry.visitorName : 'visitor');
-              var uinBadge = (pass && pass.uin) ? ' <span class="text-muted font-normal text-3xs">[#' + pass.uin + ']</span>' : '';
-              authorHtml = '<a href="/user/@' + encodeURIComponent(authorName) + '" target="_blank" rel="noopener noreferrer" class="font-bold text-mac hover:underline">@' + escapeHtml(authorName) + '</a>' + uinBadge;
+              var authorName = pass ? pass.handle : (data.entry ? data.entry.visitorName : finalName);
+              var uinBadge = (pass && pass.uin) ? ' <span class="neogram-guestbook__item-date">[#' + pass.uin + ']</span>' : '';
+              authorHtml = '<a href="/user/@' + encodeURIComponent(authorName) + '" target="_blank" rel="noopener noreferrer" class="neogram-guestbook__item-author-link">@' + escapeHtml(authorName) + '</a>' + uinBadge;
             }
 
-            card.innerHTML = 
-              '<div class="flex items-center justify-between border-b border-main pb-1">' +
-                '<div class="flex items-center gap-2 flex-wrap">' +
-                  '<span class="text-base">' + escapeHtml(payload.moodIcon || '😎') + '</span>' +
-                  authorHtml +
-                  '<span class="text-muted text-xs">from ' + escapeHtml(payload.visitorLocation || 'Cyberspace') + '</span>' +
-                '</div>' +
-                '<span class="text-xs text-muted">Just now</span>' +
-              '</div>' + siteHtml +
-              '<p class="whitespace-pre-wrap p-2 border border-main text-xs font-mono bg-window">"' + escapeHtml(payload.message) + '"</p>';
+            card.innerHTML =
+              '<div class="neogram-guestbook__item-header">' +
+                authorHtml +
+                '<span class="neogram-guestbook__item-date">Just now</span>' +
+              '</div>' +
+              '<p class="neogram-guestbook__item-message">' + escapeHtml(payload.message) + '</p>';
             list.insertBefore(card, list.firstChild);
 
           } catch (err) {
             if (window.retroAudio) retroAudio.playError();
-            statusMsg.textContent = 'ERROR: ' + err.message;
-            statusMsg.className = 'text-xs font-mono font-bold p-2 retro-alert retro-alert--error';
-            statusMsg.classList.remove('hidden');
+            statusMsg.textContent = 'Error: ' + err.message;
+            statusMsg.className = 'neogram-guestbook__alert neogram-guestbook__alert--error';
+            statusMsg.classList.remove('neogram-guestbook__hidden');
           } finally {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<span>✍️ Sign Guestbook</span>';
+            submitBtn.textContent = 'Sign Guestbook';
           }
         });
       })();
