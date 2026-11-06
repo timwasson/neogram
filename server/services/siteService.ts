@@ -24,6 +24,8 @@ export interface Site {
   maskedApiKey: string;
   siteName: string;
   postCount?: number;
+  allowAnonChat?: boolean;
+  allowAnonGuestbook?: boolean;
 }
 
 export interface CreateSiteInput {
@@ -38,6 +40,8 @@ export interface CreateSiteInput {
   buildHtml?: boolean;
   customCssUrl?: string;
   isDefault?: boolean;
+  allowAnonChat?: boolean;
+  allowAnonGuestbook?: boolean;
 }
 
 export interface UpdateSiteInput {
@@ -52,6 +56,8 @@ export interface UpdateSiteInput {
   buildHtml?: boolean;
   customCssUrl?: string;
   isDefault?: boolean;
+  allowAnonChat?: boolean;
+  allowAnonGuestbook?: boolean;
 }
 
 /**
@@ -83,6 +89,8 @@ function formatSiteRow(row: any): Site {
     maskedApiKey: maskedKey,
     siteName,
     postCount: row.post_count !== undefined ? parseInt(row.post_count, 10) : undefined,
+    allowAnonChat: row.allow_anon_chat !== false,
+    allowAnonGuestbook: row.allow_anon_guestbook !== false,
   };
 }
 

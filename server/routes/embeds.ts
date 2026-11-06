@@ -266,7 +266,7 @@ embedsRouter.get(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:slu
       const entriesRes = await query(
         `SELECT id, visitor_name as "visitorName", visitor_website as "visitorWebsite", 
                 visitor_location as "visitorLocation", mood_icon as "moodIcon", 
-                message, is_moderated as "isModerated", created_at as "createdAt"
+                message, is_anonymous as "isAnonymous", is_moderated as "isModerated", created_at as "createdAt"
          FROM guestbook_entries
          WHERE site_id = $1 OR (user_id = $2 AND site_id IS NULL)
          ORDER BY created_at DESC`,
@@ -275,12 +275,17 @@ embedsRouter.get(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:slu
       entries = entriesRes.rows;
     }
 
+    const { getNotificationPreferences } = await import('../services/notificationService');
+    const prefs = await getNotificationPreferences(hostUser.id);
+    const allowAnonymous = (prefs.allowAnonGuestbook !== false) && (targetSite ? targetSite.allowAnonGuestbook !== false : true);
+
     res.json({
       ok: true,
       handle: hostUser.handle || hostUser.email.split('@')[0],
       siteId: targetSite.id,
       siteName: targetSite.name,
       siteSlug: targetSite.slug,
+      allowAnonymous,
       entries,
     });
   } catch (err: any) {
@@ -304,16 +309,6 @@ const guestbookRateLimiter = rateLimit({
  */
 embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:slug'], guestbookRateLimiter, async (req: Request, res: Response) => {
   try {
-    // Require verified Neogram user
-    const visitorUser = await getAuthUser(req);
-    if (!visitorUser) {
-      res.status(401).json({
-        ok: false,
-        error: 'Authentication required. Please connect your Neogram Cyber-Pass to sign the guestbook.',
-      });
-      return;
-    }
-
     const hostUser = await findUserByHandleOrId(req.params.identifier);
     if (!hostUser) {
       res.status(404).json({ ok: false, error: 'User node not found' });
@@ -325,6 +320,33 @@ embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:sl
     const targetSite = rawSlug
       ? ((await getSiteBySlug(hostUser.id, rawSlug)) || (await ensureDefaultSite(hostUser.id)))
       : (await ensureDefaultSite(hostUser.id));
+
+    const { getNotificationPreferences } = await import('../services/notificationService');
+    const prefs = await getNotificationPreferences(hostUser.id);
+    const allowAnonymous = (prefs.allowAnonGuestbook !== false) && (targetSite ? targetSite.allowAnonGuestbook !== false : true);
+
+    // Check caller authentication
+    const visitorUser = await getAuthUser(req);
+    let isAnonymous = false;
+    let finalVisitorName = '';
+    let finalUin: number | undefined = undefined;
+
+    if (visitorUser) {
+      isAnonymous = false;
+      finalVisitorName = visitorUser.handle || visitorUser.email.split('@')[0];
+      finalUin = visitorUser.uin ? parseInt(visitorUser.uin as any, 10) : undefined;
+    } else {
+      if (!allowAnonymous) {
+        res.status(401).json({
+          ok: false,
+          error: 'Authentication required. Please connect your Neogram Cyber-Pass to sign the guestbook.',
+        });
+        return;
+      }
+      isAnonymous = true;
+      const rawName = (req.body.visitorName || req.body.handle || req.body.name || '').toString().trim();
+      finalVisitorName = rawName.replace(/^@/, '').slice(0, 50) || 'Anonymous Surfer';
+    }
 
     const { visitorLocation, visitorWebsite, moodIcon, message } = req.body;
 
@@ -344,8 +366,9 @@ embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:sl
 
     const { appendGuestbookEntry } = await import('../services/staticStorage');
     const entry = await appendGuestbookEntry(targetSite, {
-      visitorName: visitorUser.handle || visitorUser.email.split('@')[0],
-      uin: visitorUser.uin,
+      visitorName: finalVisitorName,
+      uin: finalUin,
+      isAnonymous,
       visitorLocation: visitorLocation || 'Cyberspace',
       visitorWebsite: cleanWebsite || undefined,
       moodIcon: moodIcon || '😎',
@@ -354,28 +377,31 @@ embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:sl
 
     // Mirror to database table with site_id for backwards compatibility & audit
     await query(
-      `INSERT INTO guestbook_entries (id, user_id, site_id, visitor_name, visitor_website, visitor_location, mood_icon, message)
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO guestbook_entries (id, user_id, site_id, visitor_name, visitor_website, visitor_location, mood_icon, message, is_anonymous)
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT DO NOTHING`,
       [
         hostUser.id,
         targetSite.id,
-        visitorUser.handle || 'visitor',
+        finalVisitorName,
         cleanWebsite ? cleanWebsite.slice(0, 500) : null,
         (visitorLocation || 'Cyberspace').trim().slice(0, 200),
         (moodIcon || '😎').slice(0, 10),
         message.trim().slice(0, 1000),
+        isAnonymous,
       ]
     ).catch(() => {});
 
-    // Dispatch in-app notification to host if signer is another station
-    if (visitorUser.id !== hostUser.id) {
+    // Dispatch in-app notification to host if signer is not the host
+    if (!visitorUser || visitorUser.id !== hostUser.id) {
       import('../services/notificationService').then((m) => {
         m.dispatchNotification({
           userId: hostUser.id,
-          actorId: visitorUser.id,
+          actorId: isAnonymous ? null : visitorUser?.id,
           type: 'guestbook',
-          title: `@${visitorUser.handle || 'visitor'} signed your guestbook (${targetSite.name})!`,
+          title: isAnonymous
+            ? `${finalVisitorName} signed your guestbook (${targetSite.name})!`
+            : `@${finalVisitorName} signed your guestbook (${targetSite.name})!`,
           body: message.trim().slice(0, 150),
           linkUrl: `/docs?topic=guestbook`,
           icon: '📖',
@@ -839,15 +865,26 @@ embedsRouter.get(['/embed/guestbook/:identifier', '/embed/guestbook/:identifier/
       ? ((await getSiteBySlug(user.id, rawSlug)) || (await ensureDefaultSite(user.id)))
       : (await ensureDefaultSite(user.id));
 
-    const entriesRes = await query(
-      `SELECT id, visitor_name as "visitorName", visitor_website as "visitorWebsite", 
-              visitor_location as "visitorLocation", mood_icon as "moodIcon", 
-              message, created_at as "createdAt"
-       FROM guestbook_entries
-       WHERE site_id = $1 OR (user_id = $2 AND site_id IS NULL)
-       ORDER BY created_at DESC`,
-      [targetSite.id, user.id]
-    );
+    const { getNotificationPreferences } = await import('../services/notificationService');
+    const prefs = await getNotificationPreferences(user.id);
+    const allowAnonymous = (prefs.allowAnonGuestbook !== false) && (targetSite ? targetSite.allowAnonGuestbook !== false : true);
+
+    const { readRemoteJson, getGuestbookRelativePath } = await import('../services/staticStorage');
+    const gbData = await readRemoteJson<any>(targetSite, getGuestbookRelativePath(), { entries: [] });
+    let entries = Array.isArray(gbData.entries) ? gbData.entries : [];
+
+    if (entries.length === 0) {
+      const entriesRes = await query(
+        `SELECT id, visitor_name as "visitorName", visitor_website as "visitorWebsite", 
+                visitor_location as "visitorLocation", mood_icon as "moodIcon", 
+                message, is_anonymous as "isAnonymous", created_at as "createdAt"
+         FROM guestbook_entries
+         WHERE site_id = $1 OR (user_id = $2 AND site_id IS NULL)
+         ORDER BY created_at DESC`,
+        [targetSite.id, user.id]
+      );
+      entries = entriesRes.rows;
+    }
 
     res.render('embeds/guestbook', {
       title: `${handle}'s Public Guestbook (${targetSite.name}) — Neogram`,
@@ -856,7 +893,8 @@ embedsRouter.get(['/embed/guestbook/:identifier', '/embed/guestbook/:identifier/
       siteId: targetSite.id,
       siteSlug: targetSite.slug,
       siteName: targetSite.name,
-      entries: entriesRes.rows,
+      allowAnonymous,
+      entries,
     });
   } catch (err: any) {
     res.status(500).send(`Guestbook Error: ${err.message}`);

@@ -1020,6 +1020,67 @@ async function runSmokeTests() {
     const secGbDb = await query('SELECT * FROM guestbook_entries WHERE site_id = $1', [secondarySiteId]);
     assertTest('Guestbook entry anchored to secondary site in database', secGbDb.rows.length === 1 && secGbDb.rows[0].message === 'Visiting the cyber shrine!');
 
+    // 18h.1 Anonymous Guestbook Signatures & Station Control
+    const gbProbeRes = await fetch(`${API_BASE}/api/guestbook/${testUser.handle}/shrine`);
+    const gbProbeData = await gbProbeRes.json() as any;
+    assertTest('GET /api/guestbook/:handle returns allowAnonymous: true by default', gbProbeData.allowAnonymous === true);
+
+    const anonGbRes = await fetch(`${API_BASE}/api/guestbook/${testUser.handle}/shrine`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        visitorName: 'RetroSurfer42',
+        visitorWebsite: 'https://retrosurf.retro',
+        visitorLocation: 'Node #404 // BBS',
+        moodIcon: '💾',
+        message: 'Radical site! Signed without logging in.',
+      }),
+    });
+    assertTest('Anonymous guestbook POST returns HTTP 201 Created', anonGbRes.status === 201);
+    const anonGbData = await anonGbRes.json() as any;
+    assertTest('Anonymous guestbook response has isAnonymous: true', anonGbData.entry?.isAnonymous === true);
+    assertTest('Anonymous guestbook response reflects custom visitorName', anonGbData.entry?.visitorName === 'RetroSurfer42');
+
+    const anonGbDb = await query('SELECT * FROM guestbook_entries WHERE site_id = $1 AND visitor_name = $2', [secondarySiteId, 'RetroSurfer42']);
+    assertTest('Anonymous guestbook signature persisted with is_anonymous: true in PostgreSQL', anonGbDb.rows.length === 1 && anonGbDb.rows[0].is_anonymous === true);
+
+    // Verify rendered embed HTML: anon username is NOT hyperlinked, logged-in username IS hyperlinked
+    const embedGbRes = await fetch(`${API_BASE}/embed/guestbook/${testUser.handle}/shrine`);
+    const embedGbHtml = await embedGbRes.text();
+    assertTest('Embed guestbook renders anonymous visitorName without /user/@ hyperlink', embedGbHtml.includes('RetroSurfer42') && !embedGbHtml.includes('/user/@RetroSurfer42'));
+    assertTest('Embed guestbook renders authenticated visitorName WITH /user/@ hyperlink', embedGbHtml.includes(`/user/@${testUser.handle}`));
+
+    // Creator toggle: disable anonymous guestbook signatures
+    const updateGbPrefsRes = await fetch(`${API_BASE}/api/settings/notifications`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({ allowAnonGuestbook: false }),
+    });
+    assertTest('PUT /api/settings/notifications with allowAnonGuestbook: false returns HTTP 200', updateGbPrefsRes.status === 200);
+
+    const blockedAnonGbRes = await fetch(`${API_BASE}/api/guestbook/${testUser.handle}/shrine`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        visitorName: 'SneakyAnon',
+        message: 'Trying to sign when disabled.',
+      }),
+    });
+    assertTest('Anonymous signature blocked with HTTP 401 when allowAnonGuestbook is false', blockedAnonGbRes.status === 401);
+
+    // Re-enable allowAnonGuestbook
+    await fetch(`${API_BASE}/api/settings/notifications`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({ allowAnonGuestbook: true }),
+    });
+
     // 18i. Per-site JSON Feed
     const secFeedRes = await fetch(`${API_BASE}/api/users/${testUser.handle}/feed.json?siteSlug=shrine`);
     assertTest('GET /api/users/:handle/feed.json?siteSlug=shrine returns HTTP 200', secFeedRes.status === 200);

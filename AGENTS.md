@@ -88,6 +88,8 @@ CREATE TABLE sites (
     build_html BOOLEAN DEFAULT TRUE,
     custom_css_url VARCHAR(500),
     is_default BOOLEAN DEFAULT FALSE,
+    allow_anon_chat BOOLEAN DEFAULT TRUE,
+    allow_anon_guestbook BOOLEAN DEFAULT TRUE,
     last_deployed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -120,6 +122,7 @@ CREATE TABLE guestbook_entries (
     visitor_location VARCHAR(200),
     mood_icon VARCHAR(50) DEFAULT '😎',
     message TEXT NOT NULL,
+    is_anonymous BOOLEAN DEFAULT FALSE,
     is_moderated BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -162,6 +165,8 @@ CREATE TABLE notification_preferences (
     notify_deploy BOOLEAN DEFAULT TRUE,
     sound_enabled BOOLEAN DEFAULT TRUE,
     desktop_push BOOLEAN DEFAULT FALSE,
+    allow_anon_chat BOOLEAN DEFAULT TRUE,
+    allow_anon_guestbook BOOLEAN DEFAULT TRUE,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

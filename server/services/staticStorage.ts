@@ -321,6 +321,7 @@ export interface GuestbookItem {
   id: string;
   visitorName: string;
   uin?: number;
+  isAnonymous?: boolean;
   visitorLocation?: string;
   visitorWebsite?: string;
   moodIcon: string;
@@ -343,6 +344,7 @@ export async function appendGuestbookEntry(
   entryData: {
     visitorName: string;
     uin?: number;
+    isAnonymous?: boolean;
     visitorLocation?: string;
     visitorWebsite?: string;
     moodIcon?: string;
@@ -360,10 +362,13 @@ export async function appendGuestbookEntry(
       entries: [],
     });
 
+    const isAnon = entryData.isAnonymous !== undefined ? entryData.isAnonymous : !entryData.uin;
+
     const newEntry: GuestbookItem = {
       id: `gb_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`,
       visitorName: entryData.visitorName.trim().slice(0, 50),
       uin: entryData.uin,
+      isAnonymous: isAnon,
       visitorLocation: (entryData.visitorLocation || 'Cyberspace').trim().slice(0, 100),
       visitorWebsite: entryData.visitorWebsite ? entryData.visitorWebsite.trim().slice(0, 300) : undefined,
       moodIcon: entryData.moodIcon || '😎',

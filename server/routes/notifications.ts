@@ -110,6 +110,7 @@ notificationsRouter.put('/settings/notifications', async (req: Request, res: Res
       soundEnabled,
       desktopPush,
       allowAnonChat,
+      allowAnonGuestbook,
       chatWidgetEnabled,
     } = req.body;
 
@@ -125,6 +126,7 @@ notificationsRouter.put('/settings/notifications', async (req: Request, res: Res
       soundEnabled: typeof soundEnabled === 'boolean' ? soundEnabled : undefined,
       desktopPush: typeof desktopPush === 'boolean' ? desktopPush : undefined,
       allowAnonChat: typeof allowAnonChat === 'boolean' ? allowAnonChat : undefined,
+      allowAnonGuestbook: typeof allowAnonGuestbook === 'boolean' ? allowAnonGuestbook : undefined,
       chatWidgetEnabled: typeof chatWidgetEnabled === 'boolean' ? chatWidgetEnabled : undefined,
     });
 

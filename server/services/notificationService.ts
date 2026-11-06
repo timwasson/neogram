@@ -25,6 +25,7 @@ export interface NotificationPreferences {
   soundEnabled: boolean;
   desktopPush: boolean;
   allowAnonChat: boolean;
+  allowAnonGuestbook: boolean;
   chatWidgetEnabled: boolean;
 }
 
@@ -55,13 +56,14 @@ export const DEFAULT_PREFERENCES: Omit<NotificationPreferences, 'userId'> = {
   soundEnabled: true,
   desktopPush: false,
   allowAnonChat: true,
+  allowAnonGuestbook: true,
   chatWidgetEnabled: true,
 };
 
 /**
  * Maps a NotificationType to the corresponding boolean preference key.
  */
-function getPreferenceKey(type: NotificationType): keyof Omit<NotificationPreferences, 'userId' | 'soundEnabled' | 'desktopPush' | 'allowAnonChat' | 'chatWidgetEnabled'> {
+function getPreferenceKey(type: NotificationType): keyof Omit<NotificationPreferences, 'userId' | 'soundEnabled' | 'desktopPush' | 'allowAnonChat' | 'allowAnonGuestbook' | 'chatWidgetEnabled'> {
   switch (type) {
     case 'nim':
       return 'notifyNim';
@@ -99,6 +101,7 @@ export async function getNotificationPreferences(userId: string): Promise<Notifi
             sound_enabled as "soundEnabled",
             desktop_push as "desktopPush",
             allow_anon_chat as "allowAnonChat",
+            allow_anon_guestbook as "allowAnonGuestbook",
             chat_widget_enabled as "chatWidgetEnabled"
      FROM notification_preferences
      WHERE user_id = $1`,
@@ -120,6 +123,7 @@ export async function getNotificationPreferences(userId: string): Promise<Notifi
       soundEnabled: !!row.soundEnabled,
       desktopPush: !!row.desktopPush,
       allowAnonChat: row.allowAnonChat !== false,
+      allowAnonGuestbook: row.allowAnonGuestbook !== false,
       chatWidgetEnabled: row.chatWidgetEnabled !== false,
     };
   }
@@ -129,8 +133,8 @@ export async function getNotificationPreferences(userId: string): Promise<Notifi
     `INSERT INTO notification_preferences (
        user_id, notify_nim, notify_follow, notify_comment_own, notify_comment_thread,
        notify_guestbook, notify_like, notify_friend_post, notify_deploy, sound_enabled, desktop_push,
-       allow_anon_chat, chat_widget_enabled
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       allow_anon_chat, allow_anon_guestbook, chat_widget_enabled
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
      ON CONFLICT (user_id) DO NOTHING`,
     [
       userId,
@@ -145,6 +149,7 @@ export async function getNotificationPreferences(userId: string): Promise<Notifi
       DEFAULT_PREFERENCES.soundEnabled,
       DEFAULT_PREFERENCES.desktopPush,
       DEFAULT_PREFERENCES.allowAnonChat,
+      DEFAULT_PREFERENCES.allowAnonGuestbook,
       DEFAULT_PREFERENCES.chatWidgetEnabled,
     ]
   );
@@ -174,6 +179,7 @@ export async function updateNotificationPreferences(
     soundEnabled: updates.soundEnabled !== undefined ? updates.soundEnabled : current.soundEnabled,
     desktopPush: updates.desktopPush !== undefined ? updates.desktopPush : current.desktopPush,
     allowAnonChat: updates.allowAnonChat !== undefined ? updates.allowAnonChat : current.allowAnonChat,
+    allowAnonGuestbook: updates.allowAnonGuestbook !== undefined ? updates.allowAnonGuestbook : current.allowAnonGuestbook,
     chatWidgetEnabled: updates.chatWidgetEnabled !== undefined ? updates.chatWidgetEnabled : current.chatWidgetEnabled,
   };
 
@@ -181,8 +187,8 @@ export async function updateNotificationPreferences(
     `INSERT INTO notification_preferences (
        user_id, notify_nim, notify_follow, notify_comment_own, notify_comment_thread,
        notify_guestbook, notify_like, notify_friend_post, notify_deploy, sound_enabled, desktop_push,
-       allow_anon_chat, chat_widget_enabled, updated_at
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+       allow_anon_chat, allow_anon_guestbook, chat_widget_enabled, updated_at
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
      ON CONFLICT (user_id) DO UPDATE SET
        notify_nim = EXCLUDED.notify_nim,
        notify_follow = EXCLUDED.notify_follow,
@@ -195,6 +201,7 @@ export async function updateNotificationPreferences(
        sound_enabled = EXCLUDED.sound_enabled,
        desktop_push = EXCLUDED.desktop_push,
        allow_anon_chat = EXCLUDED.allow_anon_chat,
+       allow_anon_guestbook = EXCLUDED.allow_anon_guestbook,
        chat_widget_enabled = EXCLUDED.chat_widget_enabled,
        updated_at = NOW()`,
     [
@@ -210,6 +217,7 @@ export async function updateNotificationPreferences(
       updated.soundEnabled,
       updated.desktopPush,
       updated.allowAnonChat,
+      updated.allowAnonGuestbook,
       updated.chatWidgetEnabled,
     ]
   );

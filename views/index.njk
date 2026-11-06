@@ -1590,6 +1590,14 @@
                         <span class="text-muted block">Visitors without a Cyber-Pass are assigned a retro callsign (e.g. @guest_4812). If unchecked, visitors must connect a verified Neogram Cyber-Pass to message you.</span>
                       </div>
                     </label>
+
+                    <label class="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" id="allowAnonGuestbookInput" class="mt-1" checked />
+                      <div class="text-xs">
+                        <span class="font-bold text-white block">📖 Accept Anonymous Guestbook Signatures</span>
+                        <span class="text-muted block">Visitors without a Cyber-Pass can sign your visitor ledger with a custom handle. If unchecked, visitors must connect a verified Neogram Cyber-Pass to sign.</span>
+                      </div>
+                    </label>
                   </div>
 
                   <!-- Action Button -->
@@ -1988,6 +1996,15 @@
                       ✨ Clean Frameless
                     </button>
                   </div>
+                </div>
+
+                <!-- Guestbook Anonymous Signatures Toggle -->
+                <div class="mb-3 font-mono text-xs p-2 bg-window border border-main flex items-center justify-between">
+                  <div>
+                    <span class="font-bold text-white block">🌐 ANONYMOUS SIGNATURES:</span>
+                    <span class="text-3xs text-muted block">Allow visitors without a Cyber-Pass to sign with a custom handle</span>
+                  </div>
+                  <input type="checkbox" id="gbAllowAnonInput" onchange="toggleGuestbookAllowAnon()" class="cursor-pointer" checked />
                 </div>
 
                 <!-- Guestbook HTML Embed Snippet Box -->
@@ -3133,6 +3150,11 @@
 
       if (badge) badge.textContent = data.entries.length + ' SIGNATURES';
 
+      var gbAllowAnonInput = document.getElementById('gbAllowAnonInput');
+      if (gbAllowAnonInput && data.allowAnonymous !== undefined) {
+        gbAllowAnonInput.checked = !!data.allowAnonymous;
+      }
+
       if (data.entries.length === 0) {
         container.innerHTML = '<div class="text-center py-4 text-xs text-muted">:&gt; No signatures recorded yet. Share your guestbook link!</div>';
         return;
@@ -3142,11 +3164,19 @@
       data.entries.forEach(function(entry) {
         var safeUrl = sanitizeUrl(entry.visitorWebsite);
         var site = safeUrl ? '<div class="text-xs"><a href="' + escapeHtml(safeUrl) + '" target="_blank" rel="noopener noreferrer" class="text-mac underline">🌐 ' + escapeHtml(safeUrl) + '</a></div>' : '';
+        var authorHtml = '';
+        if (entry.isAnonymous) {
+          authorHtml = '<span class="font-bold">' + escapeHtml(entry.visitorName) + '</span> <span class="text-muted text-3xs">[Guest]</span>';
+        } else {
+          var uinBadge = entry.uin ? ' <span class="text-muted font-normal text-3xs">[#' + entry.uin + ']</span>' : '';
+          authorHtml = '<a href="/user/@' + encodeURIComponent(entry.visitorName) + '" target="_blank" class="font-bold text-mac hover:underline">@' + escapeHtml(entry.visitorName) + '</a>' + uinBadge;
+        }
+
         html += '<div class="retro-card p-2 flex flex-col gap-1 text-xs border border-main">' +
           '<div class="flex items-center justify-between border-b border-main pb-1">' +
-            '<div class="flex items-center gap-1.5">' +
+            '<div class="flex items-center gap-1.5 flex-wrap">' +
               '<span>' + escapeHtml(entry.moodIcon || '😎') + '</span>' +
-              '<span class="font-bold">' + escapeHtml(entry.visitorName) + '</span>' +
+              authorHtml +
               '<span class="text-muted text-xs">(' + escapeHtml(entry.visitorLocation || 'Cyberspace') + ')</span>' +
             '</div>' +
             '<button type="button" onclick="deleteGuestbookEntry(\'' + escapeHtml(entry.id) + '\')" class="text-crimson font-bold text-xs hover:underline" title="Delete signature">[Delete]</button>' +
@@ -3178,6 +3208,25 @@
       alert(e.message);
     }
   }
+
+  window.toggleGuestbookAllowAnon = async function() {
+    var gbInput = document.getElementById('gbAllowAnonInput');
+    if (!gbInput) return;
+    var isChecked = gbInput.checked;
+    var other = document.getElementById('allowAnonGuestbookInput');
+    if (other) other.checked = isChecked;
+    if (window.retroAudio) window.retroAudio.playClick();
+    try {
+      var res = await fetch('/api/settings/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ allowAnonGuestbook: isChecked }),
+      });
+      if (res.ok && window.retroAudio) window.retroAudio.playSuccess();
+    } catch (err) {
+      console.error('Failed to update guestbook anon settings:', err);
+    }
+  };
 
   async function loadNetworkUsers() {
     var container = document.getElementById('networkUsersList');
@@ -3959,6 +4008,11 @@
       if (widgetEnabledInput) widgetEnabledInput.checked = p.chatWidgetEnabled !== false;
       if (allowAnonInput) allowAnonInput.checked = p.allowAnonChat !== false;
 
+      var allowAnonGbInput = document.getElementById('allowAnonGuestbookInput');
+      if (allowAnonGbInput) allowAnonGbInput.checked = p.allowAnonGuestbook !== false;
+      var gbAllowAnonInput = document.getElementById('gbAllowAnonInput');
+      if (gbAllowAnonInput) gbAllowAnonInput.checked = p.allowAnonGuestbook !== false;
+
       // Update push permission button state
       var pushBtn = document.getElementById('requestPushPermissionBtn');
       if (pushBtn && typeof Notification !== 'undefined') {
@@ -4018,6 +4072,7 @@
         desktopPush: document.getElementById('notifyDesktopPushInput').checked,
         chatWidgetEnabled: document.getElementById('chatWidgetEnabledInput') ? document.getElementById('chatWidgetEnabledInput').checked : true,
         allowAnonChat: document.getElementById('allowAnonChatInput') ? document.getElementById('allowAnonChatInput').checked : true,
+        allowAnonGuestbook: document.getElementById('allowAnonGuestbookInput') ? document.getElementById('allowAnonGuestbookInput').checked : true,
       };
 
       var res = await fetch('/api/settings/notifications', {
