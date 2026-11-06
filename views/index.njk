@@ -377,10 +377,10 @@
                 >
                   <span class="dropzone-well__icon text-4xl mb-2">📷</span>
                   <div class="font-bold text-sm tracking-wider uppercase mb-1">
-                    CLICK TO BROWSE OR DRAG &amp; DROP PHOTO
+                    CLICK TO BROWSE OR DRAG &amp; DROP PHOTOS
                   </div>
                   <div class="text-xs text-muted mb-4">
-                    Supports JPEG, PNG, WebP, GIF, BMP (Processed via Sharp)
+                    Supports 1 to 5 photos per gallery (JPEG, PNG, WebP, GIF, BMP)
                   </div>
                   
                   <div class="flex items-center justify-center">
@@ -389,9 +389,9 @@
                       id="selectPhotoBtn"
                       class="pixel-btn pixel-btn--yellow font-bold text-xs"
                       onclick="triggerFileInput(event)"
-                      title="Snap photo with camera or choose from gallery"
+                      title="Snap photos with camera or choose up to 5 from gallery"
                     >
-                      <span>📸</span> <span>SNAP OR CHOOSE PHOTO</span>
+                      <span>📸</span> <span>SNAP OR CHOOSE PHOTOS (UP TO 5)</span>
                     </button>
                   </div>
                 </div>
@@ -413,6 +413,9 @@
                     />
                   </div>
 
+                  <!-- Multi-Photo Gallery Thumbnail Strip (when > 1 photo selected) -->
+                  <div id="multiPhotoStrip" class="hidden flex items-center gap-2 overflow-x-auto p-1 bg-window border border-main"></div>
+
                   <!-- Selected File Status Bar with Change / Clear Actions -->
                   <div class="pixel-box p-2 bg-desktop flex items-center justify-between text-xs">
                     <div class="flex items-center gap-2 truncate">
@@ -425,7 +428,7 @@
                         type="button"
                         class="pixel-btn pixel-btn--sm"
                         onclick="triggerFileInput(event)"
-                        title="Select a different photo file"
+                        title="Select different photo files"
                       >
                         <span>🔄 Change</span>
                       </button>
@@ -433,7 +436,7 @@
                         type="button"
                         class="pixel-btn pixel-btn--danger pixel-btn--sm"
                         onclick="clearSelectedPhoto()"
-                        title="Remove selected photo"
+                        title="Remove selected photos"
                       >
                         <span>✕ Clear</span>
                       </button>
@@ -476,8 +479,9 @@
                 <input
                   type="file"
                   id="imageFileInput"
-                  name="imageFile"
+                  name="imageFiles"
                   accept="image/*"
+                  multiple
                   style="display:none;"
                   onchange="handleFileInputChange(event)"
                 />
@@ -2288,6 +2292,7 @@
 {% if currentUser %}
 <script>
   var currentFilter = 'crt';
+  var selectedFiles = [];
   var selectedFile = null;
 
   function triggerFileInput(e) {
@@ -2329,18 +2334,61 @@
     return ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'avif', 'svg'].indexOf(ext) !== -1;
   }
 
-  function loadFile(file) {
-    if (!file) return;
-    if (!isImageFile(file)) {
+  function renderMultiPhotoStrip() {
+    var stripEl = document.getElementById('multiPhotoStrip');
+    if (!stripEl) return;
+    if (selectedFiles.length <= 1) {
+      stripEl.innerHTML = '';
+      stripEl.classList.add('hidden');
+      return;
+    }
+
+    stripEl.innerHTML = '';
+    stripEl.classList.remove('hidden');
+
+    selectedFiles.forEach(function(file, index) {
+      var thumbBtn = document.createElement('button');
+      thumbBtn.type = 'button';
+      thumbBtn.className = 'pixel-btn pixel-btn--sm flex items-center gap-1 text-xs';
+      thumbBtn.title = 'Preview ' + file.name + ' (' + (index + 1) + '/' + selectedFiles.length + ')';
+      thumbBtn.innerHTML = '<span>📷 ' + (index + 1) + '</span>';
+      thumbBtn.onclick = function(e) {
+        e.stopPropagation();
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          var previewImg = document.getElementById('previewImg');
+          if (previewImg) previewImg.src = ev.target.result;
+          var nameSpan = document.getElementById('selectedFileName');
+          if (nameSpan) nameSpan.textContent = file.name + ' (' + (index + 1) + '/' + selectedFiles.length + ')';
+        };
+        reader.readAsDataURL(file);
+      };
+      stripEl.appendChild(thumbBtn);
+    });
+  }
+
+  function loadFiles(fileList) {
+    if (!fileList || fileList.length === 0) return;
+    var rawFiles = Array.from(fileList).filter(isImageFile);
+
+    if (rawFiles.length === 0) {
       try {
         if (window.retroAudio && typeof window.retroAudio.playError === 'function') {
           window.retroAudio.playError();
         }
       } catch(e) {}
-      showAlert('error', '[:> INVALID FILE]:', 'Selected file must be an image format (JPEG, PNG, WebP, GIF, BMP).');
+      showAlert('error', '[:> INVALID FILE]:', 'Selected files must be valid image formats (JPEG, PNG, WebP, GIF, BMP).');
       return;
     }
-    selectedFile = file;
+
+    if (rawFiles.length > 5) {
+      showAlert('warning', '[:> PHOTO LIMIT EXCEEDED]:', 'Galleries are limited to 5 photos maximum. The first 5 photos have been loaded.');
+      rawFiles = rawFiles.slice(0, 5);
+    }
+
+    selectedFiles = rawFiles;
+    selectedFile = selectedFiles[0];
+
     try {
       if (window.retroAudio && typeof window.retroAudio.playShutter === 'function') {
         window.retroAudio.playShutter();
@@ -2356,8 +2404,18 @@
       var sizeSpan = document.getElementById('selectedFileSize');
 
       if (previewImg) previewImg.src = event.target.result;
-      if (nameSpan) nameSpan.textContent = file.name;
-      if (sizeSpan) sizeSpan.textContent = '(' + (file.size / 1024).toFixed(1) + ' KB)';
+
+      var totalSize = selectedFiles.reduce(function(sum, f) { return sum + f.size; }, 0);
+      if (nameSpan) {
+        if (selectedFiles.length === 1) {
+          nameSpan.textContent = selectedFiles[0].name;
+        } else {
+          nameSpan.textContent = selectedFiles.length + ' photos selected';
+        }
+      }
+      if (sizeSpan) sizeSpan.textContent = '(' + (totalSize / 1024).toFixed(1) + ' KB total)';
+
+      renderMultiPhotoStrip();
 
       // In-place swap: Hide upload dropzone, show live preview
       if (uploadDropzone) uploadDropzone.classList.add('hidden');
@@ -2367,18 +2425,47 @@
       console.error('FileReader error:', err);
       showAlert('error', '[:> READ ERROR]:', 'Could not read image file from local device.');
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(selectedFiles[0]);
+  }
+
+  function loadFile(file) {
+    loadFiles([file]);
+  }
+
+  function handleFileInputChange(e) {
+    if (e.target.files && e.target.files.length > 0) {
+      loadFiles(e.target.files);
+    }
+  }
+
+  function handleFileDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var dropEl = document.getElementById('uploadDropzone');
+    var prevEl = document.getElementById('previewContainer');
+    if (dropEl) dropEl.classList.remove('is-dragover');
+    if (prevEl) prevEl.classList.remove('is-dragover');
+
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      loadFiles(e.dataTransfer.files);
+    }
   }
 
   function clearSelectedPhoto() {
+    selectedFiles = [];
     selectedFile = null;
     var previewImg = document.getElementById('previewImg');
     var uploadDropzone = document.getElementById('uploadDropzone');
     var previewContainer = document.getElementById('previewContainer');
     var imageFileInput = document.getElementById('imageFileInput');
+    var stripEl = document.getElementById('multiPhotoStrip');
 
     if (previewImg) previewImg.src = '';
     if (imageFileInput) imageFileInput.value = '';
+    if (stripEl) {
+      stripEl.innerHTML = '';
+      stripEl.classList.add('hidden');
+    }
 
     // In-place swap: Hide live preview, restore upload dropzone
     if (previewContainer) previewContainer.classList.add('hidden');
@@ -2396,8 +2483,8 @@
     var fileInput = document.getElementById('imageFileInput');
     if (fileInput) {
       fileInput.addEventListener('change', function(e) {
-        if (e.target.files && e.target.files[0]) {
-          loadFile(e.target.files[0]);
+        if (e.target.files && e.target.files.length > 0) {
+          loadFiles(e.target.files);
         }
       });
     }
@@ -2431,7 +2518,7 @@
         e.stopPropagation();
         el.classList.remove('is-dragover');
         if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-          loadFile(e.dataTransfer.files[0]);
+          loadFiles(e.dataTransfer.files);
         }
       });
     });
@@ -2534,7 +2621,8 @@
     try {
       await logStep('[:> init_ppp_link /dev/ttyS0 --baud 28800]', 400);
       await logStep('[:> carrier detected: V.34 protocol handshake... [OK]]', 600);
-      await logStep('[:> sharp_compress_image: creating 1200px webp & 400px thumbnail]', 500);
+      var fileCount = selectedFiles.length || (selectedFile ? 1 : 0);
+      await logStep('[:> sharp_compress_image: creating 1200px webp & 400px thumbnail' + (fileCount > 1 ? 's for ' + fileCount + ' photos' : '') + ']', 500);
 
       var formData = new FormData();
       formData.append('caption', caption);
@@ -2545,7 +2633,14 @@
         formData.append('siteId', uploadSiteIdInput.value);
       }
 
-      if (selectedFile) {
+      if (selectedFiles.length > 0) {
+        for (var i = 0; i < selectedFiles.length; i++) {
+          formData.append('imageFiles', selectedFiles[i]);
+        }
+        if (selectedFiles.length === 1) {
+          formData.append('imageFile', selectedFiles[0]);
+        }
+      } else if (selectedFile) {
         formData.append('imageFile', selectedFile);
       } else {
         // If no file selected, pass the current preview image source

@@ -3322,6 +3322,162 @@ dialog.pixel-dialog[open] {
   width: 100%;
 }
 
+/* ==========================================================================
+   8. MULTI-PHOTO SLIDER / CAROUSEL (Instagram-Style Sliding via Pure CSS)
+   ========================================================================== */
+.neogram-slider {
+  position: relative;
+  width: 100%;
+  background-color: #000000;
+  border: 2px solid var(--border-main, #000000);
+  padding: 4px;
+  min-height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.dark .neogram-slider {
+  border-color: var(--border-main, #384252);
+}
+.neogram-slider {
+  /* Retro CRT scanlines overlay */
+}
+.neogram-slider::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  background-size: 100% 3px, 6px 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+.neogram-slider__track {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  z-index: 1;
+}
+.neogram-slider__track::-webkit-scrollbar {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .neogram-slider__track {
+    scroll-behavior: auto;
+  }
+}
+.neogram-slider__slide {
+  flex: 0 0 100%;
+  width: 100%;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+@supports (container-type: scroll-state) {
+  .neogram-slider__slide {
+    container-type: scroll-state;
+  }
+}
+.neogram-slider__image {
+  max-height: 520px;
+  max-width: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.neogram-slider {
+  /* Centered Instagram-style indicator dots */
+}
+.neogram-slider__nav {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid var(--border-main, #000000);
+  z-index: 10;
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 0.5);
+}
+.dark .neogram-slider__nav {
+  background: rgba(10, 10, 15, 0.85);
+  border-color: #384252;
+}
+.neogram-slider__dot {
+  width: 8px;
+  height: 8px;
+  background: #666666;
+  border: 1px solid #000000;
+  display: inline-block;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.neogram-slider__dot:hover, .neogram-slider__dot:focus, .neogram-slider__dot:active {
+  background: var(--accent-prompt, #00ff66);
+  transform: scale(1.3);
+}
+.neogram-slider {
+  /* Multi-photo badge pill */
+}
+.neogram-slider__counter {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  pointer-events: none;
+}
+.neogram-slider {
+  /* Card modifier for index and friends grids */
+}
+.neogram-slider--card {
+  min-height: 224px;
+  height: 224px;
+  padding: 0;
+  border: none;
+}
+.neogram-slider--card .neogram-slider__slide {
+  min-height: 224px;
+  height: 224px;
+}
+.neogram-slider--card .neogram-slider__image {
+  max-height: 224px;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+.neogram-slider--card .neogram-slider__nav {
+  bottom: 8px;
+  padding: 2px 6px;
+  gap: 4px;
+}
+.neogram-slider--card .neogram-slider__dot {
+  width: 6px;
+  height: 6px;
+}
+
 /**
  * _docs.scss: Styles for the Neogram Documentation Portal
  */

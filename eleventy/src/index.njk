@@ -70,19 +70,49 @@ title: Static Photo Stream
         </div>
 
         <!-- Thumbnail Viewport with CRT & Filter Shaders -->
-        <a href="{{ ('/photos/' + post.id + '/') | url }}" class="neogram-card__media">
-          <img
-            src="{{ (post.thumbnailPath or post.imagePath) | url }}"
-            alt="{{ post.caption }}"
-            class="neogram-card__image filter-{{ post.filterApplied or 'none' }}"
-            loading="lazy"
-          />
-          <div class="neogram-card__overlay">
-            <span class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn">
-              <span>👁️ VIEW &amp; COMMENT</span>
-            </span>
+        {% if post.photos and post.photos.length > 1 %}
+          <div class="neogram-slider neogram-slider--card">
+            <div class="neogram-slider__track" tabindex="0" role="region" aria-label="Photo carousel slider">
+              {% for pic in post.photos %}
+                <a href="{{ ('/photos/' + post.id + '/') | url }}" class="neogram-slider__slide" id="card-{{ post.id }}-{{ loop.index }}">
+                  <img
+                    src="{{ (pic.thumbnailPath or pic.imagePath) | url }}"
+                    alt="{{ post.caption }} ({{ loop.index }}/{{ post.photos.length }})"
+                    class="neogram-slider__image filter-{{ post.filterApplied or 'none' }}"
+                    loading="lazy"
+                  />
+                </a>
+              {% endfor %}
+            </div>
+            <div class="neogram-slider__nav" aria-label="Slide navigation dots">
+              {% for pic in post.photos %}
+                <a href="#card-{{ post.id }}-{{ loop.index }}" class="neogram-slider__dot" aria-label="Slide {{ loop.index }} of {{ post.photos.length }}"></a>
+              {% endfor %}
+            </div>
+            <div class="neogram-slider__counter">
+              <span class="neogram-badge neogram-badge--cyan">⧉ {{ post.photos.length }}</span>
+            </div>
+            <div class="neogram-card__overlay">
+              <a href="{{ ('/photos/' + post.id + '/') | url }}" class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn">
+                <span>👁️ VIEW &amp; COMMENT</span>
+              </a>
+            </div>
           </div>
-        </a>
+        {% else %}
+          <a href="{{ ('/photos/' + post.id + '/') | url }}" class="neogram-card__media">
+            <img
+              src="{{ (post.thumbnailPath or post.imagePath) | url }}"
+              alt="{{ post.caption }}"
+              class="neogram-card__image filter-{{ post.filterApplied or 'none' }}"
+              loading="lazy"
+            />
+            <div class="neogram-card__overlay">
+              <span class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn">
+                <span>👁️ VIEW &amp; COMMENT</span>
+              </span>
+            </div>
+          </a>
+        {% endif %}
 
         <!-- Metadata & Caption Card Body -->
         <div class="neogram-card__body">

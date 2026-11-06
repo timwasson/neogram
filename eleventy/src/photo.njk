@@ -33,13 +33,37 @@ eleventyComputed:
 
       <!-- LEFT: Full Resolution Photo Viewport -->
       <div class="neogram-detail__media-col">
-        <div class="neogram-detail__viewport">
-          <img
-            src="{{ post.imagePath | url }}"
-            alt="{{ post.caption }}"
-            class="neogram-detail__image filter-{{ post.filterApplied or 'none' }}"
-          />
-        </div>
+        {% if post.photos and post.photos.length > 1 %}
+          <div class="neogram-slider" id="slider-{{ post.id }}">
+            <div class="neogram-slider__track" tabindex="0" role="region" aria-label="Photo carousel slider">
+              {% for pic in post.photos %}
+                <div class="neogram-slider__slide" id="slide-{{ post.id }}-{{ loop.index }}">
+                  <img
+                    src="{{ pic.imagePath | url }}"
+                    alt="{{ post.caption }} ({{ loop.index }}/{{ post.photos.length }})"
+                    class="neogram-slider__image filter-{{ post.filterApplied or 'none' }}"
+                  />
+                </div>
+              {% endfor %}
+            </div>
+            <div class="neogram-slider__nav" aria-label="Slide navigation dots">
+              {% for pic in post.photos %}
+                <a href="#slide-{{ post.id }}-{{ loop.index }}" class="neogram-slider__dot" aria-label="Slide {{ loop.index }} of {{ post.photos.length }}" title="Photo {{ loop.index }}"></a>
+              {% endfor %}
+            </div>
+            <div class="neogram-slider__counter">
+              <span class="neogram-badge neogram-badge--cyan">📷 {{ post.photos.length }} PHOTOS (SLIDE ➔)</span>
+            </div>
+          </div>
+        {% else %}
+          <div class="neogram-detail__viewport">
+            <img
+              src="{{ post.imagePath | url }}"
+              alt="{{ post.caption }}"
+              class="neogram-detail__image filter-{{ post.filterApplied or 'none' }}"
+            />
+          </div>
+        {% endif %}
 
         <!-- Tag row -->
         <div class="neogram-detail__tags">

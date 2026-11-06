@@ -228,6 +228,7 @@ export function createApp(): Express {
           s.slug as "siteSlug",
           p.image_path as "imagePath",
           p.thumbnail_path as "thumbnailPath",
+          p.photos,
           p.caption,
           p.filter_applied as "filterApplied",
           p.mood,
@@ -473,7 +474,7 @@ export function createApp(): Express {
       // Fetch public transmissions from this user with site metadata
       const postsRes = await query(
         `SELECT p.id, p.site_id as "siteId", s.name as "siteName", s.slug as "siteSlug",
-                p.image_path as "imagePath", p.thumbnail_path as "thumbnailPath", p.caption,
+                p.image_path as "imagePath", p.thumbnail_path as "thumbnailPath", p.photos, p.caption,
                 p.filter_applied as "filterApplied", mood, webring, location, likes_count as "likes",
                 p.created_at as "createdAt"
          FROM posts p

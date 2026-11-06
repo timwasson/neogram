@@ -456,6 +456,7 @@ embedsRouter.get(['/api/users/:identifier/feed.json', '/feed/:identifier.json'],
           p.id,
           p.image_path as "imagePath",
           p.thumbnail_path as "thumbnailPath",
+          p.photos,
           p.caption,
           p.filter_applied as "filterApplied",
           p.mood,
@@ -471,6 +472,7 @@ embedsRouter.get(['/api/users/:identifier/feed.json', '/feed/:identifier.json'],
           p.id,
           p.image_path as "imagePath",
           p.thumbnail_path as "thumbnailPath",
+          p.photos,
           p.caption,
           p.filter_applied as "filterApplied",
           p.mood,
@@ -486,20 +488,37 @@ embedsRouter.get(['/api/users/:identifier/feed.json', '/feed/:identifier.json'],
     const postsParams = targetSite ? [user.id, targetSite.id] : [user.id];
     const postsRes = await query(postsSql, postsParams);
 
-    const posts = postsRes.rows.map((p) => ({
-      id: p.id,
-      imageUrl: p.imagePath.startsWith('http') ? p.imagePath : `${baseUrl}${p.imagePath}`,
-      thumbnailUrl: p.thumbnailPath.startsWith('http') ? p.thumbnailPath : `${baseUrl}${p.thumbnailPath}`,
-      caption: p.caption,
-      filter: p.filterApplied,
-      mood: p.mood,
-      webring: p.webring,
-      location: p.location,
-      likes: parseInt(p.likes, 10),
-      commentCount: parseInt(p.commentCount, 10),
-      url: `${baseUrl}/photos/${p.id}/`,
-      createdAt: p.createdAt,
-    }));
+    const posts = postsRes.rows.map((p) => {
+      let parsedPhotos: any[] = [];
+      if (Array.isArray(p.photos) && p.photos.length > 0) {
+        parsedPhotos = p.photos;
+      } else if (typeof p.photos === 'string' && p.photos.startsWith('[')) {
+        try { parsedPhotos = JSON.parse(p.photos); } catch (_e) {}
+      }
+      if (!parsedPhotos || parsedPhotos.length === 0) {
+        parsedPhotos = [{ imagePath: p.imagePath, thumbnailPath: p.thumbnailPath }];
+      }
+      const fullPhotos = parsedPhotos.map((pic: any) => ({
+        imageUrl: (pic.imagePath || '').startsWith('http') ? pic.imagePath : `${baseUrl}${pic.imagePath || ''}`,
+        thumbnailUrl: (pic.thumbnailPath || pic.imagePath || '').startsWith('http') ? (pic.thumbnailPath || pic.imagePath) : `${baseUrl}${pic.thumbnailPath || pic.imagePath || ''}`
+      }));
+
+      return {
+        id: p.id,
+        imageUrl: p.imagePath.startsWith('http') ? p.imagePath : `${baseUrl}${p.imagePath}`,
+        thumbnailUrl: p.thumbnailPath.startsWith('http') ? p.thumbnailPath : `${baseUrl}${p.thumbnailPath}`,
+        photos: fullPhotos,
+        caption: p.caption,
+        filter: p.filterApplied,
+        mood: p.mood,
+        webring: p.webring,
+        location: p.location,
+        likes: parseInt(p.likes, 10),
+        commentCount: parseInt(p.commentCount, 10),
+        url: `${baseUrl}/photos/${p.id}/`,
+        createdAt: p.createdAt,
+      };
+    });
 
     const feedTitle = targetSite ? `${handle}'s ${targetSite.name} Photo Feed` : `${handle}'s Neogram Photo Feed`;
     const homeUrl = targetSite && targetSite.siteUrl ? targetSite.siteUrl : (user.site_url || `${baseUrl}/embed/feed/${handle}`);

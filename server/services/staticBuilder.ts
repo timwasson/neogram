@@ -441,6 +441,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
           p.site_id as "siteId",
           p.image_path as "imagePath",
           p.thumbnail_path as "thumbnailPath",
+          p.photos,
           p.caption,
           p.filter_applied as "filterApplied",
           p.mood,
@@ -465,6 +466,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
           p.site_id as "siteId",
           p.image_path as "imagePath",
           p.thumbnail_path as "thumbnailPath",
+          p.photos,
           p.caption,
           p.filter_applied as "filterApplied",
           p.mood,
@@ -489,6 +491,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
           p.site_id as "siteId",
           p.image_path as "imagePath",
           p.thumbnail_path as "thumbnailPath",
+          p.photos,
           p.caption,
           p.filter_applied as "filterApplied",
           p.mood,
@@ -570,10 +573,23 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
       }
     }
 
-    const posts = postsQuery.rows.map((post) => ({
-      ...post,
-      comments: commentsByPost[post.id] || [],
-    }));
+    const posts = postsQuery.rows.map((post) => {
+      let parsedPhotos: any[] = [];
+      if (Array.isArray(post.photos) && post.photos.length > 0) {
+        parsedPhotos = post.photos;
+      } else if (typeof post.photos === 'string' && post.photos.startsWith('[')) {
+        try { parsedPhotos = JSON.parse(post.photos); } catch (_e) { parsedPhotos = []; }
+      }
+      if (!parsedPhotos || parsedPhotos.length === 0) {
+        parsedPhotos = [{ imagePath: post.imagePath, thumbnailPath: post.thumbnailPath }];
+      }
+
+      return {
+        ...post,
+        photos: parsedPhotos,
+        comments: commentsByPost[post.id] || [],
+      };
+    });
 
     // 3. User metadata & Headless API configuration
     let author = 'user';
@@ -738,12 +754,28 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
         thumbnailUrl = `${fullSiteUrl}${thumbnailUrl.startsWith('/') ? '' : '/'}${thumbnailUrl}`;
       }
 
+      const postPhotos = (post.photos || []).map((pic: any) => {
+        let pImg = pic.imagePath;
+        let pThumb = pic.thumbnailPath || pic.imagePath;
+        if (pImg && !pImg.startsWith('http://') && !pImg.startsWith('https://')) {
+          pImg = `${fullSiteUrl}${pImg.startsWith('/') ? '' : '/'}${pImg}`;
+        }
+        if (pThumb && !pThumb.startsWith('http://') && !pThumb.startsWith('https://')) {
+          pThumb = `${fullSiteUrl}${pThumb.startsWith('/') ? '' : '/'}${pThumb}`;
+        }
+        return {
+          imagePath: pImg,
+          thumbnailPath: pThumb,
+        };
+      });
+
       return {
         id: post.id,
         userId: post.userId,
         caption: post.caption,
         imagePath: post.imagePath,
         thumbnailPath: post.thumbnailPath,
+        photos: postPhotos.length > 0 ? postPhotos : [{ imagePath: imageUrl, thumbnailPath: thumbnailUrl }],
         imageUrl: imageUrl,
         thumbnailUrl: thumbnailUrl,
         filterApplied: post.filterApplied || 'none',

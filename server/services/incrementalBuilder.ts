@@ -197,6 +197,7 @@ async function fetchFormattedPosts(siteId?: string, userId?: string, fullSiteUrl
         p.site_id as "siteId",
         p.image_path as "imagePath",
         p.thumbnail_path as "thumbnailPath",
+        p.photos,
         p.caption,
         p.filter_applied as "filterApplied",
         p.mood,
@@ -221,6 +222,7 @@ async function fetchFormattedPosts(siteId?: string, userId?: string, fullSiteUrl
         p.site_id as "siteId",
         p.image_path as "imagePath",
         p.thumbnail_path as "thumbnailPath",
+        p.photos,
         p.caption,
         p.filter_applied as "filterApplied",
         p.mood,
@@ -261,6 +263,35 @@ async function fetchFormattedPosts(siteId?: string, userId?: string, fullSiteUrl
       thumbnailUrl = `${fullSiteUrl}${thumbnailUrl.startsWith('/') ? '' : '/'}${thumbnailUrl}`;
     }
 
+    let parsedPhotos: any[] = [];
+    if (Array.isArray(post.photos) && post.photos.length > 0) {
+      parsedPhotos = post.photos;
+    } else if (typeof post.photos === 'string' && post.photos.startsWith('[')) {
+      try {
+        parsedPhotos = JSON.parse(post.photos);
+      } catch (_e) {
+        parsedPhotos = [];
+      }
+    }
+    if (!parsedPhotos || parsedPhotos.length === 0) {
+      parsedPhotos = [{ imagePath: post.imagePath, thumbnailPath: post.thumbnailPath }];
+    }
+
+    const formattedPhotos = parsedPhotos.map((pic: any) => {
+      let pImg = pic.imagePath;
+      let pThumb = pic.thumbnailPath || pic.imagePath;
+      if (pImg && !pImg.startsWith('http://') && !pImg.startsWith('https://')) {
+        pImg = `${fullSiteUrl}${pImg.startsWith('/') ? '' : '/'}${pImg}`;
+      }
+      if (pThumb && !pThumb.startsWith('http://') && !pThumb.startsWith('https://')) {
+        pThumb = `${fullSiteUrl}${pThumb.startsWith('/') ? '' : '/'}${pThumb}`;
+      }
+      return {
+        imagePath: pImg,
+        thumbnailPath: pThumb,
+      };
+    });
+
     const comments = commentsByPost[post.id] || [];
 
     return {
@@ -271,6 +302,7 @@ async function fetchFormattedPosts(siteId?: string, userId?: string, fullSiteUrl
       caption: post.caption,
       imagePath: post.imagePath,
       thumbnailPath: post.thumbnailPath,
+      photos: formattedPhotos,
       imageUrl,
       thumbnailUrl,
       filterApplied: post.filterApplied || 'none',
@@ -302,9 +334,10 @@ export async function buildAndDeployNewPhoto(options: {
   postId: string;
   imagePath: string;
   thumbnailPath: string;
+  photos?: Array<{ imagePath: string; thumbnailPath: string }>;
 }): Promise<IncrementalResult> {
   const startTime = Date.now();
-  const { siteId, userId, postId, imagePath, thumbnailPath } = options;
+  const { siteId, userId, postId, imagePath, thumbnailPath, photos } = options;
 
   return buildQueue.enqueue(`IncrementalPhoto:${postId}`, async () => {
     console.log(`[:> INCREMENTAL BUILD] Compiling new photo ${postId} for site ${siteId}...`);
@@ -375,20 +408,30 @@ export async function buildAndDeployNewPhoto(options: {
       deltaFiles.push({ relativePath: 'index.html', absolutePath: indexFile });
     }
 
-    // 5. Include new media files on disk in the delta payload
-    const cleanImg = imagePath.replace(/^https?:\/\/[^\/]+/, '').replace(/^\/+/, '');
-    const cleanThumb = thumbnailPath.replace(/^https?:\/\/[^\/]+/, '').replace(/^\/+/, '');
-    const imgSub = cleanImg.includes('uploads/') ? cleanImg.substring(cleanImg.indexOf('uploads/')) : cleanImg;
-    const thumbSub = cleanThumb.includes('uploads/') ? cleanThumb.substring(cleanThumb.indexOf('uploads/')) : cleanThumb;
+    // 5. Include all new media files on disk in the delta payload
+    const allPhotosToDeploy = (photos && photos.length > 0)
+      ? photos
+      : (newPost && newPost.photos && newPost.photos.length > 0)
+        ? newPost.photos
+        : [{ imagePath, thumbnailPath }];
 
-    const imgLocalPath = path.join(outputDir, imgSub);
-    const thumbLocalPath = path.join(outputDir, thumbSub);
+    for (const pic of allPhotosToDeploy) {
+      const pImg = pic.imagePath || '';
+      const pThumb = pic.thumbnailPath || '';
+      const cleanImg = pImg.replace(/^https?:\/\/[^\/]+/, '').replace(/^\/+/, '');
+      const cleanThumb = pThumb.replace(/^https?:\/\/[^\/]+/, '').replace(/^\/+/, '');
+      const imgSub = cleanImg.includes('uploads/') ? cleanImg.substring(cleanImg.indexOf('uploads/')) : cleanImg;
+      const thumbSub = cleanThumb.includes('uploads/') ? cleanThumb.substring(cleanThumb.indexOf('uploads/')) : cleanThumb;
 
-    if (existsSync(imgLocalPath)) {
-      deltaFiles.push({ relativePath: imgSub, absolutePath: imgLocalPath });
-    }
-    if (existsSync(thumbLocalPath)) {
-      deltaFiles.push({ relativePath: thumbSub, absolutePath: thumbLocalPath });
+      const imgLocalPath = path.join(outputDir, imgSub);
+      const thumbLocalPath = path.join(outputDir, thumbSub);
+
+      if (existsSync(imgLocalPath) && !deltaFiles.some((f) => f.relativePath === imgSub)) {
+        deltaFiles.push({ relativePath: imgSub, absolutePath: imgLocalPath });
+      }
+      if (existsSync(thumbLocalPath) && !deltaFiles.some((f) => f.relativePath === thumbSub)) {
+        deltaFiles.push({ relativePath: thumbSub, absolutePath: thumbLocalPath });
+      }
     }
 
     // 6. Deploy delta files directly to host

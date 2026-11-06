@@ -8,17 +8,25 @@ import { processImageBuffer, processBase64Image } from '../services/imageProcess
 
 export const postsRouter = Router();
 
-// In-memory multer storage to stream directly to Sharp (25MB limit for high-res camera snaps)
+// In-memory multer storage to stream directly to Sharp (25MB limit per file snap, up to 5 files per gallery)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 },
+  limits: { fileSize: 25 * 1024 * 1024, files: 5 },
 });
 
 function handleUploadMiddleware(req: Request, res: Response, next: any) {
-  upload.single('imageFile')(req, res, (err: any) => {
-    if (err instanceof multer.MulterError) {
+  upload.fields([
+    { name: 'imageFiles', maxCount: 5 },
+    { name: 'imageFile', maxCount: 1 },
+    { name: 'photos', maxCount: 5 },
+  ])(req, res, (err: any) => {
+    if (err && (err instanceof multer.MulterError || err.name === 'MulterError' || err.code?.startsWith('LIMIT_'))) {
       if (err.code === 'LIMIT_FILE_SIZE') {
-        res.status(400).json({ ok: false, error: 'Photo exceeds maximum allowed size (25MB limit).' });
+        res.status(400).json({ ok: false, error: 'Photo exceeds maximum allowed size (25MB limit per file).' });
+        return;
+      }
+      if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE' || err.message?.includes('Unexpected')) {
+        res.status(400).json({ ok: false, error: 'Maximum of 5 photos allowed per gallery post.' });
         return;
       }
       res.status(400).json({ ok: false, error: `Upload error: ${err.message}` });
@@ -67,6 +75,7 @@ postsRouter.get('/posts', async (req: Request, res: Response, next) => {
         p.site_id as "siteId",
         p.image_path as "imagePath",
         p.thumbnail_path as "thumbnailPath",
+        p.photos,
         p.caption,
         p.filter_applied as "filterApplied",
         p.mood,
@@ -106,10 +115,27 @@ postsRouter.get('/posts', async (req: Request, res: Response, next) => {
       commentsByPost[c.postId].push(c);
     }
 
-    const posts = postsQuery.rows.map((post) => ({
-      ...post,
-      comments: commentsByPost[post.id] || [],
-    }));
+    const posts = postsQuery.rows.map((post) => {
+      let parsedPhotos = [];
+      if (Array.isArray(post.photos) && post.photos.length > 0) {
+        parsedPhotos = post.photos;
+      } else if (typeof post.photos === 'string' && post.photos.startsWith('[')) {
+        try {
+          parsedPhotos = JSON.parse(post.photos);
+        } catch (_e) {
+          parsedPhotos = [];
+        }
+      }
+      if (!parsedPhotos || parsedPhotos.length === 0) {
+        parsedPhotos = [{ imagePath: post.imagePath, thumbnailPath: post.thumbnailPath }];
+      }
+
+      return {
+        ...post,
+        photos: parsedPhotos,
+        comments: commentsByPost[post.id] || [],
+      };
+    });
 
     res.json({ ok: true, posts });
   } catch (err) {
@@ -130,6 +156,7 @@ postsRouter.get('/posts/:id', async (req: Request, res: Response, next) => {
         p.user_id as "userId",
         p.image_path as "imagePath",
         p.thumbnail_path as "thumbnailPath",
+        p.photos,
         p.caption,
         p.filter_applied as "filterApplied",
         p.mood,
@@ -152,6 +179,21 @@ postsRouter.get('/posts/:id', async (req: Request, res: Response, next) => {
     }
 
     const post = postQuery.rows[0];
+
+    let parsedPhotos = [];
+    if (Array.isArray(post.photos) && post.photos.length > 0) {
+      parsedPhotos = post.photos;
+    } else if (typeof post.photos === 'string' && post.photos.startsWith('[')) {
+      try {
+        parsedPhotos = JSON.parse(post.photos);
+      } catch (_e) {
+        parsedPhotos = [];
+      }
+    }
+    if (!parsedPhotos || parsedPhotos.length === 0) {
+      parsedPhotos = [{ imagePath: post.imagePath, thumbnailPath: post.thumbnailPath }];
+    }
+    post.photos = parsedPhotos;
 
     const commentsQuery = await query(
       `
@@ -223,23 +265,47 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
     const safeWebring = typeof webring === 'string' && webring.trim() ? webring.trim().slice(0, 50) : null;
     const safeLocation = typeof location === 'string' && location.trim() ? location.trim().slice(0, 100) : null;
 
-    let processed;
-
     // 2. Ephemeral staging directly in the site's isolated static build directory
     const path = await import('path');
     const userStaticDir = path.join(process.cwd(), 'dist', 'static-galleries', targetSite.id);
     const targetUploadsDir = hasApiKey ? path.join(userStaticDir, 'uploads') : undefined;
 
+    const uploadedFiles: Express.Multer.File[] = [];
+    if (req.files) {
+      if (Array.isArray(req.files)) {
+        uploadedFiles.push(...req.files);
+      } else {
+        const filesMap = req.files as Record<string, Express.Multer.File[]>;
+        if (filesMap['imageFiles']) uploadedFiles.push(...filesMap['imageFiles']);
+        if (filesMap['imageFile']) uploadedFiles.push(...filesMap['imageFile']);
+        if (filesMap['photos']) uploadedFiles.push(...filesMap['photos']);
+      }
+    }
     if (req.file) {
-      // Multipart file upload from disk or mobile camera
-      processed = await processImageBuffer(req.file.buffer, safeFilter, targetUploadsDir);
+      uploadedFiles.push(req.file);
+    }
+
+    if (uploadedFiles.length > 5) {
+      res.status(400).json({ ok: false, error: 'Maximum of 5 photos allowed per gallery post.' });
+      return;
+    }
+
+    const processedList = [];
+
+    if (uploadedFiles.length > 0) {
+      // Process up to 5 photos with Sharp using the selected filter
+      for (const file of uploadedFiles) {
+        const proc = await processImageBuffer(file.buffer, safeFilter, targetUploadsDir);
+        processedList.push(proc);
+      }
     } else if (imageBase64) {
       // Base64 data URL from canvas or preset sprites (limit max base64 length to prevent memory attacks: 35MB)
       if (typeof imageBase64 !== 'string' || imageBase64.length > 35 * 1024 * 1024) {
         res.status(400).json({ ok: false, error: 'Base64 image payload exceeds size limits.' });
         return;
       }
-      processed = await processBase64Image(imageBase64, safeFilter, targetUploadsDir);
+      const proc = await processBase64Image(imageBase64, safeFilter, targetUploadsDir);
+      processedList.push(proc);
     } else {
       res.status(400).json({ ok: false, error: 'No image provided. Please select an image or photo.' });
       return;
@@ -255,19 +321,29 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
       : 'neogram';
     const deployPrefix = rawDeployPath ? `/${rawDeployPath}` : '';
 
-    const finalImagePath = hasApiKey
-      ? `${siteBase}${deployPrefix}${processed.imagePath}`
-      : processed.imagePath;
+    const photosList = processedList.map((proc) => {
+      const finalImg = hasApiKey
+        ? `${siteBase}${deployPrefix}${proc.imagePath}`
+        : proc.imagePath;
+      const finalThumb = hasApiKey
+        ? `${siteBase}${deployPrefix}${proc.thumbnailPath}`
+        : proc.thumbnailPath;
+      return {
+        imagePath: finalImg,
+        thumbnailPath: finalThumb,
+        width: proc.width,
+        height: proc.height,
+      };
+    });
 
-    const finalThumbPath = hasApiKey
-      ? `${siteBase}${deployPrefix}${processed.thumbnailPath}`
-      : processed.thumbnailPath;
+    const finalImagePath = photosList[0].imagePath;
+    const finalThumbPath = photosList[0].thumbnailPath;
 
-    // 4. Commit post record to PostgreSQL
+    // 4. Commit post record to PostgreSQL with photos gallery array
     const insertResult = await query(
       `
-      INSERT INTO posts (user_id, site_id, image_path, thumbnail_path, caption, filter_applied, mood, webring, location)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO posts (user_id, site_id, image_path, thumbnail_path, caption, filter_applied, mood, webring, location, photos)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `,
       [
@@ -280,6 +356,7 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
         safeMood,
         safeWebring,
         safeLocation,
+        JSON.stringify(photosList),
       ]
     );
 
@@ -325,6 +402,7 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
         postId: newPost.id,
         imagePath: newPost.image_path,
         thumbnailPath: newPost.thumbnail_path,
+        photos: photosList,
       });
     }
 
@@ -367,6 +445,7 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
         siteSlug: targetSite.slug,
         imagePath: newPost.image_path,
         thumbnailPath: newPost.thumbnail_path,
+        photos: photosList,
         caption: newPost.caption,
         filterApplied: newPost.filter_applied,
         mood: newPost.mood,
@@ -805,13 +884,13 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     const { id } = req.params;
 
     // 1. Fetch post to verify ownership and get image and thumbnail paths for disk cleanup
-    const postQuery = await query('SELECT user_id, site_id, image_path, thumbnail_path FROM posts WHERE id = $1', [id]);
+    const postQuery = await query('SELECT user_id, site_id, image_path, thumbnail_path, photos FROM posts WHERE id = $1', [id]);
     if (postQuery.rows.length === 0) {
       res.status(404).json({ ok: false, error: 'Post not found in terminal registry.' });
       return;
     }
 
-    const { user_id, site_id, image_path, thumbnail_path } = postQuery.rows[0];
+    const { user_id, site_id, image_path, thumbnail_path, photos } = postQuery.rows[0];
 
     if (user_id !== user.id) {
       res.status(403).json({ ok: false, error: 'Access denied: You are not authorized to delete this station post.' });
@@ -821,21 +900,33 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     // 2. Delete post row from PostgreSQL (comments cascade delete)
     await query('DELETE FROM posts WHERE id = $1', [id]);
 
-    // 3. Purge remote files from host if post was hosted externally
-    if (image_path && (image_path.includes('.neocities.org') || image_path.includes('.nekoweb.org') || image_path.includes('/uploads/'))) {
-      const cleanRel = (p: string) => p.replace(/^https?:\/\/[^\/]+\//, '').replace(/^\/+/, '');
-      const filesToDelete = [
-        image_path ? cleanRel(image_path) : null,
-        thumbnail_path ? cleanRel(thumbnail_path) : null
-      ].filter(Boolean) as string[];
+    let parsedPhotos: any[] = [];
+    if (Array.isArray(photos)) {
+      parsedPhotos = photos;
+    } else if (typeof photos === 'string' && photos.startsWith('[')) {
+      try { parsedPhotos = JSON.parse(photos); } catch (_e) {}
+    }
 
+    // 3. Purge remote files from host if post was hosted externally
+    const cleanRel = (p: string) => p.replace(/^https?:\/\/[^\/]+\//, '').replace(/^\/+/, '');
+    const filesToDelete = new Set<string>();
+    if (image_path) filesToDelete.add(cleanRel(image_path));
+    if (thumbnail_path) filesToDelete.add(cleanRel(thumbnail_path));
+    for (const pic of parsedPhotos) {
+      if (pic.imagePath) filesToDelete.add(cleanRel(pic.imagePath));
+      if (pic.thumbnailPath) filesToDelete.add(cleanRel(pic.thumbnailPath));
+    }
+
+    const deleteList = Array.from(filesToDelete).filter(Boolean);
+
+    if (deleteList.length > 0) {
       const { deleteFromNeocities } = await import('../services/neocitiesPublisher');
-      deleteFromNeocities(site_id || user.id, filesToDelete).catch((err) => {
+      deleteFromNeocities(site_id || user.id, deleteList).catch((err) => {
         console.warn('[:> NEOCITIES DELETE] Warning: could not purge remote files:', err);
       });
 
       const { deleteFromNekoweb } = await import('../services/nekowebPublisher');
-      deleteFromNekoweb(site_id || user.id, filesToDelete).catch((err) => {
+      deleteFromNekoweb(site_id || user.id, deleteList).catch((err) => {
         console.warn('[:> NEKOWEB DELETE] Warning: could not purge remote files:', err);
       });
     }
@@ -844,13 +935,11 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     const fs = await import('fs/promises');
     const path = await import('path');
 
-    if (image_path && image_path.startsWith('/uploads/')) {
-      const fullImgPath = path.join(process.cwd(), 'public', image_path);
-      fs.unlink(fullImgPath).catch(() => {});
-    }
-    if (thumbnail_path && thumbnail_path.startsWith('/uploads/')) {
-      const fullThumbPath = path.join(process.cwd(), 'public', thumbnail_path);
-      fs.unlink(fullThumbPath).catch(() => {});
+    for (const picPath of [image_path, thumbnail_path, ...parsedPhotos.map(p => p.imagePath), ...parsedPhotos.map(p => p.thumbnailPath)]) {
+      if (picPath && typeof picPath === 'string' && picPath.startsWith('/uploads/')) {
+        const fullLocalPath = path.join(process.cwd(), 'public', picPath);
+        fs.unlink(fullLocalPath).catch(() => {});
+      }
     }
 
     // 4. Trigger 11ty static rebuild so the static gallery no longer contains the deleted post
