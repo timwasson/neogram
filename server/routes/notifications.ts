@@ -34,6 +34,18 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+/**
+ * Public VAPID public key endpoint for PushManager subscription (no auth required)
+ */
+notificationsRouter.get('/notifications/vapid-public-key', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const publicKey = getVapidPublicKey();
+    res.json({ ok: true, publicKey });
+  } catch (err) {
+    next(err);
+  }
+});
+
 notificationsRouter.use(['/notifications', '/settings/notifications'], requireAuth);
 
 /**
@@ -149,19 +161,7 @@ notificationsRouter.put('/settings/notifications', async (req: Request, res: Res
 });
 
 /**
- * 6. GET /api/notifications/vapid-public-key - Retrieve public VAPID key for PushManager
- */
-notificationsRouter.get('/notifications/vapid-public-key', async (_req: Request, res: Response, next: NextFunction) => {
-  try {
-    const publicKey = getVapidPublicKey();
-    res.json({ ok: true, publicKey });
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * 7. POST /api/notifications/push-subscription - Register/update device Web Push subscription
+ * 6. POST /api/notifications/push-subscription - Register/update device Web Push subscription
  */
 notificationsRouter.post('/notifications/push-subscription', async (req: Request, res: Response, next: NextFunction) => {
   try {

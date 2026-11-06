@@ -15,6 +15,7 @@ import { adminRouter } from './routes/admin';
 import { getTickerAnnouncement } from './services/systemSettings';
 import { COOKIE_NAME, verifySessionToken, clearSessionCookie, extractToken, signSessionToken } from './auth/jwt';
 import { getUserById } from './auth/service';
+import { getVapidPublicKey } from './services/webPushService';
 import { config } from './config';
 
 export function createApp(): Express {
@@ -176,6 +177,12 @@ export function createApp(): Express {
       res.locals.tickerAnnouncement = await getTickerAnnouncement();
     } catch {
       // Fallback handled in Nunjucks template
+    }
+
+    try {
+      res.locals.vapidPublicKey = getVapidPublicKey();
+    } catch {
+      res.locals.vapidPublicKey = '';
     }
 
     try {

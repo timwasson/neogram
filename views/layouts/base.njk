@@ -14,6 +14,8 @@
     <meta name="apple-mobile-web-app-title" content="Neogram">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="color-scheme" content="light dark">
+    <meta name="vapid-public-key" content="{{ vapidPublicKey }}">
+    <script>window.NEOGRAM_VAPID_PUBLIC_KEY = "{{ vapidPublicKey }}";</script>
     <link rel="stylesheet" href="/css/neogram.css">
     <link rel="stylesheet" href="/embed/neogram-embed.css">
     <script src="/js/retroAudio.js?v=2.2.0"></script>
@@ -816,9 +818,9 @@
       </div>
 
       <!-- AIM Messenger Client Engine -->
-      <script src="/js/aimMessenger.js"></script>
+      <script src="/js/aimMessenger.js?v=3.2"></script>
       <!-- Notifications Client Engine -->
-      <script src="/js/notifications.js"></script>
+      <script src="/js/notifications.js?v=3.2"></script>
       <script>
         (function() {
           function bootAim() {
@@ -930,7 +932,7 @@
     {% endif %}
 
     <!-- PWA Service Worker & Carrier Telemetry Engine -->
-    <script src="/js/pwa.js"></script>
+    <script src="/js/pwa.js?v=3.2"></script>
 
     {% block scripts %}{% endblock %}
   </body>

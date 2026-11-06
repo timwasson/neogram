@@ -310,22 +310,26 @@
         return reg.pushManager.getSubscription().then(function (subscription) {
           if (subscription) {
             var subJson = subscription.toJSON();
-            return fetch('/api/notifications/push-subscription', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                endpoint: subscription.endpoint,
-                keys: subJson.keys,
-                userAgent: navigator.userAgent,
-              }),
-            }).catch(function (err) {
-              console.warn('[:> WEB PUSH SYNC WARN]', err);
-            });
-          } else {
-            return self.subscribePush().catch(function (subErr) {
-              console.warn('[:> WEB PUSH AUTO-SUBSCRIBE WARN]', subErr);
-            });
+            if (subJson && subJson.keys) {
+              return fetch('/api/notifications/push-subscription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  endpoint: subscription.endpoint,
+                  keys: subJson.keys,
+                  userAgent: navigator.userAgent,
+                }),
+              }).then(function () {
+                console.log('[:> WEB PUSH] PushSubscription re-synchronized with server.');
+              }).catch(function (err) {
+                console.warn('[:> WEB PUSH SYNC WARN]', err);
+              });
+            }
           }
+          // No active subscription or missing keys, attempt clean subscription
+          return self.subscribePush().catch(function (subErr) {
+            console.warn('[:> WEB PUSH AUTO-SUBSCRIBE WARN]', subErr);
+          });
         });
       }).catch(function (err) {
         console.warn('[:> WEB PUSH CHECK ERROR]', err);
@@ -338,35 +342,68 @@
         return Promise.reject(new Error('Push messaging is not supported in this browser.'));
       }
 
-      return navigator.serviceWorker.ready.then(function (reg) {
-        return fetch('/api/notifications/vapid-public-key')
-          .then(function (res) {
-            if (!res.ok) throw new Error('HTTP ' + res.status + ' fetching VAPID key');
-            return res.json();
-          })
-          .then(function (data) {
-            if (!data || !data.publicKey) throw new Error('Missing VAPID public key');
-            var applicationServerKey = self.urlBase64ToUint8Array(data.publicKey);
-            return reg.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: applicationServerKey,
+      // Check synchronous in-memory key first to preserve user-gesture activation on iOS Safari
+      var vapidKey = window.NEOGRAM_VAPID_PUBLIC_KEY;
+      if (!vapidKey) {
+        var meta = document.querySelector('meta[name="vapid-public-key"]');
+        if (meta && meta.content) vapidKey = meta.content;
+      }
+
+      var getKeyPromise = vapidKey
+        ? Promise.resolve(vapidKey)
+        : fetch('/api/notifications/vapid-public-key')
+            .then(function (res) {
+              if (!res.ok) throw new Error('HTTP ' + res.status + ' fetching VAPID key');
+              return res.json();
+            })
+            .then(function (data) {
+              if (!data || !data.publicKey) throw new Error('Missing VAPID public key');
+              window.NEOGRAM_VAPID_PUBLIC_KEY = data.publicKey;
+              return data.publicKey;
             });
-          })
-          .then(function (subscription) {
-            var subJson = subscription.toJSON();
-            return fetch('/api/notifications/push-subscription', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                endpoint: subscription.endpoint,
-                keys: subJson.keys,
-                userAgent: navigator.userAgent,
-              }),
-            }).then(function () {
-              console.log('[:> WEB PUSH] PushSubscription registered with server.');
-              return subscription;
+
+      return getKeyPromise.then(function (publicKey) {
+        var applicationServerKey = self.urlBase64ToUint8Array(publicKey);
+        return navigator.serviceWorker.ready.then(function (reg) {
+          return reg.pushManager.getSubscription().then(function (existingSub) {
+            var doSubscribe = function () {
+              return reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: applicationServerKey,
+              });
+            };
+
+            var subscribeAction;
+            if (existingSub) {
+              // If subscription already exists, try to re-subscribe directly, or unsubscribe and recreate if key mismatch
+              subscribeAction = doSubscribe().catch(function (subErr) {
+                console.warn('[:> WEB PUSH] Unsubscribing stale endpoint:', subErr);
+                return existingSub.unsubscribe().then(doSubscribe);
+              });
+            } else {
+              subscribeAction = doSubscribe();
+            }
+
+            return subscribeAction.then(function (subscription) {
+              var subJson = subscription.toJSON();
+              return fetch('/api/notifications/push-subscription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  endpoint: subscription.endpoint,
+                  keys: subJson.keys,
+                  userAgent: navigator.userAgent,
+                }),
+              }).then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status + ' saving push subscription on server');
+                return res.json().then(function (data) {
+                  console.log('[:> WEB PUSH] PushSubscription registered with server.');
+                  return subscription;
+                });
+              });
             });
           });
+        });
       });
     },
 
@@ -382,34 +419,28 @@
       }
 
       // First attempt native server-side Web Push (APNs / FCM delivery to test background capability)
-      fetch('/api/notifications/test-push', {
+      return fetch('/api/notifications/test-push', {
         method: 'POST',
       })
         .then(function (res) { return res.json(); })
         .then(function (data) {
           if (data && data.ok && data.sentCount > 0) {
-            alert('[:> TEST PUSH SENT] Dispatched to your device via Apple APNs! Lock your phone or switch apps to verify background delivery.');
+            alert('[:> TEST PUSH SENT] Dispatched to your device via Apple APNs! Lock your phone or switch apps now to verify background delivery.');
+            return true;
           } else {
-            // If device wasn't subscribed yet, trigger push subscription and local fallback
-            self.subscribePush().catch(function () {});
-            self.triggerDesktopNotification('[:> NEOGRAM TEST ALERT]', {
-              body: 'Cyberspace transmission link verified! Desktop alerts are working.',
-              icon: '/icons/icon-192.png',
-              badge: '/icons/icon-192.png',
-              tag: 'neogram-test-' + Date.now(),
-            }, '/#settings');
+            // Subscription missing on server: alert and attempt sync
+            alert('[:> PUSH NOT REGISTERED ON SERVER] No device push subscription was found on the server for this user. Re-subscribing device now...');
+            return self.subscribePush().then(function () {
+              alert('[:> DEVICE SUBSCRIBED] Device push carrier re-registered! Dispatched second test push.');
+              return fetch('/api/notifications/test-push', { method: 'POST' });
+            }).catch(function (err) {
+              alert('[:> REGISTRATION ERROR] Could not register push: ' + (err.message || err));
+            });
           }
         })
-        .catch(function () {
-          self.triggerDesktopNotification('[:> NEOGRAM TEST ALERT]', {
-            body: 'Cyberspace transmission link verified! Desktop alerts are working.',
-            icon: '/icons/icon-192.png',
-            badge: '/icons/icon-192.png',
-            tag: 'neogram-test-' + Date.now(),
-          }, '/#settings');
+        .catch(function (err) {
+          alert('[:> TEST DISPATCH ERROR] ' + (err.message || err));
         });
-
-      return true;
     },
 
     handleRealtimeNotification: function (packet) {
