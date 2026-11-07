@@ -20,6 +20,9 @@ export interface PostRecord {
   siteId?: string;
   siteName?: string;
   siteSlug?: string;
+  siteUrl?: string;
+  galleryUrl?: string;
+  livePhotoUrl?: string;
   imagePath: string;
   thumbnailPath: string;
   imageUrl?: string;
@@ -127,6 +130,70 @@ export async function getPostsForSite(siteId: string): Promise<PostRecord[]> {
 /**
  * Retrieves all posts for a user across all mounted static sites.
  */
+/**
+ * Hydrates an array of posts with live author handles, static site URLs,
+ * gallery URLs, and direct photo links from database state.
+ */
+async function hydratePostsWithUserAndSiteInfo(posts: PostRecord[]): Promise<PostRecord[]> {
+  if (!posts || posts.length === 0) return posts;
+
+  try {
+    const userRes = await query(`
+      SELECT u.id, u.handle, u.email,
+             COALESCE(s.site_url, u.site_url) as site_url,
+             COALESCE(s.deploy_path, u.deploy_path) as deploy_path
+      FROM users u
+      LEFT JOIN sites s ON s.user_id = u.id AND s.is_default = TRUE
+    `);
+
+    const userMap = new Map<string, any>();
+    for (const r of userRes.rows) {
+      userMap.set(r.id, r);
+    }
+
+    const sitesRes = await query(`
+      SELECT id, user_id, site_url, deploy_path, name, slug
+      FROM sites
+    `);
+    const siteMap = new Map<string, any>();
+    for (const s of sitesRes.rows) {
+      siteMap.set(s.id, s);
+    }
+
+    for (const p of posts) {
+      const site = p.siteId ? siteMap.get(p.siteId) : null;
+      const user = p.userId ? userMap.get(p.userId) : null;
+
+      const handle = (user && user.handle) || (user && user.email ? user.email.split('@')[0] : '') || p.handle || p.author || 'user';
+      p.author = handle;
+      p.handle = handle;
+
+      const rawSiteUrl = (site && site.site_url) || (user && user.site_url) || p.siteUrl || '';
+      const rawDeploy = (site && site.deploy_path !== null && site.deploy_path !== undefined)
+        ? site.deploy_path
+        : ((user && user.deploy_path !== null && user.deploy_path !== undefined) ? user.deploy_path : 'neogram');
+
+      if (rawSiteUrl && rawSiteUrl.trim()) {
+        try {
+          const parsed = new URL(rawSiteUrl.startsWith('http') ? rawSiteUrl.trim() : `https://${rawSiteUrl.trim()}`);
+          const cleanBase = `${parsed.protocol}//${parsed.host}`;
+          const cleanDeploy = String(rawDeploy).trim().replace(/^\/+|\/+$/g, '');
+
+          p.siteUrl = cleanBase;
+          p.galleryUrl = cleanDeploy ? `${cleanBase}/${cleanDeploy}/` : `${cleanBase}/`;
+          p.livePhotoUrl = cleanDeploy ? `${cleanBase}/${cleanDeploy}/photos/${p.id}/` : `${cleanBase}/photos/${p.id}/`;
+        } catch {
+          p.siteUrl = rawSiteUrl;
+        }
+      }
+    }
+  } catch (_e) {
+    // If DB is offline, return posts as-is
+  }
+
+  return posts;
+}
+
 export async function getPostsForUser(userId: string): Promise<PostRecord[]> {
   const postsMap = new Map<string, PostRecord>();
 
@@ -147,10 +214,10 @@ export async function getPostsForUser(userId: string): Promise<PostRecord[]> {
     }
   } catch (_e) {}
 
-  // 3. Return sorted reverse-chronologically
+  // 3. Return sorted reverse-chronologically and hydrated
   const posts = Array.from(postsMap.values());
   posts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  return posts;
+  return hydratePostsWithUserAndSiteInfo(posts);
 }
 
 /**
@@ -218,7 +285,7 @@ export async function getAllPosts(): Promise<PostRecord[]> {
 
   const all = Array.from(postsMap.values());
   all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  return all;
+  return hydratePostsWithUserAndSiteInfo(all);
 }
 
 /**

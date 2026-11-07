@@ -507,11 +507,14 @@
     text-transform: uppercase;
   }
 
-  /* Media / Viewport with Scanline Shader */
+  /* Media / Viewport with Scanline Shader & Retro Missing Bitmap Fallback */
   &__media {
     display: block;
     position: relative;
-    background-color: #000000;
+    background-color: #080b10;
+    background-image: 
+      radial-gradient(ellipse at center, rgba(0, 255, 102, 0.05) 0%, rgba(5, 7, 10, 0.95) 75%),
+      repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0px, rgba(0, 0, 0, 0.4) 2px, transparent 2px, transparent 4px);
     padding: 4px;
     height: 224px;
     display: flex;
@@ -519,6 +522,42 @@
     justify-content: center;
     overflow: hidden;
     text-decoration: none;
+
+    /* Underlying Retro 404 Fallback Badge (visible when photo is missing or fails to load) */
+    &::before {
+      content: "[:> NO_SIGNAL // 404_BITMAP_LOST]\A[ASSET MISSING ON HOST]";
+      white-space: pre-line;
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: calc(100% - 32px);
+      max-width: 250px;
+      padding: 10px 12px;
+      font-family: var(--font-mono, monospace);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent-prompt, #00ff66);
+      background-color: rgba(5, 10, 8, 0.9);
+      border: 2px dashed var(--accent-prompt, #00ff66);
+      box-shadow: 0 0 10px rgba(0, 255, 102, 0.35);
+      text-shadow: 0 0 6px rgba(0, 255, 102, 0.7);
+      letter-spacing: 0.5px;
+      text-align: center;
+      pointer-events: none;
+      z-index: 1;
+      box-sizing: border-box;
+    }
+
+    &.has-broken-image::before {
+      border-color: #ff3333;
+      color: #ff5555;
+      text-shadow: 0 0 6px rgba(255, 68, 68, 0.7);
+    }
 
     /* CRT scanlines */
     &::after {
@@ -545,11 +584,21 @@
     max-height: 100%;
     max-width: 100%;
     object-fit: contain;
+    background-color: #000000;
+    position: relative;
+    z-index: 2;
     image-rendering: pixelated;
     transition: transform 0.2s ease;
 
     .neogram-card:hover & {
       transform: scale(1.05);
+    }
+
+    &.neogram-img--broken,
+    &.img--broken {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      display: none !important;
     }
   }
 
@@ -731,7 +780,10 @@
   }
 
   &__viewport {
-    background-color: #000000;
+    background-color: #080b10;
+    background-image: 
+      radial-gradient(ellipse at center, rgba(0, 255, 102, 0.06) 0%, rgba(5, 7, 10, 0.95) 75%),
+      repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0px, rgba(0, 0, 0, 0.4) 2px, transparent 2px, transparent 4px);
     border: 2px solid var(--border-main, #000000);
     padding: 4px;
     min-height: 360px;
@@ -740,6 +792,42 @@
     justify-content: center;
     position: relative;
     overflow: hidden;
+
+    /* Underlying Retro 404 Fallback Badge */
+    &::before {
+      content: "[:> 404 // NO_CARRIER_DETECTED]\A[REMOTE ASSET MISSING FROM STATIC HOST]\AV.90 28.8K SIGNAL LOSS";
+      white-space: pre-line;
+      line-height: 1.5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: calc(100% - 48px);
+      max-width: 320px;
+      padding: 16px 20px;
+      font-family: var(--font-mono, monospace);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-prompt, #00ff66);
+      background-color: rgba(5, 10, 8, 0.92);
+      border: 2px dashed var(--accent-prompt, #00ff66);
+      box-shadow: 0 0 14px rgba(0, 255, 102, 0.35);
+      text-shadow: 0 0 6px rgba(0, 255, 102, 0.7);
+      letter-spacing: 0.5px;
+      text-align: center;
+      pointer-events: none;
+      z-index: 1;
+      box-sizing: border-box;
+    }
+
+    &.has-broken-image::before {
+      border-color: #ff3333;
+      color: #ff5555;
+      text-shadow: 0 0 6px rgba(255, 68, 68, 0.7);
+    }
 
     .dark & {
       border-color: var(--border-main, #384252);
@@ -769,7 +857,17 @@
     max-height: 520px;
     max-width: 100%;
     object-fit: contain;
+    background-color: #000000;
+    position: relative;
+    z-index: 2;
     image-rendering: pixelated;
+
+    &.neogram-img--broken,
+    &.img--broken {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      display: none !important;
+    }
   }
 
   &__tags {
@@ -1096,6 +1194,37 @@
     position: relative;
     box-sizing: border-box;
     text-decoration: none;
+    background-color: #080b10;
+    min-height: 220px;
+
+    &.has-broken-image::before {
+      content: "[:> NO_SIGNAL // 404_BITMAP_LOST]\A[ASSET MISSING ON HOST]";
+      white-space: pre-line;
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: calc(100% - 32px);
+      max-width: 250px;
+      padding: 10px 12px;
+      font-family: var(--font-mono, monospace);
+      font-size: 10px;
+      font-weight: 700;
+      color: #ff5555;
+      background-color: rgba(5, 10, 8, 0.9);
+      border: 2px dashed #ff3333;
+      box-shadow: 0 0 10px rgba(255, 68, 68, 0.35);
+      text-shadow: 0 0 6px rgba(255, 68, 68, 0.7);
+      letter-spacing: 0.5px;
+      text-align: center;
+      pointer-events: none;
+      z-index: 1;
+      box-sizing: border-box;
+    }
 
     @supports (container-type: scroll-state) {
       container-type: scroll-state;
@@ -1110,6 +1239,15 @@
     display: block;
     user-select: none;
     -webkit-user-drag: none;
+    position: relative;
+    z-index: 2;
+
+    &.neogram-img--broken,
+    &.img--broken {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      display: none !important;
+    }
   }
 
   /* Centered Instagram-style indicator dots */

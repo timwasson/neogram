@@ -9,6 +9,7 @@ export interface AuthUser {
   handle: string;
   uin?: number;
   siteUrl?: string;
+  galleryUrl?: string;
   deployPath?: string;
   deploymentType?: string;
   avatarPath?: string;
@@ -271,11 +272,39 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
       hasApiKey = false;
     }
   }
-  const rawDeploy = user.deployPath !== null && user.deployPath !== undefined
+  let baseSite = user.siteUrl ? String(user.siteUrl).trim() : '';
+  let rawDeploy = (user.deployPath !== null && user.deployPath !== undefined)
     ? String(user.deployPath).trim().replace(/^\/+|\/+$/g, '')
     : 'neogram';
-  const baseSite = user.siteUrl || (user.handle ? `https://${user.handle}.neocities.org` : undefined);
-  const fullSiteUrl = baseSite && rawDeploy ? `${baseSite.replace(/\/+$/, '')}/${rawDeploy}/` : (baseSite ? `${baseSite.replace(/\/+$/, '')}/` : undefined);
+
+  if (!baseSite) {
+    try {
+      const siteRes = await query(
+        'SELECT site_url, deploy_path FROM sites WHERE user_id = $1 ORDER BY is_default DESC, created_at ASC LIMIT 1',
+        [id]
+      );
+      if (siteRes.rows[0]?.site_url) {
+        baseSite = siteRes.rows[0].site_url.trim();
+        if (siteRes.rows[0].deploy_path !== null && siteRes.rows[0].deploy_path !== undefined) {
+          rawDeploy = String(siteRes.rows[0].deploy_path).trim().replace(/^\/+|\/+$/g, '');
+        }
+      }
+    } catch (_e) {}
+  }
+
+  let cleanBaseSite: string | undefined = undefined;
+  if (baseSite) {
+    try {
+      const parsed = new URL(baseSite.startsWith('http') ? baseSite : `https://${baseSite}`);
+      cleanBaseSite = `${parsed.protocol}//${parsed.host}`;
+    } catch {
+      cleanBaseSite = baseSite.replace(/\/+$/, '');
+    }
+  }
+
+  const galleryUrl = cleanBaseSite && rawDeploy
+    ? `${cleanBaseSite}/${rawDeploy}/`
+    : (cleanBaseSite ? `${cleanBaseSite}/` : undefined);
 
   const isAdmin = config.adminEmails.includes(user.email.toLowerCase());
 
@@ -284,7 +313,8 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
     email: user.email,
     handle: user.handle,
     uin: user.uin ? parseInt(user.uin, 10) : undefined,
-    siteUrl: fullSiteUrl,
+    siteUrl: cleanBaseSite,
+    galleryUrl,
     deployPath: rawDeploy,
     deploymentType: user.deploymentType,
     avatarPath: user.avatarPath,

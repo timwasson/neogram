@@ -42,7 +42,7 @@ export async function findUserByHandleOrId(identifier: string) {
 
   // 3. Lookup by handle or email prefix
   const cleanHandle = cleanId.replace(/^@/, '').toLowerCase();
-  const byHandle = await query('SELECT * FROM users WHERE handle = $1 OR split_part(email, \'@\', 1) = $1', [cleanHandle]);
+  const byHandle = await query('SELECT * FROM users WHERE LOWER(handle) = $1 OR LOWER(split_part(email, \'@\', 1)) = $1', [cleanHandle]);
   if (byHandle.rows.length > 0) return byHandle.rows[0];
 
   return null;

@@ -18,6 +18,7 @@ export interface DirectoryUser {
   latestThumbnail?: string | null;
   profileUrl: string;
   siteUrl?: string;
+  galleryUrl?: string;
   createdAt: string | Date;
 }
 
@@ -123,6 +124,15 @@ export async function fetchCategorizedDirectory(): Promise<CategorizedDirectory>
       status = 'inactive';
     }
 
+    let galleryUrl: string | undefined = undefined;
+    if (row.siteUrl && row.siteUrl.trim()) {
+      const cleanSite = row.siteUrl.trim().replace(/\/+$/, '');
+      const cleanDeploy = (row.deployPath !== null && row.deployPath !== undefined)
+        ? String(row.deployPath).trim().replace(/^\/+|\/+$/g, '')
+        : 'neogram';
+      galleryUrl = cleanDeploy ? `${cleanSite}/${cleanDeploy}/` : `${cleanSite}/`;
+    }
+
     const directoryEntry: DirectoryUser = {
       id: row.id,
       handle,
@@ -135,7 +145,8 @@ export async function fetchCategorizedDirectory(): Promise<CategorizedDirectory>
       latestPostDate,
       latestThumbnail,
       profileUrl: `/user/@${encodeURIComponent(handle)}`,
-      siteUrl: row.siteUrl,
+      siteUrl: row.siteUrl || undefined,
+      galleryUrl,
       createdAt: row.createdAt,
     };
 

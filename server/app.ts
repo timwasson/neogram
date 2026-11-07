@@ -509,15 +509,13 @@ export function createApp(): Express {
       let cleanRootSiteUrl = '';
       if (targetSiteUrl && targetSiteUrl.trim()) {
         try {
-          const parsed = new URL(targetSiteUrl);
+          const parsed = new URL(targetSiteUrl.startsWith('http') ? targetSiteUrl : `https://${targetSiteUrl}`);
           if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
             cleanRootSiteUrl = `${parsed.protocol}//${parsed.host}`;
           }
         } catch (_err) {
           cleanRootSiteUrl = '';
         }
-      } else if (user.handle) {
-        cleanRootSiteUrl = `https://${user.handle}.neocities.org`;
       }
 
       // Static photo gallery URL

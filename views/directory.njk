@@ -179,15 +179,16 @@
                 <div class="flex items-center justify-between pt-1 border-t border-main text-xxs text-muted mt-0.5">
                   <span class="font-bold text-main">{{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
                   <div class="flex items-center gap-1">
-                    {% if user.siteUrl %}
+                    {% if user.galleryUrl or user.siteUrl %}
                       <a
-                        href="{{ user.siteUrl }}"
+                        href="{{ user.galleryUrl or user.siteUrl }}"
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="text-mac hover:underline text-3xs font-bold"
-                        title="Open external static site"
+                        class="pixel-btn pixel-btn--sm pixel-btn--green text-xxs py-0 px-1.5 font-bold"
+                        title="Open external static gallery"
+                        onclick="if(window.retroAudio) retroAudio.playClick();"
                       >
-                        Site ↗
+                        <span>Gallery ↗</span>
                       </a>
                     {% endif %}
                     <a
@@ -195,7 +196,7 @@
                       class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
                       onclick="if(window.retroAudio) retroAudio.playClick();"
                     >
-                      <span>Gallery :&gt;</span>
+                      <span>Profile :&gt;</span>
                     </a>
                   </div>
                 </div>
@@ -272,13 +273,27 @@
 
                 <div class="flex items-center justify-between pt-1 border-t border-main text-xxs text-muted mt-0.5">
                   <span>{{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
-                  <a
-                    href="{{ user.profileUrl }}"
-                    class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
-                    onclick="if(window.retroAudio) retroAudio.playClick();"
-                  >
-                    <span>Profile :&gt;</span>
-                  </a>
+                  <div class="flex items-center gap-1">
+                    {% if user.galleryUrl or user.siteUrl %}
+                      <a
+                        href="{{ user.galleryUrl or user.siteUrl }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="pixel-btn pixel-btn--sm pixel-btn--green text-xxs py-0 px-1.5 font-bold"
+                        title="Open external static gallery"
+                        onclick="if(window.retroAudio) retroAudio.playClick();"
+                      >
+                        <span>Gallery ↗</span>
+                      </a>
+                    {% endif %}
+                    <a
+                      href="{{ user.profileUrl }}"
+                      class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
+                      onclick="if(window.retroAudio) retroAudio.playClick();"
+                    >
+                      <span>Profile :&gt;</span>
+                    </a>
+                  </div>
                 </div>
               </div>
             </article>
@@ -353,13 +368,27 @@
 
                 <div class="flex items-center justify-between pt-1 border-t border-main text-xxs text-muted mt-0.5">
                   <span>{{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
-                  <a
-                    href="{{ user.profileUrl }}"
-                    class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
-                    onclick="if(window.retroAudio) retroAudio.playClick();"
-                  >
-                    <span>Profile :&gt;</span>
-                  </a>
+                  <div class="flex items-center gap-1">
+                    {% if user.galleryUrl or user.siteUrl %}
+                      <a
+                        href="{{ user.galleryUrl or user.siteUrl }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="pixel-btn pixel-btn--sm pixel-btn--green text-xxs py-0 px-1.5 font-bold"
+                        title="Open external static gallery"
+                        onclick="if(window.retroAudio) retroAudio.playClick();"
+                      >
+                        <span>Gallery ↗</span>
+                      </a>
+                    {% endif %}
+                    <a
+                      href="{{ user.profileUrl }}"
+                      class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
+                      onclick="if(window.retroAudio) retroAudio.playClick();"
+                    >
+                      <span>Profile :&gt;</span>
+                    </a>
+                  </div>
                 </div>
               </div>
             </article>
@@ -434,13 +463,27 @@
 
                 <div class="flex items-center justify-between pt-1 border-t border-main text-xxs text-muted mt-0.5">
                   <span>{{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
-                  <a
-                    href="{{ user.profileUrl }}"
-                    class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
-                    onclick="if(window.retroAudio) retroAudio.playClick();"
-                  >
-                    <span>Profile :&gt;</span>
-                  </a>
+                  <div class="flex items-center gap-1">
+                    {% if user.galleryUrl or user.siteUrl %}
+                      <a
+                        href="{{ user.galleryUrl or user.siteUrl }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="pixel-btn pixel-btn--sm pixel-btn--green text-xxs py-0 px-1.5 font-bold"
+                        title="Open external static gallery"
+                        onclick="if(window.retroAudio) retroAudio.playClick();"
+                      >
+                        <span>Gallery ↗</span>
+                      </a>
+                    {% endif %}
+                    <a
+                      href="{{ user.profileUrl }}"
+                      class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
+                      onclick="if(window.retroAudio) retroAudio.playClick();"
+                    >
+                      <span>Profile :&gt;</span>
+                    </a>
+                  </div>
                 </div>
               </div>
             </article>

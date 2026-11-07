@@ -338,17 +338,23 @@
                 <!-- Static Host -->
                 <div class="flex flex-col gap-0.5">
                   <span class="text-muted text-xxs uppercase tracking-wider">STATIC HOST:</span>
-                  <a
-                    href="{{ activeSite.siteUrl if activeSite and activeSite.siteUrl else (currentUser.siteUrl or 'https://' + currentUser.handle + '.neocities.org') }}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-mac hover:underline truncate select-all flex items-center gap-1 font-bold"
-                    id="dropdownSiteUrl"
-                    title="Open host in new window"
-                  >
-                    <span class="truncate">{{ activeSite.siteUrl if activeSite and activeSite.siteUrl else (currentUser.siteUrl or 'https://' + currentUser.handle + '.neocities.org') }}</span>
-                    <span class="text-xxs shrink-0">↗</span>
-                  </a>
+                  {% if (activeSite and activeSite.siteUrl) or currentUser.siteUrl %}
+                    <a
+                      href="{{ activeSite.siteUrl if (activeSite and activeSite.siteUrl) else currentUser.siteUrl }}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-mac hover:underline truncate select-all flex items-center gap-1 font-bold"
+                      id="dropdownSiteUrl"
+                      title="Open host in new window"
+                    >
+                      <span class="truncate">{{ activeSite.siteUrl if (activeSite and activeSite.siteUrl) else currentUser.siteUrl }}</span>
+                      <span class="text-xxs shrink-0">↗</span>
+                    </a>
+                  {% else %}
+                    <span class="text-muted text-xs truncate" id="dropdownSiteUrl">
+                      [Cold-Start Sandbox Mode]
+                    </span>
+                  {% endif %}
                 </div>
 
                 <!-- Appearance / Theme Selector Row -->
@@ -367,6 +373,17 @@
 
                 <!-- Action Buttons: Profile, Docs & Logout -->
                 <div class="flex flex-col gap-1.5 pt-2 border-t border-main">
+                  {% if activeSite and activeSite.siteUrl %}
+                    <a
+                      href="{{ activeSite.siteUrl }}/{{ activeSite.deployPath or 'neogram' }}/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="pixel-btn pixel-btn--sm pixel-btn--green text-xs justify-center w-full"
+                      onclick="if(typeof toggleUserMenu==='function'){toggleUserMenu(false);} if(window.retroAudio) retroAudio.playClick();"
+                    >
+                      <span>View Static Gallery ↗</span>
+                    </a>
+                  {% endif %}
                   <a
                     href="/user/@{{ currentUser.handle }}"
                     id="dropdownProfileLink"

@@ -88,6 +88,7 @@ permalink: "friends/index.html"
                     alt="{{ post.caption }} ({{ loop.index }}/{{ post.photos.length }})"
                     class="neogram-slider__image filter-{{ post.filterApplied or 'none' }}"
                     loading="lazy"
+                    onerror="this.classList.add('neogram-img--broken'); if(this.parentElement) this.parentElement.classList.add('has-broken-image');"
                   />
                 </a>
               {% endfor %}
@@ -122,6 +123,7 @@ permalink: "friends/index.html"
               alt="{{ post.caption }}"
               class="neogram-card__image filter-{{ post.filterApplied or 'none' }}"
               loading="lazy"
+              onerror="this.classList.add('neogram-img--broken'); if(this.parentElement) this.parentElement.classList.add('has-broken-image');"
             />
             <div class="neogram-card__overlay">
               <span class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn">

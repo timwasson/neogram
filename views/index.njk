@@ -242,8 +242,8 @@
                           </span>
                         </div>
 
-                        <!-- Photo Viewport -->
-                        <div class="relative bg-black border-b border-main overflow-hidden flex items-center justify-center crt-scanlines">
+                        <!-- Photo Viewport with Retro 404 Fallback -->
+                        <div class="relative bg-black border-b border-main overflow-hidden flex items-center justify-center crt-scanlines retro-photo-viewport">
                           <a
                             href="/user/@{{ post.author }}"
                             class="block w-full"
@@ -254,6 +254,7 @@
                               alt="{{ post.caption }}"
                               class="w-full h-56 object-cover filter-{{ post.filterApplied or 'none' }}"
                               loading="lazy"
+                              onerror="this.classList.add('neogram-img--broken'); var vp=this.closest('.retro-photo-viewport'); if(vp) vp.classList.add('has-broken-image');"
                             />
                           </a>
                         </div>
@@ -288,13 +289,27 @@
                                 <span>{{ post.commentCount or 0 }} comments</span>
                               </div>
 
-                              <a
-                                href="/user/@{{ post.author }}"
-                                class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xxs font-bold py-0.5 px-2"
-                                onclick="if(window.retroAudio) retroAudio.playClick();"
-                              >
-                                <span>View Station :&gt;</span>
-                              </a>
+                              <div class="flex items-center gap-1.5">
+                                {% if post.galleryUrl or post.siteUrl %}
+                                  <a
+                                    href="{{ post.galleryUrl or post.siteUrl }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="pixel-btn pixel-btn--sm pixel-btn--green text-xxs font-bold py-0.5 px-2"
+                                    onclick="if(window.retroAudio) retroAudio.playClick();"
+                                    title="Open author's live static gallery"
+                                  >
+                                    <span>Gallery ↗</span>
+                                  </a>
+                                {% endif %}
+                                <a
+                                  href="/user/@{{ post.author }}"
+                                  class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xxs font-bold py-0.5 px-2"
+                                  onclick="if(window.retroAudio) retroAudio.playClick();"
+                                >
+                                  <span>Station :&gt;</span>
+                                </a>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -408,7 +423,7 @@
 
                           <button
                             type="button"
-                            onclick="handleUnfriendInWorkstation('{{ friend.handle }}')"
+                            onclick="handleUnfriendInWorkstation('{{ friend.handle }}', this)"
                             class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 text-crimson hover:bg-crimson hover:text-white"
                             title="Remove @{{ friend.handle }} from friends"
                           >
@@ -943,14 +958,15 @@
                 <div class="pixel-box p-3 bg-window border-2 border-main" id="manage-post-{{ post.id }}" data-site-id="{{ post.siteId or '' }}">
                   <div class="flex flex-col sm:flex-row gap-4 items-start">
                     
-                    <!-- Thumbnail Viewport with Active Filter Shader -->
-                    <div class="w-full sm:w-36 h-36 bg-black flex items-center justify-center p-1 crt-scanlines border-2 border-main shrink-0 overflow-hidden">
+                    <!-- Thumbnail Viewport with Active Filter Shader & Retro 404 Fallback -->
+                    <div class="w-full sm:w-36 h-36 bg-black flex items-center justify-center p-1 crt-scanlines border-2 border-main shrink-0 overflow-hidden retro-photo-viewport">
                       <img
                         src="{{ post.thumbnailPath or post.imagePath }}"
                         alt="{{ post.caption }}"
                         class="max-h-full max-w-full object-contain filter-{{ post.filterApplied or 'none' }}"
                         id="manage-img-{{ post.id }}"
                         loading="lazy"
+                        onerror="this.classList.add('neogram-img--broken'); var vp=this.closest('.retro-photo-viewport'); if(vp) vp.classList.add('has-broken-image');"
                       />
                     </div>
 
@@ -997,7 +1013,7 @@
 
                         <div class="flex items-center gap-2 flex-wrap">
                           <a
-                            href="{% if currentUser.siteUrl %}{{ currentUser.siteUrl }}{% else %}https://{{ currentUser.handle }}.neocities.org{% endif %}/{{ currentUser.deployPath or 'neogram' }}/photos/{{ post.id }}/"
+                            href="{% if post.livePhotoUrl %}{{ post.livePhotoUrl }}{% elif activeSite and activeSite.siteUrl %}{{ activeSite.siteUrl }}/{{ activeSite.deployPath or 'neogram' }}/photos/{{ post.id }}/{% else %}/user/@{{ currentUser.handle or 'wasson' }}{% endif %}"
                             target="_blank"
                             rel="noopener"
                             class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs"
@@ -1008,7 +1024,7 @@
                           <button
                             type="button"
                             class="pixel-btn pixel-btn--sm font-bold text-xs"
-                            data-url="{% if currentUser.siteUrl %}{{ currentUser.siteUrl }}{% else %}https://{{ currentUser.handle }}.neocities.org{% endif %}/{{ currentUser.deployPath or 'neogram' }}/photos/{{ post.id }}/"
+                            data-url="{% if post.livePhotoUrl %}{{ post.livePhotoUrl }}{% elif activeSite and activeSite.siteUrl %}{{ activeSite.siteUrl }}/{{ activeSite.deployPath or 'neogram' }}/photos/{{ post.id }}/{% else %}/user/@{{ currentUser.handle or 'wasson' }}{% endif %}"
                             onclick="copyPostWebUrl(this.getAttribute('data-url'), this)"
                             title="Copy live URL to clipboard"
                           >
@@ -1032,8 +1048,10 @@
                           <button
                             type="button"
                             class="pixel-btn pixel-btn--sm pixel-btn--red font-bold text-xs"
-                            onclick="confirmDeletePost('{{ post.id }}')"
+                            onclick="confirmDeletePost('{{ post.id }}', this)"
                           >
+                            <span>Delete</span>
+                          </button>
                             <span>Delete</span>
                           </button>
                         </div>
@@ -1455,7 +1473,7 @@
                                 {% if userSites.length > 1 %}
                                   <button
                                     type="button"
-                                    onclick="handleDeleteSite('{{ s.id }}', '{{ s.name }}')"
+                                    onclick="handleDeleteSite('{{ s.id }}', '{{ s.name }}', this)"
                                     class="pixel-btn pixel-btn--sm pixel-btn--danger text-3xs py-0.5 px-2 ml-auto"
                                     title="Unmount and delete this site target"
                                   >
@@ -2378,7 +2396,7 @@
                         </button>
                         <button
                           type="button"
-                          onclick="resetCounter()"
+                          onclick="resetCounter(this)"
                           class="pixel-btn font-bold text-xs text-muted"
                         >
                           <span>Reset to 1</span>
@@ -3726,8 +3744,27 @@
   }
   window.switchGuestbookRightPane = switchGuestbookRightPane;
 
-  async function handleUnfriendInWorkstation(handle) {
-    if (!confirm('Remove @' + handle + ' from your Friends Roster?')) return;
+  async function handleUnfriendInWorkstation(handle, btn) {
+    if (btn) {
+      if (btn.getAttribute('data-confirming') === 'true') {
+        clearTimeout(btn._confirmTimer);
+        btn.removeAttribute('data-confirming');
+        btn.innerHTML = '<span>Removing...</span>';
+      } else {
+        btn.setAttribute('data-confirming', 'true');
+        btn.innerHTML = '<span>Confirm Remove?</span>';
+        btn.classList.add('animate-pulse');
+        btn._confirmTimer = setTimeout(function() {
+          btn.removeAttribute('data-confirming');
+          btn.innerHTML = '<span>Remove</span>';
+          btn.classList.remove('animate-pulse');
+        }, 4000);
+        if (window.retroAudio) window.retroAudio.playClick();
+        return;
+      }
+    } else {
+      if (!confirm('Remove @' + handle + ' from your Friends Roster?')) return;
+    }
     if (window.retroAudio) window.retroAudio.playClick();
     try {
       var res = await fetch('/api/users/' + encodeURIComponent(handle) + '/follow', { method: 'DELETE' });
@@ -4116,8 +4153,27 @@
     }
   }
 
-  async function resetCounter() {
-    if (!confirm('Reset hit counter back to 000001?')) return;
+  async function resetCounter(btn) {
+    if (btn) {
+      if (btn.getAttribute('data-confirming') === 'true') {
+        clearTimeout(btn._confirmTimer);
+        btn.removeAttribute('data-confirming');
+        btn.innerHTML = '<span>Resetting...</span>';
+      } else {
+        btn.setAttribute('data-confirming', 'true');
+        btn.innerHTML = '<span>Confirm Reset?</span>';
+        btn.classList.add('animate-pulse');
+        btn._confirmTimer = setTimeout(function() {
+          btn.removeAttribute('data-confirming');
+          btn.innerHTML = '<span>Reset 000001</span>';
+          btn.classList.remove('animate-pulse');
+        }, 4000);
+        if (window.retroAudio) window.retroAudio.playClick();
+        return;
+      }
+    } else {
+      if (!confirm('Reset hit counter back to 000001?')) return;
+    }
     if (window.retroAudio) window.retroAudio.playClick();
     try {
       var queryParam = currentEmbedSiteId ? ('?siteId=' + encodeURIComponent(currentEmbedSiteId)) : '';
@@ -4304,7 +4360,7 @@
               authorHtml +
               metaStr +
             '</div>' +
-            '<button type="button" onclick="deleteGuestbookEntry(\'' + escapeHtml(entry.id) + '\')" class="text-crimson font-bold text-xs hover:underline" title="Delete signature">[Delete]</button>' +
+            '<button type="button" onclick="deleteGuestbookEntry(\'' + escapeHtml(entry.id) + '\', this)" class="text-crimson font-bold text-xs hover:underline" title="Delete signature">[Delete]</button>' +
           '</div>' + site +
           '<div class="whitespace-pre-wrap p-1 text-xs font-mono bg-window">"' + escapeHtml(entry.message) + '"</div>' +
         '</div>';
@@ -4316,8 +4372,25 @@
     }
   }
 
-  async function deleteGuestbookEntry(id) {
-    if (!confirm('Delete this visitor signature from your ledger?')) return;
+  async function deleteGuestbookEntry(id, btn) {
+    if (btn) {
+      if (btn.getAttribute('data-confirming') === 'true') {
+        clearTimeout(btn._confirmTimer);
+        btn.removeAttribute('data-confirming');
+        btn.textContent = '[Deleting...]';
+      } else {
+        btn.setAttribute('data-confirming', 'true');
+        btn.textContent = '[Confirm Delete?]';
+        btn._confirmTimer = setTimeout(function() {
+          btn.removeAttribute('data-confirming');
+          btn.textContent = '[Delete]';
+        }, 4000);
+        if (window.retroAudio) window.retroAudio.playClick();
+        return;
+      }
+    } else {
+      if (!confirm('Delete this visitor signature from your ledger?')) return;
+    }
     if (window.retroAudio) window.retroAudio.playClick();
 
     try {
@@ -4823,8 +4896,27 @@
   }
   window.handleSetDefaultSite = handleSetDefaultSite;
 
-  async function handleDeleteSite(siteId, siteName) {
-    if (!confirm('Are you sure you want to unmount and delete site target "' + siteName + '"? Photos published to this site will be removed.')) return;
+  async function handleDeleteSite(siteId, siteName, btn) {
+    if (btn) {
+      if (btn.getAttribute('data-confirming') === 'true') {
+        clearTimeout(btn._confirmTimer);
+        btn.removeAttribute('data-confirming');
+        btn.innerHTML = '<span>Deleting...</span>';
+      } else {
+        btn.setAttribute('data-confirming', 'true');
+        btn.innerHTML = '<span>Confirm?</span>';
+        btn.classList.add('animate-pulse');
+        btn._confirmTimer = setTimeout(function() {
+          btn.removeAttribute('data-confirming');
+          btn.innerHTML = '<span>Delete</span>';
+          btn.classList.remove('animate-pulse');
+        }, 4000);
+        if (window.retroAudio) window.retroAudio.playClick();
+        return;
+      }
+    } else {
+      if (!confirm('Are you sure you want to unmount and delete site target "' + siteName + '"? Photos published to this site will be removed.')) return;
+    }
     if (window.retroAudio) window.retroAudio.playClick();
     try {
       var res = await fetch('/api/sites/' + encodeURIComponent(siteId), { method: 'DELETE' });
@@ -5507,9 +5599,28 @@
     }
   }
 
-  async function confirmDeletePost(id) {
-    if (!confirm('[:> SECURITY WARNING]\nPermanently delete transmission from PostgreSQL database and disk?')) {
-      return;
+  async function confirmDeletePost(id, btn) {
+    if (btn) {
+      if (btn.getAttribute('data-confirming') === 'true') {
+        clearTimeout(btn._confirmTimer);
+        btn.removeAttribute('data-confirming');
+        btn.innerHTML = '<span>Deleting...</span>';
+      } else {
+        btn.setAttribute('data-confirming', 'true');
+        btn.innerHTML = '<span>Confirm Purge?</span>';
+        btn.classList.add('animate-pulse');
+        btn._confirmTimer = setTimeout(function() {
+          btn.removeAttribute('data-confirming');
+          btn.innerHTML = '<span>Delete</span>';
+          btn.classList.remove('animate-pulse');
+        }, 4000);
+        if (window.retroAudio) window.retroAudio.playClick();
+        return;
+      }
+    } else {
+      if (!confirm('[:> SECURITY WARNING]\nPermanently delete transmission from static storage and disk?')) {
+        return;
+      }
     }
 
     if (window.retroAudio) window.retroAudio.playClick();
@@ -5593,7 +5704,7 @@
           '  <div class="flex items-center gap-1 font-bold flex-wrap">' +
           '    <a href="' + escapeHtml(profileUrl) + '" target="_blank" class="text-mac underline" title="View profile on Neogram">@' + escapeHtml(c.author) + '</a>' + uinBadge + siteLink + timeStr +
           '  </div>' +
-          '  <button type="button" onclick="purgeComment(\'' + escapeHtml(c.id) + '\')" class="pixel-btn pixel-btn--sm pixel-btn--red font-bold text-xs py-0.5 px-2" title="Purge from static host">' +
+          '  <button type="button" onclick="purgeComment(\'' + escapeHtml(c.id) + '\', this)" class="pixel-btn pixel-btn--sm pixel-btn--red font-bold text-xs py-0.5 px-2" title="Purge from static host">' +
           '    <span>Purge</span>' +
           '  </button>' +
           '</div>' +
@@ -5611,10 +5722,29 @@
     if (dialog && dialog.open) dialog.close();
   }
 
-  async function purgeComment(commentId) {
+  async function purgeComment(commentId, btn) {
     if (!currentModPostId) return;
-    if (!confirm('[:> Confirm purge: Delete this comment permanently from your static host JSON file?]')) {
-      return;
+    if (btn) {
+      if (btn.getAttribute('data-confirming') === 'true') {
+        clearTimeout(btn._confirmTimer);
+        btn.removeAttribute('data-confirming');
+        btn.innerHTML = '<span>Purging...</span>';
+      } else {
+        btn.setAttribute('data-confirming', 'true');
+        btn.innerHTML = '<span>Confirm Purge?</span>';
+        btn.classList.add('animate-pulse');
+        btn._confirmTimer = setTimeout(function() {
+          btn.removeAttribute('data-confirming');
+          btn.innerHTML = '<span>Delete</span>';
+          btn.classList.remove('animate-pulse');
+        }, 4000);
+        if (window.retroAudio) window.retroAudio.playClick();
+        return;
+      }
+    } else {
+      if (!confirm('[:> Confirm purge: Delete this comment permanently from your static host JSON file?]')) {
+        return;
+      }
     }
     if (window.retroAudio) window.retroAudio.playClick();
 

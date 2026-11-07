@@ -1156,6 +1156,51 @@ select.retro-input {
   animation: blink 0.8s infinite;
 }
 
+/* Retro Missing Bitmap Fallback & Broken Image Suppression */
+img.neogram-img--broken,
+img.img--broken {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  display: none !important;
+}
+
+.retro-photo-viewport,
+.has-broken-image {
+  background-color: #080b10 !important;
+  background-image: radial-gradient(ellipse at center, rgba(0, 255, 102, 0.05) 0%, rgba(5, 7, 10, 0.95) 75%), repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0px, rgba(0, 0, 0, 0.4) 2px, transparent 2px, transparent 4px) !important;
+  position: relative;
+  min-height: 180px;
+}
+.retro-photo-viewport::before,
+.has-broken-image::before {
+  content: "[:> NO_SIGNAL // 404_BITMAP_LOST]\a[ASSET MISSING ON HOST]";
+  white-space: pre-line;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 32px);
+  max-width: 260px;
+  padding: 10px 14px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff5555;
+  background-color: rgba(5, 10, 8, 0.92);
+  border: 2px dashed #ff3333;
+  box-shadow: 0 0 10px rgba(255, 68, 68, 0.35);
+  text-shadow: 0 0 6px rgba(255, 68, 68, 0.7);
+  letter-spacing: 0.5px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
 /**
  * _buttons.scss: Chunky Retro Pixel Push Buttons
  * Provides uncompromising contrast across both light and dark themes.
@@ -3608,12 +3653,13 @@ dialog.pixel-dialog[open] {
   text-transform: uppercase;
 }
 .neogram-card {
-  /* Media / Viewport with Scanline Shader */
+  /* Media / Viewport with Scanline Shader & Retro Missing Bitmap Fallback */
 }
 .neogram-card__media {
   display: block;
   position: relative;
-  background-color: #000000;
+  background-color: #080b10;
+  background-image: radial-gradient(ellipse at center, rgba(0, 255, 102, 0.05) 0%, rgba(5, 7, 10, 0.95) 75%), repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0px, rgba(0, 0, 0, 0.4) 2px, transparent 2px, transparent 4px);
   padding: 4px;
   height: 224px;
   display: flex;
@@ -3621,6 +3667,42 @@ dialog.pixel-dialog[open] {
   justify-content: center;
   overflow: hidden;
   text-decoration: none;
+  /* Underlying Retro 404 Fallback Badge (visible when photo is missing or fails to load) */
+}
+.neogram-card__media::before {
+  content: "[:> NO_SIGNAL // 404_BITMAP_LOST]\a[ASSET MISSING ON HOST]";
+  white-space: pre-line;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 32px);
+  max-width: 250px;
+  padding: 10px 12px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-prompt, #00ff66);
+  background-color: rgba(5, 10, 8, 0.9);
+  border: 2px dashed var(--accent-prompt, #00ff66);
+  box-shadow: 0 0 10px rgba(0, 255, 102, 0.35);
+  text-shadow: 0 0 6px rgba(0, 255, 102, 0.7);
+  letter-spacing: 0.5px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 1;
+  box-sizing: border-box;
+}
+.neogram-card__media.has-broken-image::before {
+  border-color: #ff3333;
+  color: #ff5555;
+  text-shadow: 0 0 6px rgba(255, 68, 68, 0.7);
+}
+.neogram-card__media {
   /* CRT scanlines */
 }
 .neogram-card__media::after {
@@ -3640,11 +3722,19 @@ dialog.pixel-dialog[open] {
   max-height: 100%;
   max-width: 100%;
   object-fit: contain;
+  background-color: #000000;
+  position: relative;
+  z-index: 2;
   image-rendering: pixelated;
   transition: transform 0.2s ease;
 }
 .neogram-card:hover .neogram-card__image {
   transform: scale(1.05);
+}
+.neogram-card__image.neogram-img--broken, .neogram-card__image.img--broken {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  display: none !important;
 }
 .neogram-card__overlay {
   position: absolute;
@@ -3804,7 +3894,8 @@ dialog.pixel-dialog[open] {
   gap: 12px;
 }
 .neogram-detail__viewport {
-  background-color: #000000;
+  background-color: #080b10;
+  background-image: radial-gradient(ellipse at center, rgba(0, 255, 102, 0.06) 0%, rgba(5, 7, 10, 0.95) 75%), repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0px, rgba(0, 0, 0, 0.4) 2px, transparent 2px, transparent 4px);
   border: 2px solid var(--border-main, #000000);
   padding: 4px;
   min-height: 360px;
@@ -3813,6 +3904,40 @@ dialog.pixel-dialog[open] {
   justify-content: center;
   position: relative;
   overflow: hidden;
+  /* Underlying Retro 404 Fallback Badge */
+}
+.neogram-detail__viewport::before {
+  content: "[:> 404 // NO_CARRIER_DETECTED]\a[REMOTE ASSET MISSING FROM STATIC HOST]\aV.90 28.8K SIGNAL LOSS";
+  white-space: pre-line;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 48px);
+  max-width: 320px;
+  padding: 16px 20px;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-prompt, #00ff66);
+  background-color: rgba(5, 10, 8, 0.92);
+  border: 2px dashed var(--accent-prompt, #00ff66);
+  box-shadow: 0 0 14px rgba(0, 255, 102, 0.35);
+  text-shadow: 0 0 6px rgba(0, 255, 102, 0.7);
+  letter-spacing: 0.5px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 1;
+  box-sizing: border-box;
+}
+.neogram-detail__viewport.has-broken-image::before {
+  border-color: #ff3333;
+  color: #ff5555;
+  text-shadow: 0 0 6px rgba(255, 68, 68, 0.7);
 }
 .dark .neogram-detail__viewport {
   border-color: var(--border-main, #384252);
@@ -3834,7 +3959,15 @@ dialog.pixel-dialog[open] {
   max-height: 520px;
   max-width: 100%;
   object-fit: contain;
+  background-color: #000000;
+  position: relative;
+  z-index: 2;
   image-rendering: pixelated;
+}
+.neogram-detail__image.neogram-img--broken, .neogram-detail__image.img--broken {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  display: none !important;
 }
 .neogram-detail__tags {
   display: flex;
@@ -4118,6 +4251,36 @@ dialog.pixel-dialog[open] {
   position: relative;
   box-sizing: border-box;
   text-decoration: none;
+  background-color: #080b10;
+  min-height: 220px;
+}
+.neogram-slider__slide.has-broken-image::before {
+  content: "[:> NO_SIGNAL // 404_BITMAP_LOST]\a[ASSET MISSING ON HOST]";
+  white-space: pre-line;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 32px);
+  max-width: 250px;
+  padding: 10px 12px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff5555;
+  background-color: rgba(5, 10, 8, 0.9);
+  border: 2px dashed #ff3333;
+  box-shadow: 0 0 10px rgba(255, 68, 68, 0.35);
+  text-shadow: 0 0 6px rgba(255, 68, 68, 0.7);
+  letter-spacing: 0.5px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 1;
+  box-sizing: border-box;
 }
 @supports (container-type: scroll-state) {
   .neogram-slider__slide {
@@ -4132,6 +4295,13 @@ dialog.pixel-dialog[open] {
   display: block;
   user-select: none;
   -webkit-user-drag: none;
+  position: relative;
+  z-index: 2;
+}
+.neogram-slider__image.neogram-img--broken, .neogram-slider__image.img--broken {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  display: none !important;
 }
 .neogram-slider {
   /* Centered Instagram-style indicator dots */
