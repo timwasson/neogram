@@ -323,19 +323,22 @@ export async function deleteFromNeocities(targetId: string, filenames: string[])
     for (const file of filenames) {
       // Strip any full URL or leading slashes for Neocities relative path
       const cleanPath = file.replace(/^https?:\/\/[^\/]+\//, '').replace(/^\/+/, '');
+      const remoteDeletePath = cleanDeployPath && !cleanPath.startsWith(cleanDeployPath + '/')
+        ? `${cleanDeployPath}/${cleanPath}`
+        : cleanPath;
 
       // STRICT NON-DESTRUCTIVE SAFETY INVARIANT:
       // Neogram must NEVER delete non-Neogram user files!
-      if (!cleanPath.includes('uploads/')) {
-        console.warn(`[:> NEOCITIES DELETE REFUSED] Unsafe deletion path rejected (not in uploads/): ${cleanPath}`);
+      if (!remoteDeletePath.includes('uploads/') && !remoteDeletePath.endsWith('avatar.webp')) {
+        console.warn(`[:> NEOCITIES DELETE REFUSED] Unsafe deletion path rejected: ${remoteDeletePath}`);
         continue;
       }
-      if (cleanDeployPath && !cleanPath.startsWith(cleanDeployPath + '/')) {
-        console.warn(`[:> NEOCITIES DELETE REFUSED] Unsafe path rejected (outside deploy directory ${cleanDeployPath}): ${cleanPath}`);
+      if (cleanDeployPath && !remoteDeletePath.startsWith(cleanDeployPath + '/')) {
+        console.warn(`[:> NEOCITIES DELETE REFUSED] Unsafe path rejected (outside deploy directory ${cleanDeployPath}): ${remoteDeletePath}`);
         continue;
       }
 
-      formData.append('filenames[]', cleanPath);
+      formData.append('filenames[]', remoteDeletePath);
       validCount++;
     }
 

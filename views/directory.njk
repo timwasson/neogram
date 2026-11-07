@@ -119,6 +119,7 @@
                   alt="@{{ user.handle }} avatar"
                   class="directory-avatar-img pixel-art"
                   loading="lazy"
+                  onerror="this.onerror=null;this.src='/icons/default-avatar.svg';"
                 />
                 <span
                   class="directory-status-dot {% if user.status == 'active' %}directory-status-dot--active{% elif user.status == 'away' %}directory-status-dot--away{% else %}directory-status-dot--inactive{% endif %}"
@@ -244,6 +245,7 @@
                   alt="@{{ user.handle }} avatar"
                   class="directory-avatar-img pixel-art"
                   loading="lazy"
+                  onerror="this.onerror=null;this.src='/icons/default-avatar.svg';"
                 />
                 <span class="directory-status-dot directory-status-dot--active" title="Active (Online)"></span>
               </a>
@@ -324,6 +326,7 @@
                   alt="@{{ user.handle }} avatar"
                   class="directory-avatar-img pixel-art"
                   loading="lazy"
+                  onerror="this.onerror=null;this.src='/icons/default-avatar.svg';"
                 />
                 <span class="directory-status-dot directory-status-dot--away" title="Away"></span>
               </a>
@@ -404,6 +407,7 @@
                   alt="@{{ user.handle }} avatar"
                   class="directory-avatar-img pixel-art"
                   loading="lazy"
+                  onerror="this.onerror=null;this.src='/icons/default-avatar.svg';"
                 />
                 <span class="directory-status-dot directory-status-dot--inactive" title="Inactive (Offline)"></span>
               </a>

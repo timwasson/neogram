@@ -361,19 +361,22 @@ export async function deleteFromNekoweb(targetId: string, filenames: string[]): 
 
     for (const file of filenames) {
       const cleanPath = file.replace(/^https?:\/\/[^\/]+\//, '').replace(/^\/+/, '');
+      const remoteDeletePath = cleanDeployPath && !cleanPath.startsWith(cleanDeployPath + '/')
+        ? `${cleanDeployPath}/${cleanPath}`
+        : cleanPath;
 
       // STRICT NON-DESTRUCTIVE SAFETY INVARIANT:
       // Neogram must NEVER delete non-Neogram user files!
-      if (!cleanPath.includes('uploads/')) {
-        console.warn(`[:> NEKOWEB DELETE REFUSED] Unsafe deletion path rejected (not in uploads/): ${cleanPath}`);
+      if (!remoteDeletePath.includes('uploads/') && !remoteDeletePath.endsWith('avatar.webp')) {
+        console.warn(`[:> NEKOWEB DELETE REFUSED] Unsafe deletion path rejected: ${remoteDeletePath}`);
         continue;
       }
-      if (cleanDeployPath && !cleanPath.startsWith(cleanDeployPath + '/')) {
-        console.warn(`[:> NEKOWEB DELETE REFUSED] Unsafe path rejected (outside deploy directory ${cleanDeployPath}): ${cleanPath}`);
+      if (cleanDeployPath && !remoteDeletePath.startsWith(cleanDeployPath + '/')) {
+        console.warn(`[:> NEKOWEB DELETE REFUSED] Unsafe path rejected (outside deploy directory ${cleanDeployPath}): ${remoteDeletePath}`);
         continue;
       }
 
-      const remotePath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+      const remotePath = remoteDeletePath.startsWith('/') ? remoteDeletePath : `/${remoteDeletePath}`;
 
       const params = new URLSearchParams();
       params.append('pathname', remotePath);

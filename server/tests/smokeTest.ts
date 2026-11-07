@@ -214,6 +214,7 @@ async function runSmokeTests() {
       headers: {
         'Content-Type': 'application/json',
         'Cookie': sessionCookie,
+        'X-Test-Suite': 'true',
       },
       body: JSON.stringify({ avatarBase64: b64Avatar }),
     });
@@ -225,6 +226,7 @@ async function runSmokeTests() {
       headers: {
         'Content-Type': 'application/json',
         'Cookie': sessionCookie,
+        'X-Test-Suite': 'true',
       },
       body: JSON.stringify({ removeAvatar: true }),
     });
@@ -406,6 +408,7 @@ async function runSmokeTests() {
       headers: {
         'Content-Type': 'application/json',
         'Cookie': sessionCookie,
+        'X-Test-Suite': 'true',
       },
       body: JSON.stringify({
         text: 'This photograph looks radical on my Netscape Navigator browser!',
@@ -1035,6 +1038,7 @@ async function runSmokeTests() {
       headers: {
         'Content-Type': 'application/json',
         'Cookie': sessionCookie,
+        'X-Test-Suite': 'true',
       },
       body: JSON.stringify({
         name: 'Cyber Shrine 99',
@@ -1121,6 +1125,7 @@ async function runSmokeTests() {
       headers: {
         'Content-Type': 'application/json',
         'Cookie': sessionCookie,
+        'X-Test-Suite': 'true',
       },
       body: JSON.stringify({
         message: 'Visiting the cyber shrine!',
@@ -1538,6 +1543,7 @@ async function runSmokeTests() {
       headers: {
         'Content-Type': 'application/json',
         'Cookie': sessionCookie,
+        'X-Test-Suite': 'true',
       },
       body: JSON.stringify({
         text: 'Testing authenticated Cyber-Pass pager ping.',
@@ -1584,6 +1590,7 @@ async function runSmokeTests() {
       headers: {
         'Content-Type': 'application/json',
         'Cookie': sessionCookie,
+        'X-Test-Suite': 'true',
       },
       body: JSON.stringify({
         text: 'Cyber-Pass message succeeds despite anon chat disabled.',

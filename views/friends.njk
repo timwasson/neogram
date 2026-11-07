@@ -96,6 +96,7 @@
                   src="{{ friend.avatarPath }}"
                   alt="@{{ friend.handle }} Avatar"
                   class="w-12 h-12 pixel-box border-2 border-black object-cover bg-black"
+                  onerror="this.onerror=null;this.src='/icons/default-avatar.svg';"
                 />
                 <span
                   class="directory-status-dot directory-status-dot--{{ friend.status }}"

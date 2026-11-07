@@ -47,6 +47,7 @@
               src="{{ profileUser.avatarPath }}"
               alt="@{{ profileUser.handle }} Avatar"
               class="w-32 h-32 pixel-box border-4 border-black object-cover bg-black"
+              onerror="this.onerror=null;this.src='/icons/default-avatar.svg';"
             />
             <div class="absolute -bottom-2 -right-2">
               {% if profileUser.isAway %}

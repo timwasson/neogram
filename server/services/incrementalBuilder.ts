@@ -309,6 +309,9 @@ export async function buildAndDeployNewPhoto(options: {
         deployPath: ctx.rawDeployPath,
         fullSiteUrl: ctx.fullSiteUrl,
         statusMessage: ctx.statusMessage,
+        avatarUrl: ctx.avatarUrl?.startsWith('http')
+          ? ctx.avatarUrl
+          : (ctx.avatarUrl ? `${baseNeogramUrl}${ctx.avatarUrl.startsWith('/') ? '' : '/'}${ctx.avatarUrl}` : `${baseNeogramUrl}/icons/default-avatar.svg`),
       },
       posts: formattedPosts,
     };
@@ -443,6 +446,9 @@ export async function buildAndDeployComment(options: {
         deployPath: ctx.rawDeployPath,
         fullSiteUrl: ctx.fullSiteUrl,
         statusMessage: ctx.statusMessage,
+        avatarUrl: ctx.avatarUrl?.startsWith('http')
+          ? ctx.avatarUrl
+          : (ctx.avatarUrl ? `${baseNeogramUrl}${ctx.avatarUrl.startsWith('/') ? '' : '/'}${ctx.avatarUrl}` : `${baseNeogramUrl}/icons/default-avatar.svg`),
       },
       posts: formattedPosts,
     };

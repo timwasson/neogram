@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { isSafePublicUrl } from '../utils/safeFetch';
 import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
@@ -148,6 +150,41 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
     if (removeAvatar === 'true' || removeAvatar === true) {
       newAvatarPath = null;
       await query('UPDATE users SET avatar_path = NULL, updated_at = NOW() WHERE id = $1', [userId]);
+
+      // Clean up local avatar files if any exist
+      try {
+        const uploadsDir = path.resolve(process.cwd(), 'public', 'uploads', 'avatars');
+        if (fs.existsSync(uploadsDir)) {
+          const files = await fs.promises.readdir(uploadsDir);
+          for (const file of files) {
+            if (file.startsWith(`${userId}-`)) {
+              await fs.promises.unlink(path.join(uploadsDir, file)).catch(() => {});
+            }
+          }
+        }
+      } catch (_e) {}
+
+      // If user has a mounted remote site, also delete avatar.webp from remote host
+      try {
+        const { getDefaultSite } = await import('../services/siteService');
+        const defaultSite = await getDefaultSite(userId);
+        if (defaultSite && defaultSite.deploymentType !== 'none') {
+          if (defaultSite.deploymentType === 'neocities') {
+            const { deleteFromNeocities } = await import('../services/neocitiesPublisher');
+            deleteFromNeocities(defaultSite.id, ['avatar.webp']).catch(() => {});
+          } else if (defaultSite.deploymentType === 'nekoweb') {
+            const { deleteFromNekoweb } = await import('../services/nekowebPublisher');
+            deleteFromNekoweb(defaultSite.id, ['avatar.webp']).catch(() => {});
+          } else if (defaultSite.deploymentType === 'github') {
+            const { deleteFromGitHub } = await import('../services/githubPublisher');
+            deleteFromGitHub(defaultSite.id, ['avatar.webp']).catch(() => {});
+          }
+          const localStaging = path.join(process.cwd(), 'dist', 'static-galleries', defaultSite.id, 'avatar.webp');
+          if (fs.existsSync(localStaging)) {
+            await fs.promises.unlink(localStaging).catch(() => {});
+          }
+        }
+      } catch (_e) {}
     } else if (req.file || req.body.avatarBase64 || req.body.imageBase64) {
       try {
         let bufferToProcess: Buffer;

@@ -27,7 +27,7 @@
       <!-- Station Telemetry Bar -->
       <div class="p-2 border-b-2 border-main bg-window flex items-center justify-between text-xs font-mono">
         <div class="flex items-center gap-2">
-          <img src="{{ avatarPath }}" alt="@{{ handle }}" class="w-6 h-6 border border-main object-cover" />
+          <img src="{{ avatarPath }}" alt="@{{ handle }}" class="w-6 h-6 border border-main object-cover" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';" />
           <div>
             <span class="font-bold text-mac">@{{ handle }}</span>
             {% if uin %}<span class="text-muted text-xs">[#{{ uin }}]</span>{% endif %}

@@ -169,23 +169,158 @@ export async function processBase64Image(
 
 /**
  * Process and optimize user avatar.
- * Creates a 128x128 square cover WebP image and cleans up older avatars for the user.
+ * Creates a 128x128 square cover WebP image.
+ * If the user has a configured static site host (Neocities, Nekoweb, or GitHub),
+ * deploys the optimized avatar directly to their remote site (`avatar.webp`),
+ * cleans up any local staging files, and returns the remote canonical URL.
+ * In cold-start / sandbox mode (no remote host configured), falls back to
+ * local staging under public/uploads/avatars/.
  */
 export async function processAvatarBuffer(
   inputBuffer: Buffer,
   userId: string
-): Promise<{ avatarPath: string }> {
+): Promise<{ avatarPath: string; deployedRemote?: boolean }> {
+  await acquireImageSlot();
+  let avatarBuffer: Buffer;
+  try {
+    avatarBuffer = await sharp(inputBuffer, { limitInputPixels: MAX_INPUT_PIXELS })
+      .rotate()
+      .resize(128, 128, { fit: 'cover' })
+      .webp({ quality: 90 })
+      .toBuffer();
+  } finally {
+    releaseImageSlot();
+  }
+
+  // 1. Inspect if user has an active static site target with credentials
+  try {
+    const { query } = await import('../db');
+
+    // Query default site row directly with encrypted credentials
+    const siteRes = await query(
+      `SELECT s.id, s.name, s.site_url, s.deploy_path, s.deployment_type, s.deployment_credentials
+       FROM sites s
+       WHERE s.user_id = $1 AND s.is_default = TRUE
+       LIMIT 1`,
+      [userId]
+    );
+    let targetSiteRow = siteRes.rows[0];
+    if (!targetSiteRow) {
+      const anySiteRes = await query(
+        `SELECT s.id, s.name, s.site_url, s.deploy_path, s.deployment_type, s.deployment_credentials
+         FROM sites s
+         WHERE s.user_id = $1
+         ORDER BY s.created_at ASC
+         LIMIT 1`,
+        [userId]
+      );
+      targetSiteRow = anySiteRes.rows[0];
+    }
+
+    const userRes = await query(
+      'SELECT id, handle, email, deployment_type, deployment_credentials, site_url, deploy_path FROM users WHERE id = $1',
+      [userId]
+    );
+    const userRow = userRes.rows[0];
+
+    const deploymentType = targetSiteRow?.deployment_type || userRow?.deployment_type || 'none';
+    const deploymentCreds = targetSiteRow?.deployment_credentials || userRow?.deployment_credentials;
+
+    let hasValidCredentials = false;
+    if (deploymentType && deploymentType !== 'none' && deploymentCreds) {
+      try {
+        const { decryptCredentials } = await import('../utils/crypto');
+        const creds = decryptCredentials<any>(deploymentCreds);
+        if (creds && creds.apiKey && creds.apiKey.trim()) {
+          hasValidCredentials = true;
+        }
+      } catch (_e) {}
+    }
+
+    if (hasValidCredentials) {
+      const targetDeployId = targetSiteRow?.id || userId;
+      const isSiteId = Boolean(targetSiteRow?.id);
+      const deltaFiles = [
+        {
+          relativePath: 'avatar.webp',
+          content: avatarBuffer,
+          contentType: 'image/webp',
+        },
+      ];
+
+      let deployOk = false;
+      if (deploymentType === 'neocities') {
+        const { deployFilesToNeocities } = await import('./neocitiesPublisher');
+        const res = await deployFilesToNeocities(targetDeployId, deltaFiles, isSiteId);
+        deployOk = res.ok;
+      } else if (deploymentType === 'nekoweb') {
+        const { deployFilesToNekoweb } = await import('./nekowebPublisher');
+        const res = await deployFilesToNekoweb(targetDeployId, deltaFiles, isSiteId);
+        deployOk = res.ok;
+      } else if (deploymentType === 'github') {
+        const { deployFilesToGitHub } = await import('./githubPublisher');
+        const res = await deployFilesToGitHub(targetDeployId, deltaFiles, isSiteId);
+        deployOk = res.ok;
+      }
+
+      if (deployOk) {
+        // Stage in local static gallery if present
+        if (targetSiteRow?.id) {
+          const siteStaticDir = path.join(process.cwd(), 'dist', 'static-galleries', targetSiteRow.id);
+          try {
+            if (fs.existsSync(siteStaticDir)) {
+              await fs.promises.writeFile(path.join(siteStaticDir, 'avatar.webp'), avatarBuffer);
+            }
+          } catch (_e) {}
+        }
+
+        // Clean up any older local avatar files on Neogram disk (zero retention)
+        try {
+          ensureUploadDirs();
+          const files = await fs.promises.readdir(AVATARS_DIR);
+          for (const file of files) {
+            if (file.startsWith(`${userId}-`)) {
+              await fs.promises.unlink(path.join(AVATARS_DIR, file)).catch(() => {});
+            }
+          }
+        } catch (_e) {}
+
+        const author = userRow?.handle || userRow?.email?.split('@')[0] || 'user';
+        const hostDomain = deploymentType === 'nekoweb' ? 'nekoweb.org' : 'neocities.org';
+        const rawSiteUrl = targetSiteRow?.site_url || userRow?.site_url;
+        const siteBase = rawSiteUrl
+          ? rawSiteUrl.replace(/\/+$/, '')
+          : (targetSiteRow?.name
+              ? `https://${targetSiteRow.name}.${hostDomain}`
+              : `https://${author}.${hostDomain}`);
+        const rawDeployPath = (targetSiteRow?.deploy_path !== null && targetSiteRow?.deploy_path !== undefined)
+          ? String(targetSiteRow.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+          : (userRow?.deploy_path !== null && userRow?.deploy_path !== undefined
+              ? String(userRow.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+              : 'neogram');
+        const deployPrefix = rawDeployPath
+          ? (siteBase.toLowerCase().endsWith(`/${rawDeployPath.toLowerCase()}`) ? '' : `/${rawDeployPath}`)
+          : '';
+        const timestamp = Date.now();
+        const remoteAvatarUrl = `${siteBase}${deployPrefix}/avatar.webp?v=${timestamp}`;
+
+        console.log(`[:> AVATAR DEPLOY] Placed avatar.webp on remote static host (${deploymentType}) for @${author}: ${remoteAvatarUrl}`);
+        return {
+          avatarPath: remoteAvatarUrl,
+          deployedRemote: true,
+        };
+      }
+    }
+  } catch (err: any) {
+    console.warn('[:> AVATAR WARNING] Remote avatar deployment encountered error, falling back to local storage:', err?.message || err);
+  }
+
+  // 2. Cold-Start / Sandbox fallback: local storage on Neogram
   ensureUploadDirs();
   const fileId = `${userId}-${Date.now()}`;
   const avatarFileName = `${fileId}.webp`;
   const avatarDiskPath = path.join(AVATARS_DIR, avatarFileName);
-
-  // Rotate according to EXIF, resize and square crop 128x128 WebP
-  await sharp(inputBuffer, { limitInputPixels: MAX_INPUT_PIXELS })
-    .rotate()
-    .resize(128, 128, { fit: 'cover' })
-    .webp({ quality: 90 })
-    .toFile(avatarDiskPath);
+  await fs.promises.writeFile(avatarDiskPath, avatarBuffer);
 
   // Clean up any older avatar files for this user
   try {
@@ -199,5 +334,6 @@ export async function processAvatarBuffer(
 
   return {
     avatarPath: `/uploads/avatars/${avatarFileName}`,
+    deployedRemote: false,
   };
 }

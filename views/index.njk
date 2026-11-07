@@ -350,6 +350,7 @@
                               src="{{ friend.avatarPath }}"
                               alt="@{{ friend.handle }} Avatar"
                               class="w-12 h-12 pixel-box border-2 border-black object-cover bg-black"
+                              onerror="this.onerror=null;this.src='/icons/default-avatar.svg';"
                             />
                             <span
                               class="directory-status-dot directory-status-dot--{{ friend.status }}"
@@ -494,7 +495,7 @@
                         {% for user in activeUsers %}
                           <article class="directory-card directory-card--active" data-handle="{{ user.handle | lower }}" data-uin="{{ user.uin }}">
                             <a href="{{ user.profileUrl }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
-                              <img src="{{ user.avatarPath }}" alt="@{{ user.handle }}" class="directory-avatar-img" loading="lazy" />
+                              <img src="{{ user.avatarPath }}" alt="@{{ user.handle }}" class="directory-avatar-img" loading="lazy" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';" />
                               <span class="directory-status-dot directory-status-dot--active" title="Active (Online)"></span>
                             </a>
                             <div class="flex flex-col gap-1 min-w-0 flex-1">
@@ -536,7 +537,7 @@
                         {% for user in awayUsers %}
                           <article class="directory-card directory-card--away" data-handle="{{ user.handle | lower }}" data-uin="{{ user.uin }}">
                             <a href="{{ user.profileUrl }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
-                              <img src="{{ user.avatarPath }}" alt="@{{ user.handle }}" class="directory-avatar-img" loading="lazy" />
+                              <img src="{{ user.avatarPath }}" alt="@{{ user.handle }}" class="directory-avatar-img" loading="lazy" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';" />
                               <span class="directory-status-dot directory-status-dot--away" title="Away"></span>
                             </a>
                             <div class="flex flex-col gap-1 min-w-0 flex-1">
@@ -578,7 +579,7 @@
                         {% for user in inactiveUsers %}
                           <article class="directory-card directory-card--inactive" data-handle="{{ user.handle | lower }}" data-uin="{{ user.uin }}">
                             <a href="{{ user.profileUrl }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
-                              <img src="{{ user.avatarPath }}" alt="@{{ user.handle }}" class="directory-avatar-img" loading="lazy" />
+                              <img src="{{ user.avatarPath }}" alt="@{{ user.handle }}" class="directory-avatar-img" loading="lazy" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';" />
                               <span class="directory-status-dot directory-status-dot--inactive" title="Inactive"></span>
                             </a>
                             <div class="flex flex-col gap-1 min-w-0 flex-1">
@@ -1262,6 +1263,7 @@
                               src="{{ currentUser.avatarPath or '/icons/default-avatar.svg' }}"
                               alt="Avatar Preview"
                               class="w-16 h-16 border-2 border-main object-cover bg-black"
+                              onerror="this.onerror=null;this.src='/icons/default-avatar.svg';"
                             />
                             <div id="avatarStatusBadge" class="text-3xs font-mono text-center text-muted mt-1">
                               {% if currentUser.avatarPath %}CUSTOM{% else %}DEFAULT{% endif %}
