@@ -59,13 +59,23 @@
   color: var(--text-main);
 
   @media (max-width: 767px) {
-    bottom: 58px;
-    left: 8px;
-    right: 8px;
-    width: auto;
-    max-width: none;
-    height: 75dvh;
-    max-height: calc(100dvh - 120px);
+    top: var(--nim-viewport-top, 0px);
+    left: 0;
+    right: 0;
+    bottom: auto;
+    width: 100vw;
+    max-width: 100vw;
+    height: var(--nim-viewport-height, 100dvh);
+    max-height: var(--nim-viewport-height, 100dvh);
+    border: none;
+    border-top: 2px solid var(--border-main);
+    box-shadow: none;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overscroll-behavior: contain;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   &.hidden {
@@ -83,6 +93,15 @@
     font-weight: bold;
     user-select: none;
     border-bottom: 2px solid var(--border-main);
+    flex-shrink: 0;
+
+    @media (max-width: 767px) {
+      padding: 8px 10px;
+
+      #aimPopoutBtn {
+        display: none !important;
+      }
+    }
   }
 
   &__btn-sm {
@@ -103,12 +122,14 @@
   }
 
   &__body {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     padding: 8px;
     gap: 8px;
+    box-sizing: border-box;
   }
 
   /* User Status Header */
@@ -119,16 +140,21 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    flex-shrink: 0;
   }
 
   /* Buddy List Area */
   &__buddies-container {
-    flex: 1;
+    flex: 1 1 0%;
+    min-height: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 6px;
     padding-right: 2px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
 
   &__buddy-section-title {
@@ -139,6 +165,7 @@
     border-bottom: 1px solid var(--border-main);
     padding-bottom: 2px;
     margin-top: 4px;
+    flex-shrink: 0;
   }
 
   &__buddy-item {
@@ -148,6 +175,7 @@
     padding: 4px 6px;
     border: 1px solid transparent;
     cursor: pointer;
+    flex-shrink: 0;
 
     &:hover {
       background-color: rgba(0, 0, 128, 0.15);
@@ -157,7 +185,8 @@
 
   /* Direct Message Chat View */
   &__im-view {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -165,7 +194,8 @@
   }
 
   &__transcript {
-    flex: 1;
+    flex: 1 1 0%;
+    min-height: 0;
     overflow-y: auto;
     background-color: #000000;
     color: #ffffff;
@@ -176,6 +206,9 @@
     gap: 6px;
     font-size: 11px;
     line-height: 1.4;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
 
     .dark & {
       background-color: #080c10;
@@ -206,6 +239,7 @@
     border: 1px dashed #999900;
     padding: 4px 6px;
     font-size: 10px;
+    flex-shrink: 0;
   }
 
   &__typing {
@@ -213,11 +247,13 @@
     font-style: italic;
     color: var(--text-muted);
     min-height: 14px;
+    flex-shrink: 0;
   }
 
   &__input-row {
     display: flex;
     gap: 4px;
+    flex-shrink: 0;
 
     input {
       flex: 1;
@@ -230,7 +266,17 @@
 
       @media (max-width: 768px), (pointer: coarse) {
         font-size: 16px;
+        padding: 8px;
       }
     }
+  }
+}
+
+/* Mobile Background Lock when Chat Panel is Expanded */
+body.mobile-chat-open {
+  @media (max-width: 767px) {
+    overflow: hidden !important;
+    touch-action: none;
+    overscroll-behavior: none;
   }
 }

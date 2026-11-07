@@ -103,6 +103,15 @@
         });
       }
 
+      var closeBtn = document.getElementById('aimCloseBtn');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function () {
+          self.closeWindow();
+        });
+      }
+
+      this.bindViewportHandlers();
+
       var backBtn = document.getElementById('aimBackToBuddiesBtn');
       if (backBtn) {
         backBtn.addEventListener('click', function () {
@@ -832,7 +841,115 @@
       return div.innerHTML;
     },
 
+    _savedScrollY: 0,
+    _touchMoveHandler: null,
     _lastToggleTime: 0,
+
+    bindViewportHandlers: function () {
+      var self = this;
+      var onViewportChange = function () {
+        if (!self.isOpen) return;
+        self.syncViewport();
+      };
+
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', onViewportChange);
+        window.visualViewport.addEventListener('scroll', function () {
+          if (!self.isOpen || window.innerWidth >= 768) return;
+          if (window.scrollY !== 0 || window.scrollX !== 0) {
+            window.scrollTo(0, 0);
+          }
+          self.syncViewport();
+        });
+      }
+
+      window.addEventListener('resize', function () {
+        if (window.innerWidth >= 768 && self.isOpen) {
+          document.body.classList.remove('mobile-chat-open');
+          self.detachTouchLock();
+          document.documentElement.style.removeProperty('--nim-viewport-height');
+          document.documentElement.style.removeProperty('--nim-viewport-top');
+        } else if (self.isOpen) {
+          self.syncViewport();
+        }
+      });
+
+      if (this.imInputEl) {
+        this.imInputEl.addEventListener('focus', function () {
+          if (window.innerWidth < 768) {
+            window.scrollTo(0, 0);
+            setTimeout(function () {
+              window.scrollTo(0, 0);
+              self.syncViewport();
+              self.scrollTranscriptToBottom();
+            }, 60);
+          }
+        });
+
+        this.imInputEl.addEventListener('blur', function () {
+          if (window.innerWidth < 768) {
+            window.scrollTo(0, 0);
+            setTimeout(function () {
+              self.syncViewport();
+            }, 60);
+          }
+        });
+      }
+    },
+
+    syncViewport: function () {
+      if (window.innerWidth >= 768) {
+        document.documentElement.style.removeProperty('--nim-viewport-height');
+        document.documentElement.style.removeProperty('--nim-viewport-top');
+        return;
+      }
+
+      var vv = window.visualViewport;
+      if (vv) {
+        var h = Math.round(vv.height);
+        var t = Math.round(vv.offsetTop);
+        document.documentElement.style.setProperty('--nim-viewport-height', h + 'px');
+        document.documentElement.style.setProperty('--nim-viewport-top', t + 'px');
+      } else {
+        var h = window.innerHeight;
+        document.documentElement.style.setProperty('--nim-viewport-height', h + 'px');
+        document.documentElement.style.setProperty('--nim-viewport-top', '0px');
+      }
+
+      // Keep transcript anchored to latest messages when keyboard animates
+      if (this.currentView === 'im') {
+        this.scrollTranscriptToBottom();
+      }
+    },
+
+    attachTouchLock: function () {
+      if (this._touchMoveHandler) return;
+      var self = this;
+      this._touchMoveHandler = function (e) {
+        if (!self.isOpen || window.innerWidth >= 768) return;
+        var transcript = self.imTranscriptEl;
+        var buddies = document.querySelector('.aim-window__buddies-container');
+        if (
+          (transcript && transcript.contains(e.target)) ||
+          (buddies && buddies.contains(e.target))
+        ) {
+          // Allow internal scrolling inside message transcript or buddies list
+          return;
+        }
+        // Everywhere else in the chat window, prevent window/background scrolling
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+      };
+      document.addEventListener('touchmove', this._touchMoveHandler, { passive: false });
+    },
+
+    detachTouchLock: function () {
+      if (this._touchMoveHandler) {
+        document.removeEventListener('touchmove', this._touchMoveHandler);
+        this._touchMoveHandler = null;
+      }
+    },
 
     toggleWindow: function () {
       var now = Date.now();
@@ -857,6 +974,14 @@
       }
       var mobBtn = document.getElementById('mobileTabAimBtn');
       if (mobBtn) mobBtn.classList.add('is-active');
+
+      if (window.innerWidth < 768) {
+        this._savedScrollY = window.scrollY || window.pageYOffset || 0;
+        document.body.classList.add('mobile-chat-open');
+        window.scrollTo(0, 0);
+        this.syncViewport();
+        this.attachTouchLock();
+      }
     },
 
     closeWindow: function () {
@@ -864,6 +989,16 @@
       if (this.windowEl) this.windowEl.classList.add('hidden');
       var mobBtn = document.getElementById('mobileTabAimBtn');
       if (mobBtn) mobBtn.classList.remove('is-active');
+
+      document.body.classList.remove('mobile-chat-open');
+      document.documentElement.style.removeProperty('--nim-viewport-height');
+      document.documentElement.style.removeProperty('--nim-viewport-top');
+      this.detachTouchLock();
+
+      if (this._savedScrollY) {
+        window.scrollTo(0, this._savedScrollY);
+        this._savedScrollY = 0;
+      }
     },
 
     open: function () {

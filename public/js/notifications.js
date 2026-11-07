@@ -51,6 +51,15 @@
           self.toggleDropdown(false);
         }
       });
+
+      window.addEventListener('resize', function () {
+        if (window.innerWidth >= 768 && self.isOpen) {
+          document.body.classList.remove('mobile-notify-open');
+          self.detachTouchLock();
+          var backdrop = document.getElementById('notifyDropdownBackdrop');
+          if (backdrop) backdrop.classList.add('hidden');
+        }
+      });
     },
 
     bindDom: function () {
@@ -67,8 +76,36 @@
       }
     },
 
+    _touchMoveHandler: null,
+
+    attachTouchLock: function () {
+      if (this._touchMoveHandler) return;
+      var self = this;
+      this._touchMoveHandler = function (e) {
+        if (!self.isOpen || window.innerWidth >= 768) return;
+        var list = document.getElementById('notifyDropdownList');
+        if (list && list.contains(e.target)) {
+          // Allow internal scrolling inside the notifications list
+          return;
+        }
+        // Lock background and header/footer touch scrolling on mobile
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+      };
+      document.addEventListener('touchmove', this._touchMoveHandler, { passive: false });
+    },
+
+    detachTouchLock: function () {
+      if (this._touchMoveHandler) {
+        document.removeEventListener('touchmove', this._touchMoveHandler);
+        this._touchMoveHandler = null;
+      }
+    },
+
     toggleDropdown: function (forceState) {
       var dropdown = document.getElementById('notifyDropdownMenu');
+      var backdrop = document.getElementById('notifyDropdownBackdrop');
       var btn = document.getElementById('notifyMenuBtn');
       if (!dropdown) return;
 
@@ -76,7 +113,14 @@
 
       if (this.isOpen) {
         dropdown.classList.remove('hidden');
+        if (backdrop) backdrop.classList.remove('hidden');
         if (btn) btn.setAttribute('aria-expanded', 'true');
+
+        if (window.innerWidth < 768) {
+          document.body.classList.add('mobile-notify-open');
+          this.attachTouchLock();
+        }
+
         // Close account dropdown if open
         if (typeof window.toggleUserMenu === 'function') {
           window.toggleUserMenu(false);
@@ -85,7 +129,10 @@
         this.fetchNotifications();
       } else {
         dropdown.classList.add('hidden');
+        if (backdrop) backdrop.classList.add('hidden');
         if (btn) btn.setAttribute('aria-expanded', 'false');
+        document.body.classList.remove('mobile-notify-open');
+        this.detachTouchLock();
       }
     },
 

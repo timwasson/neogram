@@ -167,6 +167,70 @@
   }
 }
 
+/* Mobile Scroll Lock & Backdrop for Notification Panel */
+.retro-notify-backdrop {
+  display: none;
+
+  @media (max-width: 767px) {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100dvh;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 10000;
+    touch-action: none;
+    overscroll-behavior: none;
+
+    &.hidden {
+      display: none !important;
+    }
+  }
+}
+
+.retro-notify-dropdown {
+  overscroll-behavior: contain;
+
+  @media (max-width: 767px) {
+    position: fixed;
+    top: 56px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-width: none;
+    max-height: calc(100dvh - 120px);
+    display: flex;
+    flex-direction: column;
+    z-index: 10001;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+}
+
+#notifyDropdownList {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+
+  @media (max-width: 767px) {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(100dvh - 190px);
+    overflow-y: auto;
+  }
+}
+
+body.mobile-notify-open {
+  @media (max-width: 767px) {
+    overflow: hidden !important;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+}
+
 .retro-notify-item {
   display: flex;
   align-items: flex-start;

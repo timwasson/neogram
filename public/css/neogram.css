@@ -1926,6 +1926,72 @@ select.retro-input {
   user-select: none;
 }
 
+/* Mobile Scroll Lock & Backdrop for Notification Panel */
+.retro-notify-backdrop {
+  display: none;
+}
+@media (max-width: 767px) {
+  .retro-notify-backdrop {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100dvh;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 10000;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+  .retro-notify-backdrop.hidden {
+    display: none !important;
+  }
+}
+
+.retro-notify-dropdown {
+  overscroll-behavior: contain;
+}
+@media (max-width: 767px) {
+  .retro-notify-dropdown {
+    position: fixed;
+    top: 56px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-width: none;
+    max-height: calc(100dvh - 120px);
+    display: flex;
+    flex-direction: column;
+    z-index: 10001;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+}
+
+#notifyDropdownList {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+@media (max-width: 767px) {
+  #notifyDropdownList {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(100dvh - 190px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  body.mobile-notify-open {
+    overflow: hidden !important;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+}
+
 .retro-notify-item {
   display: flex;
   align-items: flex-start;
@@ -2734,13 +2800,23 @@ dialog.pixel-dialog[open] {
 }
 @media (max-width: 767px) {
   .aim-window {
-    bottom: 58px;
-    left: 8px;
-    right: 8px;
-    width: auto;
-    max-width: none;
-    height: 75dvh;
-    max-height: calc(100dvh - 120px);
+    top: var(--nim-viewport-top, 0px);
+    left: 0;
+    right: 0;
+    bottom: auto;
+    width: 100vw;
+    max-width: 100vw;
+    height: var(--nim-viewport-height, 100dvh);
+    max-height: var(--nim-viewport-height, 100dvh);
+    border: none;
+    border-top: 2px solid var(--border-main);
+    box-shadow: none;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overscroll-behavior: contain;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 .aim-window.hidden {
@@ -2756,6 +2832,15 @@ dialog.pixel-dialog[open] {
   font-weight: bold;
   user-select: none;
   border-bottom: 2px solid var(--border-main);
+  flex-shrink: 0;
+}
+@media (max-width: 767px) {
+  .aim-window__header {
+    padding: 8px 10px;
+  }
+  .aim-window__header #aimPopoutBtn {
+    display: none !important;
+  }
 }
 .aim-window__btn-sm {
   background: #dcd8d0;
@@ -2773,12 +2858,14 @@ dialog.pixel-dialog[open] {
   box-shadow: none;
 }
 .aim-window__body {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   padding: 8px;
   gap: 8px;
+  box-sizing: border-box;
 }
 .aim-window {
   /* User Status Header */
@@ -2790,17 +2877,22 @@ dialog.pixel-dialog[open] {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex-shrink: 0;
 }
 .aim-window {
   /* Buddy List Area */
 }
 .aim-window__buddies-container {
-  flex: 1;
+  flex: 1 1 0%;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding-right: 2px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 .aim-window__buddy-section-title {
   font-size: 10px;
@@ -2810,6 +2902,7 @@ dialog.pixel-dialog[open] {
   border-bottom: 1px solid var(--border-main);
   padding-bottom: 2px;
   margin-top: 4px;
+  flex-shrink: 0;
 }
 .aim-window__buddy-item {
   display: flex;
@@ -2818,6 +2911,7 @@ dialog.pixel-dialog[open] {
   padding: 4px 6px;
   border: 1px solid transparent;
   cursor: pointer;
+  flex-shrink: 0;
 }
 .aim-window__buddy-item:hover {
   background-color: rgba(0, 0, 128, 0.15);
@@ -2827,14 +2921,16 @@ dialog.pixel-dialog[open] {
   /* Direct Message Chat View */
 }
 .aim-window__im-view {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   gap: 6px;
 }
 .aim-window__transcript {
-  flex: 1;
+  flex: 1 1 0%;
+  min-height: 0;
   overflow-y: auto;
   background-color: #000000;
   color: #ffffff;
@@ -2845,6 +2941,9 @@ dialog.pixel-dialog[open] {
   gap: 6px;
   font-size: 11px;
   line-height: 1.4;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 .dark .aim-window__transcript {
   background-color: #080c10;
@@ -2869,16 +2968,19 @@ dialog.pixel-dialog[open] {
   border: 1px dashed #999900;
   padding: 4px 6px;
   font-size: 10px;
+  flex-shrink: 0;
 }
 .aim-window__typing {
   font-size: 10px;
   font-style: italic;
   color: var(--text-muted);
   min-height: 14px;
+  flex-shrink: 0;
 }
 .aim-window__input-row {
   display: flex;
   gap: 4px;
+  flex-shrink: 0;
 }
 .aim-window__input-row input {
   flex: 1;
@@ -2892,6 +2994,16 @@ dialog.pixel-dialog[open] {
 @media (max-width: 768px), (pointer: coarse) {
   .aim-window__input-row input {
     font-size: 16px;
+    padding: 8px;
+  }
+}
+
+/* Mobile Background Lock when Chat Panel is Expanded */
+@media (max-width: 767px) {
+  body.mobile-chat-open {
+    overflow: hidden !important;
+    touch-action: none;
+    overscroll-behavior: none;
   }
 }
 

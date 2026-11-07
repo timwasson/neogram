@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
     <title>{{ title | default('Neogram - 90s Retro Social Publishing Engine') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -145,6 +145,9 @@
               <svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a4 4 0 0 0-4 4v3l-1.5 2h11L12 9V6a4 4 0 0 0-4-4z"/><path d="M6.5 13a1.5 1.5 0 0 0 3 0"/></svg>
               <span id="navNotifyBadge" class="pixel-badge pixel-badge--crimson text-3xs hidden">0</span>
             </button>
+
+            <!-- Mobile Backdrop for Notification Scroll Lock & Outside Dismiss -->
+            <div id="notifyDropdownBackdrop" class="retro-notify-backdrop hidden" onclick="toggleNotificationCenter(false)"></div>
 
             <!-- Notification Center Dropdown Window -->
             <div
@@ -732,6 +735,7 @@
           <div class="flex items-center gap-1">
             <button type="button" id="aimPopoutBtn" class="aim-window__btn-sm" title="Pop out in separate window">↗</button>
             <button type="button" id="aimMinimizeBtn" class="aim-window__btn-sm" title="Minimize">_</button>
+            <button type="button" id="aimCloseBtn" class="aim-window__btn-sm" title="Close">[X]</button>
           </div>
         </div>
 
