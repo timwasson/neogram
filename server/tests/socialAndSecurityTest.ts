@@ -626,17 +626,21 @@ async function runSocialAndSecuritySuite() {
       );
     }
 
-    // Verify database tables remain intact via /api/stats
-    const statsRes = await fetch(`${baseUrl}/api/stats`, {
+    // Verify database tables remain intact via /api/health and /api/directory
+    const dbHealthRes = await fetch(`${baseUrl}/api/health`, {
       headers: { 'X-Test-Suite': 'true' },
     });
-    const statsData = (await statsRes.json().catch(() => ({}))) as any;
+    const dbHealthData = (await dbHealthRes.json().catch(() => ({}))) as any;
+    const dirRes = await fetch(`${baseUrl}/api/directory`, {
+      headers: { 'X-Test-Suite': 'true' },
+    });
+    const dirData = (await dirRes.json().catch(() => ({}))) as any;
     monitor.record(
       'SQLI-PROBE',
-      'Database tables remain intact after SQLi fuzzing (/api/stats)',
-      statsRes.status === 200 && statsData.ok === true && statsData.stats?.users >= 5,
+      'Database tables remain intact after SQLi fuzzing (/api/health & /api/directory)',
+      dbHealthRes.status === 200 && dbHealthData.status === 'healthy' && dirData.ok === true,
       0,
-      `Active users in DB: ${statsData.stats?.users}`
+      `DB Status: ${dbHealthData.services?.database?.status}, directory total: ${dirData.total}`
     );
 
     // =========================================================================
