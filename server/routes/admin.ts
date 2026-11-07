@@ -210,10 +210,14 @@ adminRouter.post(
     try {
       const adminUser = (req as AdminRequest).adminUser!;
       const mode = req.body.mode === 'full' ? 'full' : 'assets';
-      const throttleDelayMs = typeof req.body.throttleDelayMs === 'number' ? req.body.throttleDelayMs : 2500;
+      const target = req.body.target === 'qa' ? 'qa' : 'all';
+      const throttleDelayMs = typeof req.body.throttleDelayMs === 'number' && req.body.throttleDelayMs >= 1000
+        ? req.body.throttleDelayMs
+        : 3500;
 
       const result = await initiateFleetSweep({
         mode,
+        target,
         throttleDelayMs,
         adminEmail: adminUser.email,
         adminId: adminUser.id,

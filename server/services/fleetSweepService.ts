@@ -8,6 +8,7 @@ import { logAdminAction } from './systemSettings';
 
 export interface SweepOptions {
   mode: 'assets' | 'full';
+  target?: 'all' | 'qa';
   throttleDelayMs?: number;
   adminEmail?: string;
   adminId?: string;
@@ -15,7 +16,7 @@ export interface SweepOptions {
 }
 
 /**
- * Initiates a throttled, low-priority fleet-wide deployment sweep across all active mounted station nodes.
+ * Initiates a throttled, low-priority fleet-wide deployment sweep across active mounted station nodes.
  * Enqueues tasks at 'LOW' priority so real-time creator traffic (snaps, comments, likes) takes precedence,
  * with an enforced pacing delay between remote hosts to strictly respect Neocities/Nekoweb API rate limits.
  */
@@ -25,7 +26,11 @@ export async function initiateFleetSweep(options: SweepOptions): Promise<{ total
     throw new Error('A cyberspace fleet sweep is already active. Cancel it before initiating a new one.');
   }
 
-  // 1. Fetch all active mounted sites with valid deployment targets (Neocities or Nekoweb)
+  const targetFilter = options.target === 'qa'
+    ? "AND (u.email LIKE '%@qa.neogram.club' OR u.handle LIKE 'qa_%')"
+    : '';
+
+  // 1. Fetch active mounted sites with valid deployment targets (Neocities or Nekoweb)
   const sitesRes = await query(`
     SELECT 
       s.id,
@@ -41,6 +46,7 @@ export async function initiateFleetSweep(options: SweepOptions): Promise<{ total
     WHERE s.deployment_type IN ('neocities', 'nekoweb')
       AND s.deployment_credentials IS NOT NULL
       AND u.is_banned = FALSE
+      ${targetFilter}
     ORDER BY s.created_at ASC
   `);
 

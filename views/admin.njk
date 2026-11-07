@@ -164,15 +164,29 @@
         </p>
 
         <div class="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between mb-3">
-          <div class="flex flex-wrap items-center gap-4 text-xs font-mono">
-            <label class="flex items-center gap-1 cursor-pointer">
-              <input type="radio" name="fleetSweepMode" value="assets" id="sweepModeAssets" checked>
-              <span><strong>Asset Delta Sweep (CSS/JS)</strong> [~150ms/site, No 11ty compile]</span>
-            </label>
-            <label class="flex items-center gap-1 cursor-pointer">
-              <input type="radio" name="fleetSweepMode" value="full" id="sweepModeFull">
-              <span><strong>Full 11ty Rebuild (Markup)</strong> [~3s/site, Full compile]</span>
-            </label>
+          <div class="flex flex-wrap items-center gap-6 text-xs font-mono">
+            <div class="flex items-center gap-3">
+              <span class="text-muted font-bold text-xxs uppercase">Target:</span>
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="fleetSweepTarget" value="qa" id="sweepTargetQa" checked>
+                <span><strong>QA Fleet Only</strong> (@qa.neogram.club)</span>
+              </label>
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="fleetSweepTarget" value="all" id="sweepTargetAll">
+                <span>All Stations</span>
+              </label>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-muted font-bold text-xxs uppercase">Mode:</span>
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="fleetSweepMode" value="full" id="sweepModeFull" checked>
+                <span><strong>Full 11ty Rebuild</strong> (~3s/site)</span>
+              </label>
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="fleetSweepMode" value="assets" id="sweepModeAssets">
+                <span>Asset Delta Sweep (CSS/JS)</span>
+              </label>
+            </div>
           </div>
 
           <div class="flex items-center gap-2">
@@ -943,7 +957,11 @@
     const mode = (modeAssets && modeAssets.checked) ? 'assets' : 'full';
     const modeLabel = mode === 'assets' ? 'ASSET DELTA SWEEP (CSS/JS)' : 'FULL 11TY STATIC REBUILD';
 
-    const confirmMsg = `WARNING: Initiate cyberspace deployment sweep across ALL active station nodes?\n\nMode: ${modeLabel}\nPacing: 2,500ms delay between hosts.\n\nType 'SWEEP' below to confirm:`;
+    const targetQa = document.getElementById('sweepTargetQa');
+    const target = (targetQa && targetQa.checked) ? 'qa' : 'all';
+    const targetLabel = target === 'qa' ? 'QA FLEET ONLY (@qa.neogram.club)' : 'ALL CYBERSPACE STATIONS';
+
+    const confirmMsg = `WARNING: Initiate cyberspace deployment sweep?\n\nTarget: ${targetLabel}\nMode: ${modeLabel}\nPacing: 3,500ms delay between hosts (flood-safe).\n\nType 'SWEEP' below to confirm:`;
     const response = prompt(confirmMsg);
     if (!response || response.trim().toUpperCase() !== 'SWEEP') {
       if (response !== null) alert('Fleet sweep confirmation rejected: text did not match SWEEP.');
@@ -957,7 +975,7 @@
           'Content-Type': 'application/json',
           'x-neogram-sysop-op': '1',
         },
-        body: JSON.stringify({ mode }),
+        body: JSON.stringify({ mode, target, throttleDelayMs: 3500 }),
       });
 
       const data = await res.json();
