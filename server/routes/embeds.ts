@@ -293,6 +293,46 @@ embedsRouter.get(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:slu
   }
 });
 
+// Flood protection & deduplication maps for anonymous guestbook signatures
+const anonGuestbookHistory = new Map<string, number[]>();
+const anonGuestbookLastSubmit = new Map<string, number>();
+const anonGuestbookDedupe = new Map<string, number>();
+
+// Flood protection & deduplication maps for anonymous pager transmissions
+const anonPagerHistory = new Map<string, number[]>();
+const anonPagerLastSend = new Map<string, number>();
+const anonPagerDedupe = new Map<string, number>();
+
+function extractClientIp(req: Request): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string' && forwarded.length > 0) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.socket?.remoteAddress || 'unknown';
+}
+
+function cleanExpiredLimits(map: Map<string, number[]>, windowMs: number) {
+  if (map.size > 2000) {
+    const now = Date.now();
+    for (const [key, timestamps] of map.entries()) {
+      if (!timestamps.some((t) => now - t < windowMs)) {
+        map.delete(key);
+      }
+    }
+  }
+}
+
+function cleanExpiredDedupe(map: Map<string, number>, windowMs: number) {
+  if (map.size > 2000) {
+    const now = Date.now();
+    for (const [key, ts] of map.entries()) {
+      if (now - ts >= windowMs) {
+        map.delete(key);
+      }
+    }
+  }
+}
+
 // Rate limiting for guestbook signatures (max 10 signatures per 5 minutes per IP)
 const guestbookRateLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
@@ -353,6 +393,75 @@ embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:sl
     if (!message || !message.trim()) {
       res.status(400).json({ ok: false, error: 'Message is required.' });
       return;
+    }
+
+    // Anti-bot honeypot check (hidden fields filled by crawlers/spambots)
+    const honeypot = req.body.website_hp || req.body.bot_trap || req.body.hp_check || req.body.fax_number || req.body.user_url;
+    if (honeypot && typeof honeypot === 'string' && honeypot.trim()) {
+      // Return synthetic success without writing to storage, database, or notifications
+      res.status(201).json({
+        ok: true,
+        entry: {
+          id: `gb_${Date.now().toString(36)}_trap`,
+          visitorName: finalVisitorName,
+          isAnonymous: true,
+          visitorLocation: visitorLocation || 'Cyberspace',
+          visitorWebsite: undefined,
+          moodIcon: moodIcon || '😎',
+          message: message.trim().slice(0, 500),
+          createdAt: new Date().toISOString(),
+        },
+      });
+      return;
+    }
+
+    // Anonymous flood control & deduplication guards
+    if (isAnonymous) {
+      const clientIp = extractClientIp(req);
+      const isTestBypass = (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test';
+
+      if (!isTestBypass) {
+        const now = Date.now();
+
+        // 1. Burst cooldown between consecutive submissions (min 2 seconds)
+        const lastSubmit = anonGuestbookLastSubmit.get(clientIp) || 0;
+        if (now - lastSubmit < 2000) {
+          res.status(429).json({
+            ok: false,
+            error: 'Carrier throttled: Transmission line noise detected. Please wait a moment before signing again.',
+          });
+          return;
+        }
+
+        // 2. Duplicate submission protection (identical message to same site within 10 minutes)
+        const dedupeKey = `${targetSite.id}:${clientIp}:${message.trim().toLowerCase()}`;
+        const lastDedupe = anonGuestbookDedupe.get(dedupeKey);
+        if (lastDedupe && now - lastDedupe < 10 * 60 * 1000) {
+          res.status(429).json({
+            ok: false,
+            error: 'Carrier throttled: Duplicate guestbook signature detected. Please avoid submitting repeated entries.',
+          });
+          return;
+        }
+
+        // 3. Sliding window limit: max 5 signatures per 10 minutes per IP
+        cleanExpiredLimits(anonGuestbookHistory, 10 * 60 * 1000);
+        cleanExpiredDedupe(anonGuestbookDedupe, 10 * 60 * 1000);
+
+        const history = (anonGuestbookHistory.get(clientIp) || []).filter((ts) => now - ts < 10 * 60 * 1000);
+        if (history.length >= 5) {
+          res.status(429).json({
+            ok: false,
+            error: 'Carrier busy: Anonymous signing quota reached (max 5 per 10 minutes). Connect Cyber-Pass to sign without limits.',
+          });
+          return;
+        }
+
+        history.push(now);
+        anonGuestbookHistory.set(clientIp, history);
+        anonGuestbookLastSubmit.set(clientIp, now);
+        anonGuestbookDedupe.set(dedupeKey, now);
+      }
     }
 
     // Strictly validate website protocol: only valid http:// and https:// allowed
@@ -1030,7 +1139,7 @@ const pagerRateLimiter = rateLimit({
  */
 embedsRouter.post(['/api/chat/pager/send', '/api/chat/pager/send/:identifier'], pagerRateLimiter, async (req: Request, res: Response) => {
   try {
-    const { to, text, senderHandle, website, siteSlug } = req.body;
+    const { to, text, senderHandle, website, bot_trap, fax_number, website_hp, siteSlug } = req.body;
     const targetIdentifier = req.params.identifier || to;
 
     if (!targetIdentifier) {
@@ -1038,8 +1147,12 @@ embedsRouter.post(['/api/chat/pager/send', '/api/chat/pager/send/:identifier'], 
       return;
     }
 
-    // Bot trap / honeypot
-    if (website && website.trim()) {
+    // Bot trap / honeypot check
+    const trapValue = (website && typeof website === 'string' && website.trim()) ||
+                      (bot_trap && typeof bot_trap === 'string' && bot_trap.trim()) ||
+                      (fax_number && typeof fax_number === 'string' && fax_number.trim()) ||
+                      (website_hp && typeof website_hp === 'string' && website_hp.trim());
+    if (trapValue) {
       res.json({ ok: true, status: 'delivered', id: 'trap_drop', message: 'Transmission received.' });
       return;
     }
@@ -1105,6 +1218,55 @@ embedsRouter.post(['/api/chat/pager/send', '/api/chat/pager/send/:identifier'], 
     const trimmedText = text.trim().slice(0, maxLen);
     const msgId = `pager_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const timestamp = new Date().toISOString();
+
+    // Anonymous pager flood control & deduplication guards
+    if (isAnonymous) {
+      const clientIp = extractClientIp(req);
+      const isTestBypass = (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test';
+
+      if (!isTestBypass) {
+        const now = Date.now();
+
+        // 1. Burst cooldown between transmissions (min 1.5 seconds)
+        const lastSend = anonPagerLastSend.get(clientIp) || 0;
+        if (now - lastSend < 1500) {
+          res.status(429).json({
+            ok: false,
+            error: 'Carrier throttled: Baud rate exceeded. Please wait 2 seconds between transmissions.',
+          });
+          return;
+        }
+
+        // 2. Duplicate transmission protection to same station (within 30 seconds)
+        const dedupeKey = `${targetUser.id}:${clientIp}:${trimmedText.toLowerCase()}`;
+        const lastDedupe = anonPagerDedupe.get(dedupeKey);
+        if (lastDedupe && now - lastDedupe < 30 * 1000) {
+          res.status(429).json({
+            ok: false,
+            error: 'Carrier throttled: Duplicate transmission detected. Please wait before repeating messages.',
+          });
+          return;
+        }
+
+        // 3. Sliding window: max 5 transmissions per minute per IP
+        cleanExpiredLimits(anonPagerHistory, 60 * 1000);
+        cleanExpiredDedupe(anonPagerDedupe, 30 * 1000);
+
+        const history = (anonPagerHistory.get(clientIp) || []).filter((ts) => now - ts < 60 * 1000);
+        if (history.length >= 5) {
+          res.status(429).json({
+            ok: false,
+            error: 'Carrier busy: Transmission frequency exceeded (max 5 per minute). Please connect Cyber-Pass or wait 1 minute.',
+          });
+          return;
+        }
+
+        history.push(now);
+        anonPagerHistory.set(clientIp, history);
+        anonPagerLastSend.set(clientIp, now);
+        anonPagerDedupe.set(dedupeKey, now);
+      }
+    }
 
     const { activeSockets } = await import('../services/chatSocket');
     const recipientSession = activeSockets.get(targetUser.id);

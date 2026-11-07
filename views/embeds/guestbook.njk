@@ -19,6 +19,8 @@
     <div class="neogram-guestbook">
       <!-- Signature Form -->
       <form id="guestbookForm" class="neogram-guestbook__form">
+        <!-- Anti-bot honeypot field (hidden from legitimate visitors) -->
+        <input type="text" name="website_hp" id="gbBotTrap" style="display:none !important; position:absolute; left:-9999px;" tabindex="-1" autocomplete="off" aria-hidden="true" />
         <!-- Inline Name & Login Controls -->
         <div class="neogram-guestbook__field neogram-guestbook__field--inline">
           <label for="gbVisitorName" class="neogram-guestbook__label">Name:</label>
@@ -223,6 +225,13 @@
 
         form.addEventListener('submit', async function(e) {
           e.preventDefault();
+
+          var botTrap = document.getElementById('gbBotTrap');
+          if (botTrap && botTrap.value) {
+            // Silently abort if honeypot was populated
+            return;
+          }
+
           var pass = getStoredPass();
           var isAnon = !pass || !pass.token;
 

@@ -137,10 +137,10 @@ export function createApp(): Express {
   app.use(cookieParser());
   app.use(requestLogger);
 
-  // Global API rate limiting: 180 requests per minute per IP
+  // Global API rate limiting: 180 requests per minute per IP (500 in dev/test)
   const globalApiLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 180,
+    max: process.env.NODE_ENV === 'production' ? 180 : 500,
     standardHeaders: true,
     legacyHeaders: false,
     message: { ok: false, error: 'Carrier busy: Global rate limit exceeded. Please throttle requests.' },

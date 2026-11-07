@@ -17,6 +17,7 @@ export interface ActiveSession {
   isAnonymous?: boolean;
   targetStationId?: string;
   targetStationHandle?: string;
+  clientIp?: string;
 }
 
 // In-memory active presence map keyed by userId
@@ -155,8 +156,30 @@ export function initChatWebSocketServer(server: http.Server) {
       return;
     }
 
+    // Extract client IP address for presence & flood protection
+    const forwardedHeader = req.headers['x-forwarded-for'];
+    const clientIp = typeof forwardedHeader === 'string' && forwardedHeader.length > 0
+      ? forwardedHeader.split(',')[0].trim()
+      : (req.socket?.remoteAddress || 'unknown');
+
     // A: Anonymous Pager Session
     if (isAnonymousPager && targetStation) {
+      // Limit concurrent anonymous sockets per IP to 5 to prevent socket exhaustion
+      let concurrentAnon = 0;
+      for (const s of activeAnonSockets.values()) {
+        if (s.clientIp === clientIp) concurrentAnon++;
+      }
+      if (concurrentAnon >= 5) {
+        console.warn(`[:> PAGER BLOCKED] Excessive anonymous WebSocket connections (${concurrentAnon}) from ${clientIp}`);
+        ws.send(JSON.stringify({
+          type: 'error',
+          code: 'TOO_MANY_CONNECTIONS',
+          message: 'Carrier busy: Maximum anonymous connections reached from your node.',
+        }));
+        ws.close(4029, 'Too many connections');
+        return;
+      }
+
       const anonUserId = `anon_${anonHandle}`;
       const session: ActiveSession = {
         userId: anonUserId,
@@ -170,6 +193,7 @@ export function initChatWebSocketServer(server: http.Server) {
         isAnonymous: true,
         targetStationId: targetStation.id,
         targetStationHandle: targetStation.handle || targetStation.email.split('@')[0],
+        clientIp,
       };
 
       activeAnonSockets.set(anonHandle, session);
@@ -260,6 +284,7 @@ export function initChatWebSocketServer(server: http.Server) {
       status: authenticatedUser.is_away ? 'away' : 'online',
       awayMessage: authenticatedUser.status_message || 'Online',
       connectedAt: new Date(),
+      clientIp,
     };
     activeSockets.set(userId, session);
 
@@ -544,6 +569,11 @@ const chatMsgLimits = new Map<string, number[]>();
 const CHAT_MSG_WINDOW_MS = 60 * 1000;
 const MAX_CHAT_MSGS = 30;
 
+// Flood protection maps for anonymous WebSocket pager sessions (keyed by clientIp)
+const anonWsLimits = new Map<string, number[]>();
+const anonWsLastMsg = new Map<string, number>();
+const anonWsDedupe = new Map<string, number>();
+
 function checkChatRateLimit(userId: string): boolean {
   const now = Date.now();
   if (chatMsgLimits.size > 2000) {
@@ -566,16 +596,74 @@ function checkChatRateLimit(userId: string): boolean {
 async function handleClientMessage(sender: ActiveSession, msg: any) {
   switch (msg.type) {
     case 'direct_message': {
-      if (!checkChatRateLimit(sender.userId)) {
-        sender.ws.send(JSON.stringify({
-          type: 'message_error',
-          error: 'Rate limit exceeded: You are transmitting messages too quickly. Please wait a moment.',
-        }));
-        return;
-      }
-
       const { to, text, id } = msg;
       if (!to || !text || !text.trim()) return;
+
+      // Flood protection for anonymous pager senders
+      if (sender.isAnonymous) {
+        const clientIp = sender.clientIp || sender.userId;
+        const now = Date.now();
+
+        // 1. Minimum burst cooldown (1.5 seconds)
+        const lastMsg = anonWsLastMsg.get(clientIp) || 0;
+        if (now - lastMsg < 1500) {
+          sender.ws.send(JSON.stringify({
+            type: 'message_error',
+            id,
+            error: 'Carrier throttled: Baud rate exceeded. Please wait 2 seconds between transmissions.',
+          }));
+          return;
+        }
+
+        // 2. Duplicate transmission protection (identical text within 30s)
+        const trimmed = text.toString().trim().toLowerCase();
+        const dedupeKey = `${sender.targetStationId || sender.targetStationHandle}:${clientIp}:${trimmed}`;
+        const lastDedupe = anonWsDedupe.get(dedupeKey);
+        if (lastDedupe && now - lastDedupe < 30 * 1000) {
+          sender.ws.send(JSON.stringify({
+            type: 'message_error',
+            id,
+            error: 'Carrier throttled: Duplicate transmission detected. Please avoid repeating identical messages.',
+          }));
+          return;
+        }
+
+        // 3. Sliding window: max 5 messages per 60 seconds per IP
+        if (anonWsLimits.size > 2000) {
+          for (const [key, ts] of anonWsLimits.entries()) {
+            if (!ts.some((t) => now - t < 60 * 1000)) anonWsLimits.delete(key);
+          }
+        }
+        if (anonWsDedupe.size > 2000) {
+          for (const [key, t] of anonWsDedupe.entries()) {
+            if (now - t >= 30 * 1000) anonWsDedupe.delete(key);
+          }
+        }
+
+        const history = (anonWsLimits.get(clientIp) || []).filter((t) => now - t < 60 * 1000);
+        if (history.length >= 5) {
+          sender.ws.send(JSON.stringify({
+            type: 'message_error',
+            id,
+            error: 'Carrier busy: Transmission frequency exceeded (max 5 per minute). Please connect Cyber-Pass for unlimited baud rate.',
+          }));
+          return;
+        }
+
+        history.push(now);
+        anonWsLimits.set(clientIp, history);
+        anonWsLastMsg.set(clientIp, now);
+        anonWsDedupe.set(dedupeKey, now);
+      } else {
+        if (!checkChatRateLimit(sender.userId)) {
+          sender.ws.send(JSON.stringify({
+            type: 'message_error',
+            id,
+            error: 'Rate limit exceeded: You are transmitting messages too quickly. Please wait a moment.',
+          }));
+          return;
+        }
+      }
 
       // Restrict anonymous pager sender to only transmitting to their target station
       if (sender.isAnonymous && sender.targetStationHandle && to !== sender.targetStationHandle) {

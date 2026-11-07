@@ -429,6 +429,16 @@
         dockBtn.classList.add('neogram-pager-dock__btn--alert');
         updateDockLabel();
       }
+    } else if (packet.type === 'message_error' || packet.type === 'error') {
+      var notice = document.getElementById('ngNotice');
+      if (notice) {
+        notice.style.display = 'block';
+        notice.textContent = '[!] ' + (packet.error || packet.message || 'Transmission throttled');
+      }
+      var sendBtn = document.getElementById('ngSendBtn');
+      if (sendBtn) sendBtn.disabled = false;
+      var input = document.getElementById('ngInput');
+      if (input) input.disabled = false;
     }
   }
 

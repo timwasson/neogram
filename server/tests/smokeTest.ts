@@ -1155,6 +1155,36 @@ async function runSmokeTests() {
     const anonGbDb = await query('SELECT * FROM guestbook_entries WHERE site_id = $1 AND visitor_name = $2', [secondarySiteId, 'RetroSurfer42']);
     assertTest('Anonymous guestbook signature persisted with is_anonymous: true in PostgreSQL', anonGbDb.rows.length === 1 && anonGbDb.rows[0].is_anonymous === true);
 
+    // 18h.2 Anonymous Guestbook Flood Protection: Duplicate Signature Suppression
+    const duplicateAnonGbRes = await fetch(`${API_BASE}/api/guestbook/${testUser.handle}/shrine`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        visitorName: 'RetroSurfer42',
+        message: 'Radical site! Signed without logging in.',
+      }),
+    });
+    assertTest('Duplicate anonymous guestbook submission throttled with HTTP 429', duplicateAnonGbRes.status === 429);
+    const duplicateGbData = await duplicateAnonGbRes.json() as any;
+    assertTest('Duplicate guestbook error indicates carrier throttled', duplicateGbData.error?.includes('Carrier throttled') || duplicateGbData.error?.includes('Duplicate guestbook signature detected'));
+
+    // 18h.3 Anonymous Guestbook Flood Protection: Honeypot Bot Trap
+    const honeypotGbRes = await fetch(`${API_BASE}/api/guestbook/${testUser.handle}/shrine`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        visitorName: 'SpamCrawlerBot',
+        message: 'Cheap watches and buy pills now!',
+        bot_trap: 'http://spambot-payload.xyz',
+      }),
+    });
+    assertTest('Honeypot-tripping bot returns synthetic HTTP 201', honeypotGbRes.status === 201);
+    const honeypotGbData = await honeypotGbRes.json() as any;
+    assertTest('Honeypot entry ID indicates trap drop', honeypotGbData.entry?.id?.includes('trap'));
+
+    const honeypotGbDb = await query('SELECT * FROM guestbook_entries WHERE site_id = $1 AND visitor_name = $2', [secondarySiteId, 'SpamCrawlerBot']);
+    assertTest('Honeypot-tripping bot entry dropped without persisting to database', honeypotGbDb.rows.length === 0);
+
     // Verify rendered embed HTML: anon username is NOT hyperlinked, logged-in username IS hyperlinked
     const embedGbRes = await fetch(`${API_BASE}/embed/guestbook/${testUser.handle}/shrine`);
     const embedGbHtml = await embedGbRes.text();
@@ -1468,6 +1498,39 @@ async function runSmokeTests() {
     assertTest('Anonymous message body matches transmission',
       queueCheck.rows[0].body === 'Radical retro station! Transmitting from cyberspace.'
     );
+
+    // 4b. Anonymous Pager Flood Protection: Duplicate Message Suppression
+    const duplicatePagerRes = await fetch(`${API_BASE}/api/chat/pager/send/${testUser.handle}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: 'Radical retro station! Transmitting from cyberspace.',
+        senderHandle: 'guest_4242',
+      }),
+    });
+    assertTest('Duplicate anonymous pager message throttled with HTTP 429', duplicatePagerRes.status === 429);
+    const duplicatePagerJson = await duplicatePagerRes.json() as any;
+    assertTest('Duplicate pager error indicates carrier throttled', duplicatePagerJson.error?.includes('Carrier throttled') || duplicatePagerJson.error?.includes('Duplicate transmission detected'));
+
+    // 4c. Anonymous Pager Flood Protection: Honeypot Bot Trap
+    const honeypotPagerRes = await fetch(`${API_BASE}/api/chat/pager/send/${testUser.handle}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: 'SEO backlinks and pharmacy offers',
+        senderHandle: 'bot_spammer',
+        bot_trap: 'crawler_token_xyz',
+      }),
+    });
+    assertTest('Honeypot-tripping pager transmission returns HTTP 200 delivered status', honeypotPagerRes.status === 200);
+    const honeypotPagerJson = await honeypotPagerRes.json() as any;
+    assertTest('Honeypot response id is trap_drop', honeypotPagerJson.id === 'trap_drop');
+
+    const trapQueueCheck = await query(
+      `SELECT * FROM ephemeral_chat_queue WHERE receiver_id = $1 AND sender_handle = 'bot_spammer'`,
+      [testUser.id]
+    );
+    assertTest('Honeypot-tripping pager message dropped without persisting to ephemeral queue', trapQueueCheck.rows.length === 0);
 
     // 5. Authenticated message transmission with Cyber-Pass / session
     const authMsgRes = await fetch(`${API_BASE}/api/chat/pager/send/${testUser.handle}`, {
