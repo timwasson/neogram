@@ -7,7 +7,11 @@ export function errorHandler(
   _next: NextFunction
 ): void {
   const status = err.status || 500;
-  const message = err.message || 'Internal System Kernel Fault';
+  // Never leak internals (SQL, paths, stack text) to clients on server faults in production
+  const message =
+    status >= 500 && process.env.NODE_ENV === 'production'
+      ? 'Internal System Kernel Fault'
+      : err.message || 'Internal System Kernel Fault';
 
   console.error(`[:> SYSTEM ERROR] ${req.method} ${req.url}:`, err.stack || err);
 

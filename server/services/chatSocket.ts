@@ -100,7 +100,7 @@ export function initChatWebSocketServer(server: http.Server) {
       const sessionToken = parsedCookies[COOKIE_NAME];
 
       if (sessionToken) {
-        const payload = verifySessionToken(sessionToken);
+        const payload = verifySessionToken(sessionToken, true);
         if (payload) {
           authenticatedUser = await getUserById(payload.userId);
         }
@@ -110,7 +110,7 @@ export function initChatWebSocketServer(server: http.Server) {
       if (!authenticatedUser && urlObj) {
         const tokenQuery = urlObj.searchParams.get('token');
         if (tokenQuery) {
-          const payload = verifySessionToken(tokenQuery);
+          const payload = verifySessionToken(tokenQuery, true);
           if (payload) {
             authenticatedUser = await getUserById(payload.userId);
           }

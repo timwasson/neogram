@@ -113,7 +113,11 @@ async function sendEmailOtp(toEmail: string, code: string, handle: string, uin?:
   `;
 
   if (!config.resendApiKey) {
-    console.log('[:> NOTIFIER INFO] No RESEND_API_KEY found. Dispatch logged to terminal:');
+    if (!config.allowDemoOtp) {
+      console.error('[:> NOTIFIER ERROR] RESEND_API_KEY missing: cannot deliver OTP email (codes are never logged outside ALLOW_DEMO_OTP dev mode).');
+      return { ok: false, channel: 'email', message: 'Email delivery is not configured.' };
+    }
+    console.log('[:> NOTIFIER INFO] No RESEND_API_KEY found. Dev dispatch (ALLOW_DEMO_OTP):');
     console.log(`[:> EMAIL TO]: ${toEmail}`);
     console.log(`[:> 6-DIGIT CODE]: ${code}`);
     return {
@@ -168,7 +172,11 @@ async function sendSmsOtp(toPhone: string, code: string, handle: string, uin?: n
   const messageBody = `Neogram: Your 6-digit verification code is: ${code}. Valid for 10 min. Msg & data rates may apply. Reply STOP to cancel, HELP for help.`;
 
   if (!config.twilioAccountSid || !config.twilioAuthToken || !config.twilioPhoneNumber) {
-    console.log('[:> NOTIFIER INFO] Twilio SMS keys not fully set in .env. Dispatch logged to terminal:');
+    if (!config.allowDemoOtp) {
+      console.error('[:> NOTIFIER ERROR] Twilio keys missing: cannot deliver OTP SMS.');
+      return { ok: false, channel: 'sms', message: 'SMS delivery is not configured.' };
+    }
+    console.log('[:> NOTIFIER INFO] Twilio SMS keys not fully set. Dev dispatch (ALLOW_DEMO_OTP):');
     console.log(`[:> SMS TARGET]: ${formattedPhone}`);
     console.log(`[:> SMS TEXT]: ${messageBody}`);
     return {

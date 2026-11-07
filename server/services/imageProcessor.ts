@@ -2,6 +2,26 @@ import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
 
+// Decompression-bomb guard + bounded CPU/RAM: at most 2 images are decoded concurrently
+// (container is memory-limited) and inputs are capped at 50 megapixels.
+const MAX_INPUT_PIXELS = 50_000_000;
+const MAX_CONCURRENT_JOBS = 2;
+sharp.concurrency(2);
+let activeJobs = 0;
+const jobWaiters: Array<() => void> = [];
+async function acquireImageSlot(): Promise<void> {
+  if (activeJobs < MAX_CONCURRENT_JOBS) {
+    activeJobs++;
+    return;
+  }
+  await new Promise<void>((resolve) => jobWaiters.push(resolve));
+}
+function releaseImageSlot(): void {
+  const next = jobWaiters.shift();
+  if (next) next(); // hand the slot straight to the next waiter
+  else activeJobs--;
+}
+
 const UPLOADS_DIR = path.resolve(process.cwd(), 'public', 'uploads');
 const IMAGES_DIR = path.join(UPLOADS_DIR, 'images');
 const THUMBS_DIR = path.join(UPLOADS_DIR, 'thumbs');
@@ -35,6 +55,19 @@ export async function processImageBuffer(
   filterName: string = 'none',
   targetUploadsDir?: string
 ): Promise<ProcessedImageResult> {
+  await acquireImageSlot();
+  try {
+    return await processImageBufferInner(inputBuffer, filterName, targetUploadsDir);
+  } finally {
+    releaseImageSlot();
+  }
+}
+
+async function processImageBufferInner(
+  inputBuffer: Buffer,
+  filterName: string,
+  targetUploadsDir?: string
+): Promise<ProcessedImageResult> {
   const fileId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   const imageFileName = `${fileId}.webp`;
   const thumbFileName = `${fileId}-thumb.webp`;
@@ -57,7 +90,7 @@ export async function processImageBuffer(
   const thumbDiskPath = path.join(thumbsDir, thumbFileName);
 
   // Initialize Sharp pipeline with auto-rotation based on EXIF orientation tags
-  let pipeline = sharp(inputBuffer).rotate();
+  let pipeline = sharp(inputBuffer, { limitInputPixels: MAX_INPUT_PIXELS }).rotate();
 
   // Get image metadata
   const metadata = await pipeline.metadata();
@@ -148,7 +181,7 @@ export async function processAvatarBuffer(
   const avatarDiskPath = path.join(AVATARS_DIR, avatarFileName);
 
   // Rotate according to EXIF, resize and square crop 128x128 WebP
-  await sharp(inputBuffer)
+  await sharp(inputBuffer, { limitInputPixels: MAX_INPUT_PIXELS })
     .rotate()
     .resize(128, 128, { fit: 'cover' })
     .webp({ quality: 90 })

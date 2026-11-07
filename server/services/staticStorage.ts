@@ -1,4 +1,6 @@
 import path from 'path';
+import { safeGet } from '../utils/safeFetch';
+import { writeFileAtomic } from '../utils/atomicFile';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import { decryptCredentials, NeocitiesCredentials } from '../utils/crypto';
@@ -78,29 +80,18 @@ export async function readRemoteJson<T>(user: any, relPath: string, defaultValue
 
   // 1. Try reading live JSON from the user's static host via HTTPS
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
-
-    const res = await fetch(remoteUrl, {
-      method: 'GET',
-      headers: { 'Cache-Control': 'no-cache' },
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
+    const res = await safeGet(remoteUrl, { timeoutMs: 4000, headers: { 'Cache-Control': 'no-cache' } });
 
     if (res.ok) {
-      const data = (await res.json()) as T;
+      const data = res.json<T>();
       return data;
     } else if (res.status === 404 && deployPrefix) {
       // Legacy auto-migration: check if file was previously uploaded under duplicated deploy prefix
       try {
         const legacyDoubleUrl = `${baseSiteUrl}/${deployPrefix}/${deployPrefix}/${relPath}`;
-        const legacyRes = await fetch(legacyDoubleUrl, {
-          method: 'GET',
-          headers: { 'Cache-Control': 'no-cache' },
-        });
+        const legacyRes = await safeGet(legacyDoubleUrl, { timeoutMs: 4000, headers: { 'Cache-Control': 'no-cache' } });
         if (legacyRes.ok) {
-          const legacyData = (await legacyRes.json()) as T;
+          const legacyData = legacyRes.json<T>();
           console.log(`[:> AUTO-MIGRATION] Migrating legacy double-path file to correct location: ${relPath}`);
           writeRemoteJson(user, relPath, legacyData).catch(() => {});
           return legacyData;
@@ -140,7 +131,7 @@ export async function writeRemoteJson(user: any, relPath: string, data: any): Pr
   const localPath = path.join(process.cwd(), 'dist/static-galleries', user.id, relPath);
   try {
     await fs.mkdir(path.dirname(localPath), { recursive: true });
-    await fs.writeFile(localPath, jsonString, 'utf-8');
+    await writeFileAtomic(localPath, jsonString);
   } catch (err) {
     console.warn('[:> STATIC-STORAGE] Could not write local static file:', err);
   }

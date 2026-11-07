@@ -1,7 +1,7 @@
 {% extends "layouts/base.njk" %}
 
 {% block content %}
-<div class="max-w-5xl w-full mx-auto p-4 flex-1">
+<div class="max-w-5xl w-full mx-auto px-2 py-3 sm:p-4 flex-1">
 
   {% if currentUser %}
     <!-- ==============================================================
@@ -2746,208 +2746,423 @@
         <span class="text-prompt font-bold text-xs">CYBERSPACE: ACTIVE</span>
       </div>
       
-      <div class="p-5">
-        <!-- Hero Section -->
-        <div class="mb-6">
-          <div class="inline-block px-2 py-0.5 mb-2 border border-main text-xs font-mono text-prompt bg-black">
-            [:&gt; BRIDGING MOBILE CREATION WITH 90s WEB NOSTALGIA]
-          </div>
-          <h1 class="text-2xl sm:text-3xl font-pixel mb-3 text-mac tracking-wide leading-tight">
-            Remember when the web was fun? We do too.
-          </h1>
-          <p class="text-sm sm:text-base leading-relaxed mb-3 text-main font-mono">
-            <strong>Neogram</strong> is a cozy, indie toolkit that lets you take photos on your phone and publish them straight to your personal retro website—complete with vintage shaders, live hit counters, cozy guestbooks, and 90s-style instant messaging.
-          </p>
-          <p class="text-xs sm:text-sm leading-relaxed mb-4 text-muted font-mono">
-            Modern social media trapped our photos inside algorithmic feeds. Neogram puts them back where they belong: <strong class="text-main">on your own creative corner of the web.</strong>
-          </p>
+      <div class="p-3 sm:p-6 flex flex-col gap-8">
 
-          <!-- Hero Action Buttons -->
-          <div class="flex items-center gap-3 flex-wrap">
-            <a href="/login" class="pixel-btn pixel-btn--yellow font-bold text-sm py-2 px-4" onclick="if(window.retroAudio) retroAudio.playClick();">
-              <span>Jump In / Log In :&gt;</span>
-            </a>
-            <a href="/directory" class="pixel-btn text-xs font-bold py-2 px-3" onclick="if(window.retroAudio) retroAudio.playClick();">
-              <span>Browse Station Directory :&gt;</span>
-            </a>
-            <a href="/docs#counter" class="pixel-btn text-xs font-bold py-2 px-3" onclick="if(window.retroAudio) retroAudio.playClick();">
-              <span>Live Widgets &amp; Embed Specs :&gt;</span>
-            </a>
-            <a href="https://neogramtest.neocities.org/neogram/" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--green text-xs font-bold py-2 px-3" onclick="if(window.retroAudio) retroAudio.playClick();">
-              <span>View Live Static Demo Gallery ↗</span>
-            </a>
-            <span class="text-xs text-muted font-mono">
-              (Free &amp; open for indie web explorers. No password needed—just a quick carrier code.)
-            </span>
-          </div>
-        </div>
-
-        <!-- 4-Card Feature Showcase Grid -->
-        <div class="grid-2-col gap-4 mb-6">
-          
-          <!-- Card 1: Mobile to Static -->
-          <div class="pixel-box p-4 bg-window flex flex-col justify-between">
+        <!-- ==========================================================
+             A. HERO SECTION (Split 2-Column on Desktop, Stacked on Mobile)
+             ========================================================== -->
+        <section class="hero-split-layout">
+          <!-- Left Column: Copy & Primary Actions -->
+          <div class="hero-col-copy flex flex-col gap-3 font-mono">
             <div>
-              <div class="flex items-center gap-2 mb-2">
-                <svg class="retro-svg-icon retro-svg-icon--lg text-prompt" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5h2.5l1-2h5l1 2H14v8H2V5z"/><circle cx="8" cy="9" r="2.2"/></svg>
-                <span class="font-bold text-sm text-prompt uppercase font-mono">Phone to Static Site</span>
-              </div>
-              <p class="text-xs font-mono leading-relaxed text-main">
-                Snap a picture on your mobile camera, pick an authentic CRT scanline or 90s halftone shader, and publish straight to your Neocities page in seconds. No terminal or laptop required.
-              </p>
+              <span class="inline-block px-2.5 py-1 mb-2 border border-cyan text-xs font-bold text-cyan bg-black">
+                ✨ WELCOME BACK TO THE PERSONAL WEB
+              </span>
             </div>
-            <div class="mt-3 pt-2 border-t border-main text-xs text-muted font-mono flex items-center justify-between">
-              <span>FORMAT: 1200px WebP + 400px thumb</span>
-              <span class="text-prompt">[ONLINE]</span>
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-pixel text-mac tracking-wide leading-tight m-0">
+              Remember when the internet felt like hanging out in your best friend's bedroom?
+            </h1>
+            <p class="text-xs sm:text-sm leading-relaxed text-main m-0">
+              Before endless algorithmic feeds, we had GeoCities neighborhoods, customized MySpace profiles, and the unmistakable creak of an AIM door opening when your crush signed on. Neocities and Nekoweb brought back the homestead—Neogram gives you the cozy tools to live in it.
+            </p>
+            <p class="text-xs leading-relaxed text-muted m-0">
+              Snap photos on your phone, add authentic 16-bit dither or CRT scanline shaders, and publish straight to your personal site in seconds—complete with glowing hit counters, drop-in guestbooks, and a classic Buddy List.
+            </p>
+
+            <!-- Hero Action Buttons -->
+            <div class="flex items-center gap-3 flex-wrap mt-2">
+              <a href="/login" class="pixel-btn pixel-btn--yellow font-bold text-xs sm:text-sm py-2 px-4 flex items-center gap-1.5" onclick="if(window.retroAudio) retroAudio.playClick();">
+                <span>🚀 Claim Your Free Station :&gt;</span>
+              </a>
+              <a href="https://neogramtest.neocities.org/neogram/" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--green text-xs font-bold py-2 px-3.5 flex items-center gap-1" onclick="if(window.retroAudio) retroAudio.playClick();">
+                <span>🌐 Explore Live Neocities Demo ↗</span>
+              </a>
+              <a href="/directory" class="pixel-btn text-xs font-bold py-2 px-3" onclick="if(window.retroAudio) retroAudio.playClick();">
+                <span>Station Directory :&gt;</span>
+              </a>
+            </div>
+            <div class="text-3xs text-muted">
+              (Free &amp; open for indie web explorers. No password needed—just a quick 6-digit carrier key.)
             </div>
           </div>
 
-          <!-- Card 2: Glowing Hit Counters -->
-          <div class="pixel-box p-4 bg-window flex flex-col justify-between">
-            <div>
-              <div class="flex items-center gap-2 mb-2">
-                <svg class="retro-svg-icon retro-svg-icon--lg text-prompt" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="4" width="13" height="8"/><path d="M5 6v4M8 6v4M11 6v4"/></svg>
-                <span class="font-bold text-sm text-prompt uppercase font-mono">Glowing Hit Counters</span>
+          <!-- Right Column: Hero Visual Window -->
+          <div class="hero-col-visual">
+            <div class="pixel-box">
+              <div class="window-header flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-prompt text-xs">■</span>
+                  <span class="font-bold text-xs">cyberspace_dream.bmp</span>
+                </div>
+                <div class="flex items-center gap-1 text-3xs font-mono">
+                  <span class="pixel-badge pixel-badge--cyan py-0 px-1 font-bold">16-BIT VGA</span>
+                  <span class="text-muted">_ □ ✕</span>
+                </div>
               </div>
-              <p class="text-xs font-mono leading-relaxed text-main">
-                Bring back the simple joy of watching your page visits climb with glowing green phosphor LED, red Nixie tube, and mechanical odometer badges that tick up live. Zero tracking scripts.
-              </p>
-            </div>
-            <div class="mt-3 pt-2 border-t border-main text-xs text-muted font-mono flex items-center justify-between">
-              <span>TECH: Dynamic Vector SVG</span>
-              <span class="text-prompt">[ONLINE]</span>
+              <div class="p-2.5 bg-black flex flex-col gap-2">
+                <img
+                  src="/images/hero-cyberspace-bedroom.webp"
+                  alt="Cozy 90s bedroom workstation with CRT monitor, floppy disks, and retro posters"
+                  class="pixel-art w-full h-auto object-cover border border-main"
+                  loading="eager"
+                />
+                <div class="text-center text-xs font-mono text-prompt italic py-1 px-2 border-t border-main">
+                  "Your phone is the camera. Your Neocities page is the darkroom."
+                </div>
+              </div>
             </div>
           </div>
+        </section>
 
-          <!-- Card 3: Visitor Guestbooks -->
-          <div class="pixel-box p-4 bg-window flex flex-col justify-between">
-            <div>
-              <div class="flex items-center gap-2 mb-2">
-                <svg class="retro-svg-icon retro-svg-icon--lg text-prompt" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2h10v12H3V2z"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>
-                <span class="font-bold text-sm text-prompt uppercase font-mono">Visitor Guestbooks</span>
-              </div>
-              <p class="text-xs font-mono leading-relaxed text-main">
-                Give your friends and visitors a cozy ledger to leave notes and comment on your snapshots. Drops seamlessly into any static HTML page with one simple copy-paste snippet.
-              </p>
+        <!-- ==========================================================
+             B. "WHAT USED TO BE WONDERFUL" NOSTALGIA PILLAR CARDS (3-Column Grid)
+             ========================================================== -->
+        <section aria-label="Neogram Nostalgia Pillars">
+          <div class="text-center mb-3">
+            <div class="inline-block px-2 py-0.5 text-xxs font-bold uppercase tracking-wider text-muted font-mono">
+              [:&gt; ARCHITECTURE OF THE COZY WEB]
             </div>
-            <div class="mt-3 pt-2 border-t border-main text-xs text-muted font-mono flex items-center justify-between">
-              <span>INTEGRATION: Zero-dep Embed</span>
-              <span class="text-prompt">[ONLINE]</span>
-            </div>
+            <h2 class="text-lg sm:text-xl font-pixel text-mac m-0">What Used To Be Wonderful</h2>
           </div>
 
-          <!-- Card 4: 90s Instant Messaging -->
-          <div class="pixel-box p-4 bg-window flex flex-col justify-between">
-            <div>
-              <div class="flex items-center gap-2 mb-2">
-                <svg class="retro-svg-icon retro-svg-icon--lg text-prompt" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h12v8H6l-4 3V3z"/></svg>
-                <span class="font-bold text-sm text-prompt uppercase font-mono">Instant Messaging (NIM)</span>
+          <div class="grid-cols-3-responsive">
+
+            <!-- Card 1: The GeoCities Homestead -->
+            <article class="pixel-box p-4 bg-window flex flex-col justify-between font-mono gap-3 min-w-0">
+              <div class="flex flex-col gap-2.5 min-w-0">
+                <div class="nostalgia-icon-frame">
+                  <img
+                    src="/images/icon-camera-floppy.png"
+                    alt="Pocket camera and 3.5-inch floppy disk icon"
+                    class="pixel-art nostalgia-icon"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 class="font-bold text-sm text-prompt m-0 flex items-center gap-1.5">
+                  <span>📱 Pocket Camera to Personal Site</span>
+                </h3>
+                <p class="text-xs leading-relaxed text-main m-0">
+                  Updating your personal site shouldn't require sitting at a laptop writing HTML boilerplate. Snap a photo on your phone, slap on a 16-bit VGA or CRT phosphor filter, and beam it straight to your Neocities or Nekoweb gallery.
+                </p>
               </div>
-              <p class="text-xs font-mono leading-relaxed text-main">
-                Chat with fellow cyberspace surfers using classic door chimes, away messages, and buddy lists right in your browser workstation or Chrome extension.
-              </p>
-            </div>
-            <div class="mt-3 pt-2 border-t border-main text-xs text-muted font-mono flex items-center justify-between">
-              <span>ENGINE: WebSockets + MV3 Ext</span>
-              <span class="text-prompt">[ONLINE]</span>
-            </div>
+              <div class="pt-2 border-t border-main text-3xs text-cyan font-bold flex items-center justify-between">
+                <span>🔒 Safe Subfolder Sync — Never touches your index.html!</span>
+              </div>
+            </article>
+
+            <!-- Card 2: The MySpace Vibe -->
+            <article class="pixel-box p-4 bg-window flex flex-col justify-between font-mono gap-3 min-w-0">
+              <div class="flex flex-col gap-2.5 min-w-0">
+                <div class="nostalgia-icon-frame">
+                  <img
+                    src="/images/icon-guestbook-ledger.png"
+                    alt="Guestbook ledger, fountain pen, and glowing green visitor counter"
+                    class="pixel-art nostalgia-icon"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 class="font-bold text-sm text-prompt m-0 flex items-center gap-1.5">
+                  <span>📖 Guestbooks &amp; Glowing Hit Counters</span>
+                </h3>
+                <p class="text-xs leading-relaxed text-main m-0">
+                  Half the fun of building a site is seeing who stopped by. Drop a one-line HTML snippet into your page to add a cozy visitor guestbook, a static Top Friends grid, and glowing LED or Nixie-tube hit counters that tick up live.
+                </p>
+              </div>
+              <div class="pt-2 border-t border-main text-3xs text-prompt font-bold flex items-center justify-between">
+                <span>✨ 1-Line Copy &amp; Paste HTML — Zero JS Required</span>
+              </div>
+            </article>
+
+            <!-- Card 3: The AIM After-School Rush -->
+            <article class="pixel-box p-4 bg-window flex flex-col justify-between font-mono gap-3 min-w-0">
+              <div class="flex flex-col gap-2.5 min-w-0">
+                <div class="nostalgia-icon-frame">
+                  <img
+                    src="/images/icon-buddy-door.png"
+                    alt="AIM running buddy bursting through the door with music notes"
+                    class="pixel-art nostalgia-icon"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 class="font-bold text-sm text-prompt m-0 flex items-center gap-1.5">
+                  <span>💬 Buddy Lists &amp; Away Messages</span>
+                </h3>
+                <p class="text-xs leading-relaxed text-main m-0">
+                  Bring back the golden era of instant messaging. Put up a moody song lyric as your Away Message, hear the classic door chime when fellow webmasters come online, and chat live while surfing the indie web.
+                </p>
+              </div>
+              <div class="pt-2 border-t border-main text-3xs text-amber font-bold flex items-center justify-between">
+                <span>⚡ 100% Ephemeral Chat — Never logged or sold</span>
+              </div>
+            </article>
+
           </div>
+        </section>
 
-        </div>
-
-        <!-- Visual Showcase / Live Sample Viewport Card -->
-        <div class="pixel-box mb-6 bg-window">
+        <!-- ==========================================================
+             C. LIVE INTERACTIVE SHOWCASE (GALLERY_SAMPLE_VIEWPORT)
+             ========================================================== -->
+        <section class="pixel-box bg-window" aria-label="Interactive Showcase">
           <div class="window-header flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <span class="font-bold text-xs uppercase">[:&gt; GALLERY_SAMPLE_VIEWPORT.SYS — What Your Site Will Look Like]</span>
+              <span class="font-bold text-xs uppercase">[:&gt; GALLERY_SAMPLE_VIEWPORT.SYS — Interactive Shader &amp; Widget Lab]</span>
             </div>
-            <span class="pixel-badge pixel-badge--green text-xxs font-bold">11TY STATIC PREVIEW</span>
+            <span class="pixel-badge pixel-badge--green text-xxs font-bold">LIVE INTERACTIVE DEMO</span>
           </div>
 
-          <div class="p-4 flex-responsive items-center">
-            <!-- Left: Sample Photo Card -->
-            <div class="flex-1 border-2 border-main bg-black p-3 text-xs font-mono">
+          <div class="p-4 sm:p-5 flex-responsive items-center gap-6">
+            <!-- Left: Interactive Photo Preview with Toggleable Shaders -->
+            <div class="flex-1 border-2 border-main bg-black p-3 text-xs font-mono w-full">
               <div class="flex items-center justify-between pb-1.5 mb-2 border-b border-main text-xxs text-muted">
-                <span>@retro_explorer</span>
-                <span class="text-prompt">SHADER: CRT-PHOSPHOR</span>
+                <span class="text-mac font-bold">@skater_dan</span>
+                <span id="guestShowcaseFilterBadge" class="text-prompt font-bold">SHADER: CRT SCANLINES</span>
               </div>
-              <div class="relative overflow-hidden border border-main bg-card mb-2 preview-viewport crt-scanlines" style="max-height: 220px;">
+
+              <!-- Rendered image with interactive shader filter -->
+              <div class="relative overflow-hidden border border-main bg-card mb-3 preview-viewport crt-scanlines" style="max-height: 260px;">
                 <img
-                  src="/icons/default-avatar.svg"
-                  alt="Retro Sample Snapshot"
-                  class="w-full h-44 object-cover filter-crt"
-                  style="filter: sepia(0.6) hue-rotate(80deg) saturate(1.8) contrast(1.1);"
+                  id="guestShowcaseImg"
+                  src="/images/sample-crt-sunset.webp"
+                  alt="Dusk skatepark snapshot with retro scanline timestamp"
+                  class="pixel-art w-full h-56 object-cover filter-crt"
+                  loading="lazy"
                 />
-                <div class="absolute bottom-2 right-2 bg-black border border-main px-1.5 py-0.5 text-3xs text-prompt">
-                  [320×240 SCANLINES]
+                <div class="absolute bottom-2 right-2 bg-black border border-main px-1.5 py-0.5 text-3xs text-prompt font-mono">
+                  ['98 10 24 // 320×240 SCANLINES]
                 </div>
               </div>
+
+              <!-- Interactive Shader Buttons -->
+              <div class="p-2 bg-window border border-main mb-2">
+                <div class="text-3xs text-muted uppercase font-bold mb-1.5">
+                  CLICK TO TEST REAL RETRO SHADER PALETTES:
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    class="pixel-btn pixel-btn--sm pixel-btn--active guest-filter-btn text-xxs font-bold"
+                    data-guest-filter="crt"
+                    onclick="setGuestShowcaseFilter('crt')"
+                  >
+                    <span>[CRT Scanlines]</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="pixel-btn pixel-btn--sm guest-filter-btn text-xxs font-bold"
+                    data-guest-filter="vga"
+                    onclick="setGuestShowcaseFilter('vga')"
+                  >
+                    <span>[16-Bit Dither]</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="pixel-btn pixel-btn--sm guest-filter-btn text-xxs font-bold"
+                    data-guest-filter="gameboy"
+                    onclick="setGuestShowcaseFilter('gameboy')"
+                  >
+                    <span>[GameBoy Palette]</span>
+                  </button>
+                </div>
+              </div>
+
               <p class="text-xs text-main m-0 leading-relaxed">
-                "Sunset over cyberspace. Snapped on mobile, deployed straight to my Neocities gallery with zero coding!"
+                "Sunset session down at the park. Snapped on my phone, filtered, and published to my Neocities page in 4 seconds."
               </p>
               <div class="flex items-center justify-between mt-2 pt-2 border-t border-main text-xxs text-muted">
-                <span>Earth // 28.8K V.34</span>
-                <span class="text-crimson font-bold">42 LIKES</span>
+                <span>Station: #100108 // 33.6K</span>
+                <span class="text-crimson font-bold">♥ 128 RADICALS</span>
               </div>
             </div>
 
-            <!-- Right: Widgets & Explanation -->
-            <div class="flex-1 flex flex-col gap-3 font-mono text-xs">
-              <div class="p-2.5 bg-black border border-main space-y-1">
-                <span class="text-3xs text-muted uppercase font-bold block">1. DROP-IN VISITOR COUNTER</span>
-                <div class="flex items-center gap-2">
-                  <div class="p-1 border border-main bg-black inline-block">
-                    <span class="font-pixel text-prompt text-sm tracking-widest px-1">004819</span>
+            <!-- Right: Glowing Hit Counter Strip & Embed Summary -->
+            <div class="flex-1 flex flex-col gap-4 font-mono text-xs w-full">
+              <div class="p-3 bg-black border border-main flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-3xs text-prompt uppercase font-bold">1. GLOWING WEB HIT COUNTERS (SVG)</span>
+                  <span class="pixel-badge text-3xs font-bold">NO JAVASCRIPT</span>
+                </div>
+                <p class="text-xxs text-muted m-0">
+                  Drop into any static HTML page. Zero tracking cookies, purely animated SVGs that tick up on every visit:
+                </p>
+
+                <!-- Live Glowing Counter Visual Strip -->
+                <div class="counter-strip mt-1">
+                  <!-- Style 1: Green Phosphor LED -->
+                  <div class="counter-strip__card">
+                    <span class="text-3xs text-prompt font-bold">GREEN PHOSPHOR LED</span>
+                    <img
+                      src="/counter/demo.svg?style=green_led"
+                      alt="Green Phosphor LED Hit Counter"
+                      class="pixel-art"
+                      loading="lazy"
+                    />
                   </div>
-                  <span class="text-xxs text-muted">DYNAMIC SVG</span>
+
+                  <!-- Style 2: Amber / Red Nixie Tube -->
+                  <div class="counter-strip__card">
+                    <span class="text-3xs text-amber font-bold">AMBER NIXIE TUBE</span>
+                    <img
+                      src="/counter/demo.svg?style=red_nixie"
+                      alt="Amber Nixie Tube Hit Counter"
+                      class="pixel-art"
+                      loading="lazy"
+                    />
+                  </div>
+
+                  <!-- Style 3: Mechanical Odometer -->
+                  <div class="counter-strip__card">
+                    <span class="text-3xs text-muted font-bold">MECHANICAL ODOMETER</span>
+                    <img
+                      src="/counter/demo.svg?style=odometer"
+                      alt="Mechanical Odometer Hit Counter"
+                      class="pixel-art"
+                      loading="lazy"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div class="p-2.5 bg-black border border-main space-y-1">
-                <span class="text-3xs text-muted uppercase font-bold block">2. PUBLIC VISITOR SIGNATURE</span>
+              <div class="p-3 bg-black border border-main flex flex-col gap-1.5">
+                <span class="text-3xs text-mac uppercase font-bold">2. ZERO-DEP VISITOR SIGNATURE</span>
                 <p class="text-xxs text-prompt m-0">
-                  "Coolest personal site I've seen in years! — cyber_surfer"
+                  "Your gallery looks so cozy! Signing your guestbook from my ThinkPad 701c. — retro_surfer"
                 </p>
+                <div class="text-3xs text-muted mt-1">
+                  Stored directly in static JSON files on your host. No database vendor lock-in.
+                </div>
               </div>
 
               <a
                 href="https://neogramtest.neocities.org/neogram/"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="pixel-btn pixel-btn--yellow font-bold text-xs py-2 text-center"
+                class="pixel-btn pixel-btn--yellow font-bold text-xs py-2.5 text-center flex items-center justify-center gap-1.5"
                 onclick="if(window.retroAudio) retroAudio.playClick();"
               >
                 <span>Open Full Live Gallery on Neocities ↗</span>
               </a>
             </div>
           </div>
-        </div>
+        </section>
 
-        <!-- The Indie Web Handshake / Trust Promise -->
-        <div class="retro-alert is-visible retro-alert--info p-4 flex flex-col gap-2">
-          <div class="flex items-center gap-2">
-            <span class="retro-alert__tag font-bold">[:&gt; THE INDIE WEB HANDSHAKE]:</span>
-            <span class="font-bold text-xs uppercase tracking-wide">No Ads. No Trackers. No Corporate Algorithms.</span>
-          </div>
-          <p class="text-xs font-mono leading-relaxed m-0 text-main">
-            <strong>Your website is your canvas.</strong> Neogram never sells your data, your static files always belong to you, and instant messages are 100% ephemeral (never permanently retained on our servers). We're just here to give you fun, reliable tools for the personal web.
-          </p>
-        </div>
-
-        <!-- Bottom Quick-Start Call to Action -->
-        <div class="mt-5 p-3 bg-desktop border border-main flex items-center justify-between flex-wrap gap-3">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-mono">
-              Ready to take your static site to cyberspace?
+        <!-- ==========================================================
+             D. "THE NEOCITIES SAFE-SYNC GUARANTEE" (Trust & Reassurance Box)
+             ========================================================== -->
+        <section class="retro-alert is-visible retro-alert--info p-3 sm:p-5 flex flex-col gap-3 font-mono" aria-label="Safe-Sync Guarantee" style="overflow-wrap: anywhere; word-break: break-word;">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="retro-alert__tag font-bold text-xxs sm:text-xs">[:&gt; THE NEOCITIES SAFE-SYNC GUARANTEE]:</span>
+            <span class="font-bold text-xs sm:text-sm text-prompt uppercase tracking-wide">
+              🛡️ Built With Love for Hand-Crafted HTML Sites
             </span>
           </div>
-          <a href="/login" class="pixel-btn pixel-btn--yellow font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>Authenticate with Email / SMS :&gt;</span>
+          <p class="text-xs sm:text-sm leading-relaxed m-0 text-main">
+            We know you spent hours perfecting your custom CSS and layout. <strong>Neogram NEVER overwrites your homepage or existing files.</strong> Your photo gallery publishes neatly into an isolated <code>/neogram/</code> subfolder, and you own 100% of your HTML and images forever.
+          </p>
+          <div class="flex items-center gap-3 text-xxs text-muted pt-2 border-t border-main flex-wrap">
+            <span>✓ Root site non-destructive invariant</span>
+            <span>✓ 100% personal data sovereignty</span>
+            <span>✓ Zero algorithmic feeds</span>
+            <span>✓ Export full JSON station archives anytime</span>
+          </div>
+        </section>
+
+        <!-- ==========================================================
+             88x31 PIXEL MICRO-BUTTONS ROW
+             ========================================================== -->
+        <section class="p-4 bg-window border-2 border-main text-center font-mono flex flex-col gap-3" aria-label="Cyberspace 88x31 Badges">
+          <div class="flex items-center justify-center gap-2">
+            <span class="text-xxs text-muted font-bold uppercase tracking-widest">
+              [:&gt; GRAB A 88×31 MICRO-BUTTON FOR YOUR PERSONAL SITE]:
+            </span>
+          </div>
+
+          <div class="micro-badge-row">
+            <!-- Badge 1: Powered by Neocities -->
+            <a href="https://neocities.org" target="_blank" rel="noopener noreferrer" class="micro-badge-item" title="Powered by Neocities">
+              <img
+                src="/images/button-neocities.png"
+                alt="Powered by Neocities 88x31 badge"
+                class="pixel-art"
+                width="88"
+                height="31"
+              />
+            </a>
+
+            <!-- Badge 2: Viewed with CRT Monitor -->
+            <div class="micro-badge-item" title="Viewed with a CRT Monitor">
+              <img
+                src="/images/button-crt.png"
+                alt="Viewed with a CRT Monitor 88x31 badge"
+                class="pixel-art"
+                width="88"
+                height="31"
+              />
+            </div>
+
+            <!-- Badge 3: Sign My Guestbook -->
+            <a href="/docs#guestbook" class="micro-badge-item" title="Sign My Guestbook!">
+              <img
+                src="/images/button-guestbook.png"
+                alt="Sign My Guestbook 88x31 badge"
+                class="pixel-art"
+                width="88"
+                height="31"
+              />
+            </a>
+
+            <!-- Badge 4: Made with Phone & Love -->
+            <div class="micro-badge-item" title="Made with Phone & Love">
+              <img
+                src="/images/button-phone-love.png"
+                alt="Made with Phone and Love 88x31 badge"
+                class="pixel-art"
+                width="88"
+                height="31"
+              />
+            </div>
+          </div>
+        </section>
+
+        <!-- Bottom Quick-Start Call to Action -->
+        <div class="p-4 bg-desktop border border-main flex items-center justify-between flex-wrap gap-3 font-mono">
+          <div class="flex items-center gap-2">
+            <span class="text-xs">
+              Ready to take your static site to cyberspace? Claim your permanent Node # in 10 seconds.
+            </span>
+          </div>
+          <a href="/login" class="pixel-btn pixel-btn--yellow font-bold text-xs py-2 px-4 flex items-center gap-1.5" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <span>✨ Claim Your Space :&gt;</span>
           </a>
         </div>
 
       </div>
     </div>
+
+    <!-- Client-side script for Guest Landing Page Shader Lab -->
+    <script>
+      function setGuestShowcaseFilter(filter) {
+        if (window.retroAudio) window.retroAudio.playClick();
+        var img = document.getElementById('guestShowcaseImg');
+        var badge = document.getElementById('guestShowcaseFilterBadge');
+        if (!img) return;
+
+        img.className = 'pixel-art w-full h-56 object-cover filter-' + filter;
+        var labels = {
+          'crt': 'CRT SCANLINES',
+          'vga': '16-BIT DITHER',
+          'gameboy': 'GAMEBOY PALETTE'
+        };
+        if (badge) badge.textContent = 'SHADER: ' + (labels[filter] || filter.toUpperCase());
+
+        document.querySelectorAll('.guest-filter-btn').forEach(function(btn) {
+          if (btn.getAttribute('data-guest-filter') === filter) {
+            btn.classList.add('pixel-btn--active');
+          } else {
+            btn.classList.remove('pixel-btn--active');
+          }
+        });
+      }
+    </script>
   {% endif %}
 
 </div>

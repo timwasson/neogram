@@ -25,7 +25,7 @@
     <!-- Vintage Terminal Marquee Banner with System Prompt :> -->
     <div class="terminal-marquee-bar" id="terminalMarqueeBar">
       <div class="animate-marquee" id="terminalMarqueeContent">
-        {{ tickerAnnouncement | default(':> NEOGRAM UNIX WORKSTATION // HYBRID MAC-SYSTEM7 + BSD-X11 // RETRO PHOTO PUBLISHING ENGINE FOR NEOCITIES &amp; PERSONAL SITES // NO SAAS SLOP // 28.8K V.34 DIAL-UP OK // SYSTEM PROMPT READY_') | safe }}
+        {{ (tickerAnnouncement | default(':> NEOGRAM // REMEMBER WHEN THE WEB WAS FUN? // SNAP PHOTOS ON YOUR PHONE -> BEAM STRAIGHT TO NEOCITIES & NEKOWEB // COZY GUESTBOOKS & HIT COUNTERS // SYSTEM PROMPT READY_')) | safe }}
       </div>
     </div>
 
@@ -413,7 +413,7 @@
             <span id="themeLabel" class="text-xs font-mono">CRT</span>
           </button>
           <a href="/login" class="pixel-btn pixel-btn--yellow font-bold {% if activeView == 'login' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>LOGIN :&gt;</span>
+            <span>✨ Claim Your Space :&gt;</span>
           </a>
         {% endif %}
       </div>

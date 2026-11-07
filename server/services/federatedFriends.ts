@@ -1,3 +1,4 @@
+import { safeGet } from '../utils/safeFetch';
 import path from 'path';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
@@ -196,21 +197,13 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
   };
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-    const res = await fetch(feedUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache',
-      },
-      signal: controller.signal,
+    const res = await safeGet(feedUrl, {
+      timeoutMs: 3500,
+      headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache' },
     });
-    clearTimeout(timeoutId);
 
     if (res.ok) {
-      const data = (await res.json()) as UserFeedPayload;
+      const data = res.json<UserFeedPayload>();
       if (data && Array.isArray(data.posts)) {
         // Hydrate local post storage for station profile & local feed consistency
         if (data.posts.length > 0 && friend.id) {
@@ -220,10 +213,13 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
                 imagePath: post.imagePath || post.imageUrl,
                 thumbnailPath: post.thumbnailPath || post.thumbnailUrl || post.imagePath || post.imageUrl,
               }];
+              // SECURITY: ownership is dictated by the LOCAL friend record, never by the remote feed.
+              // A hostile feed.json must not be able to claim another user's userId/siteId/post id.
+              if (typeof post.id !== 'string' || !/^[0-9a-zA-Z_-]{1,64}$/.test(post.id)) continue;
               savePost({
                 id: post.id,
-                userId: (post as any).userId || friend.id,
-                siteId: post.siteId || friend.siteId,
+                userId: friend.id,
+                siteId: friend.siteId,
                 siteName: post.siteName,
                 siteSlug: post.siteSlug,
                 imagePath: post.imagePath || post.imageUrl,

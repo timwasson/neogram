@@ -36,15 +36,23 @@ async function bootstrap() {
   const server = app.listen(config.port, '0.0.0.0', async () => {
     console.log(`[:> SERVER] Running at http://localhost:${config.port}`);
     console.log(`[:> HEALTH] Probe ready at http://localhost:${config.port}/api/health`);
-    console.log(`[:> STATS]  Database check at http://localhost:${config.port}/api/stats`);
 
     const { initChatWebSocketServer } = await import('./services/chatSocket');
     initChatWebSocketServer(server);
   });
 
   // Graceful shutdown
+  let shuttingDown = false;
   const shutdown = () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     console.log('\n[:> SHUTDOWN] Terminating server cleanly...');
+    // Hard stop if connections (e.g. long-lived WebSockets) refuse to drain
+    const forceTimer = setTimeout(() => {
+      console.warn('[:> SHUTDOWN] Drain timeout reached; forcing exit.');
+      process.exit(0);
+    }, 10_000);
+    forceTimer.unref();
     server.close(() => {
       console.log('[:> SHUTDOWN] HTTP server closed.');
       process.exit(0);

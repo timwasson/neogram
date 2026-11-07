@@ -1,7 +1,15 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import crypto from 'crypto';
 
 dotenv.config();
+
+// Fail closed: an unset NODE_ENV is treated as production so that dev-only conveniences
+// (demo OTP codes, test-suite rate-limit bypass, well-known fallback secrets) can never
+// be enabled by a missing/typo'd environment variable on a real server.
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'production';
+}
 
 export interface AppConfig {
   env: string;
@@ -21,10 +29,12 @@ export interface AppConfig {
   vapidPublicKey?: string;
   vapidPrivateKey?: string;
   vapidSubject: string;
+  allowDemoOtp: boolean;
+  encryptionSecretPrevious?: string;
 }
 
 export const config: AppConfig = {
-  env: process.env.NODE_ENV || 'development',
+  env: process.env.NODE_ENV || 'production',
   port: parseInt(process.env.PORT || '4000', 10),
   databaseUrl: process.env.DATABASE_URL || 'postgres://neogram:neogram_secret@localhost:5432/neogram_db',
   jwtSecret: process.env.JWT_SECRET || 'neogram_retro_super_secret_jwt_key_1996',
@@ -40,18 +50,26 @@ export const config: AppConfig = {
   vapidPublicKey: process.env.VAPID_PUBLIC_KEY,
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY,
   vapidSubject: process.env.VAPID_SUBJECT || 'mailto:sysop@neogram.club',
-  get adminEmails(): string[] {
-    try {
-      dotenv.config({ override: true });
-    } catch {
-      // Ignore in non-file environments
-    }
-    return (process.env.ADMIN_EMAILS || '')
-      .split(',')
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
-  },
+  // Parsed ONCE at boot (no per-request disk I/O, no runtime privilege changes via .env edits).
+  // Restart the process to change SysOp membership.
+  adminEmails: (process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+  allowDemoOtp: process.env.NODE_ENV !== 'production' && process.env.ALLOW_DEMO_OTP === 'true',
+  encryptionSecretPrevious: process.env.ENCRYPTION_SECRET_PREVIOUS || undefined,
 };
+
+if (config.env !== 'production') {
+  if (!process.env.JWT_SECRET) {
+    // Ephemeral per-process secret in dev: sessions reset on restart, no publicly-known key is ever used.
+    config.jwtSecret = crypto.randomBytes(48).toString('hex');
+    console.warn('[:> SECURITY] JWT_SECRET not set: using an ephemeral random secret (sessions reset on restart).');
+  }
+  if (!process.env.ENCRYPTION_SECRET) {
+    console.warn('[:> SECURITY] ENCRYPTION_SECRET not set: using the well-known DEV-ONLY vault key. Never use this outside local development.');
+  }
+}
 
 // Strict security hygiene validation for production environments
 if (config.env === 'production') {

@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
 import multer from 'multer';
+import { config } from '../config';
 import rateLimit from 'express-rate-limit';
 import { query } from '../db';
 import { COOKIE_NAME, verifySessionToken, extractToken } from '../auth/jwt';
@@ -22,6 +24,14 @@ export const postsRouter = Router();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024, files: 5 },
+  // Raster images only (SVG excluded: no scriptable/remote-reference formats are ever decoded)
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(jpeg|png|webp|gif|heic|heif|avif|bmp|tiff)$/i.test(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', file.fieldname));
+    }
+  },
 });
 
 function handleUploadMiddleware(req: Request, res: Response, next: any) {
@@ -52,10 +62,11 @@ function handleUploadMiddleware(req: Request, res: Response, next: any) {
 /**
  * Helper to get the authenticated user from the session cookie or Bearer header
  */
-async function getSessionUser(req: Request) {
+async function getSessionUser(req: Request, allowPass: boolean = false) {
   const token = extractToken(req);
   if (!token) return null;
-  const payload = verifySessionToken(token);
+  // Scoped Cyber-Pass tokens (third-party static sites) are only honoured when the route opts in.
+  const payload = verifySessionToken(token, allowPass);
   if (!payload) return null;
   return getUserById(payload.userId);
 }
@@ -360,9 +371,71 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
 /**
  * 4. POST /api/posts/:id/like - Increment Like / Radical Counter
  */
-postsRouter.post('/posts/:id/like', async (req: Request, res: Response, next) => {
+// Likes: 40 per minute per IP (in addition to the global API limiter) to stop scripted inflation.
+const likeRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Carrier busy: Too many reactions. Please slow down.' },
+  skip: (req) => (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test',
+});
+
+// Coalesce static rebuild+deploy for rapid likes on the same post (trailing edge, 20s) so a burst
+// of reactions costs ONE remote deploy instead of one per like.
+const LIKE_REBUILD_DEBOUNCE_MS = 20_000;
+const pendingLikeRebuilds = new Map<string, NodeJS.Timeout>();
+
+function scheduleLikeRebuild(postId: string, siteId: string | undefined, userId: string): void {
+  const existing = pendingLikeRebuilds.get(postId);
+  if (existing) return; // a rebuild is already queued and will pick up the latest likes count
+  const timer = setTimeout(() => {
+    pendingLikeRebuilds.delete(postId);
+    import('../services/incrementalBuilder')
+      .then((m) => m.buildAndDeployComment({ siteId, userId, postId }))
+      .catch((err) => console.error('[:> INCREMENTAL LIKE ERROR]', err));
+  }, process.env.NODE_ENV === 'test' ? 0 : LIKE_REBUILD_DEBOUNCE_MS);
+  timer.unref?.();
+  pendingLikeRebuilds.set(postId, timer);
+}
+
+/** Stable per-visitor key: authenticated user id, otherwise a keyed hash of the IP (no raw IPs stored). */
+function likeVoterKey(req: Request, userId?: string): string {
+  if (userId) return `u:${userId}`;
+  const h = crypto.createHmac('sha256', config.jwtSecret).update(String(req.ip || 'unknown')).digest('hex');
+  return `ip:${h.slice(0, 40)}`;
+}
+
+/**
+ * 4. POST /api/posts/:id/like - Increment Like / Radical Counter (one per user or visitor IP per post)
+ */
+postsRouter.post('/posts/:id/like', likeRateLimiter, async (req: Request, res: Response, next) => {
   try {
     const { id } = req.params;
+    if (!/^[0-9a-zA-Z_-]{1,64}$/.test(id)) {
+      res.status(400).json({ ok: false, error: 'Invalid post id.' });
+      return;
+    }
+
+    const existingPost = await getPostById(id);
+    if (!existingPost) {
+      res.status(404).json({ ok: false, error: 'Post not found.' });
+      return;
+    }
+
+    const liker = await getSessionUser(req, true);
+    const voterKey = likeVoterKey(req, liker?.id);
+
+    const inserted = await query(
+      'INSERT INTO post_likes (post_id, voter_key) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING post_id',
+      [id, voterKey]
+    );
+    if (inserted.rows.length === 0) {
+      // Duplicate vote: idempotent no-op (no counter bump, no rebuild, no notification)
+      res.json({ ok: true, likes: existingPost.likes || 0, alreadyLiked: true });
+      return;
+    }
+
     const updatedPost = await updatePost(id, (p) => ({
       ...p,
       likes: (p.likes || 0) + 1,
@@ -375,17 +448,10 @@ postsRouter.post('/posts/:id/like', async (req: Request, res: Response, next) =>
 
     const postOwnerId = updatedPost.userId;
 
-    // Trigger incremental static update in background for post owner
-    import('../services/incrementalBuilder')
-      .then((m) => m.buildAndDeployComment({
-        siteId: updatedPost.siteId,
-        userId: postOwnerId,
-        postId: id,
-      }))
-      .catch((err) => console.error('[:> INCREMENTAL LIKE ERROR]', err));
+    // Debounced incremental static update + deploy for the post owner
+    scheduleLikeRebuild(id, updatedPost.siteId, postOwnerId);
 
     // Dispatch like notification to photo owner
-    const liker = await getSessionUser(req);
     if (!liker || liker.id !== postOwnerId) {
       import('../services/notificationService').then((m) => {
         m.dispatchNotification({
@@ -426,7 +492,7 @@ postsRouter.post('/posts/:id/comments', commentRateLimiter, async (req: Request,
     const { text } = req.body;
 
     // Verify authenticated Neogram user (Cyber-Pass token or session)
-    const user = await getSessionUser(req);
+    const user = await getSessionUser(req, true);
     if (!user || user.isBanned) {
       res.status(user?.isBanned ? 403 : 401).json({
         ok: false,

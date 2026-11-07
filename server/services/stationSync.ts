@@ -1,3 +1,4 @@
+import { safeGet } from '../utils/safeFetch';
 import path from 'path';
 import fs from 'fs/promises';
 import { query } from '../db';
@@ -48,15 +49,7 @@ export async function checkAndSyncStationFeed(userId: string): Promise<StationSy
   const feedUrl = resolveFeedUrl(user);
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-    const res = await fetch(feedUrl, {
-      method: 'GET',
-      headers: { 'Cache-Control': 'no-cache' },
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
+    const res = await safeGet(feedUrl, { timeoutMs: 3500, headers: { 'Cache-Control': 'no-cache' } });
 
     // If HTTP 404: Station was wiped remotely via FTP!
     if (res.status === 404) {
@@ -71,7 +64,7 @@ export async function checkAndSyncStationFeed(userId: string): Promise<StationSy
 
     if (res.ok) {
       try {
-        const data = await res.json();
+        const data = res.json();
         if (!data || typeof data !== 'object') {
           throw new Error('Invalid JSON structure');
         }
@@ -83,10 +76,12 @@ export async function checkAndSyncStationFeed(userId: string): Promise<StationSy
               imagePath: post.imagePath || post.imageUrl,
               thumbnailPath: post.thumbnailPath || post.thumbnailUrl || post.imagePath || post.imageUrl,
             }];
+            // SECURITY: ownership comes from the local station record, never from remote JSON.
+            if (typeof post.id !== 'string' || !/^[0-9a-zA-Z_-]{1,64}$/.test(post.id)) continue;
             await savePost({
               id: post.id,
-              userId: post.userId || userId,
-              siteId: post.siteId || user.siteId,
+              userId,
+              siteId: user.siteId,
               siteName: post.siteName,
               siteSlug: post.siteSlug,
               imagePath: post.imagePath || post.imageUrl,

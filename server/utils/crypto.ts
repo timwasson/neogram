@@ -13,6 +13,28 @@ function getMasterKey(): Buffer {
   return crypto.createHash('sha256').update(secret).digest();
 }
 
+// v2 envelope: [4-byte magic "NGv2"][12-byte IV][16-byte AuthTag][Ciphertext]
+// Key = scrypt(secret, fixed domain salt). Legacy (v1) ciphertexts lack the magic prefix and
+// are still readable (SHA-256 derived key) so existing rows keep working and are upgraded on next write.
+const V2_MAGIC = Buffer.from('NGv2');
+const keyCache = new Map<string, Buffer>();
+
+function getV2Key(secret: string): Buffer {
+  let key = keyCache.get(secret);
+  if (!key) {
+    key = crypto.scryptSync(secret, 'neogram-credential-vault-v2', 32);
+    keyCache.set(secret, key);
+  }
+  return key;
+}
+
+/** Candidate secrets in priority order: current, then previous (key rotation window). */
+function candidateSecrets(): string[] {
+  const list = [config.encryptionSecret || config.jwtSecret];
+  if (config.encryptionSecretPrevious) list.push(config.encryptionSecretPrevious);
+  return list;
+}
+
 export interface NeocitiesCredentials {
   apiKey: string;
   siteName?: string;
@@ -39,17 +61,17 @@ export interface GitHubCredentials {
 
 /**
  * Encrypt a plaintext string or credentials object into a Buffer for PostgreSQL BYTEA storage.
- * Serialization layout: [12-byte IV][16-byte AuthTag][Ciphertext]
+ * Serialization layout (v2): ["NGv2"][12-byte IV][16-byte AuthTag][Ciphertext]
  */
 export function encryptCredentials(data: string | object): Buffer {
   const text = typeof data === 'string' ? data : JSON.stringify(data);
   const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv(ALGORITHM, getMasterKey(), iv);
+  const cipher = crypto.createCipheriv(ALGORITHM, getV2Key(candidateSecrets()[0]), iv);
 
   const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
   const authTag = cipher.getAuthTag();
 
-  return Buffer.concat([iv, authTag, encrypted]);
+  return Buffer.concat([V2_MAGIC, iv, authTag, encrypted]);
 }
 
 /**
@@ -71,29 +93,40 @@ export function decryptCredentials<T = NeocitiesCredentials>(raw: Buffer | strin
     return null;
   }
 
-  if (buffer.length < IV_LENGTH + AUTH_TAG_LENGTH) {
+  const isV2 = buffer.length >= V2_MAGIC.length && buffer.subarray(0, V2_MAGIC.length).equals(V2_MAGIC);
+  const body = isV2 ? buffer.subarray(V2_MAGIC.length) : buffer;
+
+  if (body.length < IV_LENGTH + AUTH_TAG_LENGTH) {
     return null;
   }
 
-  const iv = buffer.subarray(0, IV_LENGTH);
-  const authTag = buffer.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
-  const ciphertext = buffer.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
+  const iv = body.subarray(0, IV_LENGTH);
+  const authTag = body.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
+  const ciphertext = body.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
 
-  try {
-    const decipher = crypto.createDecipheriv(ALGORITHM, getMasterKey(), iv);
-    decipher.setAuthTag(authTag);
-    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-    const text = decrypted.toString('utf8');
+  const keys: Buffer[] = [];
+  for (const secret of candidateSecrets()) {
+    if (isV2) keys.push(getV2Key(secret));
+    else keys.push(crypto.createHash('sha256').update(secret).digest());
+  }
 
+  for (const key of keys) {
     try {
-      return JSON.parse(text) as T;
+      const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+      decipher.setAuthTag(authTag);
+      const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+      const text = decrypted.toString('utf8');
+      try {
+        return JSON.parse(text) as T;
+      } catch {
+        return text as unknown as T;
+      }
     } catch {
-      return text as unknown as T;
+      // try next candidate key
     }
-  } catch (err) {
-    console.error('[:> CRYPTO ERROR] Failed to decrypt deployment credentials:', err);
-    return null;
   }
+  console.error('[:> CRYPTO ERROR] Failed to decrypt deployment credentials with any configured key.');
+  return null;
 }
 
 /**

@@ -7,6 +7,7 @@ import { directoryRouter } from './directory';
 import { notificationsRouter } from './notifications';
 import { sitesRouter } from './sites';
 import { query } from '../db';
+import { requireAdminApi } from '../middleware/adminGuard';
 
 export const apiRouter = Router();
 
@@ -18,8 +19,8 @@ apiRouter.use(sitesRouter);
 apiRouter.use(directoryRouter);
 apiRouter.use(notificationsRouter);
 
-// Temporary test route to verify database queries execute properly
-apiRouter.get('/stats', async (_req: Request, res: Response, next) => {
+// SysOp-only telemetry (was a public test route that disclosed user/post counts)
+apiRouter.get('/stats', requireAdminApi, async (_req: Request, res: Response, next) => {
   try {
     const usersCount = await query('SELECT COUNT(*) as count FROM users');
     const { getAllPosts } = await import('../services/postStorage');

@@ -277,7 +277,9 @@ eleventyComputed:
   }
 
   // Cross-Window Listener (handles popup handshake and browser extension content script)
-  window.addEventListener('message', function (e) {
+  function isTrustedPassOrigin(o){return o===window.location.origin||o==='https://neogram.club'||/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o);}
+    window.addEventListener('message', function (e) {
+    if (!isTrustedPassOrigin(e.origin)) return;
     if (e.data && (e.data.type === 'NEOGRAM_CYBER_PASS' || e.data.type === 'NEOGRAM_EXTENSION_PASS')) {
       setCyberPass(e.data);
       if (window.retroAudio) window.retroAudio.playSuccess();

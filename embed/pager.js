@@ -468,7 +468,9 @@
       'width=' + width + ',height=' + height + ',top=' + top + ',left=' + left + ',scrollbars=yes'
     );
 
+    function isTrustedPassOrigin(o){return o===window.location.origin||o==='https://neogram.club'||/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o);}
     function onPassMessage(e) {
+      if (!isTrustedPassOrigin(e.origin)) return;
       if (e.data && e.data.type === 'NEOGRAM_PASS_APPROVED' && e.data.token) {
         currentToken = e.data.token;
         localStorage.setItem('neogram_pass', currentToken);

@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
+import { config } from '../config';
 import { requestOtp, verifyOtp, getUserById } from '../auth/service';
 import { signSessionToken, setSessionCookie, clearSessionCookie, verifySessionToken, extractToken, COOKIE_NAME } from '../auth/jwt';
 
@@ -81,8 +82,8 @@ authRouter.post('/request-otp', otpRequestLimiter, async (req: Request, res: Res
       message: result.message,
       identifier: result.identifier,
       uin: result.uin,
-      // Provide code in response for rapid testing during development
-      demoCode: process.env.NODE_ENV !== 'production' ? result.code : undefined,
+      // Dev/test convenience ONLY: requires NODE_ENV!=production AND explicit ALLOW_DEMO_OTP=true
+      demoCode: config.allowDemoOtp ? result.code : undefined,
     });
   } catch (err: any) {
     res.status(400).json({ ok: false, error: err.message });

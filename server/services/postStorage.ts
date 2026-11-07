@@ -2,6 +2,10 @@ import path from 'path';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import { query } from '../db';
+import { writeFileAtomic, Mutex } from '../utils/atomicFile';
+
+// Serialises every read-modify-write against posts.json/feed.json (prevents lost updates, e.g. concurrent likes).
+const postsMutex = new Mutex();
 
 export interface PhotoFrame {
   imagePath: string;
@@ -210,6 +214,10 @@ export async function getPostById(postId: string): Promise<PostRecord | null> {
  * Saves (inserts or updates) a post in its site's posts.json and updates feed.json.
  */
 export async function savePost(post: PostRecord): Promise<void> {
+  return postsMutex.run(() => savePostUnlocked(post));
+}
+
+async function savePostUnlocked(post: PostRecord): Promise<void> {
   const targetIds = new Set<string>();
   if (post.siteId) targetIds.add(post.siteId);
   if (post.userId) targetIds.add(post.userId);
@@ -231,7 +239,7 @@ export async function savePost(post: PostRecord): Promise<void> {
     posts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     const postsJsonPath = getSitePostsJsonPath(targetId);
-    await fs.writeFile(postsJsonPath, JSON.stringify(posts, null, 2), 'utf-8');
+    await writeFileAtomic(postsJsonPath, JSON.stringify(posts, null, 2));
 
     // Also sync feed.json if present or initialize it
     const feedJsonPath = getSiteFeedJsonPath(targetId);
@@ -244,7 +252,7 @@ export async function savePost(post: PostRecord): Promise<void> {
       feedData.version = feedData.version || 'neogram-feed-v1';
       feedData.updatedAt = new Date().toISOString();
       feedData.posts = posts;
-      await fs.writeFile(feedJsonPath, JSON.stringify(feedData, null, 2), 'utf-8');
+      await writeFileAtomic(feedJsonPath, JSON.stringify(feedData, null, 2));
     } catch (_feedErr) {}
   }
 }
@@ -256,18 +264,24 @@ export async function updatePost(
   postId: string,
   updater: (post: PostRecord) => PostRecord
 ): Promise<PostRecord | null> {
-  const post = await getPostById(postId);
-  if (!post) return null;
+  return postsMutex.run(async () => {
+    const post = await getPostById(postId);
+    if (!post) return null;
 
-  const updated = updater(post);
-  await savePost(updated);
-  return updated;
+    const updated = updater(post);
+    await savePostUnlocked(updated);
+    return updated;
+  });
 }
 
 /**
  * Deletes a post from its site's posts.json and feed.json across all directories.
  */
 export async function deletePost(postId: string): Promise<PostRecord | null> {
+  return postsMutex.run(() => deletePostUnlocked(postId));
+}
+
+async function deletePostUnlocked(postId: string): Promise<PostRecord | null> {
   if (!existsSync(GALLERIES_ROOT)) return null;
 
   let deletedRecord: PostRecord | null = null;
@@ -281,7 +295,7 @@ export async function deletePost(postId: string): Promise<PostRecord | null> {
           const [removed] = posts.splice(matchIdx, 1);
           deletedRecord = deletedRecord || removed;
           const postsJsonPath = getSitePostsJsonPath(entry.name);
-          await fs.writeFile(postsJsonPath, JSON.stringify(posts, null, 2), 'utf-8');
+          await writeFileAtomic(postsJsonPath, JSON.stringify(posts, null, 2));
 
           const feedJsonPath = getSiteFeedJsonPath(entry.name);
           if (existsSync(feedJsonPath)) {
@@ -290,7 +304,7 @@ export async function deletePost(postId: string): Promise<PostRecord | null> {
               const feedData = JSON.parse(feedRaw);
               feedData.posts = posts;
               feedData.updatedAt = new Date().toISOString();
-              await fs.writeFile(feedJsonPath, JSON.stringify(feedData, null, 2), 'utf-8');
+              await writeFileAtomic(feedJsonPath, JSON.stringify(feedData, null, 2));
             } catch (_e) {}
           }
         }
@@ -305,6 +319,10 @@ export async function deletePost(postId: string): Promise<PostRecord | null> {
  * Deletes all posts belonging to a given siteId across all galleries.
  */
 export async function deletePostsForSite(siteId: string): Promise<void> {
+  return postsMutex.run(() => deletePostsForSiteUnlocked(siteId));
+}
+
+async function deletePostsForSiteUnlocked(siteId: string): Promise<void> {
   if (!existsSync(GALLERIES_ROOT)) return;
   try {
     const siteDir = path.join(GALLERIES_ROOT, siteId);
@@ -319,7 +337,7 @@ export async function deletePostsForSite(siteId: string): Promise<void> {
         const filtered = posts.filter((p) => p.siteId !== siteId);
         if (filtered.length !== posts.length) {
           const postsJsonPath = getSitePostsJsonPath(entry.name);
-          await fs.writeFile(postsJsonPath, JSON.stringify(filtered, null, 2), 'utf-8');
+          await writeFileAtomic(postsJsonPath, JSON.stringify(filtered, null, 2));
 
           const feedJsonPath = getSiteFeedJsonPath(entry.name);
           if (existsSync(feedJsonPath)) {
@@ -328,7 +346,7 @@ export async function deletePostsForSite(siteId: string): Promise<void> {
               const feedData = JSON.parse(feedRaw);
               feedData.posts = filtered;
               feedData.updatedAt = new Date().toISOString();
-              await fs.writeFile(feedJsonPath, JSON.stringify(feedData, null, 2), 'utf-8');
+              await writeFileAtomic(feedJsonPath, JSON.stringify(feedData, null, 2));
             } catch (_e) {}
           }
         }

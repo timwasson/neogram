@@ -6,14 +6,24 @@
   box-sizing: border-box;
 }
 
+img {
+  max-width: 100%;
+  height: auto;
+}
+
 html {
   overflow-y: scroll;
+  overflow-x: hidden;
   scrollbar-gutter: stable;
+  max-width: 100%;
 }
 
 body {
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+  max-width: 100%;
+  width: 100%;
   background-color: var(--bg-desktop);
   color: var(--text-main);
   font-family: var(--font-mono);

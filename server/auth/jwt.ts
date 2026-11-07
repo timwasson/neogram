@@ -7,22 +7,36 @@ export interface UserSessionPayload {
   email: string;
   handle: string;
   uin?: number;
+  /**
+   * Token scope. Absent/'session' = full workstation session.
+   * 'pass' = Cyber-Pass issued to third-party static sites: short-lived and ONLY accepted by
+   * social endpoints (like, comment, follow, guestbook, pager, chat) that opt in with allowPass.
+   */
+  scope?: 'session' | 'pass';
 }
 
 export const COOKIE_NAME = 'neogram_session';
 
 export function signSessionToken(payload: UserSessionPayload, expiresIn: string = '7d'): string {
   return jwt.sign(payload, config.jwtSecret, {
+    algorithm: 'HS256',
     expiresIn: expiresIn as any,
   });
 }
 
-export function verifySessionToken(token: string): UserSessionPayload | null {
+export function verifySessionToken(token: string, allowPass: boolean = false): UserSessionPayload | null {
   try {
-    return jwt.verify(token, config.jwtSecret) as UserSessionPayload;
+    const payload = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] }) as UserSessionPayload;
+    if (payload.scope === 'pass' && !allowPass) return null;
+    return payload;
   } catch {
     return null;
   }
+}
+
+/** Issues a scoped, short-lived (1h) Cyber-Pass token for third-party static sites. */
+export function signPassToken(payload: Omit<UserSessionPayload, 'scope'>): string {
+  return jwt.sign({ ...payload, scope: 'pass' }, config.jwtSecret, { expiresIn: '1h', algorithm: 'HS256' });
 }
 
 export function extractToken(req: Request): string | null {
@@ -33,9 +47,8 @@ export function extractToken(req: Request): string | null {
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7).trim();
   }
-  if (req.query && typeof req.query.token === 'string') {
-    return req.query.token.trim();
-  }
+  // NOTE: tokens are intentionally NOT accepted from the URL query string (they leak via logs,
+  // history and Referer). The WebSocket upgrade handler has its own explicit fallback.
   return null;
 }
 

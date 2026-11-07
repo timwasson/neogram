@@ -196,7 +196,8 @@ sitesRouter.post('/sites/:id/deploy', async (req: Request, res: Response, next: 
       });
     }
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message || 'Deployment error.' });
+    console.error('[:> SITE DEPLOY ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Deployment error. Check your host credentials and try again.' });
   }
 });
 

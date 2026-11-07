@@ -1,9 +1,7 @@
 import crypto from 'crypto';
 import { query } from '../db';
 import { sendOtpNotification } from '../services/notifier';
-
-// In-memory failed attempt counter: max 5 failed attempts before burning code
-const failedOtpAttempts = new Map<string, number>();
+import { config } from '../config';
 
 export interface AuthUser {
   id: string;
@@ -72,6 +70,26 @@ export async function generateUniqueHandle(rawPrefix: string): Promise<string> {
   return `${candidate.slice(0, 12)}_${Date.now().toString(36).slice(-4)}`;
 }
 
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_TTL_MINUTES = 10;
+
+/** HMAC-SHA256 of the code, bound to the identifier, so DB read access alone does not reveal valid codes. */
+function hashOtp(identifier: string, code: string): string {
+  return crypto.createHmac('sha256', config.jwtSecret).update(`${identifier}:${code}`).digest('hex');
+}
+
+function normalizeLoginIdentifier(rawIdentifier: string): { normalized: string; dispatchTarget: string; isPhoneNumber: boolean } {
+  const trimmed = rawIdentifier.trim();
+  const digits = trimmed.replace(/\D/g, '');
+  const isPhoneNumber = digits.length >= 7 && digits.length <= 15 && !trimmed.includes('@');
+  const isEmail = trimmed.includes('@') && trimmed.indexOf('@') > 0 && trimmed.indexOf('@') < trimmed.length - 1;
+  if (!isEmail && !isPhoneNumber) {
+    throw new Error('Please provide a valid email address or mobile phone number.');
+  }
+  const normalized = isEmail ? trimmed.toLowerCase() : `${digits}@sms.neogram.local`;
+  return { normalized, dispatchTarget: isPhoneNumber ? digits : normalized, isPhoneNumber };
+}
+
 export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; identifier: string; code: string; message: string; uin?: number }> {
   if (!rawIdentifier || !rawIdentifier.trim()) {
     throw new Error('Please provide a valid email address or phone number.');
@@ -84,32 +102,21 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
     throw new Error('Logging in with a @handle is not supported because callsigns can be changed. Please enter your email address or mobile phone number.');
   }
 
-  const digits = trimmed.replace(/\D/g, '');
-  const isPhoneNumber = digits.length >= 7 && digits.length <= 15 && !trimmed.includes('@');
-  const isEmail = trimmed.includes('@') && trimmed.indexOf('@') > 0 && trimmed.indexOf('@') < trimmed.length - 1;
+  const { normalized, dispatchTarget } = normalizeLoginIdentifier(trimmed);
 
-  if (!isEmail && !isPhoneNumber) {
-    throw new Error('Please provide a valid email address or mobile phone number.');
-  }
-
-  const normalized = isEmail ? trimmed.toLowerCase() : `${digits}@sms.neogram.local`;
-  const dispatchTarget = isPhoneNumber ? digits : normalized;
-
-  // 1. Check or create user
+  // 1. Check or provision user node
   const existing = await query(
-    'SELECT id, email, handle, uin, is_banned as "isBanned", ban_reason as "banReason" FROM users WHERE email = $1',
+    'SELECT id, handle, uin, is_banned as "isBanned" FROM users WHERE email = $1',
     [normalized]
   );
+  if (existing.rows.length > 0 && existing.rows[0].isBanned) {
+    throw new Error('This station node has been suspended by the network administrator.');
+  }
 
-  let userId: string;
   let userHandle: string;
   let userUin: number;
 
   if (existing.rows.length > 0) {
-    if (existing.rows[0].isBanned) {
-      throw new Error('This station node has been suspended by the network administrator.');
-    }
-    userId = existing.rows[0].id;
     userHandle = existing.rows[0].handle;
     userUin = existing.rows[0].uin ? parseInt(existing.rows[0].uin, 10) : 100101;
   } else {
@@ -120,7 +127,6 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
        RETURNING id, email, handle, uin`,
       [normalized, userHandle, null]
     );
-    userId = newUser.rows[0].id;
     userUin = parseInt(newUser.rows[0].uin, 10);
     console.log(`[:> AUTH] Registered new Neogram node: @${userHandle} (UIN: #${userUin}, ${normalized})`);
   }
@@ -128,105 +134,110 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
   // 2. Generate cryptographically secure 6-digit OTP code
   const code = crypto.randomInt(100000, 1000000).toString();
 
-  // 3. Save OTP with 10-minute expiry
+  // 3. Persist ONLY a hash of the code (10-minute expiry, attempt counter reset)
   await query(
-    `UPDATE users
-     SET auth_token = $1,
-         auth_token_expires_at = NOW() + INTERVAL '10 minutes',
-         updated_at = NOW()
-     WHERE id = $2`,
-    [code, userId]
+    `INSERT INTO otp_challenges (identifier, code_hash, attempts, expires_at)
+     VALUES ($1, $2, 0, NOW() + INTERVAL '${OTP_TTL_MINUTES} minutes')
+     ON CONFLICT (identifier) DO UPDATE
+       SET code_hash = EXCLUDED.code_hash, attempts = 0, expires_at = EXCLUDED.expires_at, created_at = NOW()`,
+    [normalized, hashOtp(normalized, code)]
   );
+  // Opportunistic cleanup of expired challenges
+  await query('DELETE FROM otp_challenges WHERE expires_at < NOW()').catch(() => {});
 
-  console.log('====================================================');
-  console.log(`[:> DIAL-UP CARRIER TRANSMISSION]`);
-  console.log(`[:> TARGET]: ${dispatchTarget} (${normalized})`);
-  console.log(`[:> NODE UIN]: #${userUin}`);
-  console.log(`[:> 6-DIGIT OTP AUTH CODE]: ${code}`);
-  console.log('====================================================');
+  // Plaintext codes are NEVER logged in production. Dev console echo requires explicit opt-in.
+  if (config.allowDemoOtp) {
+    console.log(`[:> DEV OTP] ${dispatchTarget}: ${code}`);
+  }
 
   // 4. Dispatch notification via Email (Resend) or SMS (Twilio)
   const notifyResult = await sendOtpNotification({
     destination: dispatchTarget,
     code,
     handle: userHandle,
-    uin: userUin,
+    uin: userUin ?? 0,
   });
+
+  if (!notifyResult.ok && !config.allowDemoOtp) {
+    await query('DELETE FROM otp_challenges WHERE identifier = $1', [normalized]).catch(() => {});
+    throw new Error('Could not deliver the authorization code right now. Please try again shortly.');
+  }
 
   return {
     ok: true,
     identifier: normalized,
     code,
-    message: notifyResult.message || 'Carrier handshake established. 6-digit OTP code dispatched.',
     uin: userUin,
+    message: notifyResult.message || 'Carrier handshake established. 6-digit OTP code dispatched.',
   };
 }
 
-export async function verifyOtp(rawIdentifier: string, code: string): Promise<AuthUser> {
-  const trimmed = rawIdentifier.trim();
-  const digits = trimmed.replace(/\D/g, '');
-  const isPhoneNumber = digits.length >= 7 && digits.length <= 15 && !trimmed.includes('@');
-  const normalized = isPhoneNumber ? `${digits}@sms.neogram.local` : trimmed.toLowerCase();
+const GENERIC_OTP_FAILURE = 'Invalid or expired authorization key. Please request a new carrier signal.';
 
-  const res = await query(
-    `SELECT id, email, handle, uin, auth_token, auth_token_expires_at, site_url, deploy_path, deployment_type, avatar_path, is_banned as "isBanned", ban_reason as "banReason"
-     FROM users
-     WHERE email = $1`,
+export async function verifyOtp(rawIdentifier: string, code: string): Promise<AuthUser> {
+  const { normalized } = normalizeLoginIdentifier(String(rawIdentifier));
+  const submitted = String(code || '').trim();
+
+  const challengeRes = await query(
+    'SELECT code_hash, attempts, expires_at FROM otp_challenges WHERE identifier = $1',
     [normalized]
   );
+  const challenge = challengeRes.rows[0];
 
+  // Single generic message for unknown identifier / expired / burned codes (no account enumeration)
+  if (!challenge || new Date(challenge.expires_at) < new Date() || challenge.attempts >= OTP_MAX_ATTEMPTS) {
+    throw new Error(GENERIC_OTP_FAILURE);
+  }
+
+  const expected = Buffer.from(challenge.code_hash, 'hex');
+  const actual = Buffer.from(hashOtp(normalized, submitted), 'hex');
+  const matches = expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+
+  if (!matches) {
+    // Atomic, persisted attempt counter (survives restarts, shared across instances)
+    const upd = await query(
+      'UPDATE otp_challenges SET attempts = attempts + 1 WHERE identifier = $1 RETURNING attempts',
+      [normalized]
+    );
+    const attempts = upd.rows[0]?.attempts ?? OTP_MAX_ATTEMPTS;
+    if (attempts >= OTP_MAX_ATTEMPTS) {
+      await query('DELETE FROM otp_challenges WHERE identifier = $1', [normalized]);
+      throw new Error('Too many invalid attempts. Authorization key has been burned. Please request a new carrier signal.');
+    }
+    throw new Error(`Invalid authorization key. Code does not match. (${OTP_MAX_ATTEMPTS - attempts} attempts remaining)`);
+  }
+
+  // Consume the challenge (single use)
+  await query('DELETE FROM otp_challenges WHERE identifier = $1', [normalized]);
+
+  // Find or register the account now that ownership of the identifier is proven
+  let res = await query(
+    `SELECT id, email, handle, uin, site_url, deploy_path, deployment_type, avatar_path, is_banned as "isBanned"
+     FROM users WHERE email = $1`,
+    [normalized]
+  );
   if (res.rows.length === 0) {
-    throw new Error('User node not found in network registry.');
+    const handle = await generateUniqueHandle(extractDisplayHandle(normalized));
+    await query(
+      `INSERT INTO users (email, handle, site_url, deployment_type) VALUES ($1, $2, $3, 'none')`,
+      [normalized, handle, null]
+    );
+    res = await query(
+      `SELECT id, email, handle, uin, site_url, deploy_path, deployment_type, avatar_path, is_banned as "isBanned"
+       FROM users WHERE email = $1`,
+      [normalized]
+    );
+    console.log(`[:> AUTH] Registered new Neogram node: @${handle} (UIN: #${res.rows[0]?.uin})`);
   }
 
   const user = res.rows[0];
-
   if (user.isBanned) {
     throw new Error('This station node has been suspended by the network administrator.');
   }
 
-  if (!user.auth_token || user.auth_token !== code.trim()) {
-    if (failedOtpAttempts.size > 2000) {
-      failedOtpAttempts.clear();
-    }
-    const attempts = (failedOtpAttempts.get(user.id) || 0) + 1;
-    if (attempts >= 5) {
-      // Invalidate code after 5 failed attempts to prevent brute force
-      await query(
-        `UPDATE users
-         SET auth_token = NULL,
-             auth_token_expires_at = NULL,
-             updated_at = NOW()
-         WHERE id = $1`,
-        [user.id]
-      );
-      failedOtpAttempts.delete(user.id);
-      throw new Error('Too many invalid attempts. Authorization key has been burned. Please request a new carrier signal.');
-    }
-    failedOtpAttempts.set(user.id, attempts);
-    throw new Error(`Invalid authorization key. Code does not match. (${5 - attempts} attempts remaining)`);
-  }
+  await query('UPDATE users SET updated_at = NOW() WHERE id = $1', [user.id]);
+  console.log(`[:> AUTH SUCCESS] User node authenticated: @${user.handle} (UIN: #${user.uin})`);
 
-  // Clear failed attempts counter on success
-  failedOtpAttempts.delete(user.id);
-
-  if (user.auth_token_expires_at && new Date(user.auth_token_expires_at) < new Date()) {
-    throw new Error('Authorization key has expired. Please request a new carrier signal.');
-  }
-
-  // Clear OTP token once consumed
-  await query(
-    `UPDATE users
-     SET auth_token = NULL,
-         auth_token_expires_at = NULL,
-         updated_at = NOW()
-     WHERE id = $1`,
-    [user.id]
-  );
-
-  console.log(`[:> AUTH SUCCESS] User node authenticated: @${user.handle} (UIN: #${user.uin}, ${user.id})`);
-
-  const { config } = await import('../config');
   const isAdmin = config.adminEmails.includes(user.email.toLowerCase());
 
   return {
@@ -266,7 +277,6 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
   const baseSite = user.siteUrl || (user.handle ? `https://${user.handle}.neocities.org` : undefined);
   const fullSiteUrl = baseSite && rawDeploy ? `${baseSite.replace(/\/+$/, '')}/${rawDeploy}/` : (baseSite ? `${baseSite.replace(/\/+$/, '')}/` : undefined);
 
-  const { config } = await import('../config');
   const isAdmin = config.adminEmails.includes(user.email.toLowerCase());
 
   return {

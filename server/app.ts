@@ -13,8 +13,9 @@ import { directoryRouter } from './routes/directory';
 import { docsRouter } from './routes/docs';
 import { adminRouter } from './routes/admin';
 import { getTickerAnnouncement } from './services/systemSettings';
-import { COOKIE_NAME, verifySessionToken, clearSessionCookie, extractToken, signSessionToken } from './auth/jwt';
+import { COOKIE_NAME, verifySessionToken, clearSessionCookie, extractToken, signSessionToken, signPassToken } from './auth/jwt';
 import { getUserById } from './auth/service';
+import { getFriendsRoster } from './services/friendsRoster';
 import { getVapidPublicKey } from './services/webPushService';
 import { config } from './config';
 
@@ -79,15 +80,38 @@ export function createApp(): Express {
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
+    // Legacy XSS auditor is deprecated and can itself introduce vulnerabilities: explicitly disabled.
+    res.setHeader('X-XSS-Protection', '0');
+
+    // Baseline Content-Security-Policy. The workstation views still contain inline <script>/<style>
+    // (tracked tech debt: migrate to nonces), so 'unsafe-inline' remains for script/style, but this
+    // already blocks: plugin/object content, <base> hijacking, form exfiltration to foreign hosts,
+    // and framing by foreign sites. connect-src permits https because friend feeds are aggregated
+    // client-side from arbitrary static hosts.
+    const isEmbedSurface = req.path.startsWith('/embed') || req.path.startsWith('/counter');
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "img-src 'self' data: blob: https:",
+      "media-src 'self' data: blob: https:",
+      "connect-src 'self' https: wss: ws://localhost:* ws://127.0.0.1:*",
+      "frame-src 'self' https:",
+      "worker-src 'self' blob:",
+      "manifest-src 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      isEmbedSurface ? 'frame-ancestors *' : "frame-ancestors 'self'",
+    ].join('; ');
+    res.setHeader('Content-Security-Policy', csp);
 
     // Allow iframe embedding strictly for public widget embed routes; defend workstation dashboard from Clickjacking
-    if (req.path.startsWith('/embed') || req.path.startsWith('/counter')) {
-      res.setHeader('Content-Security-Policy', "frame-ancestors *");
+    if (isEmbedSurface) {
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     } else {
       res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-      res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
     }
     next();
   });
@@ -107,30 +131,46 @@ export function createApp(): Express {
   const isPublicEmbed = (reqPath: string) =>
     publicEmbedPaths.some((prefix) => reqPath.startsWith(prefix));
 
+  const isTrustedOrigin = (origin: string | undefined) =>
+    !origin ||
+    origin === config.appUrl ||
+    origin.startsWith('http://localhost:') ||
+    origin.startsWith('http://127.0.0.1:') ||
+    origin.startsWith('chrome-extension://') ||
+    origin.startsWith('moz-extension://');
+
   app.use(
     cors((req, callback) => {
       const origin = req.headers.origin;
-      if (isPublicEmbed(req.path)) {
-        // Cross-domain static site widgets need access to public comment/like/guestbook APIs
+      if (isTrustedOrigin(origin)) {
+        // First-party workstation, local dev and the browser extension: credentialed access allowed
         callback(null, { origin: true, credentials: true });
+      } else if (isPublicEmbed(req.path)) {
+        // Third-party static sites (Neocities, GitHub Pages, ...) may call the public embed APIs,
+        // but NEVER with ambient credentials (cookies). They authenticate with a scoped Cyber-Pass
+        // Bearer token, so a hostile origin can never ride a visitor's neogram.club session.
+        callback(null, { origin: true, credentials: false });
       } else {
-        // Private workstation routes only permit appUrl, local workstation, or browser extensions
-        const isAllowedOrigin =
-          !origin ||
-          origin === config.appUrl ||
-          origin.startsWith('http://localhost:') ||
-          origin.startsWith('http://127.0.0.1:') ||
-          origin.startsWith('chrome-extension://') ||
-          origin.startsWith('moz-extension://');
-
-        if (isAllowedOrigin) {
-          callback(null, { origin: true, credentials: true });
-        } else {
-          callback(null, { origin: false, credentials: false });
-        }
+        callback(null, { origin: false, credentials: false });
       }
     })
   );
+
+  // CSRF defence for cookie-authenticated mutations: browsers always send Origin on cross-origin
+  // unsafe requests. If a session cookie is present (and no explicit Bearer token) the Origin must
+  // be first-party. Non-browser API clients (no Origin) and Bearer-token clients are unaffected.
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+    const origin = req.headers.origin;
+    const hasBearer = !!req.headers.authorization;
+    const hasSessionCookie = !!(req.headers.cookie && req.headers.cookie.includes(`${COOKIE_NAME}=`));
+    const crossSite = req.headers['sec-fetch-site'] === 'cross-site';
+    if (hasSessionCookie && !hasBearer && ((origin && !isTrustedOrigin(origin)) || (!origin && crossSite))) {
+      res.status(403).json({ ok: false, error: 'Cross-site request blocked.' });
+      return;
+    }
+    next();
+  });
 
   app.use(express.json({ limit: '15mb' }));
   app.use(express.urlencoded({ extended: true, limit: '15mb' }));
@@ -253,67 +293,9 @@ export function createApp(): Express {
         followedCount = parseInt(followsRes.rows[0]?.count || '0', 10);
 
         const { aggregateFederatedFriendsFeed } = await import('./services/federatedFriends');
-        const { activeSockets } = await import('./services/chatSocket');
-        const { getPostCountForUser } = await import('./services/postStorage');
         const { fetchCategorizedDirectory } = await import('./routes/directory');
 
-        const friendsRes = await query(`
-          SELECT 
-            u.id, 
-            u.email, 
-            COALESCE(u.handle, split_part(u.email, '@', 1)) as handle,
-            u.uin,
-            u.avatar_path as "avatarPath",
-            u.status_message as "statusMessage",
-            u.is_away as "isAway",
-            COALESCE(s.site_url, u.site_url) as "siteUrl",
-            COALESCE(s.deploy_path, u.deploy_path) as "deployPath",
-            COALESCE(s.last_deployed_at, u.last_deployed_at) as "lastDeployedAt",
-            s.id as "siteId",
-            f.created_at as "friendedAt"
-          FROM follows f
-          JOIN users u ON f.following_id = u.id
-          LEFT JOIN sites s ON s.user_id = u.id AND s.is_default = TRUE
-          WHERE f.follower_id = $1 AND COALESCE(u.is_banned, false) = false
-          ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC
-        `, [currentUser.id]);
-
-        friends = await Promise.all(
-          friendsRes.rows.map(async (r: any) => {
-            const active = activeSockets.get(r.id);
-            let status = 'inactive';
-            let statusMsg = r.statusMessage || 'Surfing cyberspace';
-            if (active) {
-              status = active.status;
-              if (active.awayMessage) statusMsg = active.awayMessage;
-            } else if (r.isAway) {
-              status = 'away';
-            }
-
-            let cleanRootSiteUrl = '';
-            if (r.siteUrl && r.siteUrl.trim()) {
-              try {
-                const parsed = new URL(r.siteUrl);
-                if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-                  cleanRootSiteUrl = `${parsed.protocol}//${parsed.host}`;
-                }
-              } catch (_e) {
-                cleanRootSiteUrl = '';
-              }
-            }
-
-            const postCount = await getPostCountForUser(r.id);
-            return {
-              ...r,
-              status,
-              statusMessage: statusMsg,
-              postCount,
-              avatarPath: r.avatarPath && r.avatarPath.trim() ? r.avatarPath : '/icons/default-avatar.svg',
-              profileUrl: `/user/@${encodeURIComponent(r.handle)}`,
-              cleanRootSiteUrl,
-            };
-          })
-        );
+        friends = await getFriendsRoster(currentUser.id, { withPostCounts: true });
 
         const friendTargets = friends.map((r: any) => ({
           id: r.id,
@@ -373,32 +355,61 @@ export function createApp(): Express {
     });
   });
 
+  /**
+   * Cyber-Pass SSO handshake for third-party static sites.
+   * Security model:
+   *  - The destination origin is parsed + normalised server-side (http/https only, no credentials, no wildcard).
+   *  - If both `origin` and `return_url` are supplied they MUST agree.
+   *  - The page NEVER auto-dispatches: the user must see the destination host and click to approve.
+   *  - The token handed out is a scoped, 1-hour `pass` token (social actions only), NOT the session JWT.
+   */
   app.get('/auth/connect', (req: Request, res: Response) => {
-    const rawOrigin = (req.query.origin as string) || '*';
-    const targetOrigin = rawOrigin.replace(/[^\w.:\/-]/g, '');
-    const returnUrl = (req.query.return_url as string) || '';
-    const user = res.locals.currentUser;
+    const parseOrigin = (value: unknown): { origin: string; url: string } | null => {
+      if (typeof value !== 'string' || !value.trim() || value.length > 2000) return null;
+      try {
+        const u = new URL(value.trim());
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+        if (u.username || u.password) return null;
+        return { origin: u.origin, url: u.toString() };
+      } catch {
+        return null;
+      }
+    };
 
-    if (user) {
-      const token = signSessionToken({
+    const rawOrigin = req.query.origin;
+    const rawReturn = req.query.return_url;
+    const originParsed = parseOrigin(rawOrigin);
+    const returnParsed = parseOrigin(rawReturn);
+
+    let destination = '';
+    let returnUrl = '';
+    let error = '';
+
+    if ((rawOrigin && !originParsed) || (rawReturn && !returnParsed)) {
+      error = 'Invalid destination. Only plain http(s) site addresses are allowed.';
+    } else if (originParsed && returnParsed && originParsed.origin !== returnParsed.origin) {
+      error = 'Destination mismatch between origin and return URL.';
+    } else {
+      destination = (originParsed || returnParsed)?.origin || '';
+      returnUrl = returnParsed?.url || '';
+      if (!destination) error = 'No destination site specified for this Cyber-Pass.';
+    }
+
+    const user = res.locals.currentUser;
+    res.setHeader('Cache-Control', 'no-store');
+
+    if (user && !error) {
+      const token = signPassToken({
         userId: user.id,
         email: user.email,
         handle: user.handle,
         uin: user.uin,
       });
-      res.render('auth/connect', {
-        authenticated: true,
-        user,
-        token,
-        targetOrigin,
-        returnUrl,
-      });
+      res.render('auth/connect', { authenticated: true, user, token, destination, returnUrl, error: '' });
+    } else if (user) {
+      res.render('auth/connect', { authenticated: true, user, token: '', destination: '', returnUrl: '', error });
     } else {
-      res.render('auth/connect', {
-        authenticated: false,
-        targetOrigin,
-        returnUrl,
-      });
+      res.render('auth/connect', { authenticated: false, destination, returnUrl, error });
     }
   });
 
@@ -415,69 +426,25 @@ export function createApp(): Express {
         return;
       }
 
-      const { query } = await import('./db');
-      const { activeSockets } = await import('./services/chatSocket');
-
-      // Fetch friends roster
-      const friendsRes = await query(`
-        SELECT 
-          u.id, 
-          u.email, 
-          COALESCE(u.handle, split_part(u.email, '@', 1)) as handle,
-          u.uin,
-          u.avatar_path as "avatarPath",
-          u.status_message as "statusMessage",
-          u.is_away as "isAway",
-          COALESCE(s.site_url, u.site_url) as "siteUrl",
-          COALESCE(s.deploy_path, u.deploy_path) as "deployPath",
-          COALESCE(s.last_deployed_at, u.last_deployed_at) as "lastDeployedAt",
-          s.id as "siteId",
-          f.created_at as "friendedAt",
-          0 as "postCount"
-        FROM follows f
-        JOIN users u ON f.following_id = u.id
-        LEFT JOIN sites s ON s.user_id = u.id AND s.is_default = TRUE
-        WHERE f.follower_id = $1 AND COALESCE(u.is_banned, false) = false
-        ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC
-      `, [currentUser.id]);
-
-      const friends = friendsRes.rows.map((r: any) => {
-        const active = activeSockets.get(r.id);
-        let status = 'inactive';
-        let statusMsg = r.statusMessage || 'Surfing cyberspace';
-        if (active) {
-          status = active.status;
-          if (active.awayMessage) statusMsg = active.awayMessage;
-        } else if (r.isAway) {
-          status = 'away';
-        }
-
-        let cleanRootSiteUrl = '';
-        if (r.siteUrl && r.siteUrl.trim()) {
-          try {
-            const parsed = new URL(r.siteUrl);
-            if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-              cleanRootSiteUrl = `${parsed.protocol}//${parsed.host}`;
-            }
-          } catch (_e) {
-            cleanRootSiteUrl = '';
-          }
-        }
-
-        return {
-          ...r,
-          status,
-          statusMessage: statusMsg,
-          avatarPath: r.avatarPath && r.avatarPath.trim() ? r.avatarPath : '/icons/default-avatar.svg',
-          profileUrl: `/user/@${encodeURIComponent(r.handle)}`,
-          cleanRootSiteUrl,
-        };
-      });
+      // Fetch friends roster (shared service)
+      const friends = await getFriendsRoster(currentUser.id);
 
       // Fetch friends' latest broadcasted photographs
       // Federated aggregation: merge friends' remote feeds directly over WAN
       const { aggregateFederatedFriendsFeed } = await import('./services/federatedFriends');
-      const posts = await aggregateFederatedFriendsFeed(friends, 100);
+      const posts = await aggregateFederatedFriendsFeed(
+        friends.map((f) => ({
+          id: f.id,
+          handle: f.handle,
+          uin: f.uin,
+          avatarPath: f.avatarPath,
+          siteUrl: f.siteUrl ?? undefined,
+          deployPath: f.deployPath ?? undefined,
+          lastDeployedAt: f.lastDeployedAt ?? undefined,
+          siteId: f.siteId ?? undefined,
+        })) as any,
+        100
+      );
 
       res.render('friends', {
         title: 'Neogram - Friends Roster & Live Network Feed',

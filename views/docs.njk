@@ -5,7 +5,7 @@
 
   <!-- Top Breadcrumb & Station Link -->
   <div class="flex items-center justify-between mb-4 flex-wrap gap-2 text-xs">
-    <div class="flex items-center gap-2 text-muted">
+    <div class="flex items-center gap-2 text-muted flex-wrap">
       <span class="text-prompt font-bold">:&gt; DOCS_CYBERSPACE.HLP</span>
       <span>/</span>
       <span>STATION_MANUAL_v2.0</span>
@@ -370,6 +370,44 @@
               </div>
             </div>
 
+            <!-- Expandable Under the Hood for Nerds Accordion -->
+            <details class="pixel-box p-4 bg-window font-mono text-xs cursor-pointer">
+              <summary class="font-bold text-mac uppercase tracking-wider flex items-center justify-between text-xs select-none">
+                <span class="flex items-center gap-2">
+                  <span>🤓</span>
+                  <span>[+] UNDER THE HOOD FOR NERDS (Architecture &amp; Security Specs)</span>
+                </span>
+                <span class="pixel-badge pixel-badge--cyan text-xxs font-bold">EXPAND :&gt;</span>
+              </summary>
+
+              <div class="pt-4 flex flex-col gap-4 border-t border-main mt-3">
+                <!-- Data Flow Pipeline Diagram -->
+                <div class="p-3 bg-black border border-main space-y-2">
+                  <div class="text-prompt font-bold uppercase tracking-wider text-xxs">DATA FLOW PIPELINE</div>
+                  <div class="p-2.5 border border-muted bg-surface-sunken text-prompt font-mono text-xs overflow-x-auto leading-relaxed select-all">
+[Mobile / Workstation Photo] ──&gt; [Sharp WebP Transform] ──&gt; [Eleventy Build] ──&gt; [Neocities API Upload] ──&gt; [Local Purge: 0 MB]
+                  </div>
+                  <p class="text-muted text-xs m-0">
+                    Neogram never acts as a permanent media host. When you upload, photos are optimized, published directly to your personal static site, and local temporary files are immediately erased from the server.
+                  </p>
+                </div>
+
+                <!-- Hardware-Grade AES-256-GCM Encryption Box -->
+                <div class="p-3 bg-black border border-main space-y-2">
+                  <div class="text-amber font-bold uppercase tracking-wider text-xxs flex items-center justify-between">
+                    <span>SECURITY &amp; CREDENTIAL VAULT</span>
+                    <span class="pixel-badge pixel-badge--green text-xxs font-bold">AES-256-GCM</span>
+                  </div>
+                  <div class="p-2.5 border border-muted bg-surface-sunken text-prompt font-mono text-xs overflow-x-auto leading-relaxed select-all">
+[Plaintext API Key] ──&gt; [AES-256-GCM + Random 96-bit IV] ──&gt; [PostgreSQL BYTEA] ──&gt; [Never in Client DOM]
+                  </div>
+                  <p class="text-muted text-xs m-0">
+                    Hosting API keys and static deployment credentials are encrypted at rest in PostgreSQL using authenticated <strong>AES-256-GCM with unique initialization vectors</strong>. Your keys are decrypted strictly in memory at the exact moment of an API upload and are never rendered in client DOM, logs, or error dumps.
+                  </p>
+                </div>
+              </div>
+            </details>
+
             <!-- Jump to Technical Guides -->
             <div class="p-3 bg-window border border-main text-xs flex items-center justify-between flex-wrap gap-2">
               <span class="text-muted">Ready to dive deeper into custom styling or API configurations?</span>
@@ -395,14 +433,11 @@
               </p>
             </div>
 
-            <!-- Flow Overview Box -->
-            <div class="p-3 bg-black border border-main text-xs space-y-2">
-              <div class="text-mac font-bold uppercase tracking-wider text-xxs">DATA FLOW PIPELINE</div>
-              <div class="p-2 border border-muted bg-surface-sunken text-prompt font-mono text-xs overflow-x-auto leading-relaxed">
-[Mobile / Workstation Photo] ──&gt; [Sharp WebP Transform] ──&gt; [Eleventy Build] ──&gt; [Neocities API Upload] ──&gt; [Local Purge: 0 MB]
-              </div>
+            <!-- Safe Invariant Overview Box -->
+            <div class="p-3 bg-black border border-main text-xs space-y-1">
+              <div class="text-prompt font-bold uppercase tracking-wider text-xxs">ROOT SITE PROTECTION INVARIANT</div>
               <p class="text-muted text-xs m-0">
-                Neogram never acts as a permanent media host. When you upload, photos are optimized, published directly to your Neocities account, and local files are immediately erased from the server.
+                Neogram publishes neatly into your isolated <code>/neogram/</code> folder on Neocities. Your existing homepage (<code>index.html</code>), custom CSS, and assets are 100% untouched. Connect your API key in 3 easy steps below:
               </p>
             </div>
 

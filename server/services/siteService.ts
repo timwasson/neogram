@@ -1,3 +1,4 @@
+import { isSafePublicUrl } from '../utils/safeFetch';
 import path from 'path';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
@@ -294,6 +295,9 @@ export async function createSite(userId: string, input: CreateSiteInput): Promis
   if (!/^https?:\/\//i.test(siteUrl)) {
     siteUrl = `https://${siteUrl}`;
   }
+  if (!isSafePublicUrl(siteUrl)) {
+    throw new Error('Site URL must be a public https:// address (private/internal hosts are not allowed).');
+  }
 
   const deployPath = input.deployPath !== undefined ? sanitizeSlug(input.deployPath, '') : 'neogram';
   const autoDeploy = !!input.autoDeploy;
@@ -393,6 +397,9 @@ export async function updateSite(siteId: string, userId: string, input: UpdateSi
     siteUrl = input.siteUrl.trim();
     if (!/^https?:\/\//i.test(siteUrl)) {
       siteUrl = `https://${siteUrl}`;
+    }
+    if (!isSafePublicUrl(siteUrl)) {
+      throw new Error('Site URL must be a public https:// address (private/internal hosts are not allowed).');
     }
   }
 

@@ -11,10 +11,11 @@ export const embedsRouter = Router();
 /**
  * Helper to optionally extract authenticated user
  */
-async function getAuthUser(req: Request) {
+async function getAuthUser(req: Request, allowPass: boolean = false) {
   const token = extractToken(req);
   if (!token) return null;
-  const payload = verifySessionToken(token);
+  // Scoped Cyber-Pass tokens (third-party static sites) are only honoured when the route opts in.
+  const payload = verifySessionToken(token, allowPass);
   if (!payload) return null;
   return getUserById(payload.userId);
 }
@@ -56,7 +57,36 @@ export async function findUserByHandleOrId(identifier: string) {
  * Serves a dynamic SVG hit counter, increments hits in web_counters,
  * and sets no-cache headers.
  */
-embedsRouter.get(['/counter/:identifier.svg', '/counter/:identifier/:slug.svg'], async (req: Request, res: Response) => {
+// Visitor de-duplication for the hit counter: one counted hit per (site, visitor IP) per 30 minutes.
+// Bounded in-memory map (cleared opportunistically) so scripted refreshes cannot inflate hits or hammer the DB.
+const COUNTER_DEDUPE_WINDOW_MS = 30 * 60 * 1000;
+const counterSeen = new Map<string, number>();
+function shouldCountHit(siteId: string, ip: string | undefined): boolean {
+  if (process.env.NODE_ENV === 'test') return true;
+  const now = Date.now();
+  if (counterSeen.size > 20000) {
+    for (const [k, t] of counterSeen) if (now - t > COUNTER_DEDUPE_WINDOW_MS) counterSeen.delete(k);
+    if (counterSeen.size > 20000) counterSeen.clear();
+  }
+  const key = `${siteId}|${ip || 'unknown'}`;
+  const last = counterSeen.get(key);
+  if (last && now - last < COUNTER_DEDUPE_WINDOW_MS) return false;
+  counterSeen.set(key, now);
+  return true;
+}
+
+const counterImageLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test',
+  handler: (_req, res) => {
+    res.status(429).type('text/plain').send('Carrier busy');
+  },
+});
+
+embedsRouter.get(['/counter/:identifier.svg', '/counter/:identifier/:slug.svg'], counterImageLimiter, async (req: Request, res: Response) => {
   try {
     const identifier = req.params.identifier;
     const rawSlug = req.params.slug ? req.params.slug.replace(/\.svg$/i, '') : '';
@@ -73,15 +103,23 @@ embedsRouter.get(['/counter/:identifier.svg', '/counter/:identifier/:slug.svg'],
         : (await getDefaultSite(user.id));
 
       if (site) {
-        // Upsert hit counter for this site
-        const updateRes = await query(
-          `INSERT INTO web_counters (site_id, user_id, hits, style, updated_at)
-           VALUES ($1, $2, 1, $3, CURRENT_TIMESTAMP)
-           ON CONFLICT (site_id) 
-           DO UPDATE SET hits = web_counters.hits + 1, updated_at = CURRENT_TIMESTAMP
-           RETURNING hits, style`,
-          [site.id, user.id, requestedStyle || 'green_led']
-        );
+        // Upsert hit counter for this site (only once per visitor per window; repeat views just read)
+        const updateRes = shouldCountHit(site.id, req.ip)
+          ? await query(
+              `INSERT INTO web_counters (site_id, user_id, hits, style, updated_at)
+               VALUES ($1, $2, 1, $3, CURRENT_TIMESTAMP)
+               ON CONFLICT (site_id) 
+               DO UPDATE SET hits = web_counters.hits + 1, updated_at = CURRENT_TIMESTAMP
+               RETURNING hits, style`,
+              [site.id, user.id, requestedStyle || 'green_led']
+            )
+          : await query(
+              `INSERT INTO web_counters (site_id, user_id, hits, style, updated_at)
+               VALUES ($1, $2, 1, $3, CURRENT_TIMESTAMP)
+               ON CONFLICT (site_id) DO UPDATE SET site_id = web_counters.site_id
+               RETURNING hits, style`,
+              [site.id, user.id, requestedStyle || 'green_led']
+            );
 
         hits = parseInt(updateRes.rows[0].hits, 10);
         if (!requestedStyle) {
@@ -177,7 +215,8 @@ embedsRouter.get('/api/counter', async (req: Request, res: Response) => {
       },
     });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[:> EMBED ROUTE ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
   }
 });
 
@@ -193,7 +232,8 @@ embedsRouter.put('/api/counter', async (req: Request, res: Response) => {
       return;
     }
 
-    const { style, action, amount, siteId } = req.body;
+    const { style: rawStyle, action, amount, siteId } = req.body;
+    const style = typeof rawStyle === 'string' && /^[a-z0-9_]{1,50}$/.test(rawStyle) ? rawStyle : undefined;
     const { ensureDefaultSite, getSiteById } = await import('../services/siteService');
     const site = siteId
       ? ((await getSiteById(siteId, user.id)) || (await ensureDefaultSite(user.id)))
@@ -207,7 +247,8 @@ embedsRouter.put('/api/counter', async (req: Request, res: Response) => {
         [site.id, user.id, style || 'green_led']
       );
     } else if (action === 'increment') {
-      const inc = parseInt(amount, 10) || 1;
+      // Clamp: owner-initiated bumps only, 1..100000 (no negative / absurd values)
+      const inc = Math.min(100000, Math.max(1, parseInt(amount, 10) || 1));
       await query(
         `INSERT INTO web_counters (site_id, user_id, hits, style, updated_at)
          VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
@@ -231,7 +272,8 @@ embedsRouter.put('/api/counter', async (req: Request, res: Response) => {
       siteId: site.id,
     });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[:> EMBED ROUTE ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
   }
 });
 
@@ -289,7 +331,8 @@ embedsRouter.get(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:slu
       entries,
     });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[:> EMBED ROUTE ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
   }
 });
 
@@ -366,7 +409,7 @@ embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:sl
     const allowAnonymous = (prefs.allowAnonGuestbook !== false) && (targetSite ? targetSite.allowAnonGuestbook !== false : true);
 
     // Check caller authentication
-    const visitorUser = await getAuthUser(req);
+    const visitorUser = await getAuthUser(req, true);
     let isAnonymous = false;
     let finalVisitorName = '';
     let finalUin: number | undefined = undefined;
@@ -527,7 +570,8 @@ embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:sl
       entry,
     });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[:> EMBED ROUTE ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
   }
 });
 
@@ -553,7 +597,8 @@ embedsRouter.delete('/api/guestbook/:id', async (req: Request, res: Response) =>
 
     res.json({ ok: true, deleted, deletedId: entryId });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[:> EMBED ROUTE ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
   }
 });
 
@@ -636,7 +681,8 @@ embedsRouter.get(['/api/users/:identifier/feed.json', '/feed/:identifier.json'],
       items: posts,
     });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[:> EMBED ROUTE ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
   }
 });
 
@@ -650,7 +696,7 @@ embedsRouter.get(['/api/users/:identifier/feed.json', '/feed/:identifier.json'],
  */
 embedsRouter.get('/api/network/users', async (req: Request, res: Response) => {
   try {
-    const currentUser = await getAuthUser(req);
+    const currentUser = await getAuthUser(req, true);
     const currentUserId = currentUser ? currentUser.id : null;
 
     const usersRes = await query(`
@@ -688,7 +734,8 @@ embedsRouter.get('/api/network/users', async (req: Request, res: Response) => {
       users,
     });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[:> EMBED ROUTE ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
   }
 });
 
@@ -719,7 +766,7 @@ async function syncFollowerStaticSite(userId: string) {
  */
 embedsRouter.get('/api/users/:identifier/friend-status', async (req: Request, res: Response) => {
   try {
-    const currentUser = await getAuthUser(req);
+    const currentUser = await getAuthUser(req, true);
     const targetUser = await findUserByHandleOrId(req.params.identifier);
     if (!targetUser) {
       res.status(404).json({ ok: false, error: 'Target user not found' });
@@ -749,7 +796,8 @@ embedsRouter.get('/api/users/:identifier/friend-status', async (req: Request, re
       followingCount: parseInt(countsRes.rows[0].followingCount, 10),
     });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[:> EMBED ROUTE ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
   }
 });
 
@@ -759,7 +807,7 @@ embedsRouter.get('/api/users/:identifier/friend-status', async (req: Request, re
  */
 embedsRouter.get('/api/friends', async (req: Request, res: Response) => {
   try {
-    const currentUser = await getAuthUser(req);
+    const currentUser = await getAuthUser(req, true);
     if (!currentUser) {
       res.status(401).json({ ok: false, error: 'Authentication required' });
       return;
@@ -797,7 +845,8 @@ embedsRouter.get('/api/friends', async (req: Request, res: Response) => {
       posts,
     });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[:> EMBED ROUTE ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
   }
 });
 
@@ -844,7 +893,8 @@ embedsRouter.get('/api/user/:identifier/friends-feed', async (req: Request, res:
       posts,
     });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[:> EMBED ROUTE ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
   }
 });
 
@@ -854,7 +904,7 @@ embedsRouter.get('/api/user/:identifier/friends-feed', async (req: Request, res:
  */
 embedsRouter.post('/api/users/:identifier/follow', async (req: Request, res: Response) => {
   try {
-    const currentUser = await getAuthUser(req);
+    const currentUser = await getAuthUser(req, true);
     if (!currentUser) {
       res.status(401).json({ ok: false, error: 'Authentication required' });
       return;
@@ -907,7 +957,8 @@ embedsRouter.post('/api/users/:identifier/follow', async (req: Request, res: Res
       targetHandle: targetUser.handle || targetUser.email.split('@')[0],
     });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[:> EMBED ROUTE ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
   }
 });
 
@@ -917,7 +968,7 @@ embedsRouter.post('/api/users/:identifier/follow', async (req: Request, res: Res
  */
 embedsRouter.delete('/api/users/:identifier/follow', async (req: Request, res: Response) => {
   try {
-    const currentUser = await getAuthUser(req);
+    const currentUser = await getAuthUser(req, true);
     if (!currentUser) {
       res.status(401).json({ ok: false, error: 'Authentication required' });
       return;
@@ -951,7 +1002,8 @@ embedsRouter.delete('/api/users/:identifier/follow', async (req: Request, res: R
       targetHandle: targetUser.handle || targetUser.email.split('@')[0],
     });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[:> EMBED ROUTE ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
   }
 });
 
@@ -1026,7 +1078,8 @@ embedsRouter.get(['/embed/guestbook/:identifier', '/embed/guestbook/:identifier/
       entries,
     });
   } catch (err: any) {
-    res.status(500).send(`Guestbook Error: ${err.message}`);
+    console.error('[:> EMBED GUESTBOOK ERROR]', err);
+    res.status(500).type('text/plain').send('Guestbook widget temporarily unavailable.');
   }
 });
 
@@ -1055,7 +1108,8 @@ embedsRouter.get('/embed/feed/:identifier', async (req: Request, res: Response) 
       posts: feedPosts,
     });
   } catch (err: any) {
-    res.status(500).send(`Feed Error: ${err.message}`);
+    console.error('[:> EMBED FEED ERROR]', err);
+    res.status(500).type('text/plain').send('Feed widget temporarily unavailable.');
   }
 });
 
@@ -1120,7 +1174,8 @@ embedsRouter.get(['/api/chat/status/:identifier', '/api/chat/status/:identifier/
       allowAnonymous,
     });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[:> EMBED ROUTE ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
   }
 });
 
@@ -1186,7 +1241,7 @@ embedsRouter.post(['/api/chat/pager/send', '/api/chat/pager/send/:identifier'], 
       : (prefs.allowAnonChat !== false);
 
     // Check caller authentication (Cyber-Pass token or cookie)
-    const authUser = await getAuthUser(req);
+    const authUser = await getAuthUser(req, true);
     let finalSenderHandle = '';
     let isAnonymous = false;
     let senderId: string | null = null;
@@ -1328,7 +1383,8 @@ embedsRouter.post(['/api/chat/pager/send', '/api/chat/pager/send/:identifier'], 
         : 'Station operator is away/offline. Message held in 24-hour store-and-forward queue.',
     });
   } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error('[:> EMBED ROUTE ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
   }
 });
 
@@ -1387,6 +1443,7 @@ embedsRouter.get(['/embed/pager/:identifier', '/embed/pager/:identifier/:slug'],
       appUrl: config.appUrl,
     });
   } catch (err: any) {
-    res.status(500).send(`Pager Error: ${err.message}`);
+    console.error('[:> EMBED PAGER ERROR]', err);
+    res.status(500).type('text/plain').send('Pager widget temporarily unavailable.');
   }
 });

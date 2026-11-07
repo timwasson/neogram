@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { query } from '../db';
 import { activeSockets } from '../services/chatSocket';
-import { getPostCountForUser } from '../services/postStorage';
+import { getPostsForUser } from '../services/postStorage';
 
 export const directoryRouter = Router();
 
@@ -14,6 +14,8 @@ export interface DirectoryUser {
   status: 'active' | 'away' | 'inactive';
   statusMessage: string;
   postCount: number;
+  latestPostDate?: string | null;
+  latestThumbnail?: string | null;
   profileUrl: string;
   siteUrl?: string;
   createdAt: string | Date;
@@ -23,16 +25,42 @@ export interface CategorizedDirectory {
   active: DirectoryUser[];
   away: DirectoryUser[];
   inactive: DirectoryUser[];
+  featured: DirectoryUser[];
   total: number;
 }
 
 /**
+ * Filter out test/QA personas, internal system accounts, and empty numeric accounts
+ * so the public directory showcases genuine human-crafted personal sites.
+ */
+function isExcludedFromDirectory(handle: string, email: string, postCount: number): boolean {
+  const h = (handle || '').toLowerCase().replace(/^@/, '').trim();
+  const e = (email || '').toLowerCase().trim();
+
+  // Exclude QA fleet personas (@qa_*, qa_*, *@qa.*)
+  if (h.startsWith('qa_') || e.startsWith('qa_') || e.includes('@qa.')) return true;
+
+  // Exclude automated test suites (@test*, test*, spam_test*)
+  if (h.startsWith('test') || h.startsWith('spam_test') || e.startsWith('test') || e.startsWith('spam_test')) return true;
+
+  // Exclude system root accounts (@root, root@*)
+  if (h === 'root' || e.startsWith('root@') || e === 'root') return true;
+
+  // Exclude automated delivery / webhook runners (@delivered*)
+  if (h.startsWith('delivered') || e.startsWith('delivered')) return true;
+
+  // Exclude default raw phone-number handles with 0 photos
+  const isPhoneHandle = /^(\+?[0-9_\-\s]{7,20})$/.test(h);
+  if (isPhoneHandle && postCount === 0) return true;
+
+  return false;
+}
+
+/**
  * Fetches and categorizes all Neogram users:
- * 1. Active: Currently connected via WebSocket and marked online
- * 2. Away: Currently connected and marked away OR disconnected with is_away flag
- * 3. Inactive: Offline / standby carrier
- *
- * Each sub-category is strictly ordered alphabetically by handle, then by UIN.
+ * 1. Filters out internal QA, test, root, delivered, and empty phone handles
+ * 2. Compiles "Featured Neighborhood Galleries" sorted by most recently updated photos
+ * 3. Categorizes live carrier presence (Active, Away, Inactive)
  */
 export async function fetchCategorizedDirectory(): Promise<CategorizedDirectory> {
   const usersRes = await query(`
@@ -57,12 +85,24 @@ export async function fetchCategorizedDirectory(): Promise<CategorizedDirectory>
   const activeUsers: DirectoryUser[] = [];
   const awayUsers: DirectoryUser[] = [];
   const inactiveUsers: DirectoryUser[] = [];
+  const allEligibleUsers: DirectoryUser[] = [];
 
   for (const row of usersRes.rows) {
     const handle = (row.handle || row.email.split('@')[0] || 'surfer').trim();
     const uin = row.uin ? parseInt(row.uin, 10) : 100101;
     const avatarPath = row.avatarPath && row.avatarPath.trim() ? row.avatarPath : '/icons/default-avatar.svg';
-    const postCount = await getPostCountForUser(row.id);
+    
+    // Retrieve posts to inspect latest photo timestamp and count
+    const posts = await getPostsForUser(row.id);
+    const postCount = posts.length;
+    const latestPost = posts.length > 0 ? posts[0] : null;
+    const latestPostDate = latestPost?.createdAt ? new Date(latestPost.createdAt).toISOString() : null;
+    const latestThumbnail = latestPost?.thumbnailUrl || latestPost?.thumbnailPath || null;
+
+    // Filter out QA personas, test runs, and empty phone accounts from public directory
+    if (isExcludedFromDirectory(handle, row.email, postCount)) {
+      continue;
+    }
 
     const socketSession = activeSockets.get(row.id);
     let status: 'active' | 'away' | 'inactive' = 'inactive';
@@ -92,10 +132,14 @@ export async function fetchCategorizedDirectory(): Promise<CategorizedDirectory>
       status,
       statusMessage,
       postCount,
+      latestPostDate,
+      latestThumbnail,
       profileUrl: `/user/@${encodeURIComponent(handle)}`,
       siteUrl: row.siteUrl,
       createdAt: row.createdAt,
     };
+
+    allEligibleUsers.push(directoryEntry);
 
     if (status === 'active') {
       activeUsers.push(directoryEntry);
@@ -117,11 +161,33 @@ export async function fetchCategorizedDirectory(): Promise<CategorizedDirectory>
   awayUsers.sort(sortComparator);
   inactiveUsers.sort(sortComparator);
 
+  // "Featured Neighborhood Galleries" sorted by most recently updated photos
+  const featuredUsers = [...allEligibleUsers].sort((a, b) => {
+    // 1. Users with posts first
+    if (a.postCount > 0 && b.postCount === 0) return -1;
+    if (a.postCount === 0 && b.postCount > 0) return 1;
+
+    // 2. Ordered by most recently updated photo timestamp
+    if (a.postCount > 0 && b.postCount > 0 && a.latestPostDate && b.latestPostDate) {
+      const diff = new Date(b.latestPostDate).getTime() - new Date(a.latestPostDate).getTime();
+      if (diff !== 0) return diff;
+    }
+
+    // 3. Online status priority (active > away > inactive)
+    const statusScore = (s: string) => (s === 'active' ? 2 : s === 'away' ? 1 : 0);
+    const scoreDiff = statusScore(b.status) - statusScore(a.status);
+    if (scoreDiff !== 0) return scoreDiff;
+
+    // 4. Alphabetical by handle
+    return a.handle.localeCompare(b.handle, undefined, { sensitivity: 'base' });
+  });
+
   return {
     active: activeUsers,
     away: awayUsers,
     inactive: inactiveUsers,
-    total: usersRes.rows.length,
+    featured: featuredUsers,
+    total: allEligibleUsers.length,
   };
 }
 
@@ -142,6 +208,7 @@ directoryRouter.get(['/directory', '/users'], async (req: Request, res: Response
       res.json({
         ok: true,
         total: data.total,
+        featured: data.featured,
         categories: {
           active: data.active,
           away: data.away,
@@ -157,6 +224,7 @@ directoryRouter.get(['/directory', '/users'], async (req: Request, res: Response
       activeUsers: data.active,
       awayUsers: data.away,
       inactiveUsers: data.inactive,
+      featuredUsers: data.featured,
       totalCount: data.total,
     });
   } catch (err) {

@@ -1,3 +1,4 @@
+import { isSafePublicUrl } from '../utils/safeFetch';
 import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import { query } from '../db';
@@ -8,7 +9,11 @@ import { testNekowebConnection, deployToNekoweb } from '../services/nekowebPubli
 import { testGitHubConnection, deployToGitHub } from '../services/githubPublisher';
 import { processAvatarBuffer } from '../services/imageProcessor';
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => cb(null, /^image\/(jpeg|png|webp|gif|avif)$/i.test(file.mimetype)),
+});
 
 export const settingsRouter = Router();
 
@@ -237,6 +242,13 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
           res.status(400).json({
             ok: false,
             error: 'Site URL must be a valid HTTP or HTTPS address (e.g. https://yoursite.neocities.org).',
+          });
+          return;
+        }
+        if (!isSafePublicUrl(trimmed)) {
+          res.status(400).json({
+            ok: false,
+            error: 'Site URL must be a public https:// address (private/internal hosts are not allowed).',
           });
           return;
         }
