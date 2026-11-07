@@ -542,22 +542,27 @@ export async function deployFilesToNekoweb(
   // Upload each folder's batch directly via POST /api/files/upload (without ZIP!)
   let uploadedCount = 0;
   for (const [dirPath, folderFiles] of filesByDir.entries()) {
-    // Ensure subdirectory exists on Nekoweb if not root
-    if (dirPath !== '/' && !ensuredDirs.has(dirPath)) {
-      try {
-        const createParams = new URLSearchParams();
-        createParams.append('isFolder', 'true');
-        createParams.append('pathname', dirPath.replace(/^\/+/, ''));
-        await fetch('https://nekoweb.org/api/files/create', {
-          method: 'POST',
-          headers: {
-            'Authorization': apiKey,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: createParams.toString(),
-        });
-        ensuredDirs.add(dirPath);
-      } catch (_dirErr) {}
+    // Ensure nested subdirectories exist on Nekoweb progressively
+    const parts = dirPath.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
+    let accum = '';
+    for (const part of parts) {
+      accum = accum ? `${accum}/${part}` : part;
+      if (!ensuredDirs.has(accum)) {
+        try {
+          const createParams = new URLSearchParams();
+          createParams.append('isFolder', 'true');
+          createParams.append('pathname', accum);
+          await fetch('https://nekoweb.org/api/files/create', {
+            method: 'POST',
+            headers: {
+              'Authorization': apiKey,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: createParams.toString(),
+          });
+          ensuredDirs.add(accum);
+        } catch (_dirErr) {}
+      }
     }
 
     // Nekoweb /files/upload accepts files for pathname

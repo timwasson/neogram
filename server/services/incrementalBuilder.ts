@@ -372,14 +372,18 @@ export async function buildAndDeployNewPhoto(options: {
       const deployRes = await dispatchDeltaDeploy(siteId, deploymentType, deploymentCredsRaw, deltaFiles, true);
       deployedRemote = deployRes.deployed;
 
-      // Zero-retention disk purge of local media
-      try {
-        const uploadsDir = path.join(outputDir, 'uploads');
-        if (existsSync(uploadsDir)) {
-          await fs.rm(uploadsDir, { recursive: true, force: true });
-          console.log(`[:> ZERO-RETENTION PURGE] Purged local media directory: ${uploadsDir}`);
-        }
-      } catch (_purgeErr) {}
+      // Zero-retention disk purge of local media strictly if remote deployment succeeded
+      if (deployRes.deployed) {
+        try {
+          const uploadsDir = path.join(outputDir, 'uploads');
+          if (existsSync(uploadsDir)) {
+            await fs.rm(uploadsDir, { recursive: true, force: true });
+            console.log(`[:> ZERO-RETENTION PURGE] Purged local media directory: ${uploadsDir}`);
+          }
+        } catch (_purgeErr) {}
+      } else {
+        console.warn('[:> DEPLOY WARNING] Remote deploy failed or skipped; preserving local media for station fallback.');
+      }
     }
 
     const durationMs = Date.now() - startTime;
