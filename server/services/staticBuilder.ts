@@ -443,6 +443,30 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
       ? await getPostsForSite(siteId)
       : (userId ? await getPostsForUser(userId) : await getAllPosts());
 
+    // If siteId is the user's default/primary site, adopt any unassigned posts belonging to effectiveUserId
+    if (siteId && effectiveUserId && (targetSite?.is_default || rawPosts.length === 0)) {
+      const { getPostsForSite: getFallbackPosts, savePost } = await import('./postStorage');
+      const fallbackPosts = await getFallbackPosts(effectiveUserId);
+      const unassigned = fallbackPosts.filter((p) => !p.siteId || p.siteId === siteId);
+      if (unassigned.length > 0) {
+        const existingIds = new Set(rawPosts.map((p) => p.id));
+        for (const unassignedPost of unassigned) {
+          if (!existingIds.has(unassignedPost.id)) {
+            const adoptedPost = {
+              ...unassignedPost,
+              siteId: siteId,
+              siteName: targetSite?.name || unassignedPost.siteName,
+              siteSlug: targetSite?.slug || unassignedPost.siteSlug,
+            };
+            await savePost(adoptedPost);
+            rawPosts.push(adoptedPost);
+            existingIds.add(adoptedPost.id);
+          }
+        }
+        rawPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }
+    }
+
     const commentsByPost: Record<string, any[]> = {};
     for (const post of rawPosts) {
       if (post.imagePath) {

@@ -195,9 +195,18 @@ async function dispatchDeltaDeploy(
  * Helper to fetch and format all posts for a site/user.
  */
 async function fetchFormattedPosts(siteId?: string, userId?: string, fullSiteUrl: string = '', baseNeogramUrl: string = '') {
-  const posts = siteId
+  let posts = siteId
     ? await getPostsForSite(siteId)
     : (userId ? await getPostsForUser(userId) : []);
+
+  if (siteId && userId) {
+    const userFallback = await getPostsForSite(userId);
+    const unassigned = userFallback.filter((p) => (!p.siteId || p.siteId === siteId) && !posts.some((existing) => existing.id === p.id));
+    if (unassigned.length > 0) {
+      posts = [...posts, ...unassigned];
+      posts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+  }
 
   return posts.map((post) => {
     let imageUrl = post.imagePath;

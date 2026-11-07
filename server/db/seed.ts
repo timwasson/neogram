@@ -95,6 +95,12 @@ export async function seedInitialPostsIfEmpty() {
 
     console.log('[:> DB SEED] Seeding initial retro posts into static storage JSON...');
 
+    // Look up if user has a default site
+    const siteResult = await query("SELECT id, name, slug FROM sites WHERE user_id = $1 AND is_default = TRUE LIMIT 1", [userId]);
+    const seedSiteId = siteResult.rows[0]?.id;
+    const seedSiteName = siteResult.rows[0]?.name;
+    const seedSiteSlug = siteResult.rows[0]?.slug;
+
     for (let i = 0; i < PLACEHOLDER_IMAGES.length; i++) {
       const p = PLACEHOLDER_IMAGES[i];
       try {
@@ -102,6 +108,9 @@ export async function seedInitialPostsIfEmpty() {
         await savePost({
           id: postId,
           userId,
+          siteId: seedSiteId,
+          siteName: seedSiteName,
+          siteSlug: seedSiteSlug,
           imagePath: p.imagePath,
           thumbnailPath: p.thumbnailPath,
           photos: [{ imagePath: p.imagePath, thumbnailPath: p.thumbnailPath }],
