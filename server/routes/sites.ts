@@ -169,17 +169,22 @@ sitesRouter.post('/sites/:id/deploy', async (req: Request, res: Response, next: 
 
     if (site.hasApiKey) {
       let deployRes;
-      const isNeko = site.deploymentType === 'nekoweb';
-      if (isNeko) {
+      let hostLabel = 'Neocities';
+      if (site.deploymentType === 'nekoweb') {
+        hostLabel = 'Nekoweb';
         const { deployToNekoweb } = await import('../services/nekowebPublisher');
         deployRes = await deployToNekoweb(site.id, true);
+      } else if (site.deploymentType === 'github') {
+        hostLabel = 'GitHub Pages';
+        const { deployToGitHub } = await import('../services/githubPublisher');
+        deployRes = await deployToGitHub(site.id, true);
       } else {
         const { deployToNeocities } = await import('../services/neocitiesPublisher');
         deployRes = await deployToNeocities(site.id, true);
       }
       res.json({
         ok: true,
-        message: `Site "${site.name}" published live to ${isNeko ? 'Nekoweb' : 'Neocities'}!`,
+        message: `Site "${site.name}" published live to ${hostLabel}!`,
         deploy: deployRes,
       });
     } else {

@@ -22,6 +22,9 @@ services:
       resources:
         limits:
           memory: 700M
+    volumes:
+      - static_galleries:/app/dist/static-galleries
+      - public_uploads:/app/public/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -48,4 +51,8 @@ services:
 volumes:
   postgres_data:
     name: neogram_postgres_data
+  static_galleries:
+    name: neogram_static_galleries
+  public_uploads:
+    name: neogram_public_uploads
 

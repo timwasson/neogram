@@ -17,9 +17,15 @@ export interface StationSyncResult {
  */
 export async function checkAndSyncStationFeed(userId: string): Promise<StationSyncResult> {
   const userRes = await query(
-    `SELECT id, handle, email, site_url as "siteUrl", deploy_path as "deployPath",
-            deployment_type as "deploymentType", last_deployed_at as "lastDeployedAt"
-     FROM users WHERE id = $1`,
+    `SELECT u.id, u.handle, u.email,
+            COALESCE(s.site_url, u.site_url) as "siteUrl",
+            COALESCE(s.deploy_path, u.deploy_path) as "deployPath",
+            COALESCE(s.deployment_type, u.deployment_type) as "deploymentType",
+            COALESCE(s.last_deployed_at, u.last_deployed_at) as "lastDeployedAt",
+            s.id as "siteId"
+     FROM users u
+     LEFT JOIN sites s ON s.user_id = u.id AND s.is_default = TRUE
+     WHERE u.id = $1`,
     [userId]
   );
 
@@ -28,6 +34,11 @@ export async function checkAndSyncStationFeed(userId: string): Promise<StationSy
   }
 
   const user = userRes.rows[0];
+
+  // QA accounts are strictly immune to automated station wiping
+  if (user.email && user.email.toLowerCase().endsWith('@qa.neogram.club')) {
+    return { checked: false, wiped: false, reason: 'QA accounts are immune to automated wipe' };
+  }
 
   // If station is in sandbox mode (never deployed to an external static host), skip
   if (!user.deploymentType || user.deploymentType === 'none' || !user.lastDeployedAt) {
@@ -64,6 +75,39 @@ export async function checkAndSyncStationFeed(userId: string): Promise<StationSy
         if (!data || typeof data !== 'object') {
           throw new Error('Invalid JSON structure');
         }
+        // Hydrate local post storage from remote live feed.json
+        if (Array.isArray(data.posts) && data.posts.length > 0) {
+          const { savePost } = await import('./postStorage');
+          for (const post of data.posts) {
+            const rawPhotos = post.photos || [{
+              imagePath: post.imagePath || post.imageUrl,
+              thumbnailPath: post.thumbnailPath || post.thumbnailUrl || post.imagePath || post.imageUrl,
+            }];
+            await savePost({
+              id: post.id,
+              userId: post.userId || userId,
+              siteId: post.siteId || user.siteId,
+              siteName: post.siteName,
+              siteSlug: post.siteSlug,
+              imagePath: post.imagePath || post.imageUrl,
+              thumbnailPath: post.thumbnailPath || post.thumbnailUrl || post.imagePath || post.imageUrl,
+              imageUrl: post.imageUrl || post.imagePath,
+              thumbnailUrl: post.thumbnailUrl || post.thumbnailPath,
+              photos: rawPhotos,
+              caption: post.caption || '',
+              filterApplied: post.filterApplied || post.filter || 'none',
+              mood: post.mood ?? null,
+              webring: post.webring ?? null,
+              location: post.location ?? null,
+              likes: post.likes || 0,
+              createdAt: post.createdAt,
+              comments: post.comments || [],
+              commentsCount: post.commentsCount ?? (post.comments || []).length,
+              commentsUrl: post.commentsUrl,
+              actions: post.actions,
+            });
+          }
+        }
         return { checked: true, wiped: false };
       } catch (_parseErr) {
         console.warn(`[:> STATION SYNC] Remote feed.json at ${feedUrl} is corrupt/unparseable. Purging local post cache to start clean...`);
@@ -87,6 +131,13 @@ export async function checkAndSyncStationFeed(userId: string): Promise<StationSy
  * Clears all local post records, resets deployment timestamps, and cleans up local static build files.
  */
 export async function wipeStationData(userId: string): Promise<void> {
+  // Never wipe QA fleet test accounts
+  const checkUser = await query('SELECT email FROM users WHERE id = $1', [userId]);
+  if (checkUser.rows[0]?.email?.toLowerCase().endsWith('@qa.neogram.club')) {
+    console.log(`[:> STATION SYNC] Refusing to wipe QA account ${checkUser.rows[0].email}`);
+    return;
+  }
+
   // 1. Reset deployment tracking
   await query('UPDATE users SET last_deployed_at = NULL WHERE id = $1', [userId]);
   await query('UPDATE sites SET last_deployed_at = NULL WHERE user_id = $1', [userId]);

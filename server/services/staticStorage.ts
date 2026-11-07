@@ -207,6 +207,20 @@ export async function writeRemoteJson(user: any, relPath: string, data: any): Pr
         console.error(`[:> NEKOWEB UPLOAD] Failure uploading ${remotePath}:`, nekoErr);
         return false;
       }
+    } else if (deploymentType === 'github') {
+      try {
+        const { deployFilesToGitHub } = await import('./githubPublisher');
+        const res = await deployFilesToGitHub(user.id, [
+          {
+            relativePath: relPath,
+            content: jsonString,
+          },
+        ], false);
+        return res.ok;
+      } catch (ghErr) {
+        console.error(`[:> GITHUB UPLOAD] Failure uploading ${remotePath}:`, ghErr);
+        return false;
+      }
     }
   }
 

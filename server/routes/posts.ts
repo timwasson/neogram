@@ -195,15 +195,20 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
       return;
     }
 
-    // 3. Resolve live Neocities image URLs with deploy_path subdirectory if host connected
-    const siteBase = targetSite.siteName
-      ? `https://${targetSite.siteName}.neocities.org`
-      : (targetSite.siteUrl ? targetSite.siteUrl.replace(/\/+$/, '') : `https://${user.handle || 'user'}.neocities.org`);
+    // 3. Resolve live static host image URLs with deploy_path subdirectory if host connected
+    const hostDomain = targetSite.deploymentType === 'nekoweb' ? 'nekoweb.org' : 'neocities.org';
+    const siteBase = targetSite.siteUrl
+      ? targetSite.siteUrl.replace(/\/+$/, '')
+      : (targetSite.siteName
+          ? `https://${targetSite.siteName}.${hostDomain}`
+          : `https://${user.handle || 'user'}.${hostDomain}`);
 
     const rawDeployPath = targetSite.deployPath !== null && targetSite.deployPath !== undefined
       ? String(targetSite.deployPath).trim().replace(/^\/+|\/+$/g, '')
       : 'neogram';
-    const deployPrefix = rawDeployPath ? `/${rawDeployPath}` : '';
+    const deployPrefix = rawDeployPath
+      ? (siteBase.toLowerCase().endsWith(`/${rawDeployPath.toLowerCase()}`) ? '' : `/${rawDeployPath}`)
+      : '';
 
     const photosList = processedList.map((proc) => {
       const finalImg = hasApiKey
@@ -275,6 +280,10 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
         const { deployToNekoweb } = await import('../services/nekowebPublisher');
         await deployToNekoweb(targetSite.id, true);
         console.log(`[:> INITIAL DEPLOY] Deployed baseline static assets to Nekoweb for site ${targetSite.id}`);
+      } else if (targetSite.deploymentType === 'github') {
+        const { deployToGitHub } = await import('../services/githubPublisher');
+        await deployToGitHub(targetSite.id, true);
+        console.log(`[:> INITIAL DEPLOY] Deployed baseline static assets to GitHub Pages for site ${targetSite.id}`);
       } else {
         const { deployToNeocities } = await import('../services/neocitiesPublisher');
         await deployToNeocities(targetSite.id, true);
@@ -717,6 +726,9 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
     import('../services/nekowebPublisher')
       .then((m) => m.triggerNekowebAutoDeployIfEnabled(updated.siteId || updated.userId))
       .catch((err) => console.error('[:> NEKOWEB AUTO-DEPLOY] Hook error:', err));
+    import('../services/githubPublisher')
+      .then((m) => m.triggerGitHubAutoDeployIfEnabled(updated.siteId || updated.userId))
+      .catch((err) => console.error('[:> GITHUB AUTO-DEPLOY] Hook error:', err));
 
     res.json({
       ok: true,
@@ -776,6 +788,11 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
       deleteFromNekoweb(siteId || user.id, deleteList).catch((err) => {
         console.warn('[:> NEKOWEB DELETE] Warning: could not purge remote files:', err);
       });
+
+      const { deleteFromGitHub } = await import('../services/githubPublisher');
+      deleteFromGitHub(siteId || user.id, deleteList).catch((err) => {
+        console.warn('[:> GITHUB DELETE] Warning: could not purge remote files:', err);
+      });
     }
 
     // Remove legacy local files from public/uploads if they exist
@@ -800,6 +817,9 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     import('../services/nekowebPublisher')
       .then((m) => m.triggerNekowebAutoDeployIfEnabled(siteId || user.id))
       .catch((err) => console.error('[:> NEKOWEB AUTO-DEPLOY] Hook error:', err));
+    import('../services/githubPublisher')
+      .then((m) => m.triggerGitHubAutoDeployIfEnabled(siteId || user.id))
+      .catch((err) => console.error('[:> GITHUB AUTO-DEPLOY] Hook error:', err));
 
     triggerFollowersCascade(user.id);
 

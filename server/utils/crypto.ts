@@ -27,6 +27,16 @@ export interface NekowebCredentials {
   autoDeploy?: boolean;
 }
 
+export interface GitHubCredentials {
+  apiKey: string; // GitHub PAT (Personal Access Token)
+  repo?: string; // "owner/repo" or "repo"
+  owner?: string; // repo owner
+  branch?: string; // target branch, e.g. "gh-pages" (default) or "main"
+  siteName?: string; // optional label/alias
+  siteUrl?: string; // e.g. "https://user.github.io/repo"
+  autoDeploy?: boolean;
+}
+
 /**
  * Encrypt a plaintext string or credentials object into a Buffer for PostgreSQL BYTEA storage.
  * Serialization layout: [12-byte IV][16-byte AuthTag][Ciphertext]

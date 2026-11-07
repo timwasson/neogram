@@ -583,11 +583,13 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
           COALESCE(u.handle, split_part(u.email, '@', 1)) as handle,
           u.uin,
           u.avatar_path as "avatarPath",
-          u.site_url as "siteUrl",
-          u.deploy_path as "deployPath",
-          u.last_deployed_at as "lastDeployedAt"
+          COALESCE(s.site_url, u.site_url) as "siteUrl",
+          COALESCE(s.deploy_path, u.deploy_path) as "deployPath",
+          COALESCE(s.last_deployed_at, u.last_deployed_at) as "lastDeployedAt",
+          s.id as "siteId"
         FROM follows f
         JOIN users u ON f.following_id = u.id
+        LEFT JOIN sites s ON s.user_id = u.id AND s.is_default = TRUE
         WHERE f.follower_id = $1
         ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC
       `, [targetFollowerId]);
@@ -600,6 +602,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
         siteUrl: r.siteUrl,
         deployPath: r.deployPath,
         lastDeployedAt: r.lastDeployedAt,
+        siteId: r.siteId,
       }));
 
       const federatedPosts = await aggregateFederatedFriendsFeed(friendTargets, 100);

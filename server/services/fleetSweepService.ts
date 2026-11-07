@@ -3,6 +3,7 @@ import { query } from '../db';
 import { buildQueue, SweepTelemetry } from './staticBuilder';
 import { deployFilesToNeocities, deployToNeocities, DeltaFile } from './neocitiesPublisher';
 import { deployFilesToNekoweb, deployToNekoweb } from './nekowebPublisher';
+import { deployFilesToGitHub, deployToGitHub } from './githubPublisher';
 import { logAdminAction } from './systemSettings';
 
 export interface SweepOptions {
@@ -84,6 +85,8 @@ export async function initiateFleetSweep(options: SweepOptions): Promise<{ total
         if (mode === 'assets') {
           if (site.deploymentType === 'nekoweb') {
             await deployFilesToNekoweb(site.id, deltaFiles, true);
+          } else if (site.deploymentType === 'github') {
+            await deployFilesToGitHub(site.id, deltaFiles, true);
           } else {
             await deployFilesToNeocities(site.id, deltaFiles, true);
           }
@@ -91,6 +94,8 @@ export async function initiateFleetSweep(options: SweepOptions): Promise<{ total
           // 'full' mode: direct compilation and deployment within queue worker
           if (site.deploymentType === 'nekoweb') {
             await deployToNekoweb(site.id, true, { directBuild: true });
+          } else if (site.deploymentType === 'github') {
+            await deployToGitHub(site.id, true, { directBuild: true });
           } else {
             await deployToNeocities(site.id, true, { directBuild: true });
           }

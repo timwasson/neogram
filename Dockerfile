@@ -18,6 +18,9 @@ COPY . .
 # Compile Sass retro stylesheets to public/css/neogram.css
 RUN npm run sass:build
 
+# Ensure persistent runtime directories exist
+RUN mkdir -p /app/dist/static-galleries /app/public/uploads
+
 # Set ownership to non-root node user and switch
 RUN chown -R node:node /app
 

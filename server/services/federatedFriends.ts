@@ -80,12 +80,22 @@ export interface FriendTarget {
  * Resolves the canonical public feed.json URL for a given station user/site.
  */
 export function resolveFeedUrl(friend: FriendTarget): string {
-  let base = (friend.siteUrl || '').replace(/\/+$/, '');
+  let base = (friend.siteUrl || '').trim().replace(/\/+$/, '');
   if (!base) {
     base = `https://${friend.handle}.neocities.org`;
   }
+  if (base.toLowerCase().endsWith('/feed.json')) {
+    return base;
+  }
   const deploy = (friend.deployPath || 'neogram').trim().replace(/^\/+|\/+$/g, '');
-  return deploy ? `${base}/${deploy}/feed.json` : `${base}/feed.json`;
+  if (deploy) {
+    // If base already ends with /deploy, do not duplicate the subdirectory
+    if (base.toLowerCase().endsWith(`/${deploy.toLowerCase()}`)) {
+      return `${base}/feed.json`;
+    }
+    return `${base}/${deploy}/feed.json`;
+  }
+  return `${base}/feed.json`;
 }
 
 /**
@@ -184,6 +194,40 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
     if (res.ok) {
       const data = (await res.json()) as UserFeedPayload;
       if (data && Array.isArray(data.posts)) {
+        // Hydrate local post storage for station profile & local feed consistency
+        if (data.posts.length > 0 && friend.id) {
+          import('./postStorage').then(({ savePost }) => {
+            for (const post of data.posts) {
+              const rawPhotos = (post as any).photos || [{
+                imagePath: post.imagePath || post.imageUrl,
+                thumbnailPath: post.thumbnailPath || post.thumbnailUrl || post.imagePath || post.imageUrl,
+              }];
+              savePost({
+                id: post.id,
+                userId: (post as any).userId || friend.id,
+                siteId: post.siteId || friend.siteId,
+                siteName: post.siteName,
+                siteSlug: post.siteSlug,
+                imagePath: post.imagePath || post.imageUrl,
+                thumbnailPath: post.thumbnailPath || post.thumbnailUrl || post.imagePath || post.imageUrl,
+                imageUrl: post.imageUrl || post.imagePath,
+                thumbnailUrl: post.thumbnailUrl || post.thumbnailPath,
+                photos: rawPhotos,
+                caption: post.caption || '',
+                filterApplied: (post as any).filterApplied || post.filter || 'none',
+                mood: post.mood ?? null,
+                webring: post.webring ?? null,
+                location: post.location ?? null,
+                likes: post.likes || 0,
+                createdAt: post.createdAt,
+                comments: post.comments || [],
+                commentsCount: post.commentsCount ?? (post.comments || []).length,
+                commentsUrl: post.commentsUrl,
+                actions: post.actions,
+              }).catch(() => {});
+            }
+          }).catch(() => {});
+        }
         return mapFeedPosts(data, friend);
       }
       return [];
