@@ -88,13 +88,21 @@ async function findOrFetchSnapshot(opts: Record<string, string>): Promise<any> {
 
   // 4. Check ~/Downloads/db-snapshot.json (downloaded via /admin UI)
   const downloadFile = path.join(os.homedir(), 'Downloads', 'db-snapshot.json');
-  if (existsSync(downloadFile)) {
-    const stats = statSync(downloadFile);
-    const ageHours = (Date.now() - stats.mtimeMs) / (1000 * 60 * 60);
-    if (ageHours < 48) {
-      console.log(`${CYAN}[:> DB SYNC] Detected browser download from ~/Downloads (modified ${Math.round(ageHours)}h ago):${RESET} ${YELLOW}${downloadFile}${RESET}`);
-      const raw = await fs.readFile(downloadFile, 'utf-8');
-      return JSON.parse(raw);
+  try {
+    if (existsSync(downloadFile)) {
+      const stats = statSync(downloadFile);
+      const ageHours = (Date.now() - stats.mtimeMs) / (1000 * 60 * 60);
+      if (ageHours < 48) {
+        console.log(`${CYAN}[:> DB SYNC] Detected browser download from ~/Downloads (modified ${Math.round(ageHours)}h ago):${RESET} ${YELLOW}${downloadFile}${RESET}`);
+        const raw = await fs.readFile(downloadFile, 'utf-8');
+        return JSON.parse(raw);
+      }
+    }
+  } catch (err: any) {
+    if (err.code === 'EPERM' || err.code === 'EACCES') {
+      console.warn(`${YELLOW}[:> DB SYNC NOTE] macOS privacy sandbox restricted direct read access to ~/Downloads.${RESET}`);
+      console.warn(`${YELLOW}                  Please move or copy db-snapshot.json into the project directory:${RESET}`);
+      console.warn(`                  ${CYAN}cp ~/Downloads/db-snapshot.json ./db-snapshot.json${RESET}\n`);
     }
   }
 

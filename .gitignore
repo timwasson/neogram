@@ -9,6 +9,7 @@ coverage/
 .env*.local
 !.env.example
 qa-sessions.json
+db-snapshot.json
 *.pem
 *.key
 *.cert
