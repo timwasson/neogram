@@ -731,6 +731,7 @@ embedsRouter.get('/api/user/:identifier/friends-feed', async (req: Request, res:
       ok: true,
       station: targetUser.handle,
       friendsCount: friendsRes.rows.length,
+      friends: friendsRes.rows.map(r => ({ id: r.id, handle: r.handle, uin: r.uin, siteUrl: r.siteUrl })),
       posts,
     });
   } catch (err: any) {

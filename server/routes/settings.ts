@@ -5,6 +5,7 @@ import { COOKIE_NAME, verifySessionToken, extractToken, signSessionToken, setSes
 import { encryptCredentials, decryptCredentials, maskApiKey, NeocitiesCredentials } from '../utils/crypto';
 import { testNeocitiesConnection, deployToNeocities } from '../services/neocitiesPublisher';
 import { testNekowebConnection, deployToNekoweb } from '../services/nekowebPublisher';
+import { testGitHubConnection, deployToGitHub } from '../services/githubPublisher';
 import { processAvatarBuffer } from '../services/imageProcessor';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -191,7 +192,7 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
     }
 
     const existingUser = existingRes.rows[0];
-    let creds = decryptCredentials<NeocitiesCredentials>(existingUser.deployment_credentials) || { apiKey: '' };
+    let creds: any = decryptCredentials<any>(existingUser.deployment_credentials) || { apiKey: '' };
 
     // If a new API key was provided (and not just masked stars)
     if (apiKey && typeof apiKey === 'string' && !apiKey.startsWith('••••') && apiKey.trim().length > 0) {
@@ -200,6 +201,14 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
 
     if (siteName && typeof siteName === 'string') {
       creds.siteName = siteName.trim();
+    }
+
+    if (req.body.repo && typeof req.body.repo === 'string') {
+      creds.repo = req.body.repo.trim();
+    }
+
+    if (req.body.branch && typeof req.body.branch === 'string') {
+      creds.branch = req.body.branch.trim();
     }
 
     const encryptedCreds = encryptCredentials(creds);
@@ -220,9 +229,19 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
     }
 
     const finalDeployType = deploymentType || existingUser.deployment_type || 'neocities';
-    if (!finalSiteUrl && creds.siteName) {
-      const hostDomain = finalDeployType === 'nekoweb' ? 'nekoweb.org' : 'neocities.org';
-      finalSiteUrl = `https://${creds.siteName}.${hostDomain}`;
+    if (!finalSiteUrl && (creds.siteName || creds.repo)) {
+      if (finalDeployType === 'github') {
+        const repoStr = creds.repo || creds.siteName;
+        if (repoStr.includes('/')) {
+          const [ghOwner, ghRepo] = repoStr.split('/');
+          finalSiteUrl = `https://${ghOwner}.github.io/${ghRepo}`;
+        } else {
+          finalSiteUrl = `https://${existingUser.handle || 'user'}.github.io/${repoStr}`;
+        }
+      } else {
+        const hostDomain = finalDeployType === 'nekoweb' ? 'nekoweb.org' : 'neocities.org';
+        finalSiteUrl = `https://${creds.siteName}.${hostDomain}`;
+      }
     }
     const finalAutoDeploy = typeof autoDeploy === 'boolean' ? autoDeploy : !!existingUser.auto_deploy;
     const finalBuildHtml = typeof buildHtml === 'boolean' ? buildHtml : (existingUser.build_html !== false);
@@ -271,6 +290,8 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
         deployPath: finalDeployPath,
         apiKey: apiKey && !apiKey.startsWith('••••') ? apiKey : undefined,
         siteName: creds.siteName,
+        repo: creds.repo,
+        branch: creds.branch,
         autoDeploy: finalAutoDeploy,
         buildHtml: finalBuildHtml,
       });
@@ -283,6 +304,8 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
         deployPath: finalDeployPath,
         apiKey: apiKey && !apiKey.startsWith('••••') ? apiKey : undefined,
         siteName: creds.siteName,
+        repo: creds.repo,
+        branch: creds.branch,
         autoDeploy: finalAutoDeploy,
         buildHtml: finalBuildHtml,
         isDefault: true,
@@ -432,6 +455,71 @@ settingsRouter.post('/settings/test-nekoweb', async (req: Request, res: Response
 });
 
 /**
+ * 3c. POST /api/settings/test-github - Test GitHub Pages connection and repository permissions
+ */
+settingsRouter.post('/settings/test-github', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.userId;
+    const { apiKey, repo, branch, siteId } = req.body;
+
+    let keyToTest: string | null = null;
+    let repoToTest: string | null = repo || null;
+    let branchToTest: string = branch || 'gh-pages';
+
+    if (apiKey && typeof apiKey === 'string' && !apiKey.startsWith('••••') && apiKey.trim().length > 0) {
+      keyToTest = apiKey.trim();
+    } else {
+      if (siteId) {
+        const siteRes = await query('SELECT deployment_credentials FROM sites WHERE id = $1 AND user_id = $2', [siteId, userId]);
+        if (siteRes.rows.length > 0) {
+          const creds = decryptCredentials<any>(siteRes.rows[0].deployment_credentials);
+          keyToTest = creds?.apiKey || null;
+          if (!repoToTest) repoToTest = creds?.repo || creds?.siteName || null;
+          if (creds?.branch) branchToTest = creds.branch;
+        }
+      }
+      if (!keyToTest) {
+        const userRes = await query('SELECT deployment_credentials, handle FROM users WHERE id = $1', [userId]);
+        if (userRes.rows.length > 0) {
+          const creds = decryptCredentials<any>(userRes.rows[0].deployment_credentials);
+          keyToTest = creds?.apiKey || null;
+          if (!repoToTest) repoToTest = creds?.repo || creds?.siteName || null;
+          if (creds?.branch) branchToTest = creds.branch || branchToTest;
+        }
+      }
+    }
+
+    if (!keyToTest) {
+      res.status(400).json({
+        ok: false,
+        error: 'No GitHub Personal Access Token provided or found in your stored profile.',
+      });
+      return;
+    }
+
+    const testResult = await testGitHubConnection(keyToTest, repoToTest || undefined, branchToTest);
+
+    if (!testResult.ok) {
+      res.status(400).json({
+        ok: false,
+        error: testResult.error || 'GitHub connection failed.',
+      });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      message: testResult.info?.repo
+        ? `Verified connection to GitHub repository: "${testResult.info.fullName}" (branch: ${testResult.info.branch})`
+        : `Verified GitHub authentication for user: "@${testResult.info?.owner}"`,
+      info: testResult.info,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * 3c. POST /api/settings/test-connection - Unified connection tester for either provider
  */
 settingsRouter.post('/settings/test-connection', async (req: Request, res: Response, next: NextFunction) => {
@@ -546,6 +634,28 @@ settingsRouter.post('/deploy/nekoweb', async (req: Request, res: Response, next:
     res.status(400).json({
       ok: false,
       error: err.message || 'Deployment to Nekoweb failed.',
+    });
+  }
+});
+
+/**
+ * 4c. POST /api/deploy/github - Trigger immediate live deployment to GitHub Pages
+ */
+settingsRouter.post('/deploy/github', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.userId;
+    const deployResult = await deployToGitHub(userId);
+    res.json({
+      ok: true,
+      message: deployResult.message,
+      filesCount: deployResult.filesCount,
+      durationMs: deployResult.durationMs,
+      siteUrl: deployResult.siteUrl,
+    });
+  } catch (err: any) {
+    res.status(400).json({
+      ok: false,
+      error: err.message || 'Deployment to GitHub Pages failed.',
     });
   }
 });

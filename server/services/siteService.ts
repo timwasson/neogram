@@ -36,6 +36,8 @@ export interface CreateSiteInput {
   deployPath?: string;
   apiKey?: string;
   siteName?: string;
+  repo?: string;
+  branch?: string;
   autoDeploy?: boolean;
   buildHtml?: boolean;
   customCssUrl?: string;
@@ -52,6 +54,8 @@ export interface UpdateSiteInput {
   deployPath?: string;
   apiKey?: string;
   siteName?: string;
+  repo?: string;
+  branch?: string;
   autoDeploy?: boolean;
   buildHtml?: boolean;
   customCssUrl?: string;
@@ -285,7 +289,7 @@ export async function createSite(userId: string, input: CreateSiteInput): Promis
   }
 
   const deploymentType = input.deploymentType || 'neocities';
-  const defaultBaseDomain = deploymentType === 'nekoweb' ? 'nekoweb.org' : 'neocities.org';
+  const defaultBaseDomain = deploymentType === 'nekoweb' ? 'nekoweb.org' : (deploymentType === 'github' ? 'github.io' : 'neocities.org');
   let siteUrl = input.siteUrl && input.siteUrl.trim() ? input.siteUrl.trim() : `https://${handle}.${defaultBaseDomain}`;
   if (!/^https?:\/\//i.test(siteUrl)) {
     siteUrl = `https://${siteUrl}`;
@@ -309,9 +313,11 @@ export async function createSite(userId: string, input: CreateSiteInput): Promis
   // Encrypt credentials if apiKey provided
   let encryptedCreds: Buffer | null = null;
   if (input.apiKey && input.apiKey.trim()) {
-    const creds: NeocitiesCredentials = {
+    const creds: any = {
       apiKey: input.apiKey.trim(),
-      siteName: input.siteName || (input.siteUrl ? input.siteUrl.replace(/https?:\/\//, '').replace(/\.neocities\.org.*$/, '') : handle),
+      siteName: input.siteName || (input.siteUrl ? input.siteUrl.replace(/https?:\/\//, '').replace(/\.(neocities|nekoweb)\.org.*$/, '') : handle),
+      repo: input.repo || input.siteName,
+      branch: input.branch || 'gh-pages',
     };
     encryptedCreds = encryptCredentials(creds);
   }
@@ -398,16 +404,27 @@ export async function updateSite(siteId: string, userId: string, input: UpdateSi
 
   // Handle credentials
   let encryptedCreds = existing.deployment_credentials;
-  let creds = decryptCredentials<NeocitiesCredentials>(existing.deployment_credentials) || { apiKey: '' };
+  let creds: any = decryptCredentials<any>(existing.deployment_credentials) || { apiKey: '' };
 
+  let credsChanged = false;
   if (input.apiKey && typeof input.apiKey === 'string' && !input.apiKey.startsWith('••••') && input.apiKey.trim().length > 0) {
     creds.apiKey = input.apiKey.trim();
-    if (input.siteName) {
-      creds.siteName = input.siteName.trim();
-    }
-    encryptedCreds = encryptCredentials(creds);
-  } else if (input.siteName && creds.apiKey) {
+    credsChanged = true;
+  }
+  if (input.siteName) {
     creds.siteName = input.siteName.trim();
+    credsChanged = true;
+  }
+  if (input.repo) {
+    creds.repo = input.repo.trim();
+    credsChanged = true;
+  }
+  if (input.branch) {
+    creds.branch = input.branch.trim();
+    credsChanged = true;
+  }
+
+  if (credsChanged) {
     encryptedCreds = encryptCredentials(creds);
   }
 

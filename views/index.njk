@@ -1530,7 +1530,7 @@
                                 <option value="neocities" selected>Neocities</option>
                                 <option value="nekoweb">Nekoweb (Live REST API)</option>
                                 <option value="none">Cold-Start / Sandbox</option>
-                                <option value="github" disabled>GitHub Pages (v1.1)</option>
+                                <option value="github">GitHub Pages (Git Commit REST API)</option>
                                 <option value="sftp" disabled>SFTP (v1.1)</option>
                               </select>
                             </div>
@@ -1658,7 +1658,7 @@
                               <option value="neocities" selected>Neocities (Direct REST API v1.0 — Live)</option>
                               <option value="nekoweb">Nekoweb (Direct REST API v1.0 — Live)</option>
                               <option value="none">Cold-Start / Sandbox (Internal Station Profile)</option>
-                              <option value="github" disabled>GitHub Pages (Git Commit Pipeline — Arriving in v1.1)</option>
+                              <option value="github">GitHub Pages (Git Commit REST API — Live)</option>
                               <option value="sftp" disabled>SFTP / SSH Static Sync — Arriving in v1.1</option>
                             </select>
                           </div>
@@ -4224,9 +4224,21 @@
     var previewEl = document.getElementById('deployUrlPreview');
     var deployTypeEl = document.getElementById('settingsDeployType');
     var isNeko = deployTypeEl && deployTypeEl.value === 'nekoweb';
-    var domainSuffix = isNeko ? 'nekoweb.org' : 'neocities.org';
+    var isGitHub = deployTypeEl && deployTypeEl.value === 'github';
 
-    var base = 'https://' + (sitename || 'user') + '.' + domainSuffix;
+    var base = '';
+    if (isGitHub) {
+      if (sitename.includes('/')) {
+        var parts = sitename.split('/');
+        base = 'https://' + parts[0] + '.github.io/' + parts[1];
+      } else {
+        base = 'https://user.github.io/' + (sitename || 'repo');
+      }
+    } else {
+      var domainSuffix = isNeko ? 'nekoweb.org' : 'neocities.org';
+      base = 'https://' + (sitename || 'user') + '.' + domainSuffix;
+    }
+
     if (sitename) {
       urlInput.value = base;
     }
@@ -4240,23 +4252,32 @@
   function updateProviderSettingsUI() {
     var deployTypeEl = document.getElementById('settingsDeployType');
     var isNeko = deployTypeEl && deployTypeEl.value === 'nekoweb';
+    var isGitHub = deployTypeEl && deployTypeEl.value === 'github';
     var domainSuffixEl = document.getElementById('settingsSiteSubdomainSuffix');
     var labelEl = document.getElementById('settingsSiteSubdomainLabel');
     var keyLabelEl = document.getElementById('settingsApiKeyLabel');
     var getKeyBtnEl = document.getElementById('settingsGetKeyBtn');
     var deployBtn = document.getElementById('deployNowBtn');
 
-    if (domainSuffixEl) domainSuffixEl.textContent = isNeko ? '.nekoweb.org' : '.neocities.org';
-    if (labelEl) labelEl.textContent = isNeko ? 'Nekoweb Site Subdomain / Name:' : 'Neocities Site Subdomain / Name:';
-    if (keyLabelEl) keyLabelEl.textContent = isNeko ? 'Nekoweb API Key:' : 'Neocities API Key:';
+    if (domainSuffixEl) {
+      domainSuffixEl.textContent = isGitHub ? ' (owner/repo or repo)' : (isNeko ? '.nekoweb.org' : '.neocities.org');
+    }
+    if (labelEl) {
+      labelEl.textContent = isGitHub ? 'GitHub Repository (e.g. username/my-site or repo):' : (isNeko ? 'Nekoweb Site Subdomain / Name:' : 'Neocities Site Subdomain / Name:');
+    }
+    if (keyLabelEl) {
+      keyLabelEl.textContent = isGitHub ? 'GitHub Personal Access Token (PAT):' : (isNeko ? 'Nekoweb API Key:' : 'Neocities API Key:');
+    }
     if (getKeyBtnEl) {
-      getKeyBtnEl.href = isNeko ? 'https://nekoweb.org/settings' : 'https://neocities.org/settings#api_key';
+      getKeyBtnEl.href = isGitHub ? 'https://github.com/settings/tokens' : (isNeko ? 'https://nekoweb.org/settings' : 'https://neocities.org/settings#api_key');
       var span = getKeyBtnEl.querySelector('span');
-      if (span) span.textContent = isNeko ? 'GET KEY FROM NEKOWEB ↗' : 'GET KEY FROM NEOCITIES ↗';
+      if (span) {
+        span.textContent = isGitHub ? 'CREATE TOKEN ON GITHUB ↗' : (isNeko ? 'GET KEY FROM NEKOWEB ↗' : 'GET KEY FROM NEOCITIES ↗');
+      }
     }
     if (deployBtn) {
       var deploySpan = deployBtn.querySelector('span') || deployBtn;
-      deploySpan.textContent = isNeko ? 'DEPLOY TO NEKOWEB NOW :>' : 'DEPLOY TO NEOCITIES NOW :>';
+      deploySpan.textContent = isGitHub ? 'COMMIT & PUSH TO GITHUB PAGES :>' : (isNeko ? 'DEPLOY TO NEKOWEB NOW :>' : 'DEPLOY TO NEOCITIES NOW :>');
     }
     updateSiteUrlPreview();
   }
@@ -4267,6 +4288,8 @@
     if (!urlInput) return;
     if (type === 'nekoweb') {
       urlInput.placeholder = 'https://yoursite.nekoweb.org';
+    } else if (type === 'github') {
+      urlInput.placeholder = 'https://username.github.io/repo';
     } else if (type === 'none') {
       urlInput.placeholder = 'None (Cold-start station profile)';
     } else {
@@ -4754,10 +4777,11 @@
     if (window.retroAudio) window.retroAudio.playClick();
     var testBtn = document.getElementById('testConnectionBtn');
     var apiKey = document.getElementById('settingsApiKey').value.trim();
+    var sitename = document.getElementById('settingsSiteName').value.trim();
     var indicator = document.getElementById('remoteNodeIndicator');
     var deployType = document.getElementById('settingsDeployType').value;
-    var providerName = deployType === 'nekoweb' ? 'Nekoweb' : 'Neocities';
-    var testEndpoint = deployType === 'nekoweb' ? '/api/settings/test-nekoweb' : '/api/settings/test-neocities';
+    var providerName = deployType === 'github' ? 'GitHub' : (deployType === 'nekoweb' ? 'Nekoweb' : 'Neocities');
+    var testEndpoint = deployType === 'github' ? '/api/settings/test-github' : (deployType === 'nekoweb' ? '/api/settings/test-nekoweb' : '/api/settings/test-neocities');
 
     testBtn.disabled = true;
     testBtn.textContent = 'PROBING...';
@@ -4767,10 +4791,15 @@
     appendTelemetryLog('Pinging ' + providerName + ' REST API (' + testEndpoint + ')...');
 
     try {
+      var bodyPayload = { apiKey: apiKey };
+      if (deployType === 'github') {
+        bodyPayload.repo = sitename;
+      }
+
       var res = await fetch(testEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: apiKey })
+        body: JSON.stringify(bodyPayload)
       });
 
       var data = await res.json();
@@ -4780,7 +4809,15 @@
       indicator.textContent = 'ONLINE [VERIFIED]';
       indicator.className = 'text-xs font-mono text-prompt font-bold';
 
-      if (deployType === 'nekoweb') {
+      if (deployType === 'github') {
+        var repoTitle = info.fullName || (info.owner + '/' + (info.repo || ''));
+        document.getElementById('remoteSitename').textContent = repoTitle;
+        document.getElementById('remoteViews').textContent = info.isPrivate ? 'PRIVATE REPO' : 'PUBLIC REPO';
+        document.getElementById('remoteHits').textContent = 'Branch: ' + (info.branch || 'gh-pages');
+        document.getElementById('remoteLastUpdated').textContent = info.updatedAt ? new Date(info.updatedAt).toLocaleString() : 'N/A';
+        document.getElementById('remoteProfileLink').href = info.pagesUrl || ('https://github.com/' + repoTitle);
+        appendTelemetryLog('Verified GitHub repo "' + repoTitle + '" | Default branch: ' + info.defaultBranch);
+      } else if (deployType === 'nekoweb') {
         var domain = info.domain || 'site';
         document.getElementById('remoteSitename').textContent = domain + (domain.includes('.') ? '' : '.nekoweb.org');
         document.getElementById('remoteViews').textContent = Number(info.views || 0).toLocaleString();
@@ -4818,11 +4855,11 @@
     var deployBtn = document.getElementById('deployNowBtn');
     var durationLabel = document.getElementById('deployDurationLabel');
     var deployType = document.getElementById('settingsDeployType').value;
-    var providerName = deployType === 'nekoweb' ? 'Nekoweb' : 'Neocities';
-    var deployEndpoint = deployType === 'nekoweb' ? '/api/deploy/nekoweb' : '/api/deploy/neocities';
+    var providerName = deployType === 'github' ? 'GitHub Pages' : (deployType === 'nekoweb' ? 'Nekoweb' : 'Neocities');
+    var deployEndpoint = deployType === 'github' ? '/api/deploy/github' : (deployType === 'nekoweb' ? '/api/deploy/nekoweb' : '/api/deploy/neocities');
 
     deployBtn.disabled = true;
-    deployBtn.textContent = 'COMPILING & UPLOADING TO ' + providerName.toUpperCase() + '...';
+    deployBtn.textContent = 'COMPILING & COMMITTING TO ' + providerName.toUpperCase() + '...';
     durationLabel.textContent = 'TRANSMITTING...';
 
     appendTelemetryLog('Preparing personal 11ty static compilation for user...');
@@ -4839,7 +4876,7 @@
       var data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || (providerName + ' deployment rejected.'));
 
-      appendTelemetryLog('[✓ SUCCESS] ' + data.filesCount + ' files uploaded to ' + providerName + ' in ' + data.durationMs + 'ms!');
+      appendTelemetryLog('[✓ SUCCESS] ' + data.filesCount + ' files committed to ' + providerName + ' in ' + data.durationMs + 'ms!');
       var livePreviewEl = document.getElementById('deployUrlPreview');
       var liveUrl = data.siteUrl || (livePreviewEl ? livePreviewEl.textContent.trim() : '');
       if (liveUrl) {
