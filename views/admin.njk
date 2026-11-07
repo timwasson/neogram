@@ -270,16 +270,21 @@
 
       <!-- Action Toolbar -->
       <div class="flex flex-wrap items-center gap-2 mb-3">
-        <button type="button" class="pixel-btn pixel-btn--yellow font-bold text-xs" onclick="provisionQaFleet('core');">
-          <span>Provision 5 Core QA Personas</span>
+        <button type="button" class="pixel-btn pixel-btn--yellow font-bold text-xs" onclick="provisionQaFleet('fleet12');">
+          <span>⚡ Provision 12 QA Personas &amp; Intertwine @wasson</span>
         </button>
         <button type="button" class="pixel-btn font-bold text-xs" onclick="provisionQaFleet('load20');">
           <span>Provision 20-Agent Load Fleet</span>
         </button>
         {% if qaFleet and qaFleet.length > 0 %}
           <a href="/api/admin/qa-fleet/export-sessions" class="pixel-btn pixel-btn--green font-bold text-xs">
-            <span>Export qa-sessions.json ({{ qaFleet.length }} Agents)</span>
+            <span>⬇️ Export qa-sessions.json ({{ qaFleet.length }} Agents)</span>
           </a>
+        {% endif %}
+        <a href="/api/admin/db/snapshot" class="pixel-btn pixel-btn--cyan font-bold text-xs" title="Download production database snapshot to sync locally">
+          <span>💾 Download DB Snapshot (db-snapshot.json)</span>
+        </a>
+        {% if qaFleet and qaFleet.length > 0 %}
           <button type="button" class="pixel-btn text-xs" onclick="purgeQaPosts();">
             <span>Purge QA Test Posts</span>
           </button>

@@ -11,9 +11,9 @@ export interface UserSessionPayload {
 
 export const COOKIE_NAME = 'neogram_session';
 
-export function signSessionToken(payload: UserSessionPayload): string {
+export function signSessionToken(payload: UserSessionPayload, expiresIn: string = '7d'): string {
   return jwt.sign(payload, config.jwtSecret, {
-    expiresIn: '7d',
+    expiresIn: expiresIn as any,
   });
 }
 
@@ -32,6 +32,9 @@ export function extractToken(req: Request): string | null {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7).trim();
+  }
+  if (req.query && typeof req.query.token === 'string') {
+    return req.query.token.trim();
   }
   return null;
 }

@@ -6,6 +6,7 @@ import { buildQueue } from '../services/staticBuilder';
 import { initiateFleetSweep, cancelActiveFleetSweep } from '../services/fleetSweepService';
 import { activeSockets } from '../services/chatSocket';
 import { getUserSites, createSite, updateSite, Site } from '../services/siteService';
+import { decryptCredentials } from '../utils/crypto';
 import { getAllPosts, getPostCountForUser, getPostsForUser, deletePost } from '../services/postStorage';
 import { signSessionToken, COOKIE_NAME } from '../auth/jwt';
 import { config } from '../config';
@@ -507,13 +508,13 @@ adminRouter.post(
         return userId;
       };
 
-      if (mode === 'core') {
+      if (mode === 'core' || mode === 'fleet12') {
         const aliceId = await ensureQaAccount('qa_alice', 'QA Multi-Site Neocities Persona', [
           {
             name: 'Alice Primary Neocities',
             slug: 'main',
             deploymentType: 'neocities',
-            siteUrl: 'https://qa-alice-1.neocities.org',
+            siteUrl: 'https://chemicalmachine.neocities.org',
             deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,
@@ -522,8 +523,8 @@ adminRouter.post(
             name: 'Alice Secondary Zine',
             slug: 'zine',
             deploymentType: 'neocities',
-            siteUrl: 'https://qa-alice-2.neocities.org',
-            deployPath: 'zine',
+            siteUrl: 'https://hive210.neocities.org',
+            deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,
           },
@@ -534,14 +535,14 @@ adminRouter.post(
             name: 'Bob Nekoweb Station',
             slug: 'main',
             deploymentType: 'nekoweb',
-            siteUrl: 'https://qa-bob.nekoweb.org',
+            siteUrl: 'https://neogram.nekoweb.org',
             deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,
           },
         ]);
 
-        await ensureQaAccount('qa_headless', 'QA Headless JSON API Persona', [
+        const headlessId = await ensureQaAccount('qa_headless', 'QA Headless JSON API Persona', [
           {
             name: 'Headless JSON Feed Target',
             slug: 'json-api',
@@ -565,7 +566,7 @@ adminRouter.post(
           },
         ]);
 
-        await ensureQaAccount('qa_surfer', 'QA Cyber-Pass SSO & Guestbook Visitor', [
+        const surferId = await ensureQaAccount('qa_surfer', 'QA Cyber-Pass SSO & Guestbook Visitor', [
           {
             name: 'Surfer Sandbox Station',
             slug: 'main',
@@ -577,11 +578,129 @@ adminRouter.post(
           },
         ]);
 
-        // Wire reciprocal friend relationships between qa_alice, qa_bob, and qa_friend
-        await query(
-          `INSERT INTO follows (follower_id, following_id) VALUES ($1, $2), ($2, $1), ($3, $1), ($3, $2) ON CONFLICT DO NOTHING`,
-          [aliceId, bobId, friendId]
+        const cyberpunkId = await ensureQaAccount('qa_cyberpunk', 'QA Cyberpunk Terminal Hacker', [
+          {
+            name: 'Cyberpunk Matrix Deck',
+            slug: 'main',
+            deploymentType: 'neocities',
+            siteUrl: 'https://qa-cyberpunk.neocities.org',
+            deployPath: 'neogram',
+            buildHtml: true,
+            autoDeploy: true,
+          },
+        ]);
+
+        const pixelId = await ensureQaAccount('qa_pixel', 'QA Pixel Art Craftsman', [
+          {
+            name: 'Pixel Arcade Station',
+            slug: 'main',
+            deploymentType: 'nekoweb',
+            siteUrl: 'https://qa-pixel.nekoweb.org',
+            deployPath: 'neogram',
+            buildHtml: true,
+            autoDeploy: true,
+          },
+        ]);
+
+        const modemId = await ensureQaAccount('qa_modem', 'QA 28.8k Baud Handshake', [
+          {
+            name: 'Dialup BBS Node',
+            slug: 'main',
+            deploymentType: 'none',
+            siteUrl: 'https://neogram.club/user/@qa_modem',
+            deployPath: 'neogram',
+            buildHtml: true,
+            autoDeploy: false,
+          },
+        ]);
+
+        const retroId = await ensureQaAccount('qa_retro', 'QA Geocities 1996 Wanderer', [
+          {
+            name: 'Retro Webring Outpost',
+            slug: 'main',
+            deploymentType: 'neocities',
+            siteUrl: 'https://qa-retro.neocities.org',
+            deployPath: 'neogram',
+            buildHtml: true,
+            autoDeploy: true,
+          },
+        ]);
+
+        const arcadeId = await ensureQaAccount('qa_arcade', 'QA Arcade High Score & CRT Fanatic', [
+          {
+            name: 'Arcade High Score Grid',
+            slug: 'main',
+            deploymentType: 'nekoweb',
+            siteUrl: 'https://qa-arcade.nekoweb.org',
+            deployPath: 'neogram',
+            buildHtml: true,
+            autoDeploy: true,
+          },
+        ]);
+
+        const matrixId = await ensureQaAccount('qa_matrix', 'QA Green Phosphor Operator', [
+          {
+            name: 'Matrix Terminal Node',
+            slug: 'main',
+            deploymentType: 'none',
+            siteUrl: 'https://neogram.club/user/@qa_matrix',
+            deployPath: 'neogram',
+            buildHtml: true,
+            autoDeploy: false,
+          },
+        ]);
+
+        const synthId = await ensureQaAccount('qa_synth', 'QA FM Synth & Sound Blaster 16', [
+          {
+            name: 'Synthwave Cyber Deck',
+            slug: 'main',
+            deploymentType: 'neocities',
+            siteUrl: 'https://qa-synth.neocities.org',
+            deployPath: 'neogram',
+            buildHtml: true,
+            autoDeploy: true,
+          },
+        ]);
+
+        const allQaIds = [
+          aliceId, bobId, headlessId, friendId, surferId,
+          cyberpunkId, pixelId, modemId, retroId, arcadeId, matrixId, synthId
+        ];
+
+        // 1. Wire reciprocal friend relationships among all QA personas
+        for (let i = 0; i < allQaIds.length; i++) {
+          for (let j = 0; j < allQaIds.length; j++) {
+            if (i !== j) {
+              await query(
+                `INSERT INTO follows (follower_id, following_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+                [allQaIds[i], allQaIds[j]]
+              );
+            }
+          }
+        }
+
+        // 2. Wire mutual follows between user @wasson and all QA personas ONLY
+        const wassonRes = await query(
+          `SELECT id FROM users WHERE LOWER(handle) = 'wasson' OR LOWER(email) = 'wasson@gmail.com' LIMIT 1`
         );
+        if (wassonRes.rows.length > 0) {
+          const wassonId = wassonRes.rows[0].id;
+          for (const qaId of allQaIds) {
+            await query(
+              `INSERT INTO follows (follower_id, following_id) VALUES ($1, $2), ($2, $1) ON CONFLICT DO NOTHING`,
+              [wassonId, qaId]
+            );
+          }
+        }
+
+        // 3. Strict Invariant: Exclude @sheavanlan from ANY QA account follow graph
+        await query(`
+          DELETE FROM follows 
+          WHERE (follower_id IN (SELECT id FROM users WHERE LOWER(handle) = 'sheavanlan' OR LOWER(email) = 'sheavanlan@gmail.com')
+                 AND following_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club'))
+             OR (following_id IN (SELECT id FROM users WHERE LOWER(handle) = 'sheavanlan' OR LOWER(email) = 'sheavanlan@gmail.com')
+                 AND follower_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club'))
+        `);
       } else if (mode === 'load20') {
         for (let i = 1; i <= 20; i++) {
           const num = String(i).padStart(2, '0');
@@ -733,7 +852,7 @@ adminRouter.get(
           email: u.email,
           handle: u.handle,
           uin: u.uin,
-        });
+        }, '30d');
         return {
           userId: u.id,
           handle: u.handle,
@@ -840,6 +959,72 @@ adminRouter.post(
         ok: true,
         message: `Wiped ${delUsers.rowCount || 0} QA test account(s) from database.`,
       });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * 11. GET /api/admin/db/snapshot - Download Full Production Database Snapshot for Local Sync
+ */
+adminRouter.get(
+  '/api/admin/db/snapshot',
+  requireAdminApi,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const usersRes = await query(`SELECT * FROM users ORDER BY created_at ASC`);
+      const sitesRes = await query(`SELECT * FROM sites ORDER BY created_at ASC`);
+      const followsRes = await query(`SELECT * FROM follows ORDER BY created_at ASC`);
+      const countersRes = await query(`SELECT * FROM web_counters ORDER BY updated_at ASC`);
+      const guestbookRes = await query(`SELECT * FROM guestbook_entries ORDER BY created_at ASC`);
+      const notifyPrefsRes = await query(`SELECT * FROM notification_preferences`);
+
+      const formatBytea = (val: any) => {
+        if (!val) return null;
+        if (Buffer.isBuffer(val)) return '\\x' + val.toString('hex');
+        if (typeof val === 'string') return val.startsWith('\\x') ? val : '\\x' + Buffer.from(val).toString('hex');
+        return null;
+      };
+
+      const users = usersRes.rows.map((u) => ({
+        ...u,
+        deployment_credentials: formatBytea(u.deployment_credentials),
+      }));
+
+      const sites = sitesRes.rows.map((s) => {
+        const decrypted = decryptCredentials<any>(s.deployment_credentials);
+        return {
+          ...s,
+          deployment_credentials: formatBytea(s.deployment_credentials),
+          credentials: decrypted
+            ? {
+                apiKey: decrypted.apiKey || '',
+                siteName: decrypted.siteName || '',
+                siteUrl: decrypted.siteUrl || '',
+                repo: decrypted.repo || '',
+                branch: decrypted.branch || '',
+              }
+            : null,
+        };
+      });
+
+      const snapshot = {
+        version: 'neogram-db-snapshot-v1',
+        exportedAt: new Date().toISOString(),
+        tables: {
+          users,
+          sites,
+          follows: followsRes.rows,
+          web_counters: countersRes.rows,
+          guestbook_entries: guestbookRes.rows,
+          notification_preferences: notifyPrefsRes.rows,
+        },
+      };
+
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="db-snapshot.json"');
+      res.send(JSON.stringify(snapshot, null, 2));
     } catch (err) {
       next(err);
     }
