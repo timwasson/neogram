@@ -173,6 +173,24 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
           }
         }
       }
+
+      // Check posts from local posts.json storage
+      const { getPostsForUser } = await import('./postStorage');
+      const userPosts = await getPostsForUser(friend.id);
+      if (userPosts && userPosts.length > 0) {
+        return userPosts.map((p) => ({
+          ...p,
+          imageUrl: p.imageUrl || p.imagePath,
+          thumbnailUrl: p.thumbnailUrl || p.thumbnailPath || p.imageUrl || p.imagePath,
+          filter: p.filterApplied || 'none',
+          author: p.author || friend.handle,
+          authorHandle: friend.handle,
+          authorUin: friend.uin,
+          authorAvatar: friend.avatarPath,
+          authorSiteUrl: friend.siteUrl,
+          profileUrl: `/user/@${encodeURIComponent(friend.handle)}`,
+        }));
+      }
     } catch (_localErr) {}
     return null;
   };
@@ -234,13 +252,10 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
     }
 
     // If remote static host returned HTTP 404:
-    // If user has actively deployed to live host, it was wiped via FTP (yields 0 posts).
-    // If user has NOT actively deployed live (sandbox / test runner), check local compiled static gallery.
+    // Check local compiled static gallery if available (for QA fleets, sandbox stations, and propagation fallback)
     if (res.status === 404) {
-      if (!friend.lastDeployedAt) {
-        const local = await tryLocalFeed();
-        if (local) return local;
-      }
+      const local = await tryLocalFeed();
+      if (local && local.length > 0) return local;
       return [];
     }
 
