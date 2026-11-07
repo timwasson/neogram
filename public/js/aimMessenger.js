@@ -363,7 +363,7 @@
         this.pendingSender = fromHandle;
         if (this.dockBtn) {
           this.dockBtn.classList.add('aim-dock-btn--alert');
-          this.dockBtn.innerHTML = '<span>🔔 New IM from @' + fromHandle + '</span>';
+          this.dockBtn.innerHTML = '<span>[!] New IM from @' + fromHandle + '</span>';
         }
       }
 
@@ -577,13 +577,15 @@
       });
 
       var makeItem = function (b) {
-        var dot = b.isOnline ? (b.status === 'away' ? '🟡' : '🟢') : '⚪';
+        var dot = b.isOnline
+          ? (b.status === 'away' ? '<span class="status-led status-led--away"></span>' : '<span class="status-led status-led--online"></span>')
+          : '<span class="status-led status-led--offline"></span>';
         var awayTip = b.awayMessage ? ' — "' + self.escapeHtml(b.awayMessage) + '"' : '';
         var btnText = b.isOnline ? 'IM' : 'MSG';
         var opacityClass = b.isOnline ? '' : ' opacity-70';
         return '<div class="aim-window__buddy-item' + opacityClass + '" data-handle="' + self.escapeHtml(b.handle) + '">' +
           '<div class="flex items-center gap-1.5 overflow-hidden">' +
-            '<span>' + dot + '</span>' +
+            dot +
             '<span class="font-bold text-prompt">@' + self.escapeHtml(b.handle) + '</span>' +
             '<span class="text-muted text-xs truncate">' + awayTip + '</span>' +
           '</div>' +
@@ -594,7 +596,7 @@
       var html = '';
 
       // 1. FRIENDS SECTION
-      html += '<div class="aim-window__buddy-section-title">🤝 Friends (' + friendsOnline.length + ' Online / ' + friendsOffline.length + ' Offline)</div>';
+      html += '<div class="aim-window__buddy-section-title">Friends (' + friendsOnline.length + ' Online / ' + friendsOffline.length + ' Offline)</div>';
       if (friendsOnline.length === 0 && friendsOffline.length === 0) {
         html += '<div class="text-xs text-muted p-1 italic"><a href="/directory" class="text-mac underline font-bold">+ Add friends from Directory</a></div>';
       } else {
@@ -603,7 +605,7 @@
       }
 
       // 2. OTHER STATIONS SECTION
-      html += '<div class="aim-window__buddy-section-title">🌐 Other Stations (' + othersOnline.length + ' Online)</div>';
+      html += '<div class="aim-window__buddy-section-title">Other Stations (' + othersOnline.length + ' Online)</div>';
       if (othersOnline.length === 0 && othersOffline.length === 0) {
         html += '<div class="text-xs text-muted p-1 italic">No other stations in directory.</div>';
       } else {
@@ -658,17 +660,17 @@
 
       var visitorsOnline = visitorList.filter(function (v) { return v.isOnline; });
 
-      html += '<div class="aim-window__buddy-section-title">📟 Pager &amp; Site Visitors (' + visitorsOnline.length + ' Active / ' + visitorList.length + ' Total)</div>';
+      html += '<div class="aim-window__buddy-section-title">Pager &amp; Site Visitors (' + visitorsOnline.length + ' Active / ' + visitorList.length + ' Total)</div>';
       if (visitorList.length === 0) {
         html += '<div class="text-xs text-muted p-1 italic">No visitor transmissions yet. Embed pager widget on your site to receive transmissions.</div>';
       } else {
         visitorList.forEach(function (v) {
-          var dot = v.isOnline ? '🟢' : '⚪';
+          var dot = v.isOnline ? '<span class="status-led status-led--online"></span>' : '<span class="status-led status-led--offline"></span>';
           var snip = v.lastSnippet ? ' — "' + self.escapeHtml(v.lastSnippet.slice(0, 30)) + '"' : '';
           var opacityClass = v.isOnline ? '' : ' opacity-70';
           html += '<div class="aim-window__buddy-item' + opacityClass + '" data-handle="' + self.escapeHtml(v.handle) + '">' +
             '<div class="flex items-center gap-1.5 overflow-hidden">' +
-              '<span>' + dot + '</span>' +
+              dot +
               '<span class="font-bold text-accent">@' + self.escapeHtml(v.handle) + '</span>' +
               '<span class="text-muted text-xs truncate">' + snip + '</span>' +
             '</div>' +
@@ -746,17 +748,17 @@
 
     updateImHeader: function () {
       if (!this.activeBuddy) return;
-      var titlePrefix = this.activeBuddy.isVisitor ? '📟 Pager Transmission: @' : 'Instant Message: @';
+      var titlePrefix = this.activeBuddy.isVisitor ? 'Pager Transmission: @' : 'Instant Message: @';
       if (this.imTitleEl) this.imTitleEl.textContent = titlePrefix + this.activeBuddy.handle;
       if (this.imStatusDotEl) {
         if (this.activeBuddy.isVisitor) {
-          this.imStatusDotEl.textContent = this.activeBuddy.isOnline
-            ? '🟢 Pager Active'
-            : '⚪ Session Closed (Queued)';
+          this.imStatusDotEl.innerHTML = this.activeBuddy.isOnline
+            ? '<span class="status-led status-led--online"></span> Pager Active'
+            : '<span class="status-led status-led--offline"></span> Session Closed (Queued)';
         } else {
-          this.imStatusDotEl.textContent = this.activeBuddy.isOnline
-            ? (this.activeBuddy.status === 'away' ? '🟡 Away' : '🟢 Online')
-            : '⚪ Offline';
+          this.imStatusDotEl.innerHTML = this.activeBuddy.isOnline
+            ? (this.activeBuddy.status === 'away' ? '<span class="status-led status-led--away"></span> Away' : '<span class="status-led status-led--online"></span> Online')
+            : '<span class="status-led status-led--offline"></span> Offline';
         }
       }
 

@@ -11,7 +11,6 @@
   <div class="pixel-box mb-4">
     <div class="window-header flex justify-between items-center">
       <div class="flex items-center gap-2">
-        <span class="pixel-btn pixel-btn--sm" style="padding: 0 4px;">⚡</span>
         <span class="font-bold text-xs uppercase tracking-wider">[:&gt; SYSOP_CONTROL_TERMINAL.SYS // ROOT_CLEARANCE]</span>
       </div>
       <div class="flex items-center gap-2">
@@ -178,10 +177,10 @@
 
           <div class="flex items-center gap-2">
             <button type="button" class="pixel-btn pixel-btn--danger pixel-btn--sm {% if not pipelineTelemetry.sweep.isActive %}hidden{% endif %}" id="btnCancelSweep" onclick="cancelFleetSweep();">
-              ⏹ Abort Sweep
+              Abort Sweep
             </button>
             <button type="button" class="pixel-btn pixel-btn--primary pixel-btn--sm {% if pipelineTelemetry.sweep.isActive %}hidden{% endif %}" id="btnInitiateSweep" onclick="promptInitiateSweep();">
-              ⚡ Initiate Fleet Sweep
+              Initiate Fleet Sweep
             </button>
           </div>
         </div>
@@ -206,7 +205,7 @@
             <div class="font-bold mb-1">Host Deployment Errors:</div>
             <ul id="sweepErrorsList" class="m-0 p-0 list-none">
               {% for err in pipelineTelemetry.sweep.errors %}
-                <li>❌ [{{ err.handle }} - {{ err.siteName }}]: {{ err.error }}</li>
+                <li>[!] [{{ err.handle }} - {{ err.siteName }}]: {{ err.error }}</li>
               {% endfor %}
             </ul>
           </div>
@@ -272,20 +271,20 @@
       <!-- Action Toolbar -->
       <div class="flex flex-wrap items-center gap-2 mb-3">
         <button type="button" class="pixel-btn pixel-btn--yellow font-bold text-xs" onclick="provisionQaFleet('core');">
-          <span>⚡</span> <span>Provision 5 Core QA Personas</span>
+          <span>Provision 5 Core QA Personas</span>
         </button>
         <button type="button" class="pixel-btn font-bold text-xs" onclick="provisionQaFleet('load20');">
-          <span>🚀</span> <span>Provision 20-Agent Load Fleet</span>
+          <span>Provision 20-Agent Load Fleet</span>
         </button>
         {% if qaFleet and qaFleet.length > 0 %}
           <a href="/api/admin/qa-fleet/export-sessions" class="pixel-btn pixel-btn--green font-bold text-xs">
-            <span>⬇</span> <span>Export qa-sessions.json ({{ qaFleet.length }} Agents)</span>
+            <span>Export qa-sessions.json ({{ qaFleet.length }} Agents)</span>
           </a>
           <button type="button" class="pixel-btn text-xs" onclick="purgeQaPosts();">
-            <span>🧹</span> <span>Purge QA Test Posts</span>
+            <span>Purge QA Test Posts</span>
           </button>
           <button type="button" class="pixel-btn pixel-btn--danger text-xs" onclick="wipeQaFleet();">
-            <span>☢</span> <span>Wipe QA Fleet</span>
+            <span>Wipe QA Fleet</span>
           </button>
         {% endif %}
       </div>
@@ -305,7 +304,7 @@
             {% if not qaFleet or qaFleet.length == 0 %}
               <tr>
                 <td colspan="4" class="text-center p-3 text-muted font-mono text-xs">
-                  No QA test accounts provisioned yet. Click <strong>[⚡ Provision 5 Core QA Personas]</strong> above to create <code>@qa_alice</code> (Multi-Site Neocities), <code>@qa_bob</code> (Nekoweb), <code>@qa_headless</code> (JSON API), <code>@qa_friend</code>, and <code>@qa_surfer</code>.
+                  No QA test accounts provisioned yet. Click <strong>[Provision 5 Core QA Personas]</strong> above to create <code>@qa_alice</code> (Multi-Site Neocities), <code>@qa_bob</code> (Nekoweb), <code>@qa_headless</code> (JSON API), <code>@qa_friend</code>, and <code>@qa_surfer</code>.
                 </td>
               </tr>
             {% else %}
@@ -329,9 +328,9 @@
                               <span class="sysop-badge sysop-badge--online">HEADLESS JSON</span>
                             {% endif %}
                             {% if s.hasApiKey %}
-                              <span class="sysop-badge sysop-badge--active">🔑 KEY SAVED ({{ s.maskedApiKey }})</span>
+                              <span class="sysop-badge sysop-badge--active">KEY SAVED ({{ s.maskedApiKey }})</span>
                             {% elif s.deploymentType != 'none' %}
-                              <span class="sysop-badge sysop-badge--banned">⚠ NO API KEY</span>
+                              <span class="sysop-badge sysop-badge--banned">[!] NO API KEY</span>
                             {% else %}
                               <span class="sysop-badge">SANDBOX</span>
                             {% endif %}
@@ -351,7 +350,7 @@
                             data-auto-deploy="{{ 'true' if s.autoDeploy else 'false' }}"
                             onclick="openQaSiteModalFromDataset(this);"
                           >
-                            🔑 Edit Site / Key
+                            Edit Site / Key
                           </button>
                         </div>
                       {% endfor %}
@@ -430,7 +429,7 @@
 
         <div class="flex items-center gap-2">
           <button type="submit" id="btnSaveMarquee" class="pixel-btn pixel-btn--yellow font-bold text-xs">
-            <span>⚡</span> <span>Broadcast to Cyberspace</span>
+            <span>Broadcast to Cyberspace</span>
           </button>
           <button type="button" class="pixel-btn text-xs" onclick="resetMarqueeDefault();">
             <span>↺</span> <span>Reset Default</span>
@@ -546,13 +545,13 @@
                 <td>
                   {% if u.isBanned %}
                     <span class="sysop-badge sysop-badge--banned" title="Banned on {{ u.bannedAt | formatDate }}: {{ u.banReason }}">
-                      🚫 BANNED
+                      BANNED
                     </span>
                     {% if u.banReason %}
                       <div class="text-3xs text-danger italic truncate max-w-xs">{{ u.banReason }}</div>
                     {% endif %}
                   {% else %}
-                    <span class="sysop-badge sysop-badge--active">🟢 ACTIVE</span>
+                    <span class="sysop-badge sysop-badge--active"><span class="status-led status-led--online"></span> ACTIVE</span>
                   {% endif %}
                 </td>
                 <td>
@@ -573,7 +572,7 @@
                         class="pixel-btn pixel-btn--danger pixel-btn--sm text-3xs font-bold"
                         onclick="promptSoftBanUser('{{ u.id }}', '{{ u.handle }}');"
                       >
-                        🚫 Soft Ban
+                        Soft Ban
                       </button>
                     {% endif %}
                   {% endif %}
@@ -756,7 +755,7 @@
         <div class="flex justify-end gap-2">
           <button type="button" class="pixel-btn text-xs" onclick="closeQaSiteModal();">Cancel</button>
           <button type="submit" id="btnSaveQaSite" class="pixel-btn pixel-btn--green font-bold text-xs">
-            💾 Save Site &amp; Encrypt Key
+            Save Site &amp; Encrypt Key
           </button>
         </div>
       </form>
@@ -787,7 +786,7 @@
     const alert = document.getElementById('marqueeStatusAlert');
 
     btn.disabled = true;
-    btn.textContent = '⚡ Transmitting...';
+    btn.textContent = 'Transmitting...';
 
     try {
       if (window.retroAudio) retroAudio.playClick();
@@ -817,7 +816,7 @@
       window.alert('[:> TRANSMISSION ERROR] ' + err.message);
     } finally {
       btn.disabled = false;
-      btn.innerHTML = '<span>⚡</span> <span>Broadcast to Cyberspace</span>';
+      btn.innerHTML = '<span>Broadcast to Cyberspace</span>';
     }
   }
 
@@ -896,7 +895,7 @@
           if (errorsBox && errorsList) {
             if (s.errors && s.errors.length > 0) {
               errorsBox.classList.remove('hidden');
-              errorsList.innerHTML = s.errors.map(e => `<li>❌ [${e.handle} - ${e.siteName}]: ${e.error}</li>`).join('');
+              errorsList.innerHTML = s.errors.map(e => `<li>[!] [${e.handle} - ${e.siteName}]: ${e.error}</li>`).join('');
             } else {
               errorsBox.classList.add('hidden');
             }
@@ -1201,7 +1200,7 @@
       window.alert('[:> QA SITE CONFIG ERROR] ' + err.message);
     } finally {
       btn.disabled = false;
-      btn.textContent = '💾 Save Site & Encrypt Key';
+      btn.textContent = 'Save Site & Encrypt Key';
     }
   }
 

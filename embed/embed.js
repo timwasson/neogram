@@ -53,7 +53,6 @@
       el.innerHTML =
         '<div class="neogram-post">' +
         '  <div class="neogram-post__header">' +
-        '    <span class="neogram-post__avatar">💾</span>' +
         '    <span class="neogram-post__handle">root@neogram</span>' +
         '  </div>' +
         '  <div class="neogram-post__caption">Neogram static embed initialized.</div>' +

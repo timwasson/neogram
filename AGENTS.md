@@ -889,4 +889,22 @@ TWILIO_AUTH_TOKEN=
 TWILIO_PHONE_NUMBER=+15551234567
 ```
 
+---
+
+## 8. Next-Stage Post-Launch Feature Backlog & Roadmap
+
+The following candidate features are queued for **Next-Stage Development** after initial launch:
+
+### 8.1 Retro Webcam Auto-Snapper ("1993 Trojan Room Coffee Pot" Cam)
+- **Concept:** Allow creators to connect a webcam inside the Neogram Workstation (`[:> WEBCAM_TRANSMITTER.EXE]`), capture a frame on a configurable interval (e.g., every 60 seconds), apply a retro shader/timestamp watermark (`1996-11-06 18:21:44 // CAM_01`), and overwrite a single fixed image URL (e.g., `/neogram/webcam/live.webp` or `live.jpg`) on their remote static site (Neocities, Nekoweb, SFTP) or directly on their Neogram profile.
+- **Architectural Fit:** Extremely high. Reuses `navigator.mediaDevices.getUserMedia` + HTML5 `<canvas>`, existing `Sharp` shader/resize pipeline, and single-file delta uploaders (`deployFilesToNeocities` / `deployFilesToNekoweb`). Include an embeddable widget (`embed/webcam.js` or pure `<img>` snippet with cache-busting `?t=` query refresher) and an "ON AIR / LIVE CAM" indicator badge.
+- **Guardrails:** Require active tab focus or explicit session cap (e.g., max 60-minute broadcast window before prompt) and minimum 60-second interval to respect Neocities/Nekoweb API rate limits.
+
+### 8.2 Pirate Radio / Icecast Voice & Audio Streaming ("Winamp / Shoutcast" Station)
+- **Concept:** Allow users to broadcast live voice/audio streams to their static websites and friends via an Icecast-compatible streaming server or browser-based WebAudio/MediaRecorder source, complete with an `🔴 ON AIR` badge across the Directory (`/directory`), Friends feed, and an embeddable Winamp-style mini-player (`embed/radio.js`).
+- **Architectural Options:**
+  - **Option A (Managed Icecast2 Sidecar + Legacy App Support):** Run an `icecast2` container in `docker-compose.yml` with dynamic mountpoint authentication (`on_connect` / `on_disconnect` webhooks calling Express `/api/radio/hooks`). Supports classic desktop broadcast clients (BUTT, Mixxx, VirtualDJ, LadioCast) using a per-user stream key, plus a browser microphone broadcaster (`MediaRecorder` -> WebSocket -> `ffmpeg` -> Icecast mount `/stream/@handle.ogg`).
+  - **Option B (BYO Icecast/Shoutcast Stream URL):** Zero-bandwidth initial milestone where users link an external Icecast/AzuraCast mount URL, and Neogram polls the Icecast status JSON (`status-json.xsl`) to light up the `🔴 ON AIR` badge and power the embeddable Winamp player widget.
+
+
 

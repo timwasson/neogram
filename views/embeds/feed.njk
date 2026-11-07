@@ -16,7 +16,6 @@
       <!-- Header -->
       <div class="window-header flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
-          <span>📸</span>
           <span class="font-bold">@{{ handle }}'s PHOTO DISK</span>
         </div>
         {% if siteUrl %}
@@ -31,7 +30,6 @@
         {% for post in posts %}
           <div class="neogram-post">
             <div class="neogram-post__header">
-              <span class="neogram-post__avatar">💾</span>
               <span class="neogram-post__handle">@{{ handle }}</span>
               <span class="text-xs text-muted font-normal ml-auto">{{ post.createdAt | formatDate }}</span>
             </div>
@@ -55,16 +53,16 @@
 
             <div class="neogram-post__actions flex items-center justify-between">
               <div class="flex items-center gap-3 text-xs font-mono">
-                <span>❤️ {{ post.likes }} likes</span>
-                <span>💬 {{ post.commentCount }} comments</span>
+                <span>{{ post.likes }} likes</span>
+                <span>{{ post.commentCount }} comments</span>
               </div>
               {% if siteUrl %}
               <a href="{{ siteUrl }}" target="_blank" class="neogram-button">
-                💬 View on Site :&gt;
+                View on Site :&gt;
               </a>
               {% else %}
               <a href="{{ post.imagePath }}" target="_blank" class="neogram-button">
-                👁️ View Photo :&gt;
+                View Photo :&gt;
               </a>
               {% endif %}
             </div>

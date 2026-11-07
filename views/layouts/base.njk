@@ -46,84 +46,77 @@
       <!-- Dynamic Nav Links (Logged In vs Logged Out) -->
       <nav class="retro-navlinks">
         {% if currentUser %}
-          <!-- Authenticated Primary Workstation Tabs with Static Hash Links -->
-          <a
-            href="/#feed"
-            id="tabFeedBtn"
-            class="pixel-btn font-bold text-xs"
-            onclick="switchDashboardTab('feed', event)"
-          >
-            <span>📰</span> <span>Feed</span>
-          </a>
+          <!-- Authenticated Primary Workstation Tabs (5 Core Workspaces) -->
           <a
             href="/#upload"
             id="tabUploadBtn"
-            class="pixel-btn font-bold text-xs"
+            class="pixel-btn font-bold text-xs flex items-center gap-1.5"
             onclick="switchDashboardTab('upload', event)"
           >
-            <span>↑</span> <span>Upload</span>
+            <svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5h2.5l1-2h5l1 2H14v8H2V5z"/><circle cx="8" cy="9" r="2.2"/></svg>
+            <span>Upload</span>
           </a>
           <a
             href="/#edit"
             id="tabManageBtn"
-            class="pixel-btn font-bold text-xs"
+            class="pixel-btn font-bold text-xs flex items-center gap-1.5"
             onclick="switchDashboardTab('manage', event)"
           >
-            <span>✎&#xFE0E;</span> <span>Edit</span>
+            <svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h5l1.5 2H14v8H2V3z"/></svg>
+            <span>Posts</span>
           </a>
           <a
-            href="/directory"
-            id="tabDirectoryBtn"
-            class="pixel-btn font-bold text-xs {% if activeView == 'directory' %}pixel-btn--active{% endif %}"
-            onclick="if(window.retroAudio) retroAudio.playClick();"
+            href="/#network"
+            id="tabFeedBtn"
+            class="pixel-btn font-bold text-xs flex items-center gap-1.5 {% if activeView == 'directory' or activeView == 'friends' %}pixel-btn--yellow{% endif %}"
+            onclick="switchDashboardTab('feed', event)"
           >
-            <span>👥</span> <span>Directory</span>
-          </a>
-          <a
-            href="/friends"
-            id="tabFriendsBtn"
-            class="pixel-btn font-bold text-xs {% if activeView == 'friends' %}pixel-btn--active{% endif %}"
-            onclick="if(window.retroAudio) retroAudio.playClick();"
-          >
-            <span>🤝</span> <span>Friends</span>
-          </a>
-          <a
-            href="/#settings"
-            id="tabSettingsBtn"
-            class="pixel-btn font-bold text-xs"
-            onclick="switchDashboardTab('settings', event)"
-          >
-            <span>⚙&#xFE0E;</span> <span>Settings</span>
+            <svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2c-2 2-2 10 0 12"/></svg>
+            <span>Network</span>
           </a>
           <a
             href="/#embeds"
             id="tabEmbedsBtn"
-            class="pixel-btn font-bold text-xs"
+            class="pixel-btn font-bold text-xs flex items-center gap-1.5"
             onclick="switchDashboardTab('embeds', event)"
           >
-            <span>⎘</span> <span>Embeds</span>
+            <svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 4L1.5 8 5 12M11 4l3.5 4L11 12M9.5 3l-3 10"/></svg>
+            <span>Embeds</span>
+          </a>
+          <a
+            href="/#settings"
+            id="tabSettingsBtn"
+            class="pixel-btn font-bold text-xs flex items-center gap-1.5"
+            onclick="switchDashboardTab('settings', event)"
+          >
+            <svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12"/><circle cx="5" cy="4" r="1.5" fill="currentColor"/><circle cx="11" cy="8" r="1.5" fill="currentColor"/><circle cx="6" cy="12" r="1.5" fill="currentColor"/></svg>
+            <span>Settings</span>
           </a>
           {% if currentUser.isAdmin or isAdmin %}
             <a
               href="/admin"
               id="tabSysopBtn"
-              class="pixel-btn pixel-btn--yellow font-bold text-xs {% if activeView == 'admin' %}pixel-btn--active{% endif %}"
+              class="pixel-btn pixel-btn--yellow font-bold text-xs flex items-center gap-1.5 {% if activeView == 'admin' %}pixel-btn--active{% endif %}"
               onclick="if(window.retroAudio) retroAudio.playClick();"
               title="SysOp Control Terminal"
             >
-              <span>⚡</span> <span>SysOp</span>
+              <svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M9 1L3 9h4.5L7 15l6-8H8.5L9 1z"/></svg>
+              <span>SysOp</span>
             </a>
           {% endif %}
         {% else %}
           <!-- Public Informational Options (When Logged Out) -->
-          <a href="/" class="pixel-btn {% if activeView == 'dashboard' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>💾</span> <span>About Neogram</span>
+          <a href="/" class="pixel-btn flex items-center gap-1.5 {% if activeView == 'dashboard' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="10"/><path d="M2 6h12"/></svg>
+            <span>About Neogram</span>
           </a>
-          <a href="/directory" class="pixel-btn {% if activeView == 'directory' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>👥</span> <span>Directory</span>
+          <a href="/directory" class="pixel-btn flex items-center gap-1.5 {% if activeView == 'directory' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6" cy="5.5" r="2.2"/><path d="M2 13c0-2.2 1.8-3.5 4-3.5s4 1.3 4 3.5"/><circle cx="11.5" cy="6" r="1.7"/><path d="M11.5 9.5c1.5 0 2.5 1 2.5 2.8"/></svg>
+            <span>Directory</span>
           </a>
-          <a href="/docs" class="pixel-btn {% if activeView == 'docs' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>📖</span> <span>Docs</span>
+          <a href="/docs" class="pixel-btn flex items-center gap-1.5 {% if activeView == 'docs' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
+            <svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2h8l2 2v10H3V2z"/><path d="M5 6h6M5 9h6M5 12h4"/></svg>
+            <span>Docs</span>
           </a>
         {% endif %}
       </nav>
@@ -131,7 +124,7 @@
       <div class="flex items-center gap-1">
         <!-- PWA Install Prompt Button -->
         <button type="button" id="pwaInstallBtn" class="pixel-btn pixel-btn--green pixel-btn--sm hidden" title="Install Neogram Workstation PWA to your device">
-          <span>💾 INSTALL APP :&gt;</span>
+          <span>INSTALL APP :&gt;</span>
         </button>
 
         {% if currentUser %}
@@ -142,11 +135,10 @@
               id="notifyMenuBtn"
               class="pixel-btn pixel-btn--sm flex items-center gap-1 font-bold text-xs"
               aria-expanded="false"
-              aria-haspopup="true"
               aria-controls="notifyDropdownMenu"
               title="Station Notifications (:> NOTIFICATION_CENTER.SYS)"
             >
-              <span>🔔</span>
+              <svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a4 4 0 0 0-4 4v3l-1.5 2h11L12 9V6a4 4 0 0 0-4-4z"/><path d="M6.5 13a1.5 1.5 0 0 0 3 0"/></svg>
               <span id="navNotifyBadge" class="pixel-badge pixel-badge--crimson text-3xs hidden">0</span>
             </button>
 
@@ -160,8 +152,7 @@
               <!-- Window Header -->
               <div class="window-header flex items-center justify-between text-xs py-1 px-2.5">
                 <div class="flex items-center gap-1.5">
-                  <span>🔔</span>
-                  <span class="font-bold uppercase tracking-wider text-xs">NOTIFY_CENTER.SYS</span>
+                  <span class="font-bold uppercase tracking-wider text-xs">[:&gt; NOTIFY_CENTER.SYS]</span>
                 </div>
                 <div class="flex items-center gap-2">
                   <button
@@ -170,7 +161,7 @@
                     onclick="handleMarkAllNotificationsRead(event)"
                     title="Mark all notifications as read"
                   >
-                    [✓ ALL READ]
+                    [ALL READ]
                   </button>
                   <button
                     type="button"
@@ -178,7 +169,7 @@
                     onclick="toggleNotificationCenter(false)"
                     title="Close"
                   >
-                    ✕
+                    [X]
                   </button>
                 </div>
               </div>
@@ -193,16 +184,26 @@
               <!-- Notification Center Footer -->
               <div class="p-2 border-t border-main bg-black flex items-center justify-between text-3xs font-mono">
                 <a
-                  href="/#settings"
-                  onclick="if(typeof switchDashboardTab==='function'){switchDashboardTab('settings', event);} toggleNotificationCenter(false);"
+                  href="/#settings/notifications"
+                  onclick="if(typeof switchDashboardTab==='function'){switchDashboardTab('settings/notifications', event);} toggleNotificationCenter(false);"
                   class="text-mac hover:underline font-bold"
                 >
-                  ⚙️ Alert Settings :&gt;
+                  Alert Settings :&gt;
                 </a>
                 <span class="text-muted">CARRIER: LIVE</span>
               </div>
             </div>
           </div>
+
+          <!-- Compact Mobile NIM Messenger Trigger (Shown on < 768px) -->
+          <button
+            type="button"
+            id="mobileTabAimBtn"
+            class="pixel-btn pixel-btn--sm topnav-mobile-only flex items-center gap-1 font-bold text-xs"
+            title="Open Neogram Instant Messenger (NIM)"
+          >
+            <svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h12v8H6l-4 3V3z"/></svg>
+          </button>
 
           <!-- Retro Active Site / Mounted Target Selector -->
           <div class="retro-site-menu" id="retroSiteMenu">
@@ -211,11 +212,9 @@
               id="siteMenuBtn"
               class="pixel-btn pixel-btn--sm flex items-center gap-1 font-bold text-xs"
               aria-expanded="false"
-              aria-haspopup="true"
               aria-controls="siteDropdownMenu"
               title="Mounted Target Site: {{ activeSite.name if activeSite else 'No Site Mounted' }}"
             >
-              <span>💾</span>
               <span id="navActiveSiteName" class="truncate max-w-24 sm:max-w-36 font-mono text-prompt">
                 {{ activeSite.name if activeSite else '+ Add Site' }}
               </span>
@@ -231,7 +230,6 @@
             >
               <div class="window-header flex items-center justify-between text-xs py-1 px-2.5">
                 <div class="flex items-center gap-1.5">
-                  <span>💾</span>
                   <span class="font-bold uppercase tracking-wider text-xs">MOUNTED TARGET SITES</span>
                 </div>
                 <span class="text-3xs text-muted font-mono">{{ userSites.length or 0 }} SITES</span>
@@ -259,11 +257,11 @@
               </div>
               <div class="p-2 border-t border-main bg-black flex items-center justify-between text-3xs font-mono">
                 <a
-                  href="/#settings"
-                  onclick="if(typeof switchDashboardTab==='function'){switchDashboardTab('settings', event); setTimeout(function(){toggleProvisionForm(true);}, 150);} toggleSiteMenu(false);"
+                  href="/#settings/sites"
+                  onclick="if(typeof switchDashboardTab==='function'){switchDashboardTab('settings/sites', event); setTimeout(function(){toggleProvisionForm(true);}, 150);} toggleSiteMenu(false);"
                   class="text-mac hover:underline font-bold"
                 >
-                  ➕ Add Static Site Target :&gt;
+                  + Add Static Site Target :&gt;
                 </a>
               </div>
             </div>
@@ -276,11 +274,10 @@
               id="userMenuBtn"
               class="pixel-btn pixel-btn--sm flex items-center gap-1.5 font-bold text-xs"
               aria-expanded="false"
-              aria-haspopup="true"
               aria-controls="userDropdownMenu"
               title="Station Account Menu (@{{ currentUser.handle }})"
             >
-              <span class="text-prompt">●</span>
+              <span class="status-led status-led--online"></span>
               <span id="navUserHandle" class="truncate max-w-24 sm:max-w-36">@{{ currentUser.handle }}</span>
               <span class="text-xs" id="userMenuCaret">▾</span>
             </button>
@@ -295,7 +292,6 @@
               <!-- Dropdown Header -->
               <div class="window-header flex items-center justify-between text-xs py-1 px-2.5">
                 <div class="flex items-center gap-1.5">
-                  <span>👤</span>
                   <span class="font-bold uppercase tracking-wider text-xs">STATION IDENTITY</span>
                 </div>
                 <span class="text-xs text-prompt font-mono" id="dropdownUserUin" title="Immutable ICQ Static Node ID">
@@ -327,7 +323,7 @@
                 <div class="flex flex-col gap-0.5">
                   <span class="text-muted text-xxs uppercase tracking-wider">ACTIVE TARGET SITE:</span>
                   <div class="text-prompt font-bold flex items-center justify-between text-xs">
-                    <span class="truncate">💾 {{ activeSite.name if activeSite else 'Default Site' }}</span>
+                    <span class="truncate">{{ activeSite.name if activeSite else 'Default Site' }}</span>
                     <span class="pixel-badge pixel-badge--yellow text-3xs font-bold uppercase">{{ activeSite.deploymentType or 'neocities' }}</span>
                   </div>
                 </div>
@@ -357,29 +353,20 @@
                     class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2 flex items-center gap-1.5"
                     title="Toggle Dark / Light Mode"
                   >
-                    <span id="themeLabel" class="text-xs">☾</span>
+                    <span id="themeLabel" class="text-xs hidden"></span>
                     <span id="themeTextLabel" class="text-xxs font-mono font-bold uppercase">DARK MODE</span>
                   </button>
                 </div>
 
-                <!-- Action Buttons: Settings & Logout -->
+                <!-- Action Buttons: Profile, Docs & Logout -->
                 <div class="flex flex-col gap-1.5 pt-2 border-t border-main">
                   <a
-                    href="/directory"
-                    id="dropdownDirectoryLink"
+                    href="/user/@{{ currentUser.handle }}"
+                    id="dropdownProfileLink"
                     class="pixel-btn pixel-btn--sm text-xs justify-center w-full"
                     onclick="if(typeof toggleUserMenu==='function'){toggleUserMenu(false);} if(window.retroAudio) retroAudio.playClick();"
                   >
-                    <span>👥</span> <span>Station Directory</span>
-                  </a>
-
-                  <a
-                    href="/friends"
-                    id="dropdownFriendsLink"
-                    class="pixel-btn pixel-btn--sm text-xs justify-center w-full"
-                    onclick="if(typeof toggleUserMenu==='function'){toggleUserMenu(false);} if(window.retroAudio) retroAudio.playClick();"
-                  >
-                    <span>🤝</span> <span>Friends Network</span>
+                    <span>Public Station Profile</span>
                   </a>
 
                   <a
@@ -388,7 +375,7 @@
                     class="pixel-btn pixel-btn--sm text-xs justify-center w-full"
                     onclick="switchDashboardTab('settings', event); if(typeof toggleUserMenu==='function'){toggleUserMenu(false);}"
                   >
-                    <span>⚙&#xFE0E;</span> <span>Station Settings</span>
+                    <span>Station Settings</span>
                   </a>
 
                   <a
@@ -397,8 +384,11 @@
                     class="pixel-btn pixel-btn--sm text-xs justify-center w-full"
                     onclick="if(typeof toggleUserMenu==='function'){toggleUserMenu(false);} if(window.retroAudio) retroAudio.playClick();"
                   >
-                    <span>📖</span> <span>Documentation</span>
+                    <span>Documentation</span>
                   </a>
+
+                  <a href="/directory" id="dropdownDirectoryLink" class="hidden" aria-hidden="true">Directory</a>
+                  <a href="/friends" id="dropdownFriendsLink" class="hidden" aria-hidden="true">Friends</a>
 
                   <a
                     href="/logout"
@@ -406,7 +396,7 @@
                     class="pixel-btn pixel-btn--danger pixel-btn--sm text-xs justify-center w-full font-bold"
                     onclick="if(window.retroAudio) retroAudio.playClick();"
                   >
-                    <span>✕</span> <span>LOGOUT</span>
+                    <span>LOGOUT</span>
                   </a>
                 </div>
               </div>
@@ -420,10 +410,10 @@
             class="pixel-btn pixel-btn--sm"
             title="Toggle Dark / Light CRT Mode"
           >
-            <span id="themeLabel" class="text-sm">☾</span>
+            <span id="themeLabel" class="text-xs font-mono">CRT</span>
           </button>
           <a href="/login" class="pixel-btn pixel-btn--yellow font-bold {% if activeView == 'login' %}pixel-btn--active{% endif %}" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>🔑 LOGIN :&gt;</span>
+            <span>LOGIN :&gt;</span>
           </a>
         {% endif %}
       </div>
@@ -481,7 +471,7 @@
           title="PC Audio System: Click to mute/unmute 8-bit sound"
           aria-label="Toggle audio volume"
         >
-          <span id="soundLabel" class="text-xs font-bold">♫</span>
+          <span id="soundLabel" class="text-xs font-bold">[ON]</span>
           <span id="soundTextLabel" class="text-xxs font-mono font-bold uppercase">AUDIO: ON</span>
         </button>
       </div>
@@ -500,7 +490,7 @@
         // Function to update sound UI elements
         function updateSoundUI(isOn) {
           if (window.retroAudio) window.retroAudio.enabled = isOn;
-          if (soundLabel) soundLabel.textContent = isOn ? '♫' : '⊘';
+          if (soundLabel) soundLabel.textContent = isOn ? '[ON]' : '[MUTE]';
           if (soundTextLabel) soundTextLabel.textContent = isOn ? 'AUDIO: ON' : 'MUTED';
           if (soundBtn) {
             soundBtn.title = isOn ? 'PC Audio: ON (Click to Mute)' : 'PC Audio: MUTED (Click to Unmute)';
@@ -532,11 +522,11 @@
         function updateThemeUI(isDark) {
           if (isDark) {
             document.documentElement.classList.add('dark');
-            if (themeLabel) themeLabel.textContent = '☾';
+            if (themeLabel) themeLabel.textContent = 'DARK';
             if (themeTextLabel) themeTextLabel.textContent = 'DARK MODE';
           } else {
             document.documentElement.classList.remove('dark');
-            if (themeLabel) themeLabel.textContent = '☼';
+            if (themeLabel) themeLabel.textContent = 'LIGHT';
             if (themeTextLabel) themeTextLabel.textContent = 'LIGHT MODE';
           }
         }
@@ -722,8 +712,8 @@
 
     {% if currentUser %}
       <!-- Floating NIM Dock Trigger Button -->
-      <button type="button" id="aimDockBtn" class="pixel-btn pixel-btn--yellow aim-dock-btn" title="Open Neogram Instant Messenger (NIM)">
-        <span>🗨</span>
+      <button type="button" id="aimDockBtn" class="pixel-btn pixel-btn--yellow aim-dock-btn flex items-center gap-1.5" title="Open Neogram Instant Messenger (NIM)">
+        <svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h12v8H6l-4 3V3z"/></svg>
         <span>NIM Messenger</span>
         <span id="aimOnlineCountBadge" class="pixel-badge text-xs">...</span>
       </button>
@@ -733,7 +723,6 @@
         <!-- Titlebar -->
         <div class="aim-window__header">
           <div class="flex items-center gap-1.5 overflow-hidden">
-            <span>🗨</span>
             <span class="truncate">NIM 97 // NEOGRAM MESSENGER</span>
           </div>
           <div class="flex items-center gap-1">
@@ -751,8 +740,8 @@
               <div class="flex items-center justify-between">
                 <span class="font-bold text-prompt">@{{ currentUser.handle }}</span>
                 <select id="aimUserStatusSelect" class="border border-main text-xs font-mono bg-window cursor-pointer p-0.5">
-                  <option value="online">🟢 Online</option>
-                  <option value="away">🟡 Away</option>
+                  <option value="online">Online</option>
+                  <option value="away">Away</option>
                 </select>
               </div>
               <input type="text" id="aimUserAwayMsg" placeholder="Status / Away message..." class="text-xs p-1 border border-main bg-window font-mono" maxlength="100" />
@@ -760,12 +749,12 @@
 
             <!-- Scrollable Buddies List -->
             <div class="aim-window__buddies-container">
-              <div class="aim-window__buddy-section-title">Online Buddies (🟢)</div>
+              <div class="aim-window__buddy-section-title flex items-center gap-1.5"><span class="status-led status-led--online"></span> <span>Online Buddies</span></div>
               <div id="aimBuddiesList" class="flex flex-col gap-1">
                 <div class="text-xs text-muted p-1">Connecting to NIM network...</div>
               </div>
 
-              <div class="aim-window__buddy-section-title">Offline Buddies (⚪)</div>
+              <div class="aim-window__buddy-section-title flex items-center gap-1.5"><span class="status-led status-led--offline"></span> <span>Offline Buddies</span></div>
               <div id="aimOfflineBuddiesList" class="flex flex-col gap-1">
                 <div class="text-xs text-muted p-1">...</div>
               </div>
@@ -774,7 +763,7 @@
             <!-- Bottom Utilities -->
             <div class="flex items-center justify-between border-t border-main pt-1.5 text-xs font-mono">
               <button type="button" id="aimExportLogsBtn" class="pixel-btn text-xs py-0.5 px-2" title="Export all chat logs as JSON file">
-                <span>💾 Export Logs</span>
+                <span>Export Logs</span>
               </button>
               <button type="button" id="aimClearLogsBtn" class="text-muted hover:text-crimson text-xs underline" title="Clear local browser logs">
                 [Clear Local]
@@ -789,8 +778,8 @@
               <button type="button" id="aimBackToBuddiesBtn" class="aim-window__btn-sm">
                 &lt; Buddies
               </button>
-              <div class="flex items-center gap-1 font-bold text-xs truncate max-w-40">
-                <span id="aimImStatusDot">🟢</span>
+              <div class="flex items-center gap-1.5 font-bold text-xs truncate max-w-40">
+                <span id="aimImStatusDot" class="status-led status-led--online"></span>
                 <span id="aimImTitle" class="truncate">@user</span>
               </div>
             </div>
@@ -839,22 +828,13 @@
       <!-- Retro Mobile Bottom Navigation Bar (Screens < 768px) -->
       <nav class="retro-mobile-nav" id="retroMobileNav" aria-label="Mobile Navigation">
         <a
-          href="/#feed"
-          id="mobileTabFeedBtn"
-          class="retro-mobile-nav__item"
-          onclick="switchDashboardTab('feed', event)"
-        >
-          <span class="retro-mobile-nav__icon">📰</span>
-          <span>Feed</span>
-        </a>
-        <a
           href="/#upload"
           id="mobileTabUploadBtn"
           class="retro-mobile-nav__item"
           onclick="switchDashboardTab('upload', event)"
         >
-          <span class="retro-mobile-nav__icon">📸</span>
-          <span>Studio</span>
+          <span class="retro-mobile-nav__icon"><svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5h2.5l1-2h5l1 2H14v8H2V5z"/><circle cx="8" cy="9" r="2.2"/></svg></span>
+          <span>Upload</span>
         </a>
         <a
           href="/#edit"
@@ -862,17 +842,17 @@
           class="retro-mobile-nav__item"
           onclick="switchDashboardTab('manage', event)"
         >
-          <span class="retro-mobile-nav__icon">📁</span>
-          <span>Archive</span>
+          <span class="retro-mobile-nav__icon"><svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h5l1.5 2H14v8H2V3z"/></svg></span>
+          <span>Posts</span>
         </a>
         <a
-          href="/#settings"
-          id="mobileTabSettingsBtn"
+          href="/#network"
+          id="mobileTabFeedBtn"
           class="retro-mobile-nav__item"
-          onclick="switchDashboardTab('settings', event)"
+          onclick="switchDashboardTab('feed', event)"
         >
-          <span class="retro-mobile-nav__icon">⚙️</span>
-          <span>Config</span>
+          <span class="retro-mobile-nav__icon"><svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2c-2 2-2 10 0 12"/></svg></span>
+          <span>Network</span>
         </a>
         <a
           href="/#embeds"
@@ -880,18 +860,18 @@
           class="retro-mobile-nav__item"
           onclick="switchDashboardTab('embeds', event)"
         >
-          <span class="retro-mobile-nav__icon">⎘</span>
+          <span class="retro-mobile-nav__icon"><svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 4L1.5 8 5 12M11 4l3.5 4L11 12M9.5 3l-3 10"/></svg></span>
           <span>Embeds</span>
         </a>
-        <button
-          type="button"
-          id="mobileTabAimBtn"
+        <a
+          href="/#settings"
+          id="mobileTabSettingsBtn"
           class="retro-mobile-nav__item"
-          title="Open Neogram Instant Messenger"
+          onclick="switchDashboardTab('settings', event)"
         >
-          <span class="retro-mobile-nav__icon">💬</span>
-          <span>NIM</span>
-        </button>
+          <span class="retro-mobile-nav__icon"><svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12"/><circle cx="5" cy="4" r="1.5" fill="currentColor"/><circle cx="11" cy="8" r="1.5" fill="currentColor"/><circle cx="6" cy="12" r="1.5" fill="currentColor"/></svg></span>
+          <span>Settings</span>
+        </a>
       </nav>
     {% else %}
       <!-- Retro Mobile Bottom Navigation Bar (Guest / Logged Out) -->
@@ -901,7 +881,7 @@
           class="retro-mobile-nav__item {% if activeView == 'dashboard' %}is-active{% endif %}"
           onclick="if(window.retroAudio) retroAudio.playClick();"
         >
-          <span class="retro-mobile-nav__icon">💾</span>
+          <span class="retro-mobile-nav__icon"><svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="10"/><path d="M2 6h12"/></svg></span>
           <span>About</span>
         </a>
         <a
@@ -909,7 +889,7 @@
           class="retro-mobile-nav__item {% if activeView == 'directory' %}is-active{% endif %}"
           onclick="if(window.retroAudio) retroAudio.playClick();"
         >
-          <span class="retro-mobile-nav__icon">👥</span>
+          <span class="retro-mobile-nav__icon"><svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6" cy="5.5" r="2.2"/><path d="M2 13c0-2.2 1.8-3.5 4-3.5s4 1.3 4 3.5"/><circle cx="11.5" cy="6" r="1.7"/><path d="M11.5 9.5c1.5 0 2.5 1 2.5 2.8"/></svg></span>
           <span>Directory</span>
         </a>
         <a
@@ -917,7 +897,7 @@
           class="retro-mobile-nav__item {% if activeView == 'docs' %}is-active{% endif %}"
           onclick="if(window.retroAudio) retroAudio.playClick();"
         >
-          <span class="retro-mobile-nav__icon">📖</span>
+          <span class="retro-mobile-nav__icon"><svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2h8l2 2v10H3V2z"/><path d="M5 6h6M5 9h6M5 12h4"/></svg></span>
           <span>Docs</span>
         </a>
         <a
@@ -925,7 +905,7 @@
           class="retro-mobile-nav__item {% if activeView == 'login' %}is-active{% endif %}"
           onclick="if(window.retroAudio) retroAudio.playClick();"
         >
-          <span class="retro-mobile-nav__icon">🔑</span>
+          <span class="retro-mobile-nav__icon"><svg class="retro-svg-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="5.5" cy="8" r="3"/><path d="M8.5 8H14v2.5M11.5 8v2"/></svg></span>
           <span>Login</span>
         </a>
       </nav>

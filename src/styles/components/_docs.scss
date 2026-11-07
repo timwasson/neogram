@@ -20,23 +20,44 @@
 
 /* Sidebar Navigation Pane */
 .docs-sidebar {
-  width: 100%;
+  inline-size: 100%;
+  min-inline-size: 0;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  align-items: safe center;
+  gap: 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--border-main);
   box-sizing: border-box;
 
+  > div {
+    display: none;
+  }
+
   @media (min-width: 820px) {
-    width: 240px;
+    inline-size: 240px;
+    flex-direction: column;
+    align-items: stretch;
+    overflow-x: visible;
+    padding-bottom: 0;
+    border-bottom: none;
+    gap: 8px;
     position: sticky;
     top: 60px;
+
+    > div {
+      display: flex;
+    }
   }
 }
 
 /* Main Content Area */
 .docs-content {
-  width: 100%;
-  min-width: 0;
+  inline-size: 100%;
+  min-inline-size: 0;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -45,29 +66,39 @@
 
 /* Section Pane */
 .docs-section-pane {
-  width: 100%;
-  min-width: 0;
+  inline-size: 100%;
+  min-inline-size: 0;
   box-sizing: border-box;
 }
 
 /* Topic Selector Buttons */
 .docs-topic-btn {
-  width: 100%;
+  flex: 0 0 auto;
+  inline-size: auto;
+  white-space: nowrap;
   text-align: left;
   border: 2px solid var(--border-main);
-  padding: 8px 12px;
+  padding: 7px 11px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: bold;
   background-color: var(--surface-window);
   color: var(--text-main);
   cursor: pointer;
   box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 0.8);
   transition: all 0.1s ease;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
   box-sizing: border-box;
+
+  @media (min-width: 820px) {
+    display: flex;
+    inline-size: 100%;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
 
   &:hover {
     background-color: var(--accent-yellow);

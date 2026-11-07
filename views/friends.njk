@@ -8,12 +8,12 @@
     <div class="flex items-center gap-2 text-muted">
       <a href="/" class="text-mac hover:underline font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">:&gt; WORKSTATION</a>
       <span>/</span>
-      <span class="text-prompt font-bold">🤝 CYBERSPACE_FRIENDS.EXE</span>
+      <span class="text-prompt font-bold">CYBERSPACE_FRIENDS.EXE</span>
       <span>[#{{ currentUser.uin or '100101' }}]</span>
     </div>
     <div class="flex items-center gap-2">
       <a href="/directory" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2.5" onclick="if(window.retroAudio) retroAudio.playClick();">
-        <span>[ 👥 Cyberspace Directory ]</span>
+        <span>[ Cyberspace Directory ]</span>
       </a>
       <a href="/" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2.5" onclick="if(window.retroAudio) retroAudio.playClick();">
         <span>[ &lt; Workstation Studio ]</span>
@@ -25,7 +25,6 @@
   <section class="retro-card p-0 mb-6" aria-label="Friends Network Overview">
     <div class="window-header flex items-center justify-between p-2 flex-wrap gap-2">
       <div class="flex items-center gap-2">
-        <span>🤝</span>
         <span class="font-bold text-xs">[:&gt; FRIENDS_NETWORK.SYS - Personal Follow Ledger &amp; Transmission Feed]</span>
       </div>
       <div class="flex items-center gap-2 text-xxs font-mono">
@@ -39,7 +38,7 @@
       <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 class="text-base md:text-lg font-bold text-mac m-0 flex items-center gap-2">
-            <span>🤝 Cyberspace Friends</span>
+            <span>Cyberspace Friends</span>
             <span class="text-xs text-muted font-normal">(@{{ currentUser.handle }})</span>
           </h1>
           <p class="text-xs text-muted mt-1 mb-0 leading-relaxed">
@@ -68,7 +67,6 @@
   <section class="mb-8" aria-label="Friends Roster">
     <div class="window-header flex items-center justify-between p-2 mb-3">
       <div class="flex items-center gap-2">
-        <span>👥</span>
         <span class="font-bold text-xs">[:&gt; FRIENDS_ROSTER.SYS - Active Buddy Connections ({{ friends.length }})]</span>
       </div>
       <span class="text-xxs text-muted uppercase font-mono">MANAGEMENT_CONSOLE</span>
@@ -76,13 +74,12 @@
 
     {% if friends.length == 0 %}
       <div class="retro-card p-6 text-center flex flex-col items-center gap-3">
-        <div class="text-3xl">📡</div>
         <div class="text-sm font-bold text-mac">[:&gt; NO FRIENDS IN CARRIER DIRECTORY YET]</div>
         <p class="text-xs text-muted max-w-md mx-auto leading-relaxed">
           You haven't followed any station nodes yet. Browse the Cyberspace Directory or visit creator profiles to add friends and build your static webring.
         </p>
         <a href="/directory" class="pixel-btn pixel-btn--green font-bold text-xs py-1.5 px-4" onclick="if(window.retroAudio) retroAudio.playClick();">
-          <span>👥 Explore Cyberspace Directory →</span>
+          <span>Explore Cyberspace Directory →</span>
         </a>
       </div>
     {% else %}
@@ -126,7 +123,7 @@
                 </div>
 
                 <div class="text-muted text-xxs mt-1">
-                  📷 {{ friend.postCount }} photo{% if friend.postCount != 1 %}s{% endif %}
+                  {{ friend.postCount }} photo{% if friend.postCount != 1 %}s{% endif %}
                 </div>
               </div>
             </div>
@@ -142,7 +139,7 @@
                     class="text-mac hover:underline font-bold"
                     title="Visit {{ friend.cleanRootSiteUrl }}"
                   >
-                    🌐 Site
+                    Site ↗
                   </a>
                   <span class="text-muted">•</span>
                 {% endif %}
@@ -176,7 +173,6 @@
   <section aria-label="Friends Photo Feed">
     <div class="window-header flex items-center justify-between p-2 mb-3">
       <div class="flex items-center gap-2">
-        <span>📸</span>
         <span class="font-bold text-xs">[:&gt; BROADCAST_FEED.EXE - Synchronized Friends Stream ({{ posts.length }})]</span>
       </div>
       <span class="text-xxs text-muted uppercase font-mono">CHRONOLOGICAL_STREAM</span>
@@ -184,7 +180,6 @@
 
     {% if posts.length == 0 %}
       <div class="retro-card p-8 text-center flex flex-col items-center gap-3">
-        <div class="text-3xl">📷</div>
         <div class="text-sm font-bold text-mac">[:&gt; NO TRANSMISSIONS RECORDED IN FEED YET]</div>
         <p class="text-xs text-muted max-w-md mx-auto leading-relaxed">
           Your followed friends haven't broadcasted any photographs yet. When they publish photos, they will stream here live{% if userSites and userSites.length > 0 %} and automatically compile into your static site{% endif %}.
@@ -201,7 +196,6 @@
                 class="flex items-center gap-1.5 font-bold text-mac hover:underline truncate"
                 onclick="if(window.retroAudio) retroAudio.playClick();"
               >
-                <span>👾</span>
                 <span>@{{ post.author }}</span>
                 {% if post.uin %}<span class="text-muted font-normal text-xxs">[#{{ post.uin }}]</span>{% endif %}
               </a>
@@ -230,8 +224,8 @@
             <div class="p-3 flex flex-col gap-2 flex-1 justify-between">
               <div>
                 <div class="flex items-center justify-between text-xxs text-muted mb-1.5 flex-wrap gap-1">
-                  <span>📍 {{ post.location or 'Cyberspace' }}</span>
-                  <span>🕒 {{ post.createdAt | formatDateTime }}</span>
+                  <span>{{ post.location or 'Cyberspace' }}</span>
+                  <span>{{ post.createdAt | formatDateTime }}</span>
                 </div>
 
                 <p class="text-xs text-main leading-relaxed m-0 whitespace-pre-wrap">
@@ -252,8 +246,9 @@
 
                 <div class="flex items-center justify-between text-xs pt-1">
                   <div class="flex items-center gap-2 text-muted text-xxs">
-                    <span>❤️ {{ post.likes or 0 }} likes</span>
-                    <span>💬 {{ post.commentCount or 0 }} comments</span>
+                    <span>{{ post.likes or 0 }} likes</span>
+                    <span>•</span>
+                    <span>{{ post.commentCount or 0 }} comments</span>
                   </div>
 
                   <a

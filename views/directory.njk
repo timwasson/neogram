@@ -20,7 +20,6 @@
   <div class="pixel-box mb-6">
     <div class="window-header flex items-center justify-between p-2">
       <div class="flex items-center gap-2">
-        <span>👥</span>
         <span class="font-bold text-xs">[:&gt; CYBERSPACE_DIRECTORY.SYS - Neogram Public Station Registry]</span>
       </div>
       <span class="pixel-badge pixel-badge--cyan font-bold text-xxs">TOTAL: {{ totalCount }} NODES</span>
@@ -42,14 +41,14 @@
       <div class="flex items-center justify-between flex-wrap gap-3 p-3 bg-window border border-main text-xs">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="text-muted font-bold text-xxs uppercase tracking-wider">FILTER SUMMARY:</span>
-          <span class="pixel-badge pixel-badge--green font-bold text-xs">
-            🟢 ACTIVE: {{ activeUsers.length }}
+          <span class="pixel-badge pixel-badge--green font-bold text-xs flex items-center gap-1">
+            <span class="status-led status-led--online"></span> ACTIVE: {{ activeUsers.length }}
           </span>
-          <span class="pixel-badge pixel-badge--amber font-bold text-xs">
-            🟡 AWAY: {{ awayUsers.length }}
+          <span class="pixel-badge pixel-badge--amber font-bold text-xs flex items-center gap-1">
+            <span class="status-led status-led--away"></span> AWAY: {{ awayUsers.length }}
           </span>
-          <span class="pixel-badge font-bold text-xs">
-            ⚪ INACTIVE: {{ inactiveUsers.length }}
+          <span class="pixel-badge font-bold text-xs flex items-center gap-1">
+            <span class="status-led status-led--offline"></span> INACTIVE: {{ inactiveUsers.length }}
           </span>
         </div>
         <div class="text-muted text-xxs">
@@ -86,7 +85,7 @@
   <section class="directory-section" id="activeSection" aria-label="Active Stations">
     <div class="directory-section-header">
       <div class="flex items-center gap-2">
-        <span>🟢</span>
+        <span class="status-led status-led--online"></span>
         <span class="font-bold uppercase tracking-wider text-xs">
           1. ACTIVE STATIONS (<span id="activeCount">{{ activeUsers.length }}</span>)
         </span>
@@ -100,7 +99,6 @@
       {% if activeUsers.length == 0 %}
         <!-- Empty State for Active -->
         <div class="p-6 border-2 border-dashed border-main text-center bg-black text-prompt text-xs space-y-1">
-          <div class="text-base">📡</div>
           <div class="font-bold">NO STATIONS CURRENTLY TRANSMITTING LIVE</div>
           <p class="text-muted text-xxs m-0">All station operators are currently away or on standby carrier.</p>
         </div>
@@ -144,7 +142,7 @@
                 </div>
 
                 <div class="flex items-center justify-between pt-1 border-t border-main text-xxs text-muted mt-0.5">
-                  <span>📷 {{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
+                  <span>{{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
                   <a
                     href="{{ user.profileUrl }}"
                     class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
@@ -167,7 +165,7 @@
   <section class="directory-section" id="awaySection" aria-label="Away Stations">
     <div class="directory-section-header">
       <div class="flex items-center gap-2">
-        <span>🟡</span>
+        <span class="status-led status-led--away"></span>
         <span class="font-bold uppercase tracking-wider text-xs">
           2. "AWAY" STATIONS (<span id="awayCount">{{ awayUsers.length }}</span>)
         </span>
@@ -181,7 +179,6 @@
       {% if awayUsers.length == 0 %}
         <!-- Empty State for Away -->
         <div class="p-6 border-2 border-dashed border-main text-center bg-black text-amber text-xs space-y-1">
-          <div class="text-base">⏳</div>
           <div class="font-bold">NO STATIONS CURRENTLY MARKED AS AWAY</div>
           <p class="text-muted text-xxs m-0">No operators have engaged away messages at this moment.</p>
         </div>
@@ -225,7 +222,7 @@
                 </div>
 
                 <div class="flex items-center justify-between pt-1 border-t border-main text-xxs text-muted mt-0.5">
-                  <span>📷 {{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
+                  <span>{{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
                   <a
                     href="{{ user.profileUrl }}"
                     class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
@@ -248,7 +245,7 @@
   <section class="directory-section" id="inactiveSection" aria-label="Inactive Stations">
     <div class="directory-section-header">
       <div class="flex items-center gap-2">
-        <span>⚪</span>
+        <span class="status-led status-led--offline"></span>
         <span class="font-bold uppercase tracking-wider text-xs">
           3. INACTIVE STATIONS (<span id="inactiveCount">{{ inactiveUsers.length }}</span>)
         </span>
@@ -262,7 +259,6 @@
       {% if inactiveUsers.length == 0 %}
         <!-- Empty State for Inactive -->
         <div class="p-6 border-2 border-dashed border-main text-center bg-black text-muted text-xs space-y-1">
-          <div class="text-base">💾</div>
           <div class="font-bold">ALL STATIONS ARE CURRENTLY ACTIVE OR AWAY</div>
           <p class="text-muted text-xxs m-0">Zero inactive nodes recorded.</p>
         </div>
@@ -306,7 +302,7 @@
                 </div>
 
                 <div class="flex items-center justify-between pt-1 border-t border-main text-xxs text-muted mt-0.5">
-                  <span>📷 {{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
+                  <span>{{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
                   <a
                     href="{{ user.profileUrl }}"
                     class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"

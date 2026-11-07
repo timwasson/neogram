@@ -147,7 +147,7 @@
 
         html +=
           '<div class="retro-notify-item ' + unreadClass + '" data-id="' + n.id + '" onclick="NeogramNotifications.handleClickItem(\'' + n.id + '\', \'' + (n.linkUrl || '') + '\')">' +
-          '  <div class="retro-notify-item__icon">' + (n.icon || '🔔') + '</div>' +
+          '  <div class="retro-notify-item__icon"><span class="status-led ' + (!n.isRead ? 'status-led--online' : 'status-led--offline') + '"></span></div>' +
           '  <div class="retro-notify-item__content">' +
           '    <span class="retro-notify-item__title">' + actorAvatar + escapeHtml(n.title) + '</span>' +
           (n.body ? '    <span class="retro-notify-item__body">' + escapeHtml(n.body) + '</span>' : '') +

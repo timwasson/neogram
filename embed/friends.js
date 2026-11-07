@@ -57,7 +57,7 @@
 
       container.innerHTML = 
         '<div class="neogram-loading" style="text-align:center; padding: 2rem; font-family: monospace;">' +
-        '  <span style="display:inline-block; animation: blink 1s infinite;">📡 CONNECTING TO CYBERSPACE FRIENDS MESH...</span>' +
+        '  <span style="display:inline-block; animation: blink 1s infinite;">CONNECTING TO CYBERSPACE FRIENDS MESH...</span>' +
         '</div>';
 
       var fetchUrl = station 
@@ -80,7 +80,6 @@
       .catch(function (err) {
         container.innerHTML = 
           '<div class="neogram-empty" style="text-align:center; padding: 2rem; font-family: monospace;">' +
-          '  <div style="font-size: 2rem;">📡</div>' +
           '  <div style="font-weight: bold; margin: 0.5rem 0;">[:> FEDERATED FRIENDS STREAM READY]</div>' +
           '  <p style="font-size: 0.85rem; opacity: 0.8;">No transmissions loaded from cyberspace friends roster.</p>' +
           '</div>';
@@ -91,7 +90,6 @@
       if (!posts || posts.length === 0) {
         container.innerHTML = 
           '<div class="neogram-empty" style="text-align:center; padding: 2rem; font-family: monospace;">' +
-          '  <div style="font-size: 2rem;">📷</div>' +
           '  <div style="font-weight: bold; margin: 0.5rem 0;">[:> NO TRANSMISSIONS RECORDED IN FRIENDS MESH YET]</div>' +
           '  <p style="font-size: 0.85rem; opacity: 0.8;">Follow creator station nodes on Neogram to stream their broadcasted photographs here in real time.</p>' +
           '</div>';
@@ -117,7 +115,7 @@
           '  <a href="' + escapeHtml(profileUrl) + '" target="_blank" class="neogram-card__media">' +
           '    <img src="' + escapeHtml(imgUrl) + '" alt="' + escapeHtml(p.caption || '') + '" class="neogram-card__image filter-' + escapeHtml(filter) + '" loading="lazy" />' +
           '    <div class="neogram-card__overlay">' +
-          '      <span class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn">👁️ VIEW PROFILE</span>' +
+          '      <span class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn">VIEW PROFILE</span>' +
           '    </div>' +
           '  </a>' +
           '  <div class="neogram-card__body">' +
@@ -129,7 +127,7 @@
           '      <p class="neogram-card__caption">' + escapeHtml(p.caption || '') + '</p>' +
           '    </div>' +
           '    <div class="neogram-card__footer">' +
-          '      <span class="neogram-card__likes">❤️ <strong>' + (p.likes || 0) + '</strong> likes</span>' +
+          '      <span class="neogram-card__likes"><strong>' + (p.likes || 0) + '</strong> likes</span>' +
           '      <a href="' + escapeHtml(profileUrl) + '" target="_blank" class="neogram-btn neogram-btn--yellow neogram-btn--sm">Station Node :&gt;</a>' +
           '    </div>' +
           '  </div>' +

@@ -233,17 +233,30 @@ export function createApp(): Express {
       const userArchivePosts = currentUser ? await getPostsForUser(currentUser.id) : [];
       const allPosts = await getAllPosts();
 
-      // Query Follower Feed for authenticated user strictly from friends' live feed.json
+      // Query Follower Feed, Friends Roster, & Station Directory for authenticated user
       let followerFeedPosts: any[] = [];
       let followedCount = 0;
+      let friends: any[] = [];
+      let activeUsers: any[] = [];
+      let awayUsers: any[] = [];
+      let inactiveUsers: any[] = [];
+      let totalDirectoryCount = 0;
+
       if (currentUser) {
         const followsRes = await query(
-          'SELECT COUNT(*) as count FROM follows WHERE follower_id = $1',
+          `SELECT COUNT(*) as count
+           FROM follows f
+           JOIN users u ON f.following_id = u.id
+           WHERE f.follower_id = $1 AND COALESCE(u.is_banned, false) = false`,
           [currentUser.id]
         );
         followedCount = parseInt(followsRes.rows[0]?.count || '0', 10);
 
         const { aggregateFederatedFriendsFeed } = await import('./services/federatedFriends');
+        const { activeSockets } = await import('./services/chatSocket');
+        const { getPostCountForUser } = await import('./services/postStorage');
+        const { fetchCategorizedDirectory } = await import('./routes/directory');
+
         const friendsRes = await query(`
           SELECT 
             u.id, 
@@ -251,16 +264,56 @@ export function createApp(): Express {
             COALESCE(u.handle, split_part(u.email, '@', 1)) as handle,
             u.uin,
             u.avatar_path as "avatarPath",
+            u.status_message as "statusMessage",
+            u.is_away as "isAway",
             u.site_url as "siteUrl",
             u.deploy_path as "deployPath",
-            u.last_deployed_at as "lastDeployedAt"
+            u.last_deployed_at as "lastDeployedAt",
+            f.created_at as "friendedAt"
           FROM follows f
           JOIN users u ON f.following_id = u.id
-          WHERE f.follower_id = $1
+          WHERE f.follower_id = $1 AND COALESCE(u.is_banned, false) = false
           ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC
         `, [currentUser.id]);
 
-        const friendTargets = friendsRes.rows.map((r: any) => ({
+        friends = await Promise.all(
+          friendsRes.rows.map(async (r: any) => {
+            const active = activeSockets.get(r.id);
+            let status = 'inactive';
+            let statusMsg = r.statusMessage || 'Surfing cyberspace';
+            if (active) {
+              status = active.status;
+              if (active.awayMessage) statusMsg = active.awayMessage;
+            } else if (r.isAway) {
+              status = 'away';
+            }
+
+            let cleanRootSiteUrl = '';
+            if (r.siteUrl && r.siteUrl.trim()) {
+              try {
+                const parsed = new URL(r.siteUrl);
+                if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+                  cleanRootSiteUrl = `${parsed.protocol}//${parsed.host}`;
+                }
+              } catch (_e) {
+                cleanRootSiteUrl = '';
+              }
+            }
+
+            const postCount = await getPostCountForUser(r.id);
+            return {
+              ...r,
+              status,
+              statusMessage: statusMsg,
+              postCount,
+              avatarPath: r.avatarPath && r.avatarPath.trim() ? r.avatarPath : '/icons/default-avatar.svg',
+              profileUrl: `/user/@${encodeURIComponent(r.handle)}`,
+              cleanRootSiteUrl,
+            };
+          })
+        );
+
+        const friendTargets = friends.map((r: any) => ({
           id: r.id,
           handle: r.handle,
           uin: r.uin,
@@ -270,7 +323,16 @@ export function createApp(): Express {
           lastDeployedAt: r.lastDeployedAt,
         }));
 
-        followerFeedPosts = await aggregateFederatedFriendsFeed(friendTargets, 50);
+        const [feedResult, directoryData] = await Promise.all([
+          aggregateFederatedFriendsFeed(friendTargets, 50),
+          fetchCategorizedDirectory(),
+        ]);
+
+        followerFeedPosts = feedResult;
+        activeUsers = directoryData.active;
+        awayUsers = directoryData.away;
+        inactiveUsers = directoryData.inactive;
+        totalDirectoryCount = directoryData.total;
       }
 
       res.render('index', {
@@ -284,6 +346,11 @@ export function createApp(): Express {
         allPosts,
         followerFeedPosts,
         followedCount,
+        friends,
+        activeUsers,
+        awayUsers,
+        inactiveUsers,
+        totalDirectoryCount,
         userSites: res.locals.userSites || [],
         activeSite: res.locals.activeSite || null,
       });
@@ -365,7 +432,7 @@ export function createApp(): Express {
           0 as "postCount"
         FROM follows f
         JOIN users u ON f.following_id = u.id
-        WHERE f.follower_id = $1
+        WHERE f.follower_id = $1 AND COALESCE(u.is_banned, false) = false
         ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC
       `, [currentUser.id]);
 

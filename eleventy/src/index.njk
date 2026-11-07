@@ -9,7 +9,6 @@ title: Static Photo Stream
 <section class="neogram-banner">
   <div class="neogram-banner__header">
     <div class="neogram-banner__title">
-      <span>⚡</span>
       <span>[:&gt; {{ site.title }}]</span>
     </div>
     <div class="neogram-banner__status">
@@ -28,7 +27,7 @@ title: Static Photo Stream
     <div class="neogram-banner__actions">
       <span class="neogram-badge neogram-badge--cyan">{{ posts.length }} PHOTOS ARCHIVED</span>
       <a href="{{ site.apiUrl or 'http://localhost:4000' }}" target="_blank" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
-        <span>📸 Upload New Photo :&gt;</span>
+        <span>Upload New Photo :&gt;</span>
       </a>
       <button
         type="button"
@@ -37,7 +36,7 @@ title: Static Photo Stream
         class="neogram-btn neogram-btn--green neogram-btn--sm"
         style="display: none;"
       >
-        <span id="staticFriendBtnText">🤝 Add Friend</span>
+        <span id="staticFriendBtnText">+ Add Friend</span>
       </button>
     </div>
   </div>
@@ -48,14 +47,13 @@ title: Static Photo Stream
      ============================================================== -->
 {% if posts.length == 0 %}
   <div class="neogram-empty">
-    <div class="neogram-empty__icon">📡</div>
     <div class="neogram-empty__title">[:&gt; NO PHOTOS BROADCAST TO STATIC REPO YET]</div>
     <p class="neogram-empty__desc">
       Log into your Neogram Workstation to upload your first photograph and trigger the 11ty build pipeline.
     </p>
     <div class="neogram-empty__action">
       <a href="{{ site.apiUrl or 'http://localhost:4000' }}" class="neogram-btn neogram-btn--green neogram-btn--lg">
-        <span>🚀 Open Neogram Creator Studio</span>
+        <span>Open Neogram Creator Studio</span>
       </a>
     </div>
   </div>
@@ -94,7 +92,7 @@ title: Static Photo Stream
             </div>
             <div class="neogram-card__overlay">
               <a href="{{ ('/photos/' + post.id + '/') | url }}" class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn">
-                <span>👁️ VIEW &amp; COMMENT</span>
+                <span>VIEW &amp; COMMENT</span>
               </a>
             </div>
           </div>
@@ -108,7 +106,7 @@ title: Static Photo Stream
             />
             <div class="neogram-card__overlay">
               <span class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn">
-                <span>👁️ VIEW &amp; COMMENT</span>
+                <span>VIEW &amp; COMMENT</span>
               </span>
             </div>
           </a>
@@ -140,7 +138,7 @@ title: Static Photo Stream
 
             <div class="neogram-card__footer">
               <span class="neogram-card__likes">
-                ❤️ <strong>{{ post.likes or 0 }}</strong> likes
+                <strong>{{ post.likes or 0 }}</strong> likes
               </span>
               <a href="{{ ('/photos/' + post.id + '/') | url }}" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
                 <span>View Details :&gt;</span>
@@ -177,7 +175,7 @@ title: Static Photo Stream
         // Show "Add Friend" for logged out visitors (will open Cyber-Pass modal)
         if (friendBtn) {
           friendBtn.style.display = 'inline-flex';
-          friendText.textContent = '🤝 Add Friend';
+          friendText.textContent = '+ Add Friend';
         }
         return;
       }
@@ -216,7 +214,7 @@ title: Static Photo Stream
       } else {
         friendBtn.classList.remove('neogram-btn--yellow');
         friendBtn.classList.add('neogram-btn--green');
-        friendText.textContent = '🤝 Add Friend';
+        friendText.textContent = '+ Add Friend';
       }
     }
 
@@ -261,7 +259,7 @@ title: Static Photo Stream
             token: e.data.token,
             handle: e.data.handle,
             uin: e.data.uin,
-            avatar: e.data.avatar || '💬'
+            avatar: e.data.avatar || ''
           }));
         } catch (_e) {}
         checkFriendStatus();

@@ -13,7 +13,7 @@
     </div>
     <div class="flex items-center gap-2">
       <a href="/directory" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2.5" onclick="if(window.retroAudio) retroAudio.playClick();">
-        <span>[ 👥 Directory ]</span>
+        <span>[ Directory ]</span>
       </a>
       <a href="/" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2.5" onclick="if(window.retroAudio) retroAudio.playClick();">
         <span>[ &lt; Workstation ]</span>
@@ -31,7 +31,6 @@
       <div class="retro-card p-0 m-0">
         <div class="window-header flex items-center justify-between p-2">
           <div class="flex items-center gap-2">
-            <span>👾</span>
             <span class="font-bold text-xs truncate">[:&gt; STATION_ID.SYS]</span>
           </div>
           {% if profileUser.isAway %}
@@ -51,9 +50,9 @@
             />
             <div class="absolute -bottom-2 -right-2">
               {% if profileUser.isAway %}
-                <span class="pixel-btn pixel-btn--sm font-bold text-xs py-0.5 px-1 bg-amber text-black" title="Away">🟡 AWAY</span>
+                <span class="pixel-btn pixel-btn--sm font-bold text-xs py-0.5 px-1 bg-amber text-black flex items-center gap-1" title="Away"><span class="status-led status-led--away"></span> AWAY</span>
               {% else %}
-                <span class="pixel-btn pixel-btn--green pixel-btn--sm font-bold text-xs py-0.5 px-1" title="Online">🟢 V.90</span>
+                <span class="pixel-btn pixel-btn--green pixel-btn--sm font-bold text-xs py-0.5 px-1 flex items-center gap-1" title="Online"><span class="status-led status-led--online"></span> V.90</span>
               {% endif %}
             </div>
           </div>
@@ -75,7 +74,7 @@
                   class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xs font-bold py-0.5 px-2"
                   title="Visit root website"
                 >
-                  <span>🌐 Root Site ↗</span>
+                  <span>Root Site ↗</span>
                 </a>
               {% endif %}
             </div>
@@ -130,19 +129,19 @@
                 onclick="toggleProfileFriend('{{ profileUser.handle }}')"
                 class="pixel-btn {% if isFriend %}pixel-btn--yellow{% else %}pixel-btn--green{% endif %} text-xs font-bold py-2 w-full flex items-center justify-center gap-1.5"
               >
-                <span id="profileFriendBtnIcon">{% if isFriend %}✓{% else %}🤝{% endif %}</span>
+                <span id="profileFriendBtnIcon">{% if isFriend %}✓{% else %}+{% endif %}</span>
                 <span id="profileFriendBtnText">{% if isFriend %}Friends (Click to Unfriend){% else %}Add Friend{% endif %}</span>
               </button>
             {% elif isSelf %}
               <div class="pixel-badge pixel-badge--cyan text-xxs font-bold py-1 px-2 text-center w-full">
-                👾 THIS IS YOUR STATION
+                THIS IS YOUR STATION
               </div>
             {% else %}
               <a
                 href="/#upload"
                 class="pixel-btn pixel-btn--green text-xs font-bold py-2 w-full flex items-center justify-center gap-1.5"
               >
-                <span>🤝 Log In to Add Friend</span>
+                <span>+ Log In to Add Friend</span>
               </a>
             {% endif %}
 
@@ -153,7 +152,7 @@
                 rel="noopener"
                 class="pixel-btn pixel-btn--yellow text-xs font-bold py-2 w-full flex items-center justify-center gap-1"
               >
-                <span>🌐 Visit Personal Website: {{ profileUser.cleanRootSiteUrl }} ↗</span>
+                <span>Visit Personal Website: {{ profileUser.cleanRootSiteUrl }} ↗</span>
               </a>
             {% endif %}
 
@@ -164,7 +163,7 @@
                 rel="noopener"
                 class="pixel-btn pixel-btn--green text-xs font-bold py-2 w-full flex items-center justify-center gap-1"
               >
-                <span>📷 View Neogram Photo Gallery ↗</span>
+                <span>View Neogram Photo Gallery ↗</span>
               </a>
             {% endif %}
 
@@ -172,7 +171,7 @@
               href="/#chat"
               class="pixel-btn text-xs font-bold py-2 w-full flex items-center justify-center gap-1"
             >
-              <span>💬 Open Neogram Instant Messenger (NIM)</span>
+              <span>Open Neogram Instant Messenger (NIM)</span>
             </a>
           </div>
 
@@ -195,7 +194,6 @@
       <div class="retro-card p-0 m-0">
         <div class="window-header flex items-center justify-between p-2">
           <div class="flex items-center gap-2">
-            <span>📷</span>
             <span class="font-bold text-xs">
               [:&gt; TRANSMISSIONS_ARCHIVE.EXE - Broadcasted Photographs ({{ posts.length }})]
             </span>
@@ -231,7 +229,7 @@
                   class="pixel-btn pixel-btn--sm text-3xs py-0.5 px-2"
                   onclick="filterUserPosts('{{ s.id }}')"
                 >
-                  💾 {{ s.name }}
+                  {{ s.name }}
                 </button>
               {% endfor %}
             </div>
@@ -240,7 +238,6 @@
           {% if not posts or posts.length == 0 %}
             <!-- Empty State -->
             <div class="p-8 border-2 border-dashed border-main text-center bg-black text-prompt space-y-2">
-              <div class="text-2xl">📡</div>
               <div class="font-bold text-sm">NO PHOTOGRAPHS DETECTED IN STORAGE LEDGER</div>
               <p class="text-xs text-muted max-w-md mx-auto">
                 Station @{{ profileUser.handle }} has not broadcasted any public photographs yet. Check back once their transmitter goes live!
@@ -288,7 +285,7 @@
                     {% if post.siteName %}
                       <div>
                         <span class="pixel-badge pixel-badge--yellow font-bold text-3xs">
-                          💾 {{ post.siteName }}
+                          {{ post.siteName }}
                         </span>
                       </div>
                     {% endif %}
@@ -297,7 +294,7 @@
                     </p>
 
                     <div class="flex items-center justify-between text-[11px] text-muted pt-2 mt-auto border-t border-main">
-                      <span>❤️ {{ post.likes or 0 }} likes</span>
+                      <span>{{ post.likes or 0 }} likes</span>
                       <span>{{ post.createdAt | formatDateTime }}</span>
                     </div>
 
@@ -308,7 +305,7 @@
                         rel="noopener"
                         class="pixel-btn pixel-btn--yellow text-xs font-bold py-1 px-2 text-center mt-1"
                       >
-                        <span>👁️ View &amp; Comment :&gt;</span>
+                        <span>View &amp; Comment :&gt;</span>
                       </a>
                     {% endif %}
                   </div>
@@ -377,7 +374,7 @@
         } else {
           btn.classList.remove('pixel-btn--yellow');
           btn.classList.add('pixel-btn--green');
-          if (icon) icon.textContent = '🤝';
+          if (icon) icon.textContent = '+';
           if (text) text.textContent = 'Add Friend';
         }
       } else {

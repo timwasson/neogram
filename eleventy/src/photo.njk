@@ -19,7 +19,6 @@ eleventyComputed:
 <article class="neogram-detail">
   <header class="neogram-detail__header">
     <div class="neogram-detail__title">
-      <span>💾</span>
       <span>[:&gt; {{ post.id }}.bitmap]</span>
     </div>
     <div class="neogram-detail__status">
@@ -52,7 +51,7 @@ eleventyComputed:
               {% endfor %}
             </div>
             <div class="neogram-slider__counter">
-              <span class="neogram-badge neogram-badge--cyan">📷 {{ post.photos.length }} PHOTOS (SLIDE ➔)</span>
+              <span class="neogram-badge neogram-badge--cyan">{{ post.photos.length }} PHOTOS (SLIDE ➔)</span>
             </div>
           </div>
         {% else %}
@@ -100,14 +99,14 @@ eleventyComputed:
             onclick="handleLikePost('{{ post.id }}')"
             class="neogram-btn"
           >
-            <span id="likeBtnText">❤️ LIKE (<span id="likeCount">{{ post.likes or 0 }}</span>)</span>
+            <span id="likeBtnText">LIKE (<span id="likeCount">{{ post.likes or 0 }}</span>)</span>
           </button>
         </div>
 
         <!-- Self-Hosted Comments Ledger -->
         <section class="neogram-comments">
           <header class="neogram-comments__header">
-            <span class="neogram-comments__title">💬 COMMENT LEDGER (<span id="commentCount">{{ post.comments.length or 0 }}</span>)</span>
+            <span class="neogram-comments__title">COMMENT LEDGER (<span id="commentCount">{{ post.comments.length or 0 }}</span>)</span>
             <span class="neogram-comments__status">SELF-HOSTED JSON</span>
           </header>
 
@@ -122,11 +121,10 @@ eleventyComputed:
                 <div class="neogram-comments__item" data-comment-id="{{ comment.id }}">
                   <div class="neogram-comments__item-header">
                     <span class="neogram-comments__item-author">
-                      {{ comment.avatar or '💬' }}
                       <a href="{{ site.apiUrl or 'https://neogram.club' }}/user/{{ comment.userId or comment.author }}" target="_blank" class="neogram-comments__author-link" title="View @{{ comment.author }} on Neogram">@{{ comment.author }}</a>
                       {% if comment.uin %}<span class="text-muted font-normal">[#{{ comment.uin }}]</span>{% endif %}
                       {% if comment.siteUrl %}
-                        <a href="{{ comment.siteUrl }}" target="_blank" rel="noopener" class="neogram-comments__site-link" title="Visit {{ comment.author }}'s personal site ({{ comment.siteUrl }})">🌐</a>
+                        <a href="{{ comment.siteUrl }}" target="_blank" rel="noopener" class="neogram-comments__site-link" title="Visit {{ comment.author }}'s personal site ({{ comment.siteUrl }})">[Site ↗]</a>
                       {% endif %}
                     </span>
                     <span class="neogram-comments__item-time">{{ comment.timestamp | formatDateTime }}</span>
@@ -141,7 +139,7 @@ eleventyComputed:
           <form id="commentForm" onsubmit="handleStaticCommentSubmit(event, '{{ post.id }}')" class="neogram-comments__form hidden">
             <div class="flex items-center justify-between text-xs font-mono p-1 border border-main bg-window mb-2">
               <div class="flex items-center gap-1">
-                <span>⚡ IDENTIFIED CALLSIGN:</span>
+                <span>IDENTIFIED CALLSIGN:</span>
                 <span id="authStationHandle" class="font-bold text-mac">@visitor</span>
                 <span id="authStationUin" class="text-muted font-normal">[#000000]</span>
               </div>
@@ -168,7 +166,7 @@ eleventyComputed:
 
           <!-- State B: Unauthenticated Lock Banner (Prompts to Connect via Neogram) -->
           <div id="cyberPassPrompt" class="p-3 border-2 border-dashed border-main text-center bg-window mt-2">
-            <div class="text-xs font-bold text-mac mb-1">🔒 NEOGRAM CYBER-PASS REQUIRED</div>
+            <div class="text-xs font-bold text-mac mb-1">NEOGRAM CYBER-PASS REQUIRED</div>
             <p class="text-xs text-muted mb-3">
               Identify via your Neogram station to leave comments and prevent spam bots.
             </p>
@@ -177,7 +175,7 @@ eleventyComputed:
               onclick="openCyberPassModal()"
               class="neogram-btn neogram-btn--yellow neogram-btn--sm"
             >
-              <span>⚡ Connect Cyber-Pass / Login :&gt;</span>
+              <span>Connect Cyber-Pass / Login :&gt;</span>
             </button>
           </div>
         </section>
@@ -223,7 +221,7 @@ eleventyComputed:
         token: data.token,
         handle: data.handle,
         uin: data.uin,
-        avatar: data.avatar || '💬'
+        avatar: data.avatar || ''
       }));
     } catch (_err) {}
     renderAuthUI();
@@ -303,7 +301,7 @@ eleventyComputed:
 
     if (hasLiked && btn && textSpan) {
       btn.classList.add('neogram-btn--active');
-      textSpan.innerHTML = '❤️ LIKED (<span id="likeCount">' + currentCount + '</span>)';
+      textSpan.innerHTML = 'LIKED (<span id="likeCount">' + currentCount + '</span>)';
     }
   }
 
@@ -443,14 +441,14 @@ eleventyComputed:
         var uinBadge = c.uin ? ' <span class="text-muted font-normal">[#' + c.uin + ']</span>' : '';
         var isSafeUrl = c.siteUrl && /^https?:\/\//i.test(String(c.siteUrl).trim());
         var siteLinkHtml = isSafeUrl
-          ? ' <a href="' + escapeHtml(String(c.siteUrl).trim()) + '" target="_blank" rel="noopener noreferrer" class="neogram-comments__site-link" title="Visit personal website">🌐</a>'
+          ? ' <a href="' + escapeHtml(String(c.siteUrl).trim()) + '" target="_blank" rel="noopener noreferrer" class="neogram-comments__site-link" title="Visit personal website">[Site ↗]</a>'
           : '';
         var profileUrl = API_BASE + '/user/' + encodeURIComponent(c.userId || c.author || '');
         var authorLinkHtml = '<a href="' + escapeHtml(profileUrl) + '" target="_blank" class="neogram-comments__author-link" title="View @' + safeAuthor + ' on Neogram">@' + safeAuthor + '</a>';
 
         item.innerHTML =
           '<div class="neogram-comments__item-header">' +
-          '  <span class="neogram-comments__item-author">' + (c.avatar || '💬') + ' ' + authorLinkHtml + uinBadge + siteLinkHtml + '</span>' +
+          '  <span class="neogram-comments__item-author">' + authorLinkHtml + uinBadge + siteLinkHtml + '</span>' +
           '  <span class="neogram-comments__item-time">' + formatCommentTime(c.timestamp) + '</span>' +
           '</div>' +
           '<p class="neogram-comments__item-body">' + safeText + '</p>';

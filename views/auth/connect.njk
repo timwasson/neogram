@@ -20,7 +20,6 @@
       {% if authenticated %}
         <!-- State A: Already Logged In -> Instant Handshake & Close -->
         <div class="flex flex-col items-center text-center py-2">
-          <div class="text-3xl mb-2">⚡</div>
           <div class="text-xs text-muted mb-1">AUTHENTICATED CALLSIGN:</div>
           <div class="text-sm font-bold text-mac mb-3">@{{ user.handle }} <span class="text-muted font-normal">[#{{ user.uin }}]</span></div>
 
@@ -47,7 +46,7 @@
             token: '{{ token }}',
             handle: '{{ user.handle }}',
             uin: {{ user.uin }},
-            avatar: '{{ user.avatarPath or "💬" }}'
+            avatar: '{{ user.avatarPath or "" }}'
           };
           var targetOrigin = '{{ targetOrigin or "*" }}';
 
@@ -191,7 +190,7 @@
                   token: data.token,
                   handle: data.user.handle,
                   uin: data.user.uin,
-                  avatar: data.user.avatarPath || '💬'
+                  avatar: data.user.avatarPath || ''
                 };
 
                 if (window.opener && !window.opener.closed) {

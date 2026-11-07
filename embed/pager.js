@@ -163,7 +163,6 @@
   dockBtn.setAttribute('aria-expanded', 'false');
   dockBtn.setAttribute('aria-label', 'Open Cyberspace Pager for @' + station);
   dockBtn.innerHTML =
-    '<span class="neogram-pager-dock__icon">📟</span>' +
     '<span class="pager-led pager-led--offline" id="ngPagerLed"></span>' +
     '<span class="neogram-pager-dock__label" id="ngPagerDockLabel">PAGE @' + station + '</span>';
 
@@ -178,7 +177,6 @@
   windowEl.innerHTML =
     '<div class="neogram-pager-window__header">' +
     '  <div style="display:flex;align-items:center;gap:6px;">' +
-    '    <span>📟</span>' +
     '    <span>PAGER: @' + station + '</span>' +
     '    <span class="pager-led pager-led--offline" id="ngWinLed"></span>' +
     '  </div>' +
@@ -204,7 +202,7 @@
     '  </div>' +
     '  <div>' +
     '    <button type="button" id="ngAuthBtn" style="background:none;border:none;color:#000080;font-family:inherit;font-size:10px;cursor:pointer;font-weight:bold;padding:0;">' +
-    '      ' + (verifiedHandle ? '[Disconnect]' : '⚡ Connect Cyber-Pass') +
+    '      ' + (verifiedHandle ? '[Disconnect]' : 'Connect Cyber-Pass') +
     '    </button>' +
     '  </div>' +
     '</div>' +
@@ -214,7 +212,7 @@
     '  <textarea class="neogram-pager-window__input" id="ngInput" rows="2" maxlength="500" placeholder="Type message to page @' + station + '..." required></textarea>' +
     '  <div class="neogram-pager-window__footer">' +
     '    <span class="neogram-pager-window__char-count" id="ngCharCount">0 / 500 chars</span>' +
-    '    <button type="submit" class="neogram-pager-window__send-btn" id="ngSendBtn">📟 TRANSMIT</button>' +
+    '    <button type="submit" class="neogram-pager-window__send-btn" id="ngSendBtn">TRANSMIT :&gt;</button>' +
     '  </div>' +
     '</form>';
 
@@ -264,7 +262,7 @@
     var label = document.getElementById('ngPagerDockLabel');
     if (!label) return;
     if (unreadCount > 0) {
-      label.textContent = '🔔 ' + unreadCount + ' NEW MESSAGE' + (unreadCount > 1 ? 'S' : '');
+      label.textContent = '[!] ' + unreadCount + ' NEW MESSAGE' + (unreadCount > 1 ? 'S' : '');
     } else {
       label.textContent = 'PAGE @' + station;
     }
@@ -356,7 +354,7 @@
     if (!widgetEnabled) {
       if (notice) {
         notice.style.display = 'block';
-        notice.textContent = '🔒 Pager is currently deactivated by node operator.';
+        notice.textContent = '[!] Pager is currently deactivated by node operator.';
       }
       if (sendBtn) sendBtn.disabled = true;
       if (input) input.disabled = true;
@@ -366,7 +364,7 @@
     if (!allowAnonymous && !verifiedHandle) {
       if (notice) {
         notice.style.display = 'block';
-        notice.textContent = '🔒 Verified Cyber-Pass required to message this station.';
+        notice.textContent = '[!] Verified Cyber-Pass required to message this station.';
       }
       if (sendBtn) sendBtn.disabled = true;
       if (input) input.disabled = true;
@@ -485,7 +483,7 @@
       label.textContent = '@' + (verifiedHandle || anonHandle) + (verifiedHandle ? ' [VERIFIED]' : ' [ANON]');
     }
     if (btn) {
-      btn.textContent = verifiedHandle ? '[Disconnect]' : '⚡ Connect Cyber-Pass';
+      btn.textContent = verifiedHandle ? '[Disconnect]' : 'Connect Cyber-Pass';
     }
   }
 
