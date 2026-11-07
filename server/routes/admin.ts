@@ -1,13 +1,16 @@
+import path from 'path';
+import fs from 'fs/promises';
+import { existsSync } from 'fs';
 import { Router, Request, Response, NextFunction } from 'express';
 import { query } from '../db';
 import { requireAdmin, requireAdminApi, validateAdminMutationHeader, AdminRequest } from '../middleware/adminGuard';
 import { getTickerAnnouncement, setTickerAnnouncement, logAdminAction } from '../services/systemSettings';
-import { buildQueue } from '../services/staticBuilder';
+import { buildQueue, buildStaticGallery } from '../services/staticBuilder';
 import { initiateFleetSweep, cancelActiveFleetSweep } from '../services/fleetSweepService';
 import { activeSockets } from '../services/chatSocket';
 import { getUserSites, createSite, updateSite, Site } from '../services/siteService';
 import { decryptCredentials } from '../utils/crypto';
-import { getAllPosts, getPostCountForUser, getPostsForUser, deletePost } from '../services/postStorage';
+import { getAllPosts, getPostCountForUser, getPostsForUser, deletePost, updatePost } from '../services/postStorage';
 import { signSessionToken, COOKIE_NAME } from '../auth/jwt';
 import { config } from '../config';
 
@@ -906,18 +909,99 @@ adminRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const adminUser = (req as AdminRequest).adminUser!;
-      const qaUsersRes = await query(`SELECT id FROM users WHERE email LIKE '%@qa.neogram.club'`);
+      const qaUsersRes = await query(`SELECT id, email, handle FROM users WHERE email LIKE '%@qa.neogram.club'`);
+      const qaUserIds = new Set(qaUsersRes.rows.map((r: any) => r.id));
+      const qaHandles = new Set(qaUsersRes.rows.map((r: any) => (r.handle || '').toLowerCase()));
+
+      // 1. Fetch all posts across all static galleries
+      const allPosts = await getAllPosts();
       let deletedCount = 0;
-      for (const qaUser of qaUsersRes.rows) {
-        const posts = await getPostsForUser(qaUser.id);
-        for (const post of posts) {
+
+      for (const post of allPosts) {
+        const isQaUserId = post.userId && qaUserIds.has(post.userId);
+        const isQaAuthor = (post.author && (post.author.toLowerCase().startsWith('qa_') || qaHandles.has(post.author.toLowerCase()))) ||
+                           ((post as any).authorHandle && ((post as any).authorHandle.toLowerCase().startsWith('qa_') || qaHandles.has((post as any).authorHandle.toLowerCase())));
+        const isProbeCaption = typeof post.caption === 'string' && (
+          post.caption.startsWith('[:> CONCURRENCY_PROBE') ||
+          post.caption.startsWith('[:> QA_') ||
+          post.caption.startsWith('[:> THREAD_SEED') ||
+          post.caption.startsWith('[:> CONCURRENT_BURST')
+        );
+        const isQaTestHost = typeof post.imageUrl === 'string' && (
+          post.imageUrl.includes('chemicalmachine.neocities.org') ||
+          post.imageUrl.includes('qa-neo-test.nekoweb.org') ||
+          post.imageUrl.includes('qa-neogram--1.neocities.org') ||
+          post.imageUrl.includes('hive210.neocities.org')
+        );
+
+        if (isQaUserId || isQaAuthor || isProbeCaption || isQaTestHost) {
           await deletePost(post.id);
           deletedCount++;
         }
       }
+
+      // 2. Clean QA comments from remaining active posts
+      const remainingPosts = await getAllPosts();
+      for (const post of remainingPosts) {
+        if (Array.isArray(post.comments) && post.comments.length > 0) {
+          const hasQaComment = post.comments.some((c: any) => 
+            (c.userId && qaUserIds.has(c.userId)) ||
+            (c.author && (c.author.toLowerCase().startsWith('qa_') || qaHandles.has(c.author.toLowerCase()))) ||
+            (typeof c.text === 'string' && c.text.startsWith('[:> '))
+          );
+          if (hasQaComment) {
+            await updatePost(post.id, (p) => {
+              const cleaned = (p.comments || []).filter((c: any) => 
+                !(c.userId && qaUserIds.has(c.userId)) &&
+                !(c.author && (c.author.toLowerCase().startsWith('qa_') || qaHandles.has(c.author.toLowerCase()))) &&
+                !(typeof c.text === 'string' && c.text.startsWith('[:> '))
+              );
+              return {
+                ...p,
+                comments: cleaned,
+                commentsCount: cleaned.length,
+              };
+            });
+          }
+        }
+      }
+
+      // 3. Purge QA entries from database tables
       await query(
-        `DELETE FROM guestbook_entries WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club')`
+        `DELETE FROM guestbook_entries WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club') OR visitor_name LIKE 'qa_%'`
       );
+      await query(
+        `DELETE FROM notifications WHERE actor_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club')`
+      );
+
+      // 4. Clean orphan galleries in dist/static-galleries (folders from wiped test runs)
+      try {
+        const GALLERIES_ROOT = path.join(process.cwd(), 'dist', 'static-galleries');
+        if (existsSync(GALLERIES_ROOT)) {
+          const activeUsers = await query(`SELECT id FROM users`);
+          const activeSites = await query(`SELECT id FROM sites`);
+          const validIds = new Set([
+            'default',
+            ...activeUsers.rows.map((r: any) => r.id),
+            ...activeSites.rows.map((r: any) => r.id),
+          ]);
+
+          const entries = await fs.readdir(GALLERIES_ROOT, { withFileTypes: true });
+          for (const entry of entries) {
+            if (entry.isDirectory() && !validIds.has(entry.name)) {
+              await fs.rm(path.join(GALLERIES_ROOT, entry.name), { recursive: true, force: true }).catch(() => {});
+            }
+          }
+        }
+      } catch (_cleanupErr) {}
+
+      // 5. Trigger static rebuild of remaining users' default sites
+      const nonQaUsers = await query(`SELECT id FROM users WHERE email NOT LIKE '%@qa.neogram.club'`);
+      for (const nonQa of nonQaUsers.rows) {
+        buildStaticGallery({ userId: nonQa.id }).catch((err) => {
+          console.error(`[:> PURGE REBUILD] Error rebuilding user ${nonQa.id}:`, err);
+        });
+      }
 
       await logAdminAction({
         adminId: adminUser.id,
@@ -929,7 +1013,7 @@ adminRouter.post(
 
       res.json({
         ok: true,
-        message: `Purged ${deletedCount} QA test post(s) and comments. All QA users, sites, and encrypted API keys were preserved.`,
+        message: `Purged ${deletedCount} QA test post(s) and comments. Platform static feeds and friends cascades refreshed.`,
       });
     } catch (err) {
       next(err);

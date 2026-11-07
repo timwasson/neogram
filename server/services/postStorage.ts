@@ -290,27 +290,61 @@ async function deletePostUnlocked(postId: string): Promise<PostRecord | null> {
     for (const entry of entries) {
       if (entry.isDirectory()) {
         const posts = await getPostsForSite(entry.name);
-        const matchIdx = posts.findIndex((p) => p.id === postId);
-        if (matchIdx >= 0) {
-          const [removed] = posts.splice(matchIdx, 1);
-          deletedRecord = deletedRecord || removed;
+        const filtered = posts.filter((p) => p.id !== postId);
+        if (filtered.length !== posts.length) {
+          deletedRecord = deletedRecord || posts.find((p) => p.id === postId) || null;
           const postsJsonPath = getSitePostsJsonPath(entry.name);
-          await writeFileAtomic(postsJsonPath, JSON.stringify(posts, null, 2));
+          await writeFileAtomic(postsJsonPath, JSON.stringify(filtered, null, 2));
 
           const feedJsonPath = getSiteFeedJsonPath(entry.name);
           if (existsSync(feedJsonPath)) {
             try {
               const feedRaw = await fs.readFile(feedJsonPath, 'utf-8');
               const feedData = JSON.parse(feedRaw);
-              feedData.posts = posts;
+              feedData.posts = filtered;
+              if (Array.isArray(feedData.friends)) {
+                feedData.friends = feedData.friends.filter((f: any) => f.id !== postId);
+              }
               feedData.updatedAt = new Date().toISOString();
               await writeFileAtomic(feedJsonPath, JSON.stringify(feedData, null, 2));
             } catch (_e) {}
           }
         }
+
+        // Clean up individual photo HTML directory if present
+        const postPhotoDir = path.join(GALLERIES_ROOT, entry.name, 'photos', postId);
+        if (existsSync(postPhotoDir)) {
+          await fs.rm(postPhotoDir, { recursive: true, force: true }).catch(() => {});
+        }
       }
     }
   } catch (_e) {}
+
+  // Also clean up global 11ty data caches if present
+  try {
+    const elevPostsPath = path.join(process.cwd(), 'eleventy/src/_data/posts.json');
+    if (existsSync(elevPostsPath)) {
+      const raw = await fs.readFile(elevPostsPath, 'utf-8');
+      const postsArr = JSON.parse(raw);
+      if (Array.isArray(postsArr)) {
+        const filtered = postsArr.filter((p: any) => p.id !== postId);
+        if (filtered.length !== postsArr.length) {
+          await writeFileAtomic(elevPostsPath, JSON.stringify(filtered, null, 2));
+        }
+      }
+    }
+    const elevFriendsPath = path.join(process.cwd(), 'eleventy/src/_data/friendsPosts.json');
+    if (existsSync(elevFriendsPath)) {
+      const raw = await fs.readFile(elevFriendsPath, 'utf-8');
+      const friendsArr = JSON.parse(raw);
+      if (Array.isArray(friendsArr)) {
+        const filtered = friendsArr.filter((p: any) => p.id !== postId);
+        if (filtered.length !== friendsArr.length) {
+          await writeFileAtomic(elevFriendsPath, JSON.stringify(friendsArr, null, 2));
+        }
+      }
+    }
+  } catch (_elevErr) {}
 
   return deletedRecord;
 }

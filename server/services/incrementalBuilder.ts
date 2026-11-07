@@ -201,7 +201,7 @@ async function fetchFormattedPosts(siteId?: string, userId?: string, fullSiteUrl
 
   if (siteId && userId) {
     const userFallback = await getPostsForSite(userId);
-    const unassigned = userFallback.filter((p) => (!p.siteId || p.siteId === siteId) && !posts.some((existing) => existing.id === p.id));
+    const unassigned = userFallback.filter((p) => !p.siteId && !posts.some((existing) => existing.id === p.id));
     if (unassigned.length > 0) {
       posts = [...posts, ...unassigned];
       posts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

@@ -299,10 +299,10 @@
           <span>💾 Download DB Snapshot (db-snapshot.json)</span>
         </a>
         {% if qaFleet and qaFleet.length > 0 %}
-          <button type="button" class="pixel-btn text-xs" onclick="purgeQaPosts();">
+          <button type="button" id="btnPurgeQaPosts" class="pixel-btn text-xs" onclick="purgeQaPosts(this);">
             <span>Purge QA Test Posts</span>
           </button>
-          <button type="button" class="pixel-btn pixel-btn--danger text-xs" onclick="wipeQaFleet();">
+          <button type="button" id="btnWipeQaFleet" class="pixel-btn pixel-btn--danger text-xs" onclick="wipeQaFleet(this);">
             <span>Wipe QA Fleet</span>
           </button>
         {% endif %}
@@ -1228,38 +1228,111 @@
     }
   }
 
-  async function purgeQaPosts() {
-    if (!window.confirm('Purge all test posts, comments, and guestbook entries created by @qa.neogram.club accounts? (Your QA accounts and saved API keys will be kept intact.)')) {
+  let isPurgingQaPosts = false;
+  async function purgeQaPosts(btn) {
+    if (isPurgingQaPosts) return;
+    if (!btn) btn = document.getElementById('btnPurgeQaPosts');
+
+    if (btn && !btn.dataset.confirmed) {
+      if (window.retroAudio) retroAudio.playClick();
+      btn.dataset.confirmed = 'true';
+      btn.innerHTML = '<span style="color:#ffcc00;font-weight:bold;">⚠️ Click again to confirm QA Purge</span>';
+      setTimeout(() => {
+        if (btn && btn.dataset.confirmed === 'true') {
+          delete btn.dataset.confirmed;
+          btn.innerHTML = '<span>Purge QA Test Posts</span>';
+        }
+      }, 5000);
       return;
     }
+
+    isPurgingQaPosts = true;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Purging QA Test Posts...</span>';
+    }
+
     try {
+      if (window.retroAudio) retroAudio.playClick();
       const res = await fetch('/api/admin/qa-fleet/purge-posts', {
         method: 'POST',
         headers: { 'x-neogram-sysop-op': '1' },
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to purge QA posts.');
-      window.alert(data.message);
-      location.reload();
+
+      if (btn) {
+        btn.innerHTML = '<span style="color:#00ff66;font-weight:bold;">✓ ' + (data.message || 'Purged successfully!') + '</span>';
+      }
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
     } catch (err) {
-      window.alert('[:> ERROR] ' + err.message);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span style="color:#ff3333;font-weight:bold;">[:> ERROR] ' + err.message + '</span>';
+        setTimeout(() => {
+          btn.innerHTML = '<span>Purge QA Test Posts</span>';
+        }, 4000);
+      } else {
+        window.alert('[:> ERROR] ' + err.message);
+      }
+    } finally {
+      isPurgingQaPosts = false;
     }
   }
 
-  async function wipeQaFleet() {
-    if (!window.confirm('WARNING: This will delete all @qa.neogram.club user accounts and their saved sites/keys. Continue?')) {
+  let isWipingQaFleet = false;
+  async function wipeQaFleet(btn) {
+    if (isWipingQaFleet) return;
+    if (!btn) btn = document.getElementById('btnWipeQaFleet');
+
+    if (btn && !btn.dataset.confirmed) {
+      if (window.retroAudio) retroAudio.playClick();
+      btn.dataset.confirmed = 'true';
+      btn.innerHTML = '<span style="color:#ffcc00;font-weight:bold;">⚠️ Click again to confirm Wipe</span>';
+      setTimeout(() => {
+        if (btn && btn.dataset.confirmed === 'true') {
+          delete btn.dataset.confirmed;
+          btn.innerHTML = '<span>Wipe QA Fleet</span>';
+        }
+      }, 5000);
       return;
     }
+
+    isWipingQaFleet = true;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Wiping QA Fleet...</span>';
+    }
+
     try {
+      if (window.retroAudio) retroAudio.playClick();
       const res = await fetch('/api/admin/qa-fleet/wipe', {
         method: 'POST',
         headers: { 'x-neogram-sysop-op': '1' },
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to wipe QA fleet.');
-      location.reload();
+
+      if (btn) {
+        btn.innerHTML = '<span style="color:#00ff66;font-weight:bold;">✓ QA Fleet Wiped!</span>';
+      }
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
     } catch (err) {
-      window.alert('[:> ERROR] ' + err.message);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span style="color:#ff3333;font-weight:bold;">[:> ERROR] ' + err.message + '</span>';
+        setTimeout(() => {
+          btn.innerHTML = '<span>Wipe QA Fleet</span>';
+        }, 4000);
+      } else {
+        window.alert('[:> ERROR] ' + err.message);
+      }
+    } finally {
+      isWipingQaFleet = false;
     }
   }
 </script>

@@ -447,7 +447,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
     if (siteId && effectiveUserId && (targetSite?.is_default || rawPosts.length === 0)) {
       const { getPostsForSite: getFallbackPosts, savePost } = await import('./postStorage');
       const fallbackPosts = await getFallbackPosts(effectiveUserId);
-      const unassigned = fallbackPosts.filter((p) => !p.siteId || p.siteId === siteId);
+      const unassigned = fallbackPosts.filter((p) => !p.siteId);
       if (unassigned.length > 0) {
         const existingIds = new Set(rawPosts.map((p) => p.id));
         for (const unassignedPost of unassigned) {
