@@ -151,8 +151,15 @@ npm run test:load
 
 # 7. Unified full test run
 npm run test:all
+
+# 8. Sequential Flood-Safe QA Fleet Static Site Rebuild
+npx tsx scripts/rebuild-qa-fleet.ts --delay=3500
 ```
 - **Production QA Fleet Manager (`https://neogram.club/admin`):** Provision `@qa_*` (`@qa.neogram.club`) test personas, attach encrypted Neocities/Nekoweb API keys directly to test accounts, export pre-authenticated 30-day `qa-sessions.json` session bundles for OTP-free browser/load testing, and purge QA test posts with 1 click after test runs.
+- **Fleet Propagation Terminal & Static Rebuilds (`https://neogram.club/admin`):**
+  - **Rebuild QA Fleet Safely (No Host Flood Warnings):**
+    - **From Admin Terminal UI:** Navigate to `https://neogram.club/admin` -> `[:> FLEET_PROPAGATION_TERMINAL.SYS]`, select **Target:** `[•] QA Fleet Only (@qa.neogram.club)` and **Mode:** `[•] Full 11ty Rebuild`, then click **Initiate Fleet Sweep** and type `SWEEP`. Jobs run at `LOW` priority with an enforced 3,500ms pacing delay between nodes to strictly prevent tripping Neocities/Nekoweb rate limit warnings (HTTP 429).
+    - **From Terminal CLI:** Run `npx tsx scripts/rebuild-qa-fleet.ts --delay=3500` to execute rate-paced sequential rebuilds across all personas in `qa-sessions.json`.
 
 ---
 
