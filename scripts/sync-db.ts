@@ -147,8 +147,18 @@ async function syncDatabase() {
   // 1. Sync Users
   if (Array.isArray(users)) {
     for (const u of users) {
-      // First ensure no conflicting email or handle on a different ID
-      await query(`DELETE FROM users WHERE (email = $1 OR handle = $2) AND id != $3`, [u.email, u.handle, u.id]);
+      // First ensure no conflicting email, handle, or UIN on a different ID
+      if (u.handle) {
+        await query(
+          `DELETE FROM users WHERE (email = $1 OR handle = $2 OR uin = $3) AND id != $4`,
+          [u.email, u.handle, u.uin, u.id]
+        );
+      } else {
+        await query(
+          `DELETE FROM users WHERE (email = $1 OR uin = $2) AND id != $3`,
+          [u.email, u.uin, u.id]
+        );
+      }
 
       await query(
         `INSERT INTO users (
@@ -206,6 +216,9 @@ async function syncDatabase() {
   // 2. Sync Sites
   if (Array.isArray(sites)) {
     for (const s of sites) {
+      // Ensure no conflicting slug for this user on a different site ID
+      await query(`DELETE FROM sites WHERE user_id = $1 AND slug = $2 AND id != $3`, [s.user_id, s.slug, s.id]);
+
       // Re-encrypt credentials using local master key if credentials object was decrypted in snapshot
       let encryptedCreds: Buffer | null = null;
       if (s.credentials && s.credentials.apiKey) {
@@ -302,13 +315,13 @@ async function syncDatabase() {
     for (const c of web_counters) {
       if (c.site_id) {
         await query(
-          `INSERT INTO web_counters (id, user_id, site_id, hits, style, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6)
+          `INSERT INTO web_counters (user_id, site_id, hits, style, updated_at)
+           VALUES ($1, $2, $3, $4, $5)
            ON CONFLICT (site_id) DO UPDATE SET
              hits = EXCLUDED.hits,
              style = EXCLUDED.style,
              updated_at = EXCLUDED.updated_at`,
-          [c.id, c.user_id, c.site_id, c.hits || 0, c.style || 'green_led', c.updated_at || new Date()]
+          [c.user_id, c.site_id, c.hits || 0, c.style || 'green_led', c.updated_at || new Date()]
         );
         restoredCounters++;
       }
