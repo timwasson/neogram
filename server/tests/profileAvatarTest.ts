@@ -174,17 +174,24 @@ async function runAvatarTestSuite() {
     },
   });
   const settingsData = (await settingsRes.json()) as any;
+  const currentSettings = settingsData.settings || settingsData.user || {};
   recordCheck(
     'GET /api/settings reflects current custom avatarPath and hasCustomAvatar = true',
-    settingsData.user?.avatarPath === replacedAvatarPath && settingsData.user?.hasCustomAvatar === true,
-    settingsData.user?.avatarPath
+    currentSettings.avatarPath === replacedAvatarPath && currentSettings.hasCustomAvatar === true,
+    currentSettings.avatarPath
   );
 
   // Probe directory
   const dirRes = await fetch(`${baseUrl}/api/directory`);
   recordCheck('GET /api/directory returns HTTP 200', dirRes.status === 200);
   const dirData = (await dirRes.json()) as any;
-  const foundInDir = (dirData.users || []).find((u: any) => u.handle === handle);
+  const allDirUsers = [
+    ...(dirData.users || []),
+    ...(dirData.categories?.active || []),
+    ...(dirData.categories?.away || []),
+    ...(dirData.categories?.inactive || []),
+  ];
+  const foundInDir = allDirUsers.find((u: any) => u.handle === handle);
   recordCheck(
     `Directory entry for @${handle} lists custom avatarPath`,
     Boolean(foundInDir && foundInDir.avatarPath === replacedAvatarPath),
