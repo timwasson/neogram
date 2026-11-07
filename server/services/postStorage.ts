@@ -162,36 +162,56 @@ export async function getAllPosts(): Promise<PostRecord[]> {
     return [];
   }
 
+  // Only scan directories belonging to active users or sites (plus default fallback)
+  let allowedDirs: Set<string> | null = null;
+  try {
+    const userRes = await query('SELECT id FROM users');
+    const siteRes = await query('SELECT id FROM sites');
+    allowedDirs = new Set([
+      'default',
+      ...userRes.rows.map((r: any) => r.id),
+      ...siteRes.rows.map((r: any) => r.id),
+    ]);
+  } catch (_dbErr) {
+    // If DB is offline, fall back to scanning all directories
+  }
+
   try {
     const entries = await fs.readdir(GALLERIES_ROOT, { withFileTypes: true });
     for (const entry of entries) {
       if (entry.isDirectory()) {
-        const posts = await getPostsForSite(entry.name);
-        for (const p of posts) {
-          const existing = postsMap.get(p.id);
-          if (!existing) {
-            postsMap.set(p.id, p);
-          } else {
-            const mergedComments = (p.comments && p.comments.length >= (existing.comments?.length || 0))
-              ? p.comments
-              : existing.comments;
-            const maxLikes = Math.max(p.likes || 0, existing.likes || 0);
-            const commentsCount = Math.max(
-              p.commentsCount || (p.comments?.length || 0),
-              existing.commentsCount || (existing.comments?.length || 0)
-            );
-            postsMap.set(p.id, {
-              ...existing,
-              ...p,
-              siteId: p.siteId || existing.siteId,
-              siteName: p.siteName || existing.siteName,
-              siteSlug: p.siteSlug || existing.siteSlug,
-              likes: maxLikes,
-              comments: mergedComments,
-              commentsCount,
-            });
-          }
+        if (allowedDirs && !allowedDirs.has(entry.name)) {
+          // Skip orphan directory from deleted test runs
+          continue;
         }
+        try {
+          const posts = await getPostsForSite(entry.name);
+          for (const p of posts) {
+            const existing = postsMap.get(p.id);
+            if (!existing) {
+              postsMap.set(p.id, p);
+            } else {
+              const mergedComments = (p.comments && p.comments.length >= (existing.comments?.length || 0))
+                ? p.comments
+                : existing.comments;
+              const maxLikes = Math.max(p.likes || 0, existing.likes || 0);
+              const commentsCount = Math.max(
+                p.commentsCount || (p.comments?.length || 0),
+                existing.commentsCount || (existing.comments?.length || 0)
+              );
+              postsMap.set(p.id, {
+                ...existing,
+                ...p,
+                siteId: p.siteId || existing.siteId,
+                siteName: p.siteName || existing.siteName,
+                siteSlug: p.siteSlug || existing.siteSlug,
+                likes: maxLikes,
+                comments: mergedComments,
+                commentsCount,
+              });
+            }
+          }
+        } catch (_entryErr) {}
       }
     }
   } catch (_e) {}
@@ -289,33 +309,35 @@ async function deletePostUnlocked(postId: string): Promise<PostRecord | null> {
     const entries = await fs.readdir(GALLERIES_ROOT, { withFileTypes: true });
     for (const entry of entries) {
       if (entry.isDirectory()) {
-        const posts = await getPostsForSite(entry.name);
-        const filtered = posts.filter((p) => p.id !== postId);
-        if (filtered.length !== posts.length) {
-          deletedRecord = deletedRecord || posts.find((p) => p.id === postId) || null;
-          const postsJsonPath = getSitePostsJsonPath(entry.name);
-          await writeFileAtomic(postsJsonPath, JSON.stringify(filtered, null, 2));
+        try {
+          const posts = await getPostsForSite(entry.name);
+          const filtered = posts.filter((p) => p.id !== postId);
+          if (filtered.length !== posts.length) {
+            deletedRecord = deletedRecord || posts.find((p) => p.id === postId) || null;
+            const postsJsonPath = getSitePostsJsonPath(entry.name);
+            await writeFileAtomic(postsJsonPath, JSON.stringify(filtered, null, 2));
 
-          const feedJsonPath = getSiteFeedJsonPath(entry.name);
-          if (existsSync(feedJsonPath)) {
-            try {
-              const feedRaw = await fs.readFile(feedJsonPath, 'utf-8');
-              const feedData = JSON.parse(feedRaw);
-              feedData.posts = filtered;
-              if (Array.isArray(feedData.friends)) {
-                feedData.friends = feedData.friends.filter((f: any) => f.id !== postId);
-              }
-              feedData.updatedAt = new Date().toISOString();
-              await writeFileAtomic(feedJsonPath, JSON.stringify(feedData, null, 2));
-            } catch (_e) {}
+            const feedJsonPath = getSiteFeedJsonPath(entry.name);
+            if (existsSync(feedJsonPath)) {
+              try {
+                const feedRaw = await fs.readFile(feedJsonPath, 'utf-8');
+                const feedData = JSON.parse(feedRaw);
+                feedData.posts = filtered;
+                if (Array.isArray(feedData.friends)) {
+                  feedData.friends = feedData.friends.filter((f: any) => f.id !== postId);
+                }
+                feedData.updatedAt = new Date().toISOString();
+                await writeFileAtomic(feedJsonPath, JSON.stringify(feedData, null, 2));
+              } catch (_e) {}
+            }
           }
-        }
 
-        // Clean up individual photo HTML directory if present
-        const postPhotoDir = path.join(GALLERIES_ROOT, entry.name, 'photos', postId);
-        if (existsSync(postPhotoDir)) {
-          await fs.rm(postPhotoDir, { recursive: true, force: true }).catch(() => {});
-        }
+          // Clean up individual photo HTML directory if present
+          const postPhotoDir = path.join(GALLERIES_ROOT, entry.name, 'photos', postId);
+          if (existsSync(postPhotoDir)) {
+            await fs.rm(postPhotoDir, { recursive: true, force: true }).catch(() => {});
+          }
+        } catch (_entryErr) {}
       }
     }
   } catch (_e) {}
