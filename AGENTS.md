@@ -306,7 +306,7 @@ CREATE INDEX idx_push_subscriptions_user_id ON push_subscriptions(user_id);
 
 ### 4.8 User Identity & Profile System (Handle & Avatar)
 - **Profile Configuration (`PUT /api/settings/profile`):** Users can edit their cyberspace handle and upload custom profile avatars.
-- **Sharp Avatar Pipeline:** Avatars are auto-rotated via EXIF tags (`.rotate()`), resized and cropped to a square 128x128 WebP image, and persisted to `public/uploads/avatars/`.
+- **Sharp Avatar Pipeline & Static Host Deployment:** Avatars are auto-rotated via EXIF tags (`.rotate()`) and resized/cropped to a square 128x128 WebP image. When a user has a connected static host (Neocities, Nekoweb, or GitHub Pages), Neogram deploys the avatar directly to the user's remote static host (`<deploy_path>/avatar.webp`), purges any temporary local uploads (0 bytes permanent retention on Neogram disk), and anchors `users.avatar_path` to the remote canonical URL with cache-busting timestamping (`?v=<timestamp>`). For cold-start / sandbox accounts without a static target, it falls back to local staging (`public/uploads/avatars/`). When an avatar is removed, remote and local copies are safely purged. All views implement client-side `onerror` fallbacks to `/icons/default-avatar.svg` for unreachable host resilience.
 - **Default Avatar Asset:** When no custom avatar has been uploaded, the system resolves to `/icons/default-avatar.svg` (a stylized retro green phosphor CRT computer monitor).
 - **Design Scoping Constraint:** User avatars are strictly displayed in the Settings tab (`CYBER_IDENTITY.SYS`), and intentionally omitted from the top workstation header and navigation bar to maintain a clean, distraction-free retro OS aesthetic.
 
