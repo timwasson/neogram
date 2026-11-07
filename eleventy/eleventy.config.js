@@ -7,6 +7,10 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy({ 'public/css': 'css' });
   eleventyConfig.addPassthroughCopy({ 'public/icons': 'icons' });
   eleventyConfig.addPassthroughCopy({ 'public/js': 'js' });
+  eleventyConfig.addPassthroughCopy({ 'public/favicon.ico': 'favicon.ico' });
+  eleventyConfig.addPassthroughCopy({ 'public/favicon-32x32.png': 'favicon-32x32.png' });
+  eleventyConfig.addPassthroughCopy({ 'public/favicon-16x16.png': 'favicon-16x16.png' });
+  eleventyConfig.addPassthroughCopy({ 'public/apple-touch-icon.png': 'apple-touch-icon.png' });
   eleventyConfig.addPassthroughCopy({ 'embed': 'embed' });
   eleventyConfig.addPassthroughCopy({ 'embed/embed.js': 'embed.js' });
   eleventyConfig.addPassthroughCopy({ 'embed/pager.js': 'pager.js' });

@@ -60,14 +60,24 @@
   box-sizing: border-box;
 }
 
+img {
+  max-width: 100%;
+  height: auto;
+}
+
 html {
   overflow-y: scroll;
+  overflow-x: hidden;
   scrollbar-gutter: stable;
+  max-width: 100%;
 }
 
 body {
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+  max-width: 100%;
+  width: 100%;
   background-color: var(--bg-desktop);
   color: var(--text-main);
   font-family: var(--font-mono);
@@ -123,6 +133,162 @@ a {
  * _utilities.scss: Modular Utility Classes
  * Zero-dependency layout, spacing, typography, and color utilities.
  */
+/* Pixel Art & Image Rendering */
+.pixel-art {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  max-width: 100%;
+}
+
+/* Nostalgia Pillar Icon Frame & Sizing */
+.nostalgia-icon-frame {
+  height: 140px;
+  width: 100%;
+  max-width: 100%;
+  background: #000000;
+  border: 2px solid var(--border-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.nostalgia-icon {
+  max-width: 100%;
+  max-height: 120px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Width & Max-Width Utilities */
+.w-32 {
+  width: 128px;
+}
+
+.max-h-24 {
+  max-height: 96px;
+}
+
+.max-h-28 {
+  max-height: 112px;
+}
+
+.max-h-32 {
+  max-height: 128px;
+}
+
+.object-contain {
+  object-fit: contain;
+}
+
+.object-cover {
+  object-fit: cover;
+}
+
+/* 3-Column Responsive Grid */
+.grid-cols-3-responsive {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+@media (min-width: 768px) {
+  .grid-cols-3-responsive {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Hero 2-Column Split */
+.hero-split-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: stretch;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .hero-split-layout {
+    flex-direction: row;
+    align-items: center;
+    gap: 32px;
+  }
+  .hero-split-layout > .hero-col-copy {
+    flex: 1.15;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .hero-split-layout > .hero-col-visual {
+    flex: 0.85;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* Micro Web Badges 88x31 */
+.micro-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.micro-badge-item {
+  display: inline-flex;
+  border: 2px solid var(--border-main);
+  background: #000000;
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 0.9);
+  transition: transform 0.1s ease;
+}
+.micro-badge-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 3px 3px 0px 0px var(--accent-prompt);
+}
+.micro-badge-item img {
+  display: block;
+  width: 88px;
+  height: 31px;
+  object-fit: fill;
+}
+
+/* Hit Counter Showcase Strip */
+.counter-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+@media (min-width: 600px) {
+  .counter-strip {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+.counter-strip .counter-strip__card {
+  flex: 1;
+  min-width: 140px;
+  padding: 8px;
+  background: #000000;
+  border: 2px solid var(--border-main);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.counter-strip .counter-strip__card img {
+  max-width: 100%;
+  height: 36px;
+}
+
 /* Display & Flexbox */
 .flex {
   display: flex;
@@ -1599,6 +1765,10 @@ select.retro-input {
   overflow: hidden;
   white-space: nowrap;
   user-select: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  contain: paint;
 }
 
 @keyframes marquee-scroll {

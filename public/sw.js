@@ -16,6 +16,10 @@ const STATIC_PRECACHE = [
   '/js/pwa.js',
   '/js/pwa.js?v=3.2',
   '/manifest.json',
+  '/favicon.ico',
+  '/favicon-32x32.png',
+  '/favicon-16x16.png',
+  '/apple-touch-icon.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];

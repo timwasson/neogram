@@ -212,8 +212,16 @@ export async function ensureStaticAssets(targetOutputDir: string): Promise<void>
   await copyDir(path.join(process.cwd(), 'public/js'), path.join(targetOutputDir, 'js'));
   await copyDir(path.join(process.cwd(), 'embed'), path.join(targetOutputDir, 'embed'));
 
-  // Root embed shortcuts
-  const rootFiles = ['embed/embed.js', 'embed/pager.js', 'embed/neogram-embed.css'];
+  // Root embed shortcuts and root favicons
+  const rootFiles = [
+    'embed/embed.js',
+    'embed/pager.js',
+    'embed/neogram-embed.css',
+    'public/favicon.ico',
+    'public/favicon-32x32.png',
+    'public/favicon-16x16.png',
+    'public/apple-touch-icon.png'
+  ];
   for (const f of rootFiles) {
     const srcFile = path.join(process.cwd(), f);
     const destFile = path.join(targetOutputDir, path.basename(f));
