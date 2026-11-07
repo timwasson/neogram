@@ -3578,13 +3578,13 @@
 
       var actions = '<div class="flex items-center gap-2 flex-wrap mt-2">';
       if (isSandbox) {
-        actions += '<a href="' + stationUrl + '" target="_blank" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs">View Station Profile ↗</a>';
+        actions += '<a href="' + stationUrl + '" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">View Station Profile ↗</a>';
         actions += '<button type="button" onclick="switchDashboardTab(\'settings/hosting\', event)" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs">Connect Neocities</button>';
       } else if (photoUrl) {
-        actions += '<a href="' + photoUrl + '" target="_blank" rel="noopener" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs">View Photo on Site ↗</a>';
+        actions += '<a href="' + photoUrl + '" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">View Photo on Site ↗</a>';
         actions += '<button type="button" onclick="navigator.clipboard?.writeText(\'' + photoUrl + '\'); this.innerHTML=\'<span>✓ Copied Link!</span>\';" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs">Copy Photo Link</button>';
       } else if (galleryUrl) {
-        actions += '<a href="' + galleryUrl + '" target="_blank" rel="noopener" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs">View Gallery on Site ↗</a>';
+        actions += '<a href="' + galleryUrl + '" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">View Gallery on Site ↗</a>';
       }
       actions += '<a href="/#edit" onclick="window.location.href=\'/#edit\'; window.location.reload();" class="pixel-btn pixel-btn--sm text-xs font-bold">Open Archive →</a>';
       actions += '</div>';

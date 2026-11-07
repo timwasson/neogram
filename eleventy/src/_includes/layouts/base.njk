@@ -32,13 +32,18 @@
     </div>
 
     <div class="neogram-site__nav">
+      {% if site.baseSiteUrl and site.baseSiteUrl != site.neocitiesUrl %}
+        <a href="{{ site.baseSiteUrl }}" target="_blank" rel="noopener noreferrer" class="neogram-btn neogram-btn--sm" title="Visit {{ site.author }}'s Personal Website">
+          <span>🏠 Personal Website ↗</span>
+        </a>
+      {% endif %}
       <a href="{{ '/' | url }}" class="neogram-btn neogram-btn--sm">
         <span>Gallery Grid</span>
       </a>
       <a href="{{ '/friends/' | url }}" class="neogram-btn neogram-btn--sm">
         <span>Friends Grid</span>
       </a>
-      <a href="{{ site.apiUrl or 'http://localhost:4000' }}" target="_blank" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
+      <a href="{{ site.apiUrl or 'http://localhost:4000' }}" target="_blank" rel="noopener noreferrer" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
         <span>Neogram Studio</span>
       </a>
       <button type="button" id="themeToggleBtn" class="neogram-btn neogram-btn--sm" title="Toggle Theme Skin">
@@ -60,7 +65,10 @@
   <footer class="neogram-site__footer">
     <div class="neogram-site__footer-inner">
       <div class="neogram-site__footer-info">
-        <div class="neogram-site__footer-host">STATIC HOST: <span class="neogram-site__footer-url">{{ site.neocitiesUrl }}</span></div>
+        <div class="neogram-site__footer-host">STATIC HOST: <a href="{{ site.neocitiesUrl }}" target="_blank" rel="noopener noreferrer" class="neogram-site__footer-url underline">{{ site.neocitiesUrl }} ↗</a></div>
+        {% if site.baseSiteUrl and site.baseSiteUrl != site.neocitiesUrl %}
+          <div class="neogram-site__footer-host">PERSONAL WEBSITE: <a href="{{ site.baseSiteUrl }}" target="_blank" rel="noopener noreferrer" class="neogram-site__footer-url underline">{{ site.baseSiteUrl }} ↗</a></div>
+        {% endif %}
         <div class="neogram-site__footer-sub">Built with 11ty (Eleventy) &amp; Neogram Sharp Publishing Pipeline</div>
       </div>
 

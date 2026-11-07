@@ -71,9 +71,10 @@
                 <a
                   href="{{ profileUser.cleanRootSiteUrl }}"
                   target="_blank"
-                  rel="noopener"
+                  rel="noopener noreferrer"
                   class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xs font-bold py-0.5 px-2"
                   title="Visit root website"
+                  onclick="if(window.retroAudio) retroAudio.playClick();"
                 >
                   <span>Root Site ↗</span>
                 </a>
@@ -150,8 +151,9 @@
               <a
                 href="{{ profileUser.cleanRootSiteUrl }}"
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 class="pixel-btn pixel-btn--yellow text-xs font-bold py-2 w-full flex items-center justify-center gap-1"
+                onclick="if(window.retroAudio) retroAudio.playClick();"
               >
                 <span>Visit Personal Website: {{ profileUser.cleanRootSiteUrl }} ↗</span>
               </a>
@@ -161,8 +163,9 @@
               <a
                 href="{{ profileUser.galleryUrl }}"
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 class="pixel-btn pixel-btn--green text-xs font-bold py-2 w-full flex items-center justify-center gap-1"
+                onclick="if(window.retroAudio) retroAudio.playClick();"
               >
                 <span>View Neogram Photo Gallery ↗</span>
               </a>
@@ -203,8 +206,9 @@
             <a
               href="{{ profileUser.galleryUrl }}"
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xs py-0.5 px-2"
+              onclick="if(window.retroAudio) retroAudio.playClick();"
             >
               <span>Static Gallery ↗</span>
             </a>
@@ -255,13 +259,15 @@
                     <a
                       href="{{ post.livePhotoUrl or (profileUser.galleryUrl + 'photos/' + post.id + '/') if (post.livePhotoUrl or profileUser.galleryUrl) else post.imagePath }}"
                       target="_blank"
-                      rel="noopener"
+                      rel="noopener noreferrer"
+                      class="block w-full h-full relative z-10"
+                      onclick="if(window.retroAudio) retroAudio.playClick();"
                     >
                       <img
                         src="{{ post.thumbnailPath or post.imagePath }}"
                         alt="{{ post.caption or 'Photo' }}"
                         loading="lazy"
-                        class="w-full h-48 object-cover transition-transform group-hover:scale-105"
+                        class="w-full h-48 object-cover relative z-10 transition-transform group-hover:scale-105"
                         onerror="this.classList.add('neogram-img--broken'); var vp=this.closest('.retro-photo-viewport'); if(vp) vp.classList.add('has-broken-image');"
                       />
                     </a>
@@ -293,12 +299,13 @@
                       <span>{{ post.createdAt | formatDateTime }}</span>
                     </div>
 
-                    {% if profileUser.galleryUrl %}
+                    {% if post.livePhotoUrl or profileUser.galleryUrl %}
                       <a
-                        href="{{ profileUser.galleryUrl }}photos/{{ post.id }}/"
+                        href="{{ post.livePhotoUrl or (profileUser.galleryUrl + 'photos/' + post.id + '/') }}"
                         target="_blank"
-                        rel="noopener"
+                        rel="noopener noreferrer"
                         class="pixel-btn pixel-btn--yellow text-xs font-bold py-1 px-2 text-center mt-1"
+                        onclick="if(window.retroAudio) retroAudio.playClick();"
                       >
                         <span>View &amp; Comment :&gt;</span>
                       </a>

@@ -14,6 +14,11 @@ eleventyComputed:
   <a href="{{ '/' | url }}" class="neogram-btn neogram-btn--yellow">
     <span>← BACK TO PHOTO GALLERY GRID</span>
   </a>
+  {% if site.baseSiteUrl and site.baseSiteUrl != site.neocitiesUrl %}
+    <a href="{{ site.baseSiteUrl }}" target="_blank" rel="noopener noreferrer" class="neogram-btn neogram-btn--sm">
+      <span>🏠 Personal Website ↗</span>
+    </a>
+  {% endif %}
 </div>
 
 <article class="neogram-detail">
@@ -85,7 +90,7 @@ eleventyComputed:
         <!-- Author & Caption -->
         <div class="neogram-detail__author-box">
           <div class="neogram-detail__author-meta">
-            <span class="neogram-detail__author-handle">@{{ post.author }}</span>
+            <a href="{{ site.apiUrl or 'https://neogram.club' }}/user/@{{ post.author }}" target="_blank" rel="noopener noreferrer" class="neogram-detail__author-handle hover:underline" title="View @{{ post.author }} on Neogram">@{{ post.author }}</a>
             <span class="neogram-detail__author-date">{{ post.createdAt | formatDate }}</span>
           </div>
           <p class="neogram-detail__caption">
