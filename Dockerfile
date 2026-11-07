@@ -19,7 +19,7 @@ COPY . .
 RUN npm run sass:build
 
 # Ensure persistent runtime directories exist
-RUN mkdir -p /app/dist/static-galleries /app/public/uploads
+RUN mkdir -p /app/dist/static-galleries /app/public/uploads /app/public/uploads/avatars /app/public/uploads/images /app/public/uploads/thumbs
 
 # Set ownership to non-root node user and switch
 RUN chown -R node:node /app

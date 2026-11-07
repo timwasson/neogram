@@ -143,10 +143,26 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
     if (removeAvatar === 'true' || removeAvatar === true) {
       newAvatarPath = null;
       await query('UPDATE users SET avatar_path = NULL, updated_at = NOW() WHERE id = $1', [userId]);
-    } else if (req.file) {
-      const processed = await processAvatarBuffer(req.file.buffer, userId);
-      newAvatarPath = processed.avatarPath;
-      await query('UPDATE users SET avatar_path = $1, updated_at = NOW() WHERE id = $2', [newAvatarPath, userId]);
+    } else if (req.file || req.body.avatarBase64 || req.body.imageBase64) {
+      try {
+        let bufferToProcess: Buffer;
+        if (req.file) {
+          bufferToProcess = req.file.buffer;
+        } else {
+          const raw = String(req.body.avatarBase64 || req.body.imageBase64);
+          const cleanB64 = raw.replace(/^data:image\/[a-z0-9+]+;base64,/, '');
+          bufferToProcess = Buffer.from(cleanB64, 'base64');
+        }
+        const processed = await processAvatarBuffer(bufferToProcess, userId);
+        newAvatarPath = processed.avatarPath;
+        await query('UPDATE users SET avatar_path = $1, updated_at = NOW() WHERE id = $2', [newAvatarPath, userId]);
+      } catch (imgErr: any) {
+        res.status(400).json({
+          ok: false,
+          error: 'Invalid or corrupt image file. Supported formats: WebP, JPEG, PNG, GIF, AVIF.',
+        });
+        return;
+      }
     }
 
     // Background 11ty static rebuild

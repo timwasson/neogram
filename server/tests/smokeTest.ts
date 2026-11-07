@@ -186,6 +186,54 @@ async function runSmokeTests() {
     assertTest('Saved deployPath persists as "photos"', settingsPutData.settings?.deployPath === 'photos');
 
     // -------------------------------------------------------------------------
+    // TEST 6b: Profile Avatar Upload & Removal
+    // -------------------------------------------------------------------------
+    logHeader('6b. PROFILE AVATAR UPLOAD & REMOVAL');
+    const avatarSvg = `<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="#00ff66"/></svg>`;
+    const avatarBuf = await sharp(Buffer.from(avatarSvg)).png().toBuffer();
+    const avatarForm = new FormData();
+    avatarForm.append('avatarFile', new Blob([new Uint8Array(avatarBuf)], { type: 'image/png' }), 'avatar.png');
+
+    const avatarUploadRes = await fetch(`${API_BASE}/api/settings/profile`, {
+      method: 'POST',
+      headers: { 'Cookie': sessionCookie },
+      body: avatarForm,
+    });
+    assertTest('POST /api/settings/profile with avatarFile returns HTTP 200', avatarUploadRes.status === 200);
+    const avatarUploadData = await avatarUploadRes.json() as any;
+    assertTest(
+      'Avatar response contains WebP avatarPath',
+      Boolean(avatarUploadData.user?.avatarPath && avatarUploadData.user.avatarPath.startsWith('/uploads/avatars/') && avatarUploadData.user.avatarPath.endsWith('.webp'))
+    );
+    assertTest('Avatar response hasCustomAvatar = true', avatarUploadData.user?.hasCustomAvatar === true);
+
+    // Test base64 JSON upload
+    const b64Avatar = `data:image/png;base64,${avatarBuf.toString('base64')}`;
+    const avatarJsonRes = await fetch(`${API_BASE}/api/settings/profile`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({ avatarBase64: b64Avatar }),
+    });
+    assertTest('POST /api/settings/profile with avatarBase64 returns HTTP 200', avatarJsonRes.status === 200);
+
+    // Test avatar removal
+    const avatarRemoveRes = await fetch(`${API_BASE}/api/settings/profile`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({ removeAvatar: true }),
+    });
+    assertTest('POST /api/settings/profile with removeAvatar returns HTTP 200', avatarRemoveRes.status === 200);
+    const avatarRemoveData = await avatarRemoveRes.json() as any;
+    assertTest('Avatar reset to default-avatar.svg', avatarRemoveData.user?.avatarPath === '/icons/default-avatar.svg');
+    assertTest('hasCustomAvatar reset to false', avatarRemoveData.user?.hasCustomAvatar === false);
+
+    // -------------------------------------------------------------------------
     // TEST 7: Direct Photo Upload & Sharp WebP Processing
     // -------------------------------------------------------------------------
     logHeader('7. PHOTO INGESTION & SHARP PROCESSING');
