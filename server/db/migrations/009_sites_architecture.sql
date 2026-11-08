@@ -48,32 +48,35 @@ INSERT INTO sites (
     last_deployed_at
 )
 SELECT 
-    u.id,
-    COALESCE(u.handle, split_part(u.email, '@', 1), 'Default') || ' Site',
+    id,
+    COALESCE(handle, split_part(email, '@', 1), 'Default') || ' Site',
     'default',
-    COALESCE(u.site_url, 'https://' || COALESCE(u.handle, 'user') || '.neocities.org'),
-    COALESCE(u.deployment_type, 'neocities'),
-    u.deployment_credentials,
-    COALESCE(u.deploy_path, 'neogram'),
-    COALESCE(u.auto_deploy, FALSE),
-    COALESCE(u.build_html, TRUE),
-    u.custom_css_url,
+    COALESCE(site_url, 'https://' || COALESCE(handle, 'user') || '.neocities.org'),
+    COALESCE(deployment_type, 'neocities'),
+    deployment_credentials,
+    COALESCE(deploy_path, 'neogram'),
+    COALESCE(auto_deploy, FALSE),
+    COALESCE(build_html, TRUE),
+    custom_css_url,
     TRUE,
-    u.last_deployed_at
-FROM users u
-WHERE NOT EXISTS (SELECT 1 FROM sites s WHERE s.user_id = u.id);
+    last_deployed_at
+FROM users
+WHERE id NOT IN (SELECT user_id FROM sites WHERE user_id IS NOT NULL);
 
 -- Backfill site_id on existing posts
 UPDATE posts
-SET site_id = (SELECT s.id FROM sites s WHERE s.user_id = posts.user_id LIMIT 1)
-WHERE site_id IS NULL;
+SET site_id = sites.id
+FROM sites
+WHERE sites.user_id = posts.user_id AND posts.site_id IS NULL;
 
 -- Backfill site_id on existing web_counters
 UPDATE web_counters
-SET site_id = (SELECT s.id FROM sites s WHERE s.user_id = web_counters.user_id LIMIT 1)
-WHERE site_id IS NULL;
+SET site_id = sites.id
+FROM sites
+WHERE sites.user_id = web_counters.user_id AND web_counters.site_id IS NULL;
 
 -- Backfill site_id on existing guestbook_entries
 UPDATE guestbook_entries
-SET site_id = (SELECT s.id FROM sites s WHERE s.user_id = guestbook_entries.user_id LIMIT 1)
-WHERE site_id IS NULL;
+SET site_id = sites.id
+FROM sites
+WHERE sites.user_id = guestbook_entries.user_id AND guestbook_entries.site_id IS NULL;

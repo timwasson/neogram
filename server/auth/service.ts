@@ -91,7 +91,7 @@ function normalizeLoginIdentifier(rawIdentifier: string): { normalized: string; 
   return { normalized, dispatchTarget: isPhoneNumber ? digits : normalized, isPhoneNumber };
 }
 
-export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; identifier: string; code: string; message: string; uin?: number }> {
+export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; identifier: string; code: string; message: string }> {
   if (!rawIdentifier || !rawIdentifier.trim()) {
     throw new Error('Please provide a valid email address or phone number.');
   }
@@ -105,7 +105,7 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
 
   const { normalized, dispatchTarget } = normalizeLoginIdentifier(trimmed);
 
-  // 1. Check or provision user node
+  // 1. Check if existing user node is banned
   const existing = await query(
     'SELECT id, handle, uin, is_banned as "isBanned" FROM users WHERE email = $1',
     [normalized]
@@ -114,23 +114,9 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
     throw new Error('This station node has been suspended by the network administrator.');
   }
 
-  let userHandle: string;
-  let userUin: number;
-
-  if (existing.rows.length > 0) {
-    userHandle = existing.rows[0].handle;
-    userUin = existing.rows[0].uin ? parseInt(existing.rows[0].uin, 10) : 100101;
-  } else {
-    userHandle = await generateUniqueHandle(extractDisplayHandle(normalized));
-    const newUser = await query(
-      `INSERT INTO users (email, handle, site_url, deployment_type)
-       VALUES ($1, $2, $3, 'none')
-       RETURNING id, email, handle, uin`,
-      [normalized, userHandle, null]
-    );
-    userUin = parseInt(newUser.rows[0].uin, 10);
-    console.log(`[:> AUTH] Registered new Neogram node: @${userHandle} (UIN: #${userUin}, ${normalized})`);
-  }
+  const existingUser = existing.rows[0];
+  const userHandle = existingUser ? existingUser.handle : extractDisplayHandle(normalized);
+  const userUin = existingUser ? (existingUser.uin ? parseInt(existingUser.uin, 10) : undefined) : undefined;
 
   // 2. Generate cryptographically secure 6-digit OTP code
   const code = crypto.randomInt(100000, 1000000).toString();
@@ -168,7 +154,6 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
     ok: true,
     identifier: normalized,
     code,
-    uin: userUin,
     message: notifyResult.message || 'Carrier handshake established. 6-digit OTP code dispatched.',
   };
 }

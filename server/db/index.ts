@@ -1,7 +1,7 @@
 import { Pool, QueryResult, QueryResultRow } from 'pg';
 import fs from 'fs';
 import path from 'path';
-import { newDb } from 'pg-mem';
+import { newDb, DataType } from 'pg-mem';
 import { config } from '../config';
 
 interface DbClient {
@@ -56,7 +56,19 @@ export async function initDatabase(): Promise<{ isMemory: boolean; connected: bo
     const memDb = newDb();
     memDb.public.registerFunction({
       name: 'gen_random_uuid',
+      returns: DataType.text,
+      impure: true,
       implementation: () => crypto.randomUUID(),
+    });
+    memDb.public.registerFunction({
+      name: 'split_part',
+      args: [DataType.text, DataType.text, DataType.integer],
+      returns: DataType.text,
+      implementation: (str: string, delimiter: string, field: number) => {
+        if (!str) return '';
+        const parts = str.split(delimiter);
+        return parts[field - 1] ?? '';
+      },
     });
 
     const memAdapter = memDb.adapters.createPg();

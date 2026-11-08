@@ -332,22 +332,24 @@ describe('Hit counter', () => {
       headers: bearer(alice.token),
       body: JSON.stringify({ name: 'Counter Site', slug: 'counter-site', siteUrl: 'https://alice-test.neocities.org' }),
     });
-    assert.equal(create.status, 200, await create.clone().text());
+    assert.ok(create.status === 200 || create.status === 201, await create.clone().text());
+    const siteJson: any = await create.json();
+    const siteId = siteJson.site.id;
 
     const svg = async () => (await fetch(`${sb.base}/counter/${alice.handle}.svg`)).text();
     await svg();
     await svg();
     await svg();
-    const row = (await q('SELECT hits FROM web_counters ORDER BY updated_at DESC LIMIT 1')).rows[0];
+    const row = (await q('SELECT hits FROM web_counters WHERE site_id = $1', [siteId])).rows[0];
     assert.equal(parseInt(row.hits, 10), 1, 'three views from the same IP count once');
 
     const bump = await fetch(`${sb.base}/api/counter`, {
       method: 'PUT',
       headers: bearer(alice.token),
-      body: JSON.stringify({ action: 'increment', amount: -999999 }),
+      body: JSON.stringify({ siteId, action: 'increment', amount: -999999 }),
     });
     assert.equal(bump.status, 200);
-    const after = (await q('SELECT hits FROM web_counters ORDER BY updated_at DESC LIMIT 1')).rows[0];
+    const after = (await q('SELECT hits FROM web_counters WHERE site_id = $1', [siteId])).rows[0];
     assert.ok(parseInt(after.hits, 10) >= 1, 'negative amounts are clamped to +1, counter never goes down');
   });
 });

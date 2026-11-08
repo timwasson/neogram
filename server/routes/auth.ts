@@ -81,7 +81,6 @@ authRouter.post('/request-otp', otpRequestLimiter, async (req: Request, res: Res
       ok: true,
       message: result.message,
       identifier: result.identifier,
-      uin: result.uin,
       // Dev/test convenience ONLY: requires NODE_ENV!=production AND explicit ALLOW_DEMO_OTP=true
       demoCode: config.allowDemoOtp ? result.code : undefined,
     });

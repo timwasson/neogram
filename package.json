@@ -17,6 +17,8 @@
     "build": "npm run sass:build && npm run build:static && npm run extension:sync",
     "lint": "tsc --noEmit",
     "test": "tsx server/tests/smokeTest.ts",
+    "test:security": "tsx --test server/tests/security.integration.test.ts",
+    "test:unit": "tsx --test server/tests/*.test.ts",
     "test:avatar": "tsx server/tests/profileAvatarTest.ts",
     "test:bot-static": "tsx server/tests/staticSiteBotMonitorTest.ts",
     "test:social-security": "tsx server/tests/socialAndSecurityTest.ts",
