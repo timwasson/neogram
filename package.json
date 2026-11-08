@@ -23,6 +23,7 @@
     "test:bot-static": "tsx server/tests/staticSiteBotMonitorTest.ts",
     "test:social-security": "tsx server/tests/socialAndSecurityTest.ts",
     "test:browser": "tsx server/tests/browserMultiResTest.ts",
+    "test:browser:ui": "tsx --test server/tests/browser.ui.test.ts",
     "test:multiphoto": "tsx server/tests/multiPhotoGalleryTest.ts",
     "test:load": "tsx server/tests/loadAndConcurrencyTest.ts",
     "test:live-hosts": "tsx server/tests/liveHostVerificationTest.ts",
