@@ -15,10 +15,11 @@ import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import sharp from 'sharp';
-import { query, initDatabase } from '../db';
 import { fetchPicsumTestImage } from './helpers/qaHarness';
+import { bootSandbox, Sandbox } from './helpers/sandbox';
 
-const API_BASE = process.env.APP_URL || 'http://localhost:4000';
+let query: any;
+let API_BASE = process.env.TARGET_APP_URL || '';
 
 // ANSI color helpers for retro cyber terminal reporting
 const GREEN = '\x1b[32m';
@@ -51,7 +52,21 @@ function assertTest(name: string, condition: boolean, detail?: string) {
 
 async function runSmokeTests() {
   const startTime = Date.now();
-  await initDatabase();
+  let sb: any = null;
+
+  if (!API_BASE) {
+    sb = await bootSandbox({
+      ADMIN_EMAILS: 'sysop@test.local,qa_admin@neogram.retro',
+      ALLOW_DEMO_OTP: 'true',
+    });
+    API_BASE = sb.base;
+  }
+  const dbModule = await import('../db');
+  query = dbModule.query;
+  if (!sb) {
+    await dbModule.initDatabase();
+  }
+
   logHeader('INITIATING NEOGRAM END-TO-END QA SUITE');
   console.log(`Target Host: ${YELLOW}${API_BASE}${RESET}`);
 
@@ -92,7 +107,7 @@ async function runSmokeTests() {
     assertTest('POST /api/auth/request-otp returns HTTP 200', otpRes.status === 200, `Status: ${otpRes.status}`);
     const otpData = await otpRes.json() as any;
     assertTest('OTP response confirms dispatch', otpData.ok === true);
-    assertTest('Auto-registration provisions numeric UIN (>= 100101)', typeof otpData.uin === 'number' && otpData.uin >= 100101, `UIN: #${otpData.uin}`);
+    assertTest('request-otp does NOT issue/leak numeric UIN before verification', otpData.uin === undefined);
     assertTest('Dev environment provides demo OTP code', !!otpData.demoCode, `Code: ${otpData.demoCode}`);
 
     const demoCode = otpData.demoCode;
@@ -132,6 +147,7 @@ async function runSmokeTests() {
     const verifyData = await verifyRes.json() as any;
     assertTest('Auth payload contains JWT token', !!verifyData.token);
     assertTest('Auth payload contains station identity', verifyData.user && verifyData.user.email === testEmail);
+    assertTest('Auto-registration provisions numeric UIN (>= 100101)', typeof verifyData.user?.uin === 'number' && verifyData.user.uin >= 100101, `UIN: #${verifyData.user?.uin}`);
 
     authToken = verifyData.token;
     testUser = verifyData.user;
@@ -456,6 +472,20 @@ async function runSmokeTests() {
     // TEST 12: Cyberspace User Directory & Categorization
     // -------------------------------------------------------------------------
     logHeader('12. CYBERSPACE USER DIRECTORY & CATEGORIZATION');
+    const peerUserRes = await query(
+      `INSERT INTO users (email, handle, uin, site_url, deployment_type, avatar_path)
+       VALUES ('geocities_fan@station.retro', 'geocities_fan', 100099, 'https://geocities-fan.neocities.org', 'neocities', '/icons/default-avatar.svg')
+       ON CONFLICT (email) DO NOTHING
+       RETURNING id`
+    );
+    if (peerUserRes.rows.length > 0) {
+      await query(
+        `INSERT INTO sites (user_id, name, slug, site_url, deployment_type, is_default)
+         VALUES ($1, 'Geo Fan Site', 'default', 'https://geocities-fan.neocities.org', 'neocities', true)
+         ON CONFLICT DO NOTHING`,
+        [peerUserRes.rows[0].id]
+      );
+    }
     const directoryRes = await fetch(`${API_BASE}/directory`);
     assertTest('GET /directory returns HTTP 200', directoryRes.status === 200);
     const directoryHtml = await directoryRes.text();
@@ -2025,6 +2055,10 @@ async function runSmokeTests() {
   console.log(`Total Tests:  ${totalTests}`);
   console.log(`Passed:       ${GREEN}${BOLD}${passedTests}${RESET}`);
   console.log(`Failed:       ${failedTests === 0 ? GREEN : RED}${BOLD}${failedTests}${RESET}`);
+
+  if (sb) {
+    await sb.close().catch(() => {});
+  }
 
   if (failedTests === 0) {
     console.log(`\n${GREEN}${BOLD}[:> ALL SYSTEMS OPERATIONAL — CARRIER 33600 V.90 VERIFIED — MVP READY FOR PRODUCTION]${RESET}\n`);

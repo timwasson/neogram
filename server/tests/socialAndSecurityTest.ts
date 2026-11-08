@@ -60,7 +60,7 @@ async function runSocialAndSecuritySuite() {
           notifyCommentThread: true,
           notifyGuestbook: true,
         }),
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     // 1. Follow @qa_alice by handle
@@ -129,9 +129,9 @@ async function runSocialAndSecuritySuite() {
       'SOCIAL-FOLLOW',
       `GET /api/users/${alice.handle}/friend-status returns { ok: true, isFriend: true, isSelf: false }`,
       statusRes.status === 200 &&
-        statusData.ok === true &&
-        statusData.isFriend === true &&
-        statusData.isSelf === false,
+      statusData.ok === true &&
+      statusData.isFriend === true &&
+      statusData.isSelf === false,
       0,
       `followersCount: ${statusData.followersCount}`
     );
@@ -213,7 +213,7 @@ async function runSocialAndSecuritySuite() {
     const commenters = [bob, friend, surfer, headless, alice];
     const burstStart = Date.now();
     const burstResponses: Array<{ handle: string; status: number; body: any }> = [];
-    
+
     // Test concurrency with Promise.all
     const promises = commenters.map((agent, idx) =>
       fetch(`${baseUrl}/api/posts/${testPostId}/comments`, {
@@ -428,7 +428,7 @@ async function runSocialAndSecuritySuite() {
       await fetch(`${baseUrl}/api/guestbook/${xssGbEntryId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${alice.token}`, 'X-Test-Suite': 'true' },
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     // =========================================================================
@@ -474,7 +474,7 @@ async function runSocialAndSecuritySuite() {
         await fetch(`${baseUrl}/api/guestbook/${gbUrlData.entry.id}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${alice.token}`, 'X-Test-Suite': 'true' },
-        }).catch(() => {});
+        }).catch(() => { });
       }
     }
 
@@ -530,7 +530,7 @@ async function runSocialAndSecuritySuite() {
       await fetch(`${baseUrl}/api/sites/${badSiteCreateData.site.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${surfer.token}`, 'X-Test-Suite': 'true' },
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     // =========================================================================
@@ -592,7 +592,7 @@ async function runSocialAndSecuritySuite() {
         await fetch(`${baseUrl}/api/sites/${postSiteData.site.id}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${surfer.token}`, 'X-Test-Suite': 'true' },
-        }).catch(() => {});
+        }).catch(() => { });
       }
     }
 
@@ -808,7 +808,7 @@ async function runSocialAndSecuritySuite() {
           Authorization: `Bearer ${alice.token}`,
           'X-Test-Suite': 'true',
         },
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }
 

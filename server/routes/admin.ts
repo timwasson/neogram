@@ -130,8 +130,10 @@ adminRouter.get('/admin', requireAdmin, async (req: Request, res: Response, next
         u.ban_reason as "banReason",
         u.banned_at as "bannedAt",
         0 as "postCount",
-        (SELECT COUNT(*) FROM sites s WHERE s.user_id = u.id) as "siteCount"
+        COUNT(s.id) as "siteCount"
       FROM users u
+      LEFT JOIN sites s ON s.user_id = u.id
+      GROUP BY u.id, u.email, u.handle, u.uin, u.site_url, u.deployment_type, u.created_at, u.is_banned, u.ban_reason, u.banned_at
       ORDER BY u.created_at DESC
       LIMIT 100
     `);
