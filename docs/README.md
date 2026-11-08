@@ -67,6 +67,13 @@ Explore the topic guides below:
    - Real-time WebSocket delivery & offline persistent inbox
    - Zero-retention chat privacy invariant for NIM direct messages
 
+9. **[Security Architecture & Threat Model](file:///Users/timwasson/antigravity/Neogram---90s-Retro-Social-Publishing/docs/security.md)**
+   - Threat model and trust boundaries (workstation vs. third-party static hosts)
+   - Comprehensive controls: SSRF defense (`safeGet`), CORS boundaries, CSRF Origin guard
+   - Cryptographic vaults (AES-256-GCM Crypto v2, scrypt KDF, rotation window)
+   - Scoped Cyber-Pass tokens and mandatory consent screen
+   - Operator checklist, key rotation procedures, and known accepted risks
+
 ---
 
 ## Architectural Principles

@@ -21,7 +21,8 @@ The Neogram Web Hit Counter is a lightweight, dynamic SVG image that automatical
 
 ### Key Technical Properties:
 - **Zero Third-Party Trackers & Zero Cookies:** Privacy-friendly, pure vector graphic served as `image/svg+xml`.
-- **Instant Live Increments:** Configured with `Cache-Control: no-cache, no-store, must-revalidate` so every legitimate page view registers.
+- **Visitor De-Duplication & Rate Limiting:** Counter increments are de-duplicated per visitor IP per 30-minute sliding window (repeat page loads in the same window read the current count without inflating hits). SVG endpoints are protected by rate limiters (60 requests per minute per IP), and owner increments are strictly clamped to positive values.
+- **Instant Live Increments:** Configured with `Cache-Control: no-cache, no-store, must-revalidate` so legitimate new visits register immediately.
 - **Dual Identifier & Per-Site Slug Resolution:** You can embed your counter using either your cyber call-sign (`@handle`) or your immutable numeric node ID (`UIN`), and optionally anchor it to a specific mounted site target (`slug`):
   - *Handle URL (Default Site):* `https://neogram.club/counter/cyber_surfer.svg?style=green_led`
   - *UIN URL (Default Site):* `https://neogram.club/counter/100109.svg?style=green_led` *(Permanent anchor: will never break even if you change your handle!)*
@@ -95,9 +96,9 @@ The Neogram Guestbook brings back the legendary 90s web tradition of visitor gue
 
 ### Key Technical Properties:
 - **Self-Hosted Storage on Static Host:** Signatures are stored in `data/guestbook.json` on your Neocities space. You own 100% of your guestbook data.
-- **Spam Sliding-Window Protection:** In-memory rate limiting strictly blocks excessive submissions (maximum 6 signatures per 5-minute window per IP).
+- **Spam Sliding-Window Protection:** In-memory rate limiting strictly blocks excessive submissions (maximum 6 signatures per 5-minute window per IP) plus honeypot traps against automated bots.
 - **Owner Moderation:** You can inspect and delete any inappropriate signatures directly from the Neogram Station Workstation under the **Embeds** tab.
-- **Verified Cyber-Pass Identity:** Signers connect with their Neogram handle or numeric UIN.
+- **Verified Cyber-Pass Identity:** Signers connect with their Neogram handle or numeric UIN using a scoped 1-hour Cyber-Pass token (`Authorization: Bearer <pass_token>`). Cookies are never sent cross-site. Anonymous visitors can also sign if permitted by station settings.
 
 ---
 
@@ -238,12 +239,14 @@ Neogram solves the hardest challenge of static websites: **interactive comments 
 ### How Comments Work:
 1. When visitors view a photo on your Neocities gallery (`photos/<id>/index.html`), the page displays an interactive comments ledger.
 2. If the visitor wants to comment, they click **"CONNECT WITH NEOGRAM CYBER-PASS"**.
-3. **Mobile-Resilient Dual-Path SSO:**
-   - **Desktop Browsers:** Opens a lightweight modal popup (`/auth/connect`) that performs single-click identity verification and relays an ephemeral session token back via `postMessage`.
+3. **Mobile-Resilient Dual-Path SSO & Scoped Security:**
+   - **Consent-First Handshake:** Visiting `/auth/connect` presents a mandatory consent screen showing the exact requesting origin and scope. Tokens are never auto-dispatched without explicit user approval.
+   - **Scoped 1-Hour Pass Token:** The handshake issues a scoped 1-hour `pass` token (valid strictly for social interactions: likes, comments, guestbook, pager) transmitted as `Authorization: Bearer <pass_token>`, rather than exposing the full user session cookie.
+   - **Desktop Browsers:** Opens a lightweight modal popup (`/auth/connect`) that performs single-click identity verification and relays the token back via exact-origin `postMessage` with strict receiver `event.origin` validation.
    - **Mobile Browsers (iOS / Android) & Popup Blockers:** Automatically falls back to a clean full-page redirect to `/auth/connect?return_url=...`. Upon verification, the user is redirected back to the photo page with the ephemeral token in the URL hash fragment (`#neogram_pass=...`). The page reads and stores the token in `localStorage`, cleans the hash fragment from the address bar, and immediately unlocks the comment form—with zero cookie dependencies!
-4. The comment is submitted to `POST /api/posts/:id/comments`.
+4. The comment is submitted to `POST /api/posts/:id/comments` using `Authorization: Bearer <pass_token>`.
 5. **Static File Commit:** The comment is immediately saved into `uploads/images/<photo>.comments.json` directly on your Neocities static host, and an automated background 11ty static rebuild updates the static HTML page!
-6. **Zero Tracking:** No cookies, no ad retargeting, and no data harvesting.
+6. **Zero Tracking:** No cross-site cookies, no ad retargeting, and no data harvesting.
 
 ---
 

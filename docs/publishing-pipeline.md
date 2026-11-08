@@ -208,3 +208,11 @@ To eliminate activation friction for new creators, Neogram features a **Sandbox 
 In alignment with cyberspace freedom and GDPR compliance:
 - **Station Archive Export (`GET /api/settings/export-archive`):** Station operators can export their complete profile, posts, comments, guestbook ledger, and connections as a single structured JSON archive at any time from the workstation Settings tab (`[:> DATA_SOVEREIGNTY.EXE]`).
 - **Self-Serve Node Decommissioning (`DELETE /api/settings/account`):** Users can permanently delete their account with single-click confirmation (`[:> DECOMMISSION_NODE.EXE]`). This triggers a cascading deletion of all user records, posts, comments, guestbook entries, follower links, and isolated static build folders from the database and disk, immediately terminating their session cookie.
+
+---
+
+## 9. Concurrency, Debounced Deploys & SSRF Guards
+
+- **Atomic Post Store Mutex & File Writes:** All modifications to station JSON manifests (`posts.json`, `feed.json`, comments ledgers) are serialized through an in-process per-station async `Mutex` and written using `writeFileAtomic` (atomic rename from a unique `.tmp` sibling). This guarantees that concurrent photo uploads, likes, and comments never produce partial writes, corrupted JSON, or lost updates under load.
+- **Debounced Like Deployments (20s Coalescing):** Social likes update `post_likes` and increment post counts in memory/JSON immediately (~10ms). However, triggering an external API upload to Neocities/Nekoweb for every individual like during a traffic burst would quickly exhaust remote host rate limits. The like debouncer (`server/services/likeDebouncer.ts`) coalesces remote static deploys within a 20-second sliding window per site target.
+- **SSRF Guard on Remote Synchronizations:** All outbound server-side HTTP/HTTPS requests fetching remote `feed.json` or static assets utilize `safeGet` with socket-level address inspection. Loopback, private subnets, cloud metadata endpoints, and non-HTTPS protocols (in production) are strictly rejected.

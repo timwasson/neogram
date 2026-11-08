@@ -38,6 +38,7 @@ Neogram adheres to a strict **Zero Server Retention** contract for all user comm
 2. **Ephemeral Store-and-Forward:** If a recipient is offline, the message is staged temporarily in `ephemeral_chat_queue` with a 24-hour expiration timer.
 3. **Immediate Hard-Deletion Contract:** The instant the recipient establishes a connection, the queued messages are delivered and **immediately hard-deleted** (`DELETE FROM ephemeral_chat_queue WHERE id = ANY(...)`). Queue count returns to 0.
 4. **100% User-Controlled History:** All message logs reside solely in the user's browser client storage (`localStorage.getItem('neogram_im_' + handle)` or `chrome.storage.local`). Users can export their logs as JSON or wipe them with one click.
+5. **WebSocket Authentication & Scoped Passes:** The `/ws/chat` upgrade handler authenticates incoming connections via session cookies or Bearer/query tokens, and explicitly accepts scoped 1-hour Cyber-Pass tokens (`scope: 'pass'`) to support embeddable static site pager widgets (`embed/pager.js`).
 
 ---
 

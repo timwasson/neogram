@@ -47,7 +47,7 @@ When you hit **"TRANSMIT PHOTO"**:
 |---|---|---|
 | **STATIC HOSTING PROVIDER** | Target static publishing host. | `Neocities API (Primary)` |
 | **NEOCITIES API KEY** | The private API token copied from step 1. | `[Your API Key]` |
-| **SITE NAME / SUBDOMAIN** | Your Neocities subdomain (without `.neocities.org`). | `your-site` |
+| **SITE NAME / SUBDOMAIN** | Your Neocities subdomain (without `.neocities.org`). Must resolve to a valid public `https://<site>.neocities.org` address (private IP literals, localhost, and non-HTTPS schemes are rejected by edge SSRF validation). | `your-site` |
 | **TARGET SUBFOLDER (`deploy_path`)** | The subfolder on your Neocities site where galleries compile. | `neogram` *(Default)* |
 | **AUTO-DEPLOY ON TRANSMIT** | When checked, every new photo upload or comment automatically triggers a background static rebuild and pushes directly to Neocities. | `[x] Enabled` |
 

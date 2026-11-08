@@ -395,14 +395,42 @@
                 <!-- Hardware-Grade AES-256-GCM Encryption Box -->
                 <div class="p-3 bg-black border border-main space-y-2">
                   <div class="text-amber font-bold uppercase tracking-wider text-xxs flex items-center justify-between">
-                    <span>SECURITY &amp; CREDENTIAL VAULT</span>
-                    <span class="pixel-badge pixel-badge--green text-xxs font-bold">AES-256-GCM</span>
+                    <span>SECURITY &amp; CREDENTIAL VAULT (CRYPTO v2)</span>
+                    <span class="pixel-badge pixel-badge--green text-xxs font-bold">AES-256-GCM + SCRYPT</span>
                   </div>
                   <div class="p-2.5 border border-muted bg-surface-sunken text-prompt font-mono text-xs overflow-x-auto leading-relaxed select-all">
-[Plaintext API Key] ──&gt; [AES-256-GCM + Random 96-bit IV] ──&gt; [PostgreSQL BYTEA] ──&gt; [Never in Client DOM]
+[Plaintext API Key] ──&gt; [scrypt KDF + AES-256-GCM] ──&gt; [NGv2 Envelope in PostgreSQL] ──&gt; [Never in Client DOM]
                   </div>
                   <p class="text-muted text-xs m-0">
-                    Hosting API keys and static deployment credentials are encrypted at rest in PostgreSQL using authenticated <strong>AES-256-GCM with unique initialization vectors</strong>. Your keys are decrypted strictly in memory at the exact moment of an API upload and are never rendered in client DOM, logs, or error dumps.
+                    Hosting API keys and static deployment credentials are encrypted at rest using authenticated <strong>AES-256-GCM with unique 96-bit initialization vectors and scrypt key derivation</strong>. The <code>NGv2</code> envelope supports zero-downtime key rotation windows via <code>ENCRYPTION_SECRET_PREVIOUS</code>. Credentials are decrypted strictly in memory during an API upload and are never rendered in client DOM, logs, or error responses.
+                  </p>
+                </div>
+
+                <!-- Cyber-Pass SSO & Scoped Token Handshake -->
+                <div class="p-3 bg-black border border-main space-y-2">
+                  <div class="text-cyan font-bold uppercase tracking-wider text-xxs flex items-center justify-between">
+                    <span>SCOPED CYBER-PASS HANDSHAKE</span>
+                    <span class="pixel-badge pixel-badge--cyan text-xxs font-bold">1-HOUR SCOPED PASS</span>
+                  </div>
+                  <div class="p-2.5 border border-muted bg-surface-sunken text-prompt font-mono text-xs overflow-x-auto leading-relaxed select-all">
+[Static Site Embed] ──&gt; [/auth/connect Consent Screen] ──&gt; [Scoped 1h Pass Token] ──&gt; [Social Actions Only]
+                  </div>
+                  <p class="text-muted text-xs m-0">
+                    Third-party static sites authenticate visitors using an explicit consent screen at <code>/auth/connect</code>. Tokens are issued with a strict <code>scope: "pass"</code> (1-hour TTL) that allows social interactions (likes, comments, guestbook, pager) but cannot alter settings, passwords, or station configurations. Exact-origin <code>postMessage</code> and hash-fragment transports ensure zero cross-site cookie leaks.
+                  </p>
+                </div>
+
+                <!-- SSRF & Edge Network Security -->
+                <div class="p-3 bg-black border border-main space-y-2">
+                  <div class="text-prompt font-bold uppercase tracking-wider text-xxs flex items-center justify-between">
+                    <span>SSRF GUARD &amp; ATOMIC STORAGE</span>
+                    <span class="pixel-badge pixel-badge--yellow text-xxs font-bold">SAFE-GET + MUTEX</span>
+                  </div>
+                  <div class="p-2.5 border border-muted bg-surface-sunken text-prompt font-mono text-xs overflow-x-auto leading-relaxed select-all">
+[Outbound WAN Fetch] ──&gt; [Socket Lookup IP Filter] ──&gt; [Private/Cloud Metadata Blocked] ──&gt; [Atomic Write Mutex]
+                  </div>
+                  <p class="text-muted text-xs m-0">
+                    All outbound station feed fetches utilize <code>safeGet</code> with socket-level IP address verification to block DNS rebinding and internal network probing (loopback, RFC 1918, link-local, and cloud metadata). Static JSON updates serialize through an in-memory Mutex and write via atomic file renames, preventing corrupt or truncated data feeds.
                   </p>
                 </div>
               </div>

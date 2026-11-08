@@ -76,3 +76,12 @@ To ensure your `/friends/` static site always shows the latest photographs witho
 1. **FIFO BuildQueue Serialization:** All rebuilds execute one at a time sequentially. This completely eliminates concurrency collisions on shared Eleventy template data files.
 2. **Zero Resource Exhaustion:** Rebuilds run asynchronously in the background. If a creator with 50 friends publishes a photo, the 50 static sites rebuild one by one without freezing the server or hitting Neocities rate limits.
 3. **Auto-Deploy Live Pushes:** For any follower with encrypted Neocities credentials, the rebuild is automatically deployed live to their Neocities space.
+
+---
+
+## 6. Federated Feed Ownership & Security Invariants
+
+- **Verified Roster Source of Truth (`friendsRoster.ts`):** The roster of followed stations is queried strictly from PostgreSQL relationships (`follows` join `users` join `sites`). Remote static sites cannot spoof friendships or inject foreign users into a creator's stream.
+- **Remote Ownership Sanitization:** Remote `feed.json` files fetched over the WAN are untrusted external input. Aggregation logic in `federatedFriends.ts` strictly overwrites post `userId`, `siteId`, and author identity fields with the authenticated local friend record, preventing any user from spoofing ownership of other creators' stations.
+- **SSRF-Protected Remote Ingestion:** All WAN requests fetching friends' static `feed.json` feeds are routed through `safeGet` with socket-level IP address verification, blocking access to private subnets, localhost, and cloud metadata endpoints.
+- **Remote Source of Truth Guarantee:** Friends feeds aggregate strictly from live remote `feed.json` files. If a creator wipes their static station via FTP, their transmissions immediately vanish from friends' grids rather than being resurrected from stale database caches.

@@ -21,7 +21,7 @@ It provides:
 8. **Configurable Cyberspace Notification Engine & In-App Alert Center (`[:> NOTIFY_CENTER.SYS]`):** Real-time WebSocket transmission alerts (`/ws/chat`), 8-bit synthesized audio chimes, native desktop/PWA service worker pushes, and a user dashboard configuration console (`[:> NOTIFICATION_DISPATCHER.CFG]`) to toggle delivery across 8 event types.
 9. **Headless Self-Hosted API & Static JSON Feeds:** Opt-out capability allowing users to disable 11ty static HTML generation (`users.build_html`) and compile/push strictly `feed.json`, `posts.json`, per-photo comment JSONs, and optimized media to their personal static host (Neocities or Nekoweb), enabling custom bespoke frontends in Vanilla JavaScript, React, or Vue.
 10. **Cold-Start Sandbox Publishing Mode:** Instant photo snaps and publication directly to station profiles (`/user/:handle`) without requiring an external Neocities account or API key first, giving creators immediate gratification and zero-friction onboarding.
-11. **Mobile Cyber-Pass & Cross-Domain SSO:** 1-click cross-domain authentication for static sites supporting desktop pop-up postMessage and mobile return URL redirect with `#neogram_pass=` hash token ingestion.
+11. **Mobile Cyber-Pass & Cross-Domain SSO:** Cross-domain authentication for static sites supporting desktop pop-up postMessage and mobile return URL redirect with `#neogram_pass=` hash token ingestion. Enforces strict destination URL validation (http/https only, no credentials, origin must match return_url, no wildcards), mandatory interactive user consent screen (never auto-dispatches tokens), exact-origin postMessage targeting, `event.origin` validation in client receivers, and issues scoped, 1-hour `pass` tokens restricted strictly to social actions (likes, comments, guestbook, pager) without account modification privileges.
 12. **Indie Web Data Sovereignty & Station Reset:** 1-click JSON station archive export (`GET /api/settings/export-archive`), self-serve station post wipe (`POST /api/settings/reset-station`), and complete account decommissioning (`DELETE /api/settings/account`) enforcing zero data lock-in. Remote `feed.json` on the static host is the single source of truth; if a station is wiped via FTP, Neogram purges local caches and resets to a clean slate rather than attempting to resurrect wiped files from a central database.
 13. **Multi-Site Architecture (1 User : N Sites):** Complete decoupling of user login identity (callsign `@handle`, permanent numeric `#uin`) from static site deployments. A single authenticated creator can provision, manage, switch between, and deploy to multiple independent static targets (e.g. Neocities, Nekoweb, GitHub Pages), each with dedicated deploy paths, isolated photo streams, per-site SVG hit counters (`/counter/:uin/:slug.svg`), guestbooks (`/embed/guestbook/:handle/:slug`), and static feeds.
 14. **Embeddable Retro Chat & Pager Widget (`embed/pager.js`):** Lightweight client widget allowing static site owners to embed a floating dock or inline retro chat window on Neocities, Nekoweb, or GitHub Pages. Features live operator presence (Active 🟢, Idle 🟡, Signed Out ⚪), strict destination station locking (can *only* message the host station owner), 1-click Cyber-Pass authentication with automatic random `@guest_XXXX` fallback for unauthenticated visitors, 24-hour store-and-forward queueing (`ephemeral_chat_queue`) with zero permanent database retention, and station owner controls to toggle widget enablement and anonymous messaging.
@@ -57,8 +57,8 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     handle VARCHAR(50) UNIQUE,
     uin INTEGER UNIQUE NOT NULL, -- ICQ-style immutable numeric ID (sequence starting at 100101)
-    auth_token VARCHAR(255),
-    auth_token_expires_at TIMESTAMPTZ,
+    auth_token VARCHAR(255), -- Legacy column (unused; sessions use stateless JWTs and otp_challenges)
+    auth_token_expires_at TIMESTAMPTZ, -- Legacy column (unused)
     site_url VARCHAR(500),
     deploy_path VARCHAR(200) DEFAULT 'neogram',
     deployment_type VARCHAR(50) DEFAULT 'none' CHECK (deployment_type IN ('neocities', 'nekoweb', 'github', 'sftp', 'none')),
@@ -199,6 +199,27 @@ CREATE TABLE push_subscriptions (
 );
 
 CREATE INDEX idx_push_subscriptions_user_id ON push_subscriptions(user_id);
+
+-- Passwordless Authentication OTP Challenges (Migration 018)
+-- INVARIANT: Hashed codes only; accounts created strictly after verification
+CREATE TABLE otp_challenges (
+    identifier VARCHAR(255) PRIMARY KEY,
+    code_hash VARCHAR(128) NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_otp_challenges_expires ON otp_challenges(expires_at);
+
+-- Post Likes De-Duplication Ledger (Migration 018)
+-- One like per authenticated user or visitor IP hash per post
+CREATE TABLE post_likes (
+    post_id VARCHAR(64) NOT NULL,
+    voter_key VARCHAR(128) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (post_id, voter_key)
+);
 ```
 
 ---
@@ -244,12 +265,17 @@ CREATE INDEX idx_push_subscriptions_user_id ON push_subscriptions(user_id);
 - `.pager-led`: Status indicator dot (`--online` green, `--away` amber, `--offline` grey)
 
 ### 4.2 Credential Security & Dual-Channel Authentication
-- **Encryption at Rest:** Static hosting credentials (GitHub PATs, Neocities API keys, SFTP passwords) must be **encrypted at rest** using AES-256-GCM (`users.deployment_credentials`). Never return sensitive credentials in API responses.
+- **Encryption at Rest (Crypto v2):** Static hosting credentials (GitHub PATs, Neocities API keys, SFTP passwords) must be **encrypted at rest** using AES-256-GCM (`users.deployment_credentials`) with the `NGv2` envelope format: `[4-byte "NGv2"][12-byte IV][16-byte AuthTag][Ciphertext]`. Keys are derived via `scrypt(secret, domain_salt)`. Legacy v1 records (`[12-byte IV][16-byte AuthTag][Ciphertext]` derived via `sha256`) remain fully readable and are transparently upgraded to v2 on next write. `ENCRYPTION_SECRET_PREVIOUS` provides zero-downtime key rotation windows. Never return sensitive credentials in API responses.
 - **Dual-Channel Authentication Standard (`extractToken(req)`):**
   - Web workstation dashboard uses HTTP-only, SameSite cookies (`neogram_session`).
   - Browser extensions (`chrome-extension://`) and headless API clients use `Authorization: Bearer <token>` headers.
-  - Real-time WebSockets (`/ws/chat`) inspect cookies first, falling back to the `?token=<jwt>` URL query parameter.
+  - Real-time WebSockets (`/ws/chat`) inspect cookies first, falling back to the `?token=<jwt>` URL query parameter for extension background scripts.
+  - Standard HTTP endpoints reject `?token=` query parameters (preventing leakage via logs, history, and Referer headers).
   - Authentication endpoints (`/api/auth/verify-otp`, `/api/auth/magic-login`) return both `Set-Cookie` and JSON responses `{ success: true, token, user }` to support programmatic consumers.
+- **Stateless HS256-Pinned JWT Sessions:** JWTs are strictly signed and verified using algorithm `HS256` (pinned explicitly; `alg: none` or foreign signatures are rejected). 7-day expiration for workstation dashboard sessions.
+- **Scoped Cyber-Pass Tokens:** `signPassToken` creates short-lived (1-hour) tokens scoped with `{ scope: 'pass' }`. Verification via `verifySessionToken(token, allowPass = false)` rejects `pass` tokens on all administrative and mutating account settings routes; pass tokens are strictly permitted on public social interactions (like, comment, guestbook signature, pager DM).
+- **Hashed OTP Authentication & Deferred Registration:** `requestOtp` hashes codes via HMAC-SHA256 (`code_hash` in `otp_challenges`) and never persists plaintext codes. Accounts are provisioned strictly upon successful verification (`verifyOtp`), eliminating unverified account database bloat. Challenge attempts are atomically persisted and codes burn after 5 failed attempts.
+- **SysOp Administrator Whitelist (`ADMIN_EMAILS`):** Admin access is restricted to emails configured in `ADMIN_EMAILS` (parsed once at boot into an immutable Set; server restart required to alter admin privileges).
 
 ### 4.3 Static Publishing Pipeline (Dual-Tier: Eleventy Full Builds + High-Speed Delta Engine)
 1. User uploads photo payload (1 to 5 photos per gallery) and post metadata in Neogram Creator Studio (`POST /api/posts`).
@@ -668,6 +694,17 @@ The following matrix documents all server routes, auth requirements, and functio
 - **Symptom Prevention:** Premature script closing causes trailing JavaScript code to spill onto the viewport as raw text, and turns snippet strings (e.g. `<iframe src="...">`) into actual DOM elements that load relative paths like `/' + iframeUrl + '/` as ghost 404 errors.
 - **Strict Coding Standard:** Any HTML markup or tags constructed inside inline `<script>` blocks (such as embed code generators or iframe snippets) **MUST** escape all opening brackets using hexadecimal encoding (`\x3c`, e.g. `\x3cscript\x3e`, `\x3c/script\x3e`, `\x3ciframe\x3e`, `\x3c/iframe\x3e`, `\x3c!--`). Never output literal `<script` or `</script` strings within inline JavaScript.
 
+### 4.31 Core Security Invariants & System Hardening
+- **CORS & Credential Boundary:** Third-party origins are never granted credentialed access (`Access-Control-Allow-Credentials: true` is reserved strictly for first-party same-origin workstation traffic). Embed widgets and third-party static sites authenticate using scoped Cyber-Pass Bearer tokens.
+- **CSRF Origin Guard:** All cookie-authenticated state-changing requests (`POST`, `PUT`, `DELETE`, `PATCH`) from browsers must pass the CSRF origin guard (`validateCsrfOrigin`). If an `Origin` or `Referer` header is present, it must strictly match `APP_URL`. Pure Bearer token requests (API / extensions) bypass this check.
+- **Content Security Policy (CSP):** Strict baseline CSP (`default-src 'self'`, `frame-ancestors 'self'`, `X-XSS-Protection: 0`). Embed routes explicitly override `frame-ancestors *` so widgets can be framed on static sites. Inline scripts remain permitted temporarily (`'unsafe-inline'`) until extracted to external scripts.
+- **SSRF Defense Rule:** **All outbound HTTP/HTTPS requests fetching user-controlled URLs must use `safeGet`** (`server/utils/safeFetch.ts`). Resolves IP addresses at the socket lookup layer to prevent DNS-rebinding attacks; blocks loopback (`127.0.0.0/8`, `::1`), private ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), link-local/cloud metadata (`169.254.169.254`, `fe80::/10`), CGNAT (`100.64.0.0/10`), and IPv6 ULA/multicast (`fc00::/7`, `ff00::/8`). Site URLs must be validated on ingress using `isSafePublicUrl`.
+- **Federated Ownership Invariant:** Remote `feed.json` files on personal static sites are unauthenticated external input. Hydration and aggregation logic in `federatedFriends.ts` strictly ignores any `userId` or `siteId` claimed inside remote feeds. **The authenticated local friend record alone dictates identity and station ownership.**
+- **Media Upload Pipeline:** Upload filters enforce a strict MIME whitelist (`image/jpeg`, `image/png`, `image/webp`, `image/gif`). SVG uploads are strictly prohibited (preventing stored XSS via embedded SVG scripts). Image processing enforces a 50-megapixel pixel cap, 25MB file limit, and bounded sharp decoding concurrency (max 2 parallel operations).
+- **Post Store Concurrency:** All read-modify-write operations on static JSON data (`posts.json`, `feed.json`, comments) must serialize through the per-station `Mutex` and write via `writeFileAtomic` to prevent data corruption or partial reads under load.
+- **Like De-Duplication & Debounced Deployment:** Likes are recorded in the `post_likes` table (keyed by post ID and user ID or hashed visitor IP). Background static site deployments triggered by like events are debounced with a 20-second coalescing window (`server/services/likeDebouncer.ts`).
+- **Fail-Closed Configuration:** If `NODE_ENV` is unset or blank, the system fails closed and treats the runtime as `production`. Development-only conveniences (such as `ALLOW_DEMO_OTP` and memory DB fallback) are strictly disabled in production.
+
 ---
 
 ## 5. Prototype Assets to Preserve & Port
@@ -835,27 +872,36 @@ Neogram uses a **3-tier automated testing architecture** designed so lighter AI 
 
 #### B. Running the Automated Test Suites (Instructions for AI Testing Agents)
 ```bash
-# 1. Local / Self-Contained Integration Smoke Suite (330+ assertions)
+# 1. Hermetic Security Regression Suite (31 checks: OTP, pass tokens, CORS, CSRF, uploads, SSRF)
+npm run test:security
+
+# 2. Pure Unit Tests (safeFetch IP/URL tables, mock safeGet, crypto v2/rotation, Mutex, atomic writes)
+npm run test:unit
+
+# 3. Local / Self-Contained Integration Smoke Suite (380+ assertions in sandbox)
 npm test
 
-# 2. Live Static-Site Bot & Remote Propagation Monitor (Neocities & Nekoweb delta rebuilds & JSON sync)
+# 4. Live Static-Site Bot & Remote Propagation Monitor (Neocities & Nekoweb delta rebuilds & JSON sync)
 npm run test:bot-static
 
-# 3. Social Graph Lifecycle & Adversarial Security Fuzzing Suite (XSS, SQLi, path traversal, IDOR)
+# 5. Social Graph Lifecycle & Adversarial Security Fuzzing Suite (XSS, SQLi, path traversal, IDOR)
 npm run test:social-security
 
-# 4. Multi-Resolution Playwright Chromium E2E Suite (320x568, 390x844, 768x1024, 1440x900)
+# 6. Multi-Resolution Playwright Chromium E2E Suite (320x568, 390x844, 768x1024, 1440x900)
 npm run test:browser
 
-# 5. Live Static Host Verification (Publishes to Neocities & Nekoweb via qa-sessions.json and probes live feed.json URLs)
+# 7. Live Static Host Verification (Publishes to Neocities & Nekoweb via qa-sessions.json and probes live feed.json URLs)
 npm run test:live-hosts
 
-# 6. 20-Agent Simultaneous Production Load & Queue Drain Benchmark against https://neogram.club
+# 8. 20-Agent Simultaneous Production Load & Queue Drain Benchmark against https://neogram.club
 npm run test:load
 
-# 7. Unified Full Test Suite Execution
+# 9. Unified Full Test Suite Execution
 npm run test:all
 ```
+
+> [!IMPORTANT]
+> **Hermetic Sandbox Invariant (`server/tests/helpers/sandbox.ts`):** Automated tests must **never** run against or modify the real PostgreSQL database or live stations in `dist/static-galleries`. The hermetic sandbox boots an ephemeral Express instance running on an in-memory database (`pg-mem`) in an isolated temporary directory. Tests should always run with `DATABASE_URL=""` to guarantee isolation.
 - **Live Static-Site Bot Monitoring (`test:bot-static`):** Automated bot personas publish test photos to mounted live Neocities/Nekoweb targets, poll remote URLs with cache-busting until live (`feed.json`, `index.html`, `photos/<id>/index.html`, full/thumb WebP images, `.comments.json`), have visitor bots comment and like, and verify delta synchronization.
 - **Social Graph & Adversarial Fuzzing (`test:social-security`):** Validates follow/unfollow polymorphic lookups (handle, numeric UIN, UUID), concurrent comment locking with zero lost writes, in-app notifications inbox, stored XSS / script breakout prevention in rendered HTML, malicious URL scheme stripping (`javascript:`, `data:`, `vbscript:`), path traversal / shell command sanitation, SQL injection safety without database error leakage, corrupt polyglot image rejection, and IDOR tenant boundary enforcement.
 - **Multi-Resolution Playwright Browser Testing (`test:browser`):** Headless Chromium testing across 4 viewports (`320x568` Mobile-Small-SE, `390x844` Mobile-Standard, `768x1024` Tablet-Breakpoint, `1440x900` Desktop-Widescreen) validating zero unwanted horizontal overflow, responsive navigation visibility (mobile bottom dock vs. desktop retro taskbar), interactive profile follow toggles via AJAX, standard static BEM DOM structure, and DOM XSS canary dialog traps.

@@ -29,7 +29,7 @@ This guide walks you through connecting your personal **Nekoweb** static website
 3. In the window card **`[:> NEKOWEB & DEPLOYMENT SETTINGS SECTION]`**:
    * **Target Hosting Provider:** Select **`Nekoweb (Direct REST API v1.0 — Live)`**.
    * **Nekoweb Site Subdomain / Name:** Enter your Nekoweb subdomain (e.g. if your site is `https://cybercat.nekoweb.org`, enter `cybercat`).
-   * **Target Site URL:** Confirms as `https://cybercat.nekoweb.org`.
+   * **Target Site URL:** Confirms as `https://cybercat.nekoweb.org` (must be a valid public `https://` URL; localhost, private IP literals, and unencrypted HTTP schemes are blocked by server-side SSRF validation).
    * **📁 Publish Subdirectory / Folder:** Enter `neogram` (recommended) or your preferred folder name. Leave empty if you wish to deploy to the root of your Nekoweb domain.
    * **Nekoweb API Key:** Paste the API key copied from Nekoweb.
    * **Auto-Deploy on Transmit:** Toggle to **Enabled** if you want your static site to automatically rebuild and push live whenever you broadcast a new photo.

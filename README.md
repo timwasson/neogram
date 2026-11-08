@@ -114,12 +114,34 @@ npm install
 ```bash
 cp .env.example .env
 ```
-Ensure `DATABASE_URL` points to your PostgreSQL instance:
+Ensure `DATABASE_URL` and security secrets are configured. For local development, set `ALLOW_DEMO_OTP=true` to view OTP verification codes in the console:
 ```env
 DATABASE_URL=postgres://neogram:neogram_secret@localhost:5432/neogram
-JWT_SECRET=neogram_retro_super_secret_jwt_key_1996
-ENCRYPTION_SECRET=neogram_retro_aes256_vault_key_1996_master_secret
+JWT_SECRET=neogram_dev_jwt_secret_hex_at_least_32_chars_long
+ENCRYPTION_SECRET=neogram_dev_encryption_secret_hex_at_least_32_chars_long
+ALLOW_DEMO_OTP=true
+ADMIN_EMAILS=sysop@neogram.club
 ```
+
+#### Environment Variables Reference
+| Variable | Required In | Description |
+|---|---|---|
+| `PORT` | Optional (default: `4000`) | Server listen port. |
+| `NODE_ENV` | Optional (default: `production`) | Environment mode (`development` or `production`). Fails closed to `production` if unset. |
+| `APP_URL` | Recommended | Canonical application URL (e.g. `https://neogram.club`). |
+| `DATABASE_URL` | Production / Local DB | Full PostgreSQL connection string (`postgres://user:pass@host:5432/db`). |
+| `POSTGRES_PASSWORD` | Docker Compose | Database password (required by `docker-compose.yml`). |
+| `JWT_SECRET` | Production & Docker | Hex secret (>=32 chars, generate with `openssl rand -hex 48`) used to sign stateless JWTs. |
+| `ENCRYPTION_SECRET` | Production & Docker | Master key (>=32 chars, generate with `openssl rand -hex 48`) for AES-256-GCM credentials vault. |
+| `ENCRYPTION_SECRET_PREVIOUS`| Key Rotation | Previous encryption key; allows seamless decryption of older records during key rotation. |
+| `ALLOW_DEMO_OTP` | Dev / Local QA | When `true`, echoes OTP code in API responses and console. Ignored when `NODE_ENV=production`. |
+| `ADMIN_EMAILS` | Admin access | Comma-separated email addresses authorized for `/admin` and SysOp controls. Read once at boot. |
+| `RESEND_API_KEY` | Optional (Email OTP) | Resend API key for transactional email OTP delivery. |
+| `TWILIO_ACCOUNT_SID` | Optional (SMS OTP) | Twilio account SID for mobile SMS OTP dispatch. |
+| `TWILIO_AUTH_TOKEN` | Optional (SMS OTP) | Twilio auth token. |
+| `TWILIO_PHONE_NUMBER` | Optional (SMS OTP) | E.164 phone number for SMS delivery. |
+| `VAPID_PUBLIC_KEY` | Optional (Web Push) | VAPID public key. Auto-generated on startup if blank. |
+| `VAPID_PRIVATE_KEY` | Optional (Web Push) | VAPID private key. |
 
 ### 3. Start Development Server
 ```bash
@@ -131,28 +153,34 @@ npm run dev
 
 ### 4. Run Automated QA Smoke, Static Bot, Security, Browser & Load Suites
 ```bash
-# 1. Local integration smoke test suite (330+ assertions)
+# 1. Hermetic Security Regression Suite (31 assertions: OTP, pass tokens, CORS, CSRF, uploads, SSRF)
+npm run test:security
+
+# 2. Pure Unit Tests (IP ranges, mock safeGet, crypto v2 & key rotation, Mutex, atomic writes)
+npm run test:unit
+
+# 3. Local integration smoke test suite (380+ assertions in hermetic sandbox)
 npm test
 
-# 2. Live Static-Site Bot & Remote Propagation Monitor (Neocities & Nekoweb delta rebuilds & JSON sync)
+# 4. Live Static-Site Bot & Remote Propagation Monitor (Neocities & Nekoweb delta rebuilds & JSON sync)
 npm run test:bot-static
 
-# 3. Social Graph Lifecycle & Adversarial Security Fuzzing Suite (XSS, SQLi, path traversal, IDOR)
+# 5. Social Graph Lifecycle & Adversarial Security Fuzzing Suite (XSS, SQLi, path traversal, IDOR)
 npm run test:social-security
 
-# 4. Multi-Resolution Playwright Chromium E2E Suite (320x568, 390x844, 768x1024, 1440x900)
+# 6. Multi-Resolution Playwright Chromium E2E Suite (320x568, 390x844, 768x1024, 1440x900)
 npm run test:browser
 
-# 5. Live Neocities & Nekoweb multi-account verification (requires qa-sessions.json from https://neogram.club/admin)
+# 7. Live Neocities & Nekoweb multi-account verification (requires qa-sessions.json from https://neogram.club/admin)
 npm run test:live-hosts
 
-# 6. Multi-agent concurrent load & BuildQueue telemetry benchmark against https://neogram.club
+# 8. Multi-agent concurrent load & BuildQueue telemetry benchmark against https://neogram.club
 npm run test:load
 
-# 7. Unified full test run
+# 9. Unified full test run
 npm run test:all
 
-# 8. Sequential Flood-Safe QA Fleet Static Site Rebuild
+# 10. Sequential Flood-Safe QA Fleet Static Site Rebuild
 npx tsx scripts/rebuild-qa-fleet.ts --delay=3500
 ```
 - **Production QA Fleet Manager (`https://neogram.club/admin`):** Provision `@qa_*` (`@qa.neogram.club`) test personas, attach encrypted Neocities/Nekoweb API keys directly to test accounts, export pre-authenticated 30-day `qa-sessions.json` session bundles for OTP-free browser/load testing, and purge QA test posts with 1 click after test runs.
@@ -205,6 +233,9 @@ Fill in your production secrets, domain, and optional transactional auth keys:
 ```bash
 docker compose up -d --build
 ```
+> [!WARNING]
+> **Strict Secret Validation:** `docker-compose.yml` uses `${VAR:?Set ... in .env}` syntax. `docker compose up` will fail immediately with a descriptive error if `POSTGRES_PASSWORD`, `JWT_SECRET`, or `ENCRYPTION_SECRET` are missing or empty in `.env`.
+
 - Starts both `neogram_app` and `neogram_postgres` with automated database migrations and healthchecks.
 - App listens securely on `127.0.0.1:4000`.
 
@@ -223,8 +254,14 @@ Caddy automatically obtains and renews trusted Let's Encrypt certificates with H
 
 ### 5. Automated Continuous Deployment (GitHub Actions)
 Deployments are fully automated via GitHub Actions (`.github/workflows/deploy.yml`):
-- Pushing commits to `main` triggers pre-flight type checking (`npm run lint`).
+- Pushing commits to `main` triggers pre-flight type checking (`npm run lint`), hermetic security tests (`npm run test:security`), unit tests (`npm run test:unit`), and production dependency audits (`npm audit --omit=dev --audit-level=high`).
 - Upon success, the workflow connects to the Droplet via SSH, pulls the latest commits, rebuilds the Docker containers, and validates server health.
+
+---
+
+## 🔒 Security Architecture & Threat Model
+
+For full details on Neogram's threat model, security controls (SSRF protection, CORS boundaries, CSRF Origin guard, cryptographic vaults, key rotation), and responsible disclosure, see the comprehensive [Security Architecture Guide](docs/security.md).
 
 ---
 
@@ -236,6 +273,6 @@ npm run extension:sync
 
 # Bundle into production zip for Chrome Web Store:
 npm run extension:package
-# Output: neogram-aim-extension.zip
+# Output: neogram-aim-extension.zip (gitignored)
 ```
 See `CHROMEWEBSTORE.md` for store listing copy, screenshots, and permission disclosures.
