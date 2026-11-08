@@ -29,6 +29,15 @@ jobs:
       - name: Validate TypeScript Compilation
         run: npm run lint
 
+      - name: Run Hermetic Security Tests
+        run: npm run test:security
+
+      - name: Run Unit Tests
+        run: npm run test:unit
+
+      - name: Audit Production Dependencies
+        run: npm audit --omit=dev --audit-level=high
+
   deploy:
     name: Deploy to DigitalOcean Droplet
     needs: validate
