@@ -1,3 +1,6 @@
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'testing-jwt-secret-with-at-least-32-characters';
+process.env.ENCRYPTION_SECRET = process.env.ENCRYPTION_SECRET || 'testing-encryption-secret-with-at-least-32-characters';
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'http';

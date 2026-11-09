@@ -7,7 +7,9 @@ import { AddressInfo } from 'net';
 import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import { bootSandbox, Sandbox, ADMIN_EMAIL } from './helpers/sandbox';
 
-const SCRATCH_DIR = '/Users/timwasson/.gemini/antigravity/brain/f3a40f3e-ef2e-4446-abfd-8de94174b7a7/scratch';
+import os from 'os';
+
+const SCRATCH_DIR = path.join(os.tmpdir(), 'neogram-browser-test');
 if (!fs.existsSync(SCRATCH_DIR)) {
   fs.mkdirSync(SCRATCH_DIR, { recursive: true });
 }
