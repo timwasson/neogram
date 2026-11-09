@@ -458,6 +458,52 @@ async function runSmokeTests() {
       assertTest('DELETE /api/posts/:id/comments/:commentId returns HTTP 200', purgeCommentRes.status === 200);
     }
 
+    // 10f. Smart Handoff (PWA to Native Safari / Remote Static Site)
+    const unauthHandoffRes = await fetch(`${API_BASE}/api/auth/handoff-ticket`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target: 'https://friend.neocities.org/neogram/' }),
+    });
+    assertTest('POST /api/auth/handoff-ticket without auth returns HTTP 401', unauthHandoffRes.status === 401);
+
+    const badProtocolRes = await fetch(`${API_BASE}/api/auth/handoff-ticket`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({ target: 'javascript:alert(1)' }),
+    });
+    assertTest('POST /api/auth/handoff-ticket with invalid protocol returns HTTP 400', badProtocolRes.status === 400);
+
+    const validHandoffRes = await fetch(`${API_BASE}/api/auth/handoff-ticket`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie,
+      },
+      body: JSON.stringify({ target: 'https://friend.neocities.org/neogram/' }),
+    });
+    assertTest('POST /api/auth/handoff-ticket returns HTTP 200', validHandoffRes.status === 200);
+    const handoffData = await validHandoffRes.json() as any;
+    assertTest('Handoff response contains ticket and handoffUrl', handoffData.ok === true && !!handoffData.ticket && !!handoffData.handoffUrl);
+
+    // Consume handoff ticket via GET /auth/handoff (redirect: 'manual' to inspect 302 and Set-Cookie)
+    const consumeRes = await fetch(handoffData.handoffUrl, {
+      redirect: 'manual',
+    });
+    assertTest('GET /auth/handoff returns HTTP 302 redirect', consumeRes.status === 302);
+    const setCookieHeader = consumeRes.headers.get('set-cookie') || '';
+    assertTest('GET /auth/handoff sets neogram_session cookie in browser', setCookieHeader.includes('neogram_session='));
+    const locationHeader = consumeRes.headers.get('location') || '';
+    assertTest('GET /auth/handoff redirects to target with #neogram_pass payload', locationHeader.startsWith('https://friend.neocities.org/neogram/#neogram_pass='));
+
+    // Replay attack prevention: attempting to re-use the same ticket must be rejected
+    const replayRes = await fetch(handoffData.handoffUrl, {
+      redirect: 'manual',
+    });
+    assertTest('Replay protection: second consumption does NOT redirect with pass', !replayRes.headers.get('location')?.includes('neogram_pass='));
+
     // -------------------------------------------------------------------------
     // TEST 11: Public Headless JSON Feed (JSONFeed 1.1)
     // -------------------------------------------------------------------------

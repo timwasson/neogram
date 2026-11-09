@@ -13,7 +13,7 @@ import { directoryRouter } from './routes/directory';
 import { docsRouter } from './routes/docs';
 import { adminRouter } from './routes/admin';
 import { getTickerAnnouncement } from './services/systemSettings';
-import { COOKIE_NAME, verifySessionToken, clearSessionCookie, extractToken, signSessionToken, signPassToken } from './auth/jwt';
+import { COOKIE_NAME, verifySessionToken, clearSessionCookie, extractToken, signSessionToken, signPassToken, signHandoffToken, verifyHandoffToken, setSessionCookie, UserSessionPayload } from './auth/jwt';
 import { getUserById } from './auth/service';
 import { getFriendsRoster } from './services/friendsRoster';
 import { getVapidPublicKey } from './services/webPushService';
@@ -413,6 +413,107 @@ export function createApp(): Express {
     }
   });
 
+  // Smart Handoff: Bridges PWA session into native browser (Safari/Chrome) and static site
+  app.get('/auth/handoff', async (req: Request, res: Response) => {
+    const rawTarget = req.query.target;
+    const rawTicket = req.query.ticket;
+
+    if (!rawTarget || typeof rawTarget !== 'string') {
+      res.status(400).send('[:> HANDOFF ERROR] Missing destination target URL.');
+      return;
+    }
+
+    let parsedTarget: URL;
+    try {
+      parsedTarget = new URL(rawTarget.trim());
+      if (parsedTarget.protocol !== 'http:' && parsedTarget.protocol !== 'https:') {
+        res.status(400).send('[:> HANDOFF ERROR] Invalid protocol. Only http(s) destinations are permitted.');
+        return;
+      }
+      if (parsedTarget.username || parsedTarget.password) {
+        res.status(400).send('[:> HANDOFF ERROR] Embedded credentials not permitted.');
+        return;
+      }
+    } catch {
+      res.status(400).send('[:> HANDOFF ERROR] Malformed target URL.');
+      return;
+    }
+
+    const cleanTarget = parsedTarget.toString();
+    res.setHeader('Cache-Control', 'no-store');
+
+    // 1. Check if a valid single-use handoff ticket was provided
+    let userPayload: UserSessionPayload | null = null;
+    if (rawTicket && typeof rawTicket === 'string') {
+      userPayload = verifyHandoffToken(rawTicket);
+    }
+
+    // 2. Fallback: Check if the browser already has an active session cookie on neogram.club
+    if (!userPayload && res.locals.currentUser) {
+      const u = res.locals.currentUser;
+      userPayload = {
+        userId: u.id,
+        email: u.email,
+        handle: u.handle,
+        uin: u.uin,
+      };
+    }
+
+    // 3. If no ticket and no existing session, redirect to the standard Cyber-Pass connect/login screen
+    if (!userPayload) {
+      res.redirect(`/auth/connect?origin=${encodeURIComponent(parsedTarget.origin)}&return_url=${encodeURIComponent(cleanTarget)}`);
+      return;
+    }
+
+    // 4. Established / verified identity:
+    // Ensure Safari / native browser gets the persistent 7-day session cookie for neogram.club!
+    const sessionToken = signSessionToken({
+      userId: userPayload.userId,
+      email: userPayload.email,
+      handle: userPayload.handle,
+      uin: userPayload.uin,
+    });
+    setSessionCookie(res, sessionToken);
+
+    // 5. Mint a short-lived, scoped 1-hour Cyber-Pass token for the destination static site
+    const passToken = signPassToken({
+      userId: userPayload.userId,
+      email: userPayload.email,
+      handle: userPayload.handle,
+      uin: userPayload.uin,
+    });
+
+    let avatar = '';
+    try {
+      const dbUser = await getUserById(userPayload.userId);
+      avatar = dbUser?.avatarPath || '';
+    } catch {}
+
+    const passData = {
+      type: 'NEOGRAM_CYBER_PASS',
+      token: passToken,
+      handle: userPayload.handle,
+      uin: userPayload.uin || null,
+      avatar,
+    };
+
+    // 6. Build the destination URL with the #neogram_pass= payload attached
+    const baseUrlNoHash = cleanTarget.split('#')[0];
+    const existingHash = cleanTarget.includes('#') ? cleanTarget.split('#')[1] : '';
+    let preservedHash = '';
+    if (existingHash) {
+      const hashParams = existingHash.split('&').filter(p => !p.startsWith('neogram_pass='));
+      if (hashParams.length > 0) preservedHash = '#' + hashParams.join('&');
+    }
+
+    const passParam = 'neogram_pass=' + encodeURIComponent(JSON.stringify(passData));
+    const finalHash = preservedHash ? `${preservedHash}&${passParam}` : `#${passParam}`;
+    const destinationWithPass = baseUrlNoHash + finalHash;
+
+    // 302 Redirect Safari into the destination site with Cyber-Pass
+    res.redirect(302, destinationWithPass);
+  });
+
   app.get('/logout', (_req: Request, res: Response) => {
     clearSessionCookie(res);
     res.redirect('/login');
@@ -502,8 +603,8 @@ export function createApp(): Express {
       const targetDeployPath = (primarySite?.deployPath !== null && primarySite?.deployPath !== undefined)
         ? String(primarySite.deployPath).trim().replace(/^\/+|\/+$/g, '')
         : ((user.deploy_path !== null && user.deploy_path !== undefined)
-            ? String(user.deploy_path).trim().replace(/^\/+|\/+$/g, '')
-            : 'neogram');
+          ? String(user.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+          : 'neogram');
 
       // Clean root personal site URL & gallery URL (preserves repository/subpath for GitHub Pages)
       let cleanRootSiteUrl = '';

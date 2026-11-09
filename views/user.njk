@@ -1,406 +1,375 @@
 {% extends "layouts/base.njk" %}
-
 {% block content %}
-<div class="max-w-6xl mx-auto p-4 md:p-6 w-full font-mono">
-
-  <!-- Top Breadcrumb / Return Bar -->
-  <div class="flex items-center justify-between mb-4 flex-wrap gap-2 text-xs">
-    <div class="flex items-center gap-2 text-muted">
-      <a href="/directory" class="text-mac hover:underline font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">:&gt; CYBERSPACE_DIRECTORY</a>
-      <span>/</span>
-      <span class="text-prompt font-bold">@{{ profileUser.handle }}</span>
-      <span class="text-mac font-bold font-mono">[@{{ profileUser.uin }}]</span>
-    </div>
-    <div class="flex items-center gap-2">
-      <a href="/directory" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2.5" onclick="if(window.retroAudio) retroAudio.playClick();">
-        <span>[ Directory ]</span>
-      </a>
-      <a href="/" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2.5" onclick="if(window.retroAudio) retroAudio.playClick();">
-        <span>[ &lt; Workstation ]</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- Main Profile Grid: Identity Card (Left) + Transmissions Stream (Right) -->
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-    <!-- LEFT COLUMN: Station Identity (4 cols) -->
-    <div class="lg:col-span-4 flex flex-col gap-4">
-
-      <!-- Profile Identity Window Box -->
-      <div class="retro-card p-0 m-0">
-        <div class="window-header flex items-center justify-between p-2">
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-xs truncate">[:&gt; STATION_ID.SYS]</span>
-          </div>
-          {% if profileUser.isAway %}
-            <span class="text-xs text-amber font-bold">[AWAY]</span>
-          {% else %}
-            <span class="text-xs text-prompt font-bold">[ONLINE]</span>
-          {% endif %}
-        </div>
-
-        <div class="p-4 flex flex-col items-center text-center gap-3">
-          <!-- Avatar Frame -->
-          <div>
-            <img
-              src="{{ profileUser.avatarPath }}"
-              alt="@{{ profileUser.handle }} Avatar"
-              class="w-32 h-32 pixel-box border-4 border-black object-cover bg-black"
-              onerror="this.onerror=null;this.src='/icons/default-avatar.svg';"
-            />
-          </div>
-
-          <!-- Handle & Callsign -->
-          <div class="flex flex-col items-center gap-1 mt-1">
-            <h1 class="text-lg md:text-xl font-bold text-mac tracking-wide m-0">
-              @{{ profileUser.handle }}
-            </h1>
-            <div class="flex items-center gap-2 flex-wrap justify-center">
-              <span class="pixel-badge pixel-badge--cyan text-xs font-bold py-0.5 px-2 font-mono">
-                Node #{{ profileUser.uin }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Bio / Status Message -->
-          <div class="w-full text-left bg-black border border-main p-2.5 text-xs text-prompt space-y-1">
-            <div class="text-[10px] text-muted uppercase font-bold tracking-wider">
-              CYBER_BROADCAST_STATUS:
-            </div>
-            <p class="whitespace-pre-wrap leading-relaxed">
-              "{{ profileUser.statusMessage }}"
-            </p>
-          </div>
-
-          <!-- Station Telemetry Stats -->
-          <div class="w-full grid grid-cols-3 gap-2 border-t border-b border-main py-2 text-xs">
-            <div class="flex flex-col">
-              <span class="text-muted text-[10px]">PHOTOS</span>
-              <span class="font-bold text-mac text-sm">{{ posts.length }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-muted text-[10px]">LIKES</span>
-              <span class="font-bold text-crimson text-sm">{{ profileUser.totalLikes }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-muted text-[10px]">VISITS</span>
-              <span class="font-bold text-prompt text-sm">{{ profileUser.hits }}</span>
-            </div>
-          </div>
-
-          <!-- Action Buttons / Links -->
-          <div class="w-full flex flex-col gap-2 pt-2">
-            <!-- Friend / Follow Action -->
-            {% if currentUser and not isSelf %}
-              <button
-                type="button"
-                id="profileFriendBtn"
-                onclick="toggleProfileFriend('{{ profileUser.handle }}')"
-                class="pixel-btn {% if isFriend %}pixel-btn--yellow{% else %}pixel-btn--green{% endif %} text-xs font-bold py-2 w-full flex items-center justify-center gap-1.5"
-              >
-                <span id="profileFriendBtnIcon">{% if isFriend %}✓{% else %}+{% endif %}</span>
-                <span id="profileFriendBtnText">{% if isFriend %}Friends (Click to Unfriend){% else %}Add Friend{% endif %}</span>
-              </button>
-            {% elif isSelf %}
-              <div class="pixel-badge pixel-badge--cyan text-xxs font-bold py-1 px-2 text-center w-full">
-                THIS IS YOUR STATION
-              </div>
-              <a
-                href="/#settings"
-                class="pixel-btn pixel-btn--sm text-xs font-bold py-2 w-full flex items-center justify-center gap-1.5"
-                onclick="if(window.retroAudio) retroAudio.playClick();"
-              >
-                <span>⚙ Edit Station Settings</span>
-              </a>
-            {% else %}
-              <a
-                href="/login"
-                class="pixel-btn pixel-btn--green text-xs font-bold py-2 w-full flex items-center justify-center gap-1.5"
-                onclick="if(window.retroAudio) retroAudio.playClick();"
-              >
-                <span>+ Log In to Add Friend</span>
-              </a>
-            {% endif %}
-
-            {% if profileUser.cleanRootSiteUrl %}
-              <a
-                href="{{ profileUser.cleanRootSiteUrl }}"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="pixel-btn pixel-btn--yellow text-xs font-bold py-2 w-full flex items-center justify-center gap-1"
-                onclick="if(window.retroAudio) retroAudio.playClick();"
-              >
-                <span>Visit Personal Website ↗</span>
-              </a>
-            {% endif %}
-
-            {% if profileUser.galleryUrl %}
-              <a
-                href="{{ profileUser.galleryUrl }}"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="pixel-btn pixel-btn--green text-xs font-bold py-2 w-full flex items-center justify-center gap-1"
-                onclick="if(window.retroAudio) retroAudio.playClick();"
-              >
-                <span>View Neogram Photo Gallery ↗</span>
-              </a>
-            {% endif %}
-          </div>
-
-          <!-- Station Metadata Footer -->
-          <div class="text-[11px] text-muted pt-2 border-t border-main w-full text-left space-y-1">
-            <div><strong>Commissioned:</strong> {{ profileUser.createdAt | formatDate }}</div>
-            {% if profileUser.lastDeployedAt %}
-              <div><strong>Last Deployed:</strong> {{ profileUser.lastDeployedAt | formatDate }}</div>
-            {% endif %}
-          </div>
-        </div>
+  <div
+    class="max-w-6xl mx-auto p-4 md:p-6 w-full font-mono">
+    <!-- Top Breadcrumb / Return Bar -->
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2 text-xs">
+      <div class="flex items-center gap-2 text-muted">
+        <a href="/directory" class="text-mac hover:underline font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">
+        :&gt; CYBERSPACE_DIRECTORY</a>
+        <span>/</span>
+        <span class="text-prompt font-bold">@{{ profileUser.handle }}</span>
+        <span class="text-mac font-bold font-mono">[@{{ profileUser.uin }}]</span>
       </div>
-
+      <div class="flex items-center gap-2">
+        <a
+          href="/directory"
+          class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2.5"
+          onclick="if(window.retroAudio) retroAudio.playClick();">
+          <span>[ Directory ]</span>
+        </a>
+        <a
+          href="/"
+          class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2.5"
+          onclick="if(window.retroAudio) retroAudio.playClick();">
+          <span>[ &lt; Workstation ]</span>
+        </a>
+      </div>
     </div>
-
-    <!-- RIGHT COLUMN: Transmissions & Photographs Stream (8 cols) -->
-    <div class="lg:col-span-8 flex flex-col gap-4">
-
-      <!-- Gallery Archive Window Frame -->
-      <div class="retro-card p-0 m-0">
-        <div class="window-header flex items-center justify-between p-2">
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-xs">
-              [:&gt; TRANSMISSIONS_ARCHIVE.EXE - Broadcasted Photographs ({{ posts.length }})]
-            </span>
-          </div>
-          {% if profileUser.galleryUrl %}
-            <a
-              href="{{ profileUser.galleryUrl }}"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xs py-0.5 px-2"
-              onclick="if(window.retroAudio) retroAudio.playClick();"
-            >
-              <span>Static Gallery ↗</span>
-            </a>
-          {% endif %}
-        </div>
-
-        <div class="p-4">
-          {% if sites and sites.length > 1 %}
-            <div class="flex items-center gap-1.5 mb-3 flex-wrap text-xs font-mono bg-black p-2 border border-main">
-              <span class="text-muted text-xxs uppercase font-bold">FILTER TRANSMISSIONS:</span>
-              <button
-                type="button"
-                id="userFilterAllBtn"
-                class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-3xs py-0.5 px-2"
-                onclick="filterUserPosts('all')"
-              >
-                ALL SITES ({{ posts.length }})
-              </button>
-              {% for s in sites %}
-                <button
-                  type="button"
-                  id="userFilterBtn-{{ s.id }}"
-                  class="pixel-btn pixel-btn--sm text-3xs py-0.5 px-2"
-                  onclick="filterUserPosts('{{ s.id }}')"
-                >
-                  {{ s.name }}
-                </button>
-              {% endfor %}
+    <!-- Main Profile Grid: Identity Card (Left) + Transmissions Stream (Right) -->
+    <div
+      class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <!-- LEFT COLUMN: Station Identity (4 cols) -->
+      <div
+        class="lg:col-span-4 flex flex-col gap-4">
+        <!-- Profile Identity Window Box -->
+        <div class="retro-card p-0 m-0">
+          <div class="window-header flex items-center justify-between p-2">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs truncate">[:&gt; STATION_ID.SYS]</span>
             </div>
-          {% endif %}
-
-          {% if not posts or posts.length == 0 %}
-            <!-- Empty State -->
-            <div class="p-8 border-2 border-dashed border-main text-center bg-black text-prompt space-y-2">
-              <div class="font-bold text-sm">NO PHOTOGRAPHS DETECTED IN STORAGE LEDGER</div>
-              <p class="text-xs text-muted max-w-md mx-auto">
-                Station @{{ profileUser.handle }} has not broadcasted any public photographs yet. Check back once their transmitter goes live!
+            {% if profileUser.isAway %}
+              <span class="text-xs text-amber font-bold">[AWAY]</span>
+            {% else %}
+              <span class="text-xs text-prompt font-bold">[ONLINE]</span>
+            {% endif %}
+          </div>
+          <div
+            class="p-4 flex flex-col items-center text-center gap-3">
+            <!-- Avatar Frame -->
+            <div>
+              <img src="{{ profileUser.avatarPath }}" alt="@{{ profileUser.handle }} Avatar" class="w-32 h-32 pixel-box border-4 border-black object-cover bg-black" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';"/>
+            </div>
+            <!-- Handle & Callsign -->
+            <div class="flex flex-col items-center gap-1 mt-1">
+              <h1 class="text-lg md:text-xl font-bold text-mac tracking-wide m-0">
+                @{{ profileUser.handle }}
+              </h1>
+              <div class="flex items-center gap-2 flex-wrap justify-center">
+                <span class="pixel-badge pixel-badge--cyan text-xs font-bold py-0.5 px-2 font-mono">
+                  Node #{{ profileUser.uin }}
+                </span>
+              </div>
+            </div>
+            <!-- Bio / Status Message -->
+            <div class="w-full text-left bg-black border border-main p-2.5 text-xs text-prompt space-y-1">
+              <div class="text-[10px] text-muted uppercase font-bold tracking-wider">
+                CYBER_BROADCAST_STATUS:
+              </div>
+              <p class="whitespace-pre-wrap leading-relaxed">
+                "{{ profileUser.statusMessage }}"
               </p>
             </div>
-          {% else %}
-            <!-- Transmissions Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="userPostsGrid">
-              {% for post in posts %}
-                <div class="retro-card p-2 flex flex-col gap-2 bg-window border border-main" data-user-post data-site-id="{{ post.siteId or '' }}">
-                  
-                  <!-- Thumbnail Viewport with Filter Tag & Retro 404 Fallback -->
-                  <div class="relative bg-black border border-main overflow-hidden group retro-photo-viewport">
-                    <a
-                      href="{{ post.livePhotoUrl or (profileUser.galleryUrl + 'photos/' + post.id + '/') if (post.livePhotoUrl or profileUser.galleryUrl) else post.imagePath }}"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="block w-full h-full relative z-10"
-                      onclick="return openInNativeBrowser(event, this.href);"
-                    >
-                      <img
-                        src="{{ post.thumbnailPath or post.imagePath }}"
-                        alt="{{ post.caption or 'Photo' }}"
-                        loading="lazy"
-                        class="w-full h-48 object-cover relative z-10 transition-transform group-hover:scale-105 pointer-events-none"
-                        onerror="this.classList.add('neogram-img--broken'); var vp=this.closest('.retro-photo-viewport'); if(vp) vp.classList.add('has-broken-image');"
-                      />
-                    </a>
-
-                    {% if post.filterApplied and post.filterApplied != 'none' %}
-                      <div class="absolute top-1.5 left-1.5 z-10">
-                        <span class="pixel-badge pixel-badge--green text-[10px] py-0.5 px-1.5 font-bold uppercase tracking-wider">
-                          {{ post.filterApplied }}
-                        </span>
-                      </div>
-                    {% endif %}
-                  </div>
-
-                  <!-- Caption & Metadata -->
-                  <div class="flex flex-col gap-1 flex-1">
-                    {% if post.siteName %}
-                      <div>
-                        <span class="pixel-badge pixel-badge--yellow font-bold text-3xs">
-                          {{ post.siteName }}
-                        </span>
-                      </div>
-                    {% endif %}
-                    <p class="text-xs font-mono line-clamp-2 leading-relaxed m-0 text-main">
-                      {{ post.caption }}
-                    </p>
-
-                    <div class="flex items-center justify-between text-[11px] text-muted pt-2 mt-auto border-t border-main">
-                      <span>{{ post.likes or 0 }} likes</span>
-                      <span>{{ post.createdAt | formatDateTime }}</span>
-                    </div>
-
-                    {% if post.livePhotoUrl or profileUser.galleryUrl %}
-                      <a
-                        href="{{ post.livePhotoUrl or (profileUser.galleryUrl + 'photos/' + post.id + '/') }}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="pixel-btn pixel-btn--yellow text-xs font-bold py-1 px-2 text-center mt-1"
-                        onclick="return openInNativeBrowser(event, this.href);"
-                      >
-                        <span>View &amp; Comment :&gt;</span>
-                      </a>
-                    {% elif post.imagePath %}
-                      <a
-                        href="{{ post.imagePath }}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="pixel-btn pixel-btn--sm text-xs font-bold py-1 px-2 text-center mt-1 text-muted"
-                        onclick="return openInNativeBrowser(event, this.href);"
-                      >
-                        <span>View Full Image ↗</span>
-                      </a>
-                    {% endif %}
-                  </div>
-
-                </div>
-              {% endfor %}
+            <!-- Station Telemetry Stats -->
+            <div class="w-full grid grid-cols-3 gap-2 border-t border-b border-main py-2 text-xs">
+              <div class="flex flex-col">
+                <span class="text-muted text-[10px]">PHOTOS</span>
+                <span class="font-bold text-mac text-sm">{{ posts.length }}</span>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-muted text-[10px]">LIKES</span>
+                <span class="font-bold text-crimson text-sm">{{ profileUser.totalLikes }}</span>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-muted text-[10px]">VISITS</span>
+                <span class="font-bold text-prompt text-sm">{{ profileUser.hits }}</span>
+              </div>
             </div>
-          {% endif %}
+            <!-- Action Buttons / Links -->
+            <div
+              class="w-full flex flex-col gap-2 pt-2">
+              <!-- Friend / Follow Action -->
+              {% if currentUser and not isSelf %}
+                <button
+                  type="button"
+                  id="profileFriendBtn"
+                  onclick="toggleProfileFriend('{{ profileUser.handle }}')"
+                  class="pixel-btn {% if isFriend %}pixel-btn--yellow{% else %}pixel-btn--green{% endif %} text-xs font-bold py-2 w-full
+                    flex items-center justify-center gap-1.5">
+                  <span id="profileFriendBtnIcon">
+                    {% if isFriend %}✓{% else %}+{% endif %}
+                  </span>
+                  <span id="profileFriendBtnText">
+                    {% if isFriend %}Friends (Click to Unfriend){% else %}Add Friend{% endif %}
+                  </span>
+                </button>
+              {% elif isSelf %}
+                <div class="pixel-badge pixel-badge--cyan text-xxs font-bold py-1 px-2 text-center w-full">
+                  THIS IS YOUR STATION
+                </div>
+                <a
+                  href="/#settings"
+                  class="pixel-btn pixel-btn--sm text-xs font-bold py-2 w-full flex items-center justify-center gap-1.5"
+                  onclick="if(window.retroAudio) retroAudio.playClick();">
+                  <span>⚙ Edit Station Settings</span>
+                </a>
+              {% else %}
+                <a
+                  href="/login"
+                  class="pixel-btn pixel-btn--green text-xs font-bold py-2 w-full flex items-center justify-center gap-1.5"
+                  onclick="if(window.retroAudio) retroAudio.playClick();">
+                  <span>+ Log In to Add Friend</span>
+                </a>
+              {% endif %}
+              {% if profileUser.cleanRootSiteUrl %}
+                <a href="{{ profileUser.cleanRootSiteUrl }}" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--yellow text-xs font-bold py-2 w-full flex items-center justify-center gap-1" onclick="if(window.retroAudio) retroAudio.playClick();">
+                  <span>Visit Personal Website ↗</span>
+                </a>
+              {% endif %}
+              {% if profileUser.galleryUrl %}
+                <a href="{{ profileUser.galleryUrl }}" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--green text-xs font-bold py-2 w-full flex items-center justify-center gap-1" onclick="if(window.retroAudio) retroAudio.playClick();">
+                  <span>View Neogram Photo Gallery ↗</span>
+                </a>
+              {% endif %}
+            </div>
+            <!-- Station Metadata Footer -->
+            <div class="text-[11px] text-muted pt-2 border-t border-main w-full text-left space-y-1">
+              <div>
+                <strong>Commissioned:</strong>
+                {{ profileUser.createdAt | formatDate }}</div>
+              {% if profileUser.lastDeployedAt %}
+                <div>
+                  <strong>Last Deployed:</strong>
+                  {{ profileUser.lastDeployedAt | formatDate }}</div>
+              {% endif %}
+            </div>
+          </div>
         </div>
       </div>
-
+      <!-- RIGHT COLUMN: Transmissions & Photographs Stream (8 cols) -->
+      <div
+        class="lg:col-span-8 flex flex-col gap-4">
+        <!-- Gallery Archive Window Frame -->
+        <div class="retro-card p-0 m-0">
+          <div class="window-header flex items-center justify-between p-2">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs">
+                [:&gt; TRANSMISSIONS_ARCHIVE.EXE - Broadcasted Photographs ({{ posts.length }})]
+              </span>
+            </div>
+            {% if profileUser.galleryUrl %}
+              <a href="{{ profileUser.galleryUrl }}" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xs py-0.5 px-2" onclick="if(window.retroAudio) retroAudio.playClick();">
+                <span>Static Gallery ↗</span>
+              </a>
+            {% endif %}
+          </div>
+          <div class="p-4">
+            {% if sites and sites.length > 1 %}
+              <div class="flex items-center gap-1.5 mb-3 flex-wrap text-xs font-mono bg-black p-2 border border-main">
+                <span class="text-muted text-xxs uppercase font-bold">FILTER TRANSMISSIONS:</span>
+                <button
+                  type="button"
+                  id="userFilterAllBtn"
+                  class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-3xs py-0.5 px-2"
+                  onclick="filterUserPosts('all')">
+                  ALL SITES ({{ posts.length }})
+                </button>
+                {% for s in sites %}
+                  <button
+                    type="button"
+                    id="userFilterBtn-{{ s.id }}"
+                    class="pixel-btn pixel-btn--sm text-3xs py-0.5 px-2"
+                    onclick="filterUserPosts('{{ s.id }}')">
+                    {{ s.name }}
+                  </button>
+                {% endfor %}
+              </div>
+            {% endif %}
+            {% if not posts or posts.length == 0 %}
+              <!-- Empty State -->
+              <div class="p-8 border-2 border-dashed border-main text-center bg-black text-prompt space-y-2">
+                <div class="font-bold text-sm">NO PHOTOGRAPHS DETECTED IN STORAGE LEDGER</div>
+                <p class="text-xs text-muted max-w-md mx-auto">
+                  Station @{{ profileUser.handle }} has not broadcasted any public photographs yet. Check back once their transmitter goes
+                  live!
+                </p>
+              </div>
+            {% else %}
+              <!-- Transmissions Grid -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="userPostsGrid">
+                {% for post in posts %}
+                  <div
+                    class="retro-card p-2 flex flex-col gap-2 bg-window border border-main" data-user-post data-site-id="{{ post.siteId or '' }}">
+                    <!-- Thumbnail Viewport with Filter Tag & Retro 404 Fallback -->
+                    <div class="relative bg-black border border-main overflow-hidden group retro-photo-viewport">
+                      <a href="{{ post.livePhotoUrl or (profileUser.galleryUrl + 'photos/' + post.id + '/') if (post.livePhotoUrl or profileUser.galleryUrl) else post.imagePath }}" target="_blank" rel="noopener noreferrer" class="block w-full h-full relative z-10" onclick="return openInNativeBrowser(event, this.href);">
+                        <img src="{{ post.thumbnailPath or post.imagePath }}" alt="{{ post.caption or 'Photo' }}" loading="lazy" class="w-full h-48 object-cover relative z-10 transition-transform group-hover:scale-105 pointer-events-none" onerror="this.classList.add('neogram-img--broken'); var vp=this.closest('.retro-photo-viewport'); if(vp) vp.classList.add('has-broken-image');"/>
+                      </a>
+                      {% if post.filterApplied and post.filterApplied != 'none' %}
+                        <div class="absolute top-1.5 left-1.5 z-10">
+                          <span class="pixel-badge pixel-badge--green text-[10px] py-0.5 px-1.5 font-bold uppercase tracking-wider">
+                            {{ post.filterApplied }}
+                          </span>
+                        </div>
+                      {% endif %}
+                    </div>
+                    <!-- Caption & Metadata -->
+                    <div class="flex flex-col gap-1 flex-1">
+                      {% if post.siteName %}
+                        <div>
+                          <span class="pixel-badge pixel-badge--yellow font-bold text-3xs">
+                            {{ post.siteName }}
+                          </span>
+                        </div>
+                      {% endif %}
+                      <p class="text-xs font-mono line-clamp-2 leading-relaxed m-0 text-main">
+                        {{ post.caption }}
+                      </p>
+                      <div class="flex items-center justify-between text-[11px] text-muted pt-2 mt-auto border-t border-main">
+                        <span>{{ post.likes or 0 }} likes</span>
+                        <span>{{ post.createdAt | formatDateTime }}</span>
+                      </div>
+                      {% if post.livePhotoUrl or profileUser.galleryUrl %}
+                        <a href="{{ post.livePhotoUrl or (profileUser.galleryUrl + 'photos/' + post.id + '/') }}" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--yellow text-xs font-bold py-1 px-2 text-center mt-1" onclick="return openInNativeBrowser(event, this.href);">
+                          <span>View &amp; Comment :&gt;</span>
+                        </a>
+                      {% elif post.imagePath %}
+                        <a href="{{ post.imagePath }}" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm text-xs font-bold py-1 px-2 text-center mt-1 text-muted" onclick="return openInNativeBrowser(event, this.href);">
+                          <span>View Full Image ↗</span>
+                        </a>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
     </div>
-
   </div>
-
-</div>
-
-<script>
-  var isFriendProfile = {{ 'true' if isFriend else 'false' }};
-
-  function openInNativeBrowser(event, url) {
-    if (window.retroAudio) {
-      try { window.retroAudio.playClick(); } catch (e) {}
-    }
-    if (!url) return false;
-
-    // Detect if running as installed standalone PWA
-    var isStandalone = window.navigator.standalone || 
-                       (window.matchMedia && (
-                         window.matchMedia('(display-mode: standalone)').matches ||
-                         window.matchMedia('(display-mode: window-controls-overlay)').matches ||
-                         window.matchMedia('(display-mode: fullscreen)').matches ||
-                         window.matchMedia('(display-mode: minimal-ui)').matches
-                       ));
-
-    if (isStandalone) {
-      // In PWA standalone mode on iOS or Android, default anchor clicks with target='_blank'
-      // are often captured or blocked within the webview. We explicitly launch the native browser.
-      if (event) {
-        event.preventDefault();
-        event.stopPropagation();
+  <script>
+    var isFriendProfile = {{ 'true' if isFriend else 'false' }};
+    function openInNativeBrowser(event, url) {
+      if (typeof window.openSmartHandoff === 'function') {
+        return window.openSmartHandoff(url, event);
       }
-      // On iOS, '_system' commands WebKit to hand off the URL to mobile Safari
-      var opened = window.open(url, '_system');
-      if (!opened) {
-        opened = window.open(url, '_blank', 'noopener,noreferrer');
+      if (window.retroAudio) {
+        try {
+          window.retroAudio.playClick();
+        } catch (e) {}
       }
-      if (!opened) {
-        window.location.assign(url);
-      }
-      return false;
-    }
-    // Normal browser tab: let the native <a href="..." target="_blank"> open normally
-    return true;
-  }
-  window.openInNativeBrowser = openInNativeBrowser;
-
-  function filterUserPosts(siteId) {
-    if (window.retroAudio) window.retroAudio.playClick();
-    var allBtn = document.getElementById('userFilterAllBtn');
-    if (allBtn) {
-      if (siteId === 'all') allBtn.classList.add('pixel-btn--yellow');
-      else allBtn.classList.remove('pixel-btn--yellow');
-    }
-    document.querySelectorAll('[id^="userFilterBtn-"]').forEach(function(btn) {
-      if (btn.id === 'userFilterBtn-' + siteId) btn.classList.add('pixel-btn--yellow');
-      else btn.classList.remove('pixel-btn--yellow');
-    });
-
-    var cards = document.querySelectorAll('#userPostsGrid [data-site-id]');
-    cards.forEach(function(card) {
-      var itemSiteId = card.getAttribute('data-site-id');
-      if (siteId === 'all' || itemSiteId === siteId) {
-        card.classList.remove('hidden');
-      } else {
-        card.classList.add('hidden');
-      }
-    });
-  }
-  window.filterUserPosts = filterUserPosts;
-
-  async function toggleProfileFriend(handle) {
-    if (window.retroAudio) window.retroAudio.playClick();
-    var btn = document.getElementById('profileFriendBtn');
-    var icon = document.getElementById('profileFriendBtnIcon');
-    var text = document.getElementById('profileFriendBtnText');
-
-    var method = isFriendProfile ? 'DELETE' : 'POST';
-    try {
-      var res = await fetch('/api/users/' + encodeURIComponent(handle) + '/follow', {
-        method: method,
-        headers: { 'Content-Type': 'application/json' }
-      });
-      var data = await res.json();
-      if (data.ok) {
-        if (window.retroAudio) window.retroAudio.playSuccess();
-        isFriendProfile = !isFriendProfile;
-        if (isFriendProfile) {
-          btn.classList.remove('pixel-btn--green');
-          btn.classList.add('pixel-btn--yellow');
-          if (icon) icon.textContent = '✓';
-          if (text) text.textContent = 'Friends (Click to Unfriend)';
-        } else {
-          btn.classList.remove('pixel-btn--yellow');
-          btn.classList.add('pixel-btn--green');
-          if (icon) icon.textContent = '+';
-          if (text) text.textContent = 'Add Friend';
+      if (! url) 
+        return false;
+      
+      // Detect if running as installed standalone PWA
+      var isStandalone = window.navigator.standalone || (window.matchMedia && (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches ||
+        window.matchMedia('(display-mode: minimal-ui)').matches
+      ));
+      if (isStandalone) {
+        // In PWA standalone mode on iOS or Android, default anchor clicks with target='_blank' are often captured or blocked
+        // within the webview. We explicitly launch the native browser.
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
         }
-      } else {
-        alert('[:> FRIEND ERROR] ' + (data.error || 'Could not update friend status'));
+        // On iOS, '_system' commands WebKit to hand off the URL to mobile Safari
+        var opened = window.open(url, '_system');
+        if (! opened) {
+          opened = window.open(url, '_blank', 'noopener,noreferrer');
+        }
+        if (! opened) {
+          window.location.assign(url);
+        }
+        return false;
       }
-    } catch (e) {
-      alert('[:> NETWORK FAULT] ' + e.message);
+      // Normal browser tab: let the native <a href="..." target="_blank"> open normally
+      return true;
     }
-  }
-</script>
+    window.openInNativeBrowser = openInNativeBrowser;
+    function filterUserPosts(siteId) {
+      if (window.retroAudio) 
+        window.retroAudio.playClick();
+      
+      var allBtn = document.getElementById('userFilterAllBtn');
+      if (allBtn) {
+        if (siteId === 'all') 
+          allBtn.classList.add('pixel-btn--yellow');
+         else 
+          allBtn.classList.remove('pixel-btn--yellow');
+        
+      }
+      document.querySelectorAll('[id^="userFilterBtn-"]').forEach(function (btn) {
+        if (btn.id === 'userFilterBtn-' + siteId) 
+          btn.classList.add('pixel-btn--yellow');
+         else 
+          btn.classList.remove('pixel-btn--yellow');
+        
+      });
+      var cards = document.querySelectorAll('#userPostsGrid [data-site-id]');
+      cards.forEach(function (card) {
+        var itemSiteId = card.getAttribute('data-site-id');
+        if (siteId === 'all' || itemSiteId === siteId) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    }
+    window.filterUserPosts = filterUserPosts;
+    async function toggleProfileFriend(handle) {
+      if (window.retroAudio) 
+        window.retroAudio.playClick();
+      
+      var btn = document.getElementById('profileFriendBtn');
+      var icon = document.getElementById('profileFriendBtnIcon');
+      var text = document.getElementById('profileFriendBtnText');
+      var method = isFriendProfile
+        ? 'DELETE'
+        : 'POST';
+      try {
+        var res = await fetch('/api/users/' + encodeURIComponent(handle) + '/follow', {
+          method: method,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        var data = await res.json();
+        if (data.ok) {
+          if (window.retroAudio) 
+            window.retroAudio.playSuccess();
+          
+          isFriendProfile = ! isFriendProfile;
+          if (isFriendProfile) {
+            btn.classList.remove('pixel-btn--green');
+            btn.classList.add('pixel-btn--yellow');
+            if (icon) 
+              icon.textContent = '✓';
+            
+            if (text) 
+              text.textContent = 'Friends (Click to Unfriend)';
+            
+          } else {
+            btn.classList.remove('pixel-btn--yellow');
+            btn.classList.add('pixel-btn--green');
+            if (icon) 
+              icon.textContent = '+';
+            
+            if (text) 
+              text.textContent = 'Add Friend';
+            
+          }
+        } else {
+          alert('[:> FRIEND ERROR] ' + (
+            data.error || 'Could not update friend status'
+          ));
+        }
+      } catch (e) {
+        alert('[:> NETWORK FAULT] ' + e.message);
+      }
+    }
+  </script>
 {% endblock %}

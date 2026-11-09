@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
 import { config } from '../config';
 import { requestOtp, verifyOtp, getUserById } from '../auth/service';
-import { signSessionToken, setSessionCookie, clearSessionCookie, verifySessionToken, extractToken, COOKIE_NAME } from '../auth/jwt';
+import { signSessionToken, setSessionCookie, clearSessionCookie, verifySessionToken, extractToken, signHandoffToken, COOKIE_NAME } from '../auth/jwt';
 
 export const authRouter = Router();
 
@@ -156,4 +156,64 @@ authRouter.get('/me', async (req: Request, res: Response) => {
 authRouter.post('/logout', (_req: Request, res: Response) => {
   clearSessionCookie(res);
   res.json({ ok: true, message: 'Session terminated.' });
+});
+
+// 5. Generate Smart Handoff Ticket (PWA -> Native Browser / Static Site)
+authRouter.post('/handoff-ticket', async (req: Request, res: Response) => {
+  const token = extractToken(req);
+  if (!token) {
+    res.status(401).json({ ok: false, error: 'Authentication required' });
+    return;
+  }
+
+  const payload = verifySessionToken(token);
+  if (!payload) {
+    res.status(401).json({ ok: false, error: 'Invalid or expired session' });
+    return;
+  }
+
+  const { target } = req.body;
+  if (!target || typeof target !== 'string') {
+    res.status(400).json({ ok: false, error: 'Target URL is required' });
+    return;
+  }
+
+  try {
+    const u = new URL(target.trim());
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+      res.status(400).json({ ok: false, error: 'Invalid protocol. Only http(s) URLs are supported.' });
+      return;
+    }
+    if (u.username || u.password) {
+      res.status(400).json({ ok: false, error: 'URLs with embedded credentials are not allowed.' });
+      return;
+    }
+  } catch {
+    res.status(400).json({ ok: false, error: 'Malformed target URL' });
+    return;
+  }
+
+  const user = await getUserById(payload.userId);
+  if (!user) {
+    res.status(401).json({ ok: false, error: 'User node not found' });
+    return;
+  }
+
+  const ticket = signHandoffToken({
+    userId: user.id,
+    email: user.email,
+    handle: user.handle,
+    uin: user.uin,
+    target: target.trim(),
+  });
+
+  const hostHeader = req.get('host');
+  const baseUrl = hostHeader ? `${req.protocol}://${hostHeader}` : config.appUrl.replace(/\/$/, '');
+  const handoffUrl = `${baseUrl}/auth/handoff?ticket=${encodeURIComponent(ticket)}&target=${encodeURIComponent(target.trim())}`;
+
+  res.json({
+    ok: true,
+    ticket,
+    handoffUrl,
+  });
 });

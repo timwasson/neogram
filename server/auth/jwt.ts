@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 import { config } from '../config';
 
 export interface UserSessionPayload {
@@ -11,11 +12,27 @@ export interface UserSessionPayload {
    * Token scope. Absent/'session' = full workstation session.
    * 'pass' = Cyber-Pass issued to third-party static sites: short-lived and ONLY accepted by
    * social endpoints (like, comment, follow, guestbook, pager, chat) that opt in with allowPass.
+   * 'handoff' = Single-use PWA to native browser handoff ticket (120s TTL).
    */
-  scope?: 'session' | 'pass';
+  scope?: 'session' | 'pass' | 'handoff';
+  target?: string;
+  jti?: string;
 }
 
 export const COOKIE_NAME = 'neogram_session';
+
+// Track consumed single-use handoff ticket IDs (replay protection)
+const consumedHandoffTickets = new Map<string, number>();
+
+// Periodic cleanup of consumed handoff tickets older than 3 minutes
+setInterval(() => {
+  const cutoff = Date.now() - 3 * 60 * 1000;
+  for (const [jti, timestamp] of consumedHandoffTickets.entries()) {
+    if (timestamp < cutoff) {
+      consumedHandoffTickets.delete(jti);
+    }
+  }
+}, 60 * 1000).unref();
 
 export function signSessionToken(payload: UserSessionPayload, expiresIn: string = '7d'): string {
   return jwt.sign(payload, config.jwtSecret, {
@@ -37,6 +54,63 @@ export function verifySessionToken(token: string, allowPass: boolean = false): U
 /** Issues a scoped, short-lived (1h) Cyber-Pass token for third-party static sites. */
 export function signPassToken(payload: Omit<UserSessionPayload, 'scope'>): string {
   return jwt.sign({ ...payload, scope: 'pass' }, config.jwtSecret, { expiresIn: '1h', algorithm: 'HS256' });
+}
+
+/**
+ * Issues a single-use, 120-second handoff ticket for bridging PWA authentication into
+ * the native mobile browser (Safari/Chrome) and destination static site.
+ */
+export function signHandoffToken(payload: {
+  userId: string;
+  email: string;
+  handle: string;
+  uin?: number;
+  target: string;
+}): string {
+  const jti = randomUUID();
+  return jwt.sign(
+    {
+      userId: payload.userId,
+      email: payload.email,
+      handle: payload.handle,
+      uin: payload.uin,
+      target: payload.target,
+      scope: 'handoff',
+      jti,
+    },
+    config.jwtSecret,
+    {
+      expiresIn: '120s',
+      algorithm: 'HS256',
+    }
+  );
+}
+
+/**
+ * Verifies and immediately consumes a single-use handoff ticket.
+ * Rejects expired, tampered, wrong scope, or already-consumed tickets.
+ */
+export function verifyHandoffToken(token: string): (UserSessionPayload & { target: string; jti: string }) | null {
+  try {
+    const payload = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] }) as UserSessionPayload & {
+      target: string;
+      jti: string;
+    };
+
+    if (payload.scope !== 'handoff' || !payload.jti || !payload.target) {
+      return null;
+    }
+
+    // Single-use replay protection
+    if (consumedHandoffTickets.has(payload.jti)) {
+      return null;
+    }
+
+    consumedHandoffTickets.set(payload.jti, Date.now());
+    return payload;
+  } catch {
+    return null;
+  }
 }
 
 export function extractToken(req: Request): string | null {

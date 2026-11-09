@@ -510,12 +510,13 @@ eleventyComputed:
     // Check for mobile redirect auth payload in URL hash
     if (window.location.hash && window.location.hash.indexOf('neogram_pass=') !== -1) {
       try {
-        var rawPass = decodeURIComponent(window.location.hash.split('neogram_pass=')[1]);
+        var rawPass = decodeURIComponent(window.location.hash.split('neogram_pass=')[1].split('&')[0]);
         var parsed = JSON.parse(rawPass);
         if (parsed && parsed.token && parsed.handle) {
           setCyberPass(parsed);
           if (window.history && window.history.replaceState) {
-            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            var cleanHash = window.location.hash.replace(/#?neogram_pass=[^&]*&?/, '').replace(/^&/, '');
+            window.history.replaceState(null, '', window.location.pathname + window.location.search + (cleanHash ? '#' + cleanHash : ''));
           }
         }
       } catch (_e) {}

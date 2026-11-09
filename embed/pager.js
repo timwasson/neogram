@@ -118,7 +118,29 @@
   }
 
   // 4. Identity & Session State
-  var currentToken = localStorage.getItem('neogram_pass') || '';
+  if (typeof window !== 'undefined' && window.location && window.location.hash && window.location.hash.indexOf('neogram_pass=') !== -1) {
+    try {
+      var rawHashPass = decodeURIComponent(window.location.hash.split('neogram_pass=')[1].split('&')[0]);
+      var parsedHash = JSON.parse(rawHashPass);
+      if (parsedHash && parsedHash.token) {
+        localStorage.setItem('neogram_pass', JSON.stringify(parsedHash));
+      }
+    } catch (_e) {}
+  }
+
+  var rawStoredPass = localStorage.getItem('neogram_pass') || '';
+  var currentToken = '';
+  if (rawStoredPass) {
+    if (rawStoredPass.indexOf('{') === 0) {
+      try {
+        var parsedPass = JSON.parse(rawStoredPass);
+        currentToken = parsedPass.token || '';
+      } catch (_e) {}
+    } else {
+      currentToken = rawStoredPass;
+    }
+  }
+
   var verifiedHandle = '';
   var anonHandle = '';
   var isExpanded = false;

@@ -272,7 +272,33 @@ rootPath: .
       }
     });
 
-    document.addEventListener('DOMContentLoaded', checkFriendStatus);
+    // Check for Smart Handoff / Mobile Cyber-Pass payload in URL hash
+    function ingestPassFromHash() {
+      if (window.location.hash && window.location.hash.indexOf('neogram_pass=') !== -1) {
+        try {
+          var rawPass = decodeURIComponent(window.location.hash.split('neogram_pass=')[1].split('&')[0]);
+          var parsed = JSON.parse(rawPass);
+          if (parsed && parsed.token && parsed.handle) {
+            localStorage.setItem('neogram_pass', JSON.stringify({
+              token: parsed.token,
+              handle: parsed.handle,
+              uin: parsed.uin || null,
+              avatar: parsed.avatar || ''
+            }));
+            if (window.history && window.history.replaceState) {
+              var cleanHash = window.location.hash.replace(/#?neogram_pass=[^&]*&?/, '').replace(/^&/, '');
+              window.history.replaceState(null, '', window.location.pathname + window.location.search + (cleanHash ? '#' + cleanHash : ''));
+            }
+          }
+        } catch (_e) {}
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      ingestPassFromHash();
+      checkFriendStatus();
+    });
+    ingestPassFromHash();
     checkFriendStatus();
   })();
 </script>

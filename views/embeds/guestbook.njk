@@ -220,6 +220,25 @@
           }
         });
 
+        // Ingest Smart Handoff / Mobile Cyber-Pass from hash if loaded in parent or direct URL
+        if (window.location.hash && window.location.hash.indexOf('neogram_pass=') !== -1) {
+          try {
+            var rawPass = decodeURIComponent(window.location.hash.split('neogram_pass=')[1].split('&')[0]);
+            var parsed = JSON.parse(rawPass);
+            if (parsed && parsed.token && parsed.handle) {
+              localStorage.setItem('neogram_pass', JSON.stringify({
+                token: parsed.token,
+                handle: parsed.handle,
+                uin: parsed.uin || null,
+              }));
+              if (window.history && window.history.replaceState) {
+                var cleanHash = window.location.hash.replace(/#?neogram_pass=[^&]*&?/, '').replace(/^&/, '');
+                window.history.replaceState(null, '', window.location.pathname + window.location.search + (cleanHash ? '#' + cleanHash : ''));
+              }
+            }
+          } catch (_e) {}
+        }
+
         renderGbAuthUI();
 
         var form = document.getElementById('guestbookForm');
