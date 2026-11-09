@@ -3,7 +3,7 @@
  * Offline caching, navigation fallback, and carrier status management.
  */
 
-const CACHE_NAME = 'neogram-shell-v4';
+const CACHE_NAME = 'neogram-shell-v5';
 
 const STATIC_PRECACHE = [
   '/',

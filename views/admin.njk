@@ -302,9 +302,6 @@
           <button type="button" id="btnPurgeQaPosts" class="pixel-btn text-xs" onclick="purgeQaPosts(this);">
             <span>Purge QA Test Posts</span>
           </button>
-          <button type="button" id="btnWipeQaFleet" class="pixel-btn pixel-btn--danger text-xs" onclick="wipeQaFleet(this);">
-            <span>Wipe QA Fleet</span>
-          </button>
         {% endif %}
       </div>
 
@@ -1279,60 +1276,6 @@
       }
     } finally {
       isPurgingQaPosts = false;
-    }
-  }
-
-  let isWipingQaFleet = false;
-  async function wipeQaFleet(btn) {
-    if (isWipingQaFleet) return;
-    if (!btn) btn = document.getElementById('btnWipeQaFleet');
-
-    if (btn && !btn.dataset.confirmed) {
-      if (window.retroAudio) retroAudio.playClick();
-      btn.dataset.confirmed = 'true';
-      btn.innerHTML = '<span style="color:#ffcc00;font-weight:bold;">⚠️ Click again to confirm Wipe</span>';
-      setTimeout(() => {
-        if (btn && btn.dataset.confirmed === 'true') {
-          delete btn.dataset.confirmed;
-          btn.innerHTML = '<span>Wipe QA Fleet</span>';
-        }
-      }, 5000);
-      return;
-    }
-
-    isWipingQaFleet = true;
-    if (btn) {
-      btn.disabled = true;
-      btn.innerHTML = '<span>⏳ Wiping QA Fleet...</span>';
-    }
-
-    try {
-      if (window.retroAudio) retroAudio.playClick();
-      const res = await fetch('/api/admin/qa-fleet/wipe', {
-        method: 'POST',
-        headers: { 'x-neogram-sysop-op': '1' },
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to wipe QA fleet.');
-
-      if (btn) {
-        btn.innerHTML = '<span style="color:#00ff66;font-weight:bold;">✓ QA Fleet Wiped!</span>';
-      }
-      setTimeout(() => {
-        location.reload();
-      }, 1500);
-    } catch (err) {
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '<span style="color:#ff3333;font-weight:bold;">[:> ERROR] ' + err.message + '</span>';
-        setTimeout(() => {
-          btn.innerHTML = '<span>Wipe QA Fleet</span>';
-        }, 4000);
-      } else {
-        window.alert('[:> ERROR] ' + err.message);
-      }
-    } finally {
-      isWipingQaFleet = false;
     }
   }
 </script>

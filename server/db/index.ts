@@ -79,6 +79,10 @@ export async function initDatabase(): Promise<{ isMemory: boolean; connected: bo
     isConnected = true;
     console.log('[:> DB] In-memory PostgreSQL instance initialized successfully.');
     await runMigrations(activePool);
+    try {
+      const { seedSnapshotIfEmpty } = await import('./seed');
+      await seedSnapshotIfEmpty(activePool);
+    } catch (_seedErr) {}
     return { isMemory: true, connected: true };
   } catch (memErr: any) {
     console.error('[:> DB ERROR] Failed to initialize in-memory database:', memErr.message);

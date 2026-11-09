@@ -73,6 +73,7 @@ export interface FriendFeedPost extends FeedPost {
 export interface FriendTarget {
   id: string;
   handle: string;
+  email?: string;
   uin?: number;
   avatarPath?: string;
   siteUrl?: string;
@@ -342,6 +343,15 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
     return null;
   };
 
+  // In local development / test mode, prioritize local static gallery for QA accounts so local test state isn't overridden by production WAN feeds
+  const isQaFriend = (friend.email && friend.email.toLowerCase().endsWith('@qa.neogram.club')) ||
+                     (friend.handle && friend.handle.toLowerCase().startsWith('qa_'));
+
+  if (isQaFriend && process.env.NODE_ENV !== 'production') {
+    const local = await tryLocalFeed();
+    if (local !== null) return local;
+  }
+
   try {
     const res = await safeGet(feedUrl, {
       timeoutMs: 3500,
@@ -352,7 +362,10 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
       const data = res.json<UserFeedPayload>();
       if (data && Array.isArray(data.posts)) {
         // Hydrate local post storage for station profile & local feed consistency
-        if (data.posts.length > 0 && friend.id) {
+        // In local development / test mode, never resurrect purged QA fleet posts from remote production WAN feeds
+        const allowHydration = !isQaFriend || process.env.NODE_ENV === 'production';
+
+        if (data.posts.length > 0 && friend.id && allowHydration) {
           import('./postStorage').then(({ savePost }) => {
             for (const post of data.posts) {
               const rawPhotos = (post as any).photos || [{

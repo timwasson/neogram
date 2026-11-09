@@ -462,7 +462,8 @@ adminRouter.post(
           deployPath: string;
           buildHtml: boolean;
           autoDeploy: boolean;
-        }>
+        }>,
+        canonicalUin?: number
       ) => {
         const cleanHandle = handle.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 40);
         const email = `${cleanHandle}@qa.neogram.club`;
@@ -472,6 +473,7 @@ adminRouter.post(
         if (existing.rows.length > 0) {
           userId = existing.rows[0].id;
         } else {
+          await query(`SELECT setval('user_uin_seq', (SELECT GREATEST(COALESCE(MAX(uin), 100100), 100100) FROM users) + 1, false)`).catch(() => {});
           const primary = defaultSites[0] || {
             deploymentType: 'none',
             siteUrl: `https://${cleanHandle}.neocities.org`,
@@ -479,23 +481,44 @@ adminRouter.post(
             buildHtml: true,
             autoDeploy: false,
           };
-          const ins = await query(
-            `INSERT INTO users (email, handle, status_message, site_url, deploy_path, deployment_type, build_html, auto_deploy)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-             RETURNING id`,
-            [
-              email,
-              cleanHandle,
-              statusMessage,
-              primary.siteUrl,
-              primary.deployPath,
-              primary.deploymentType,
-              primary.buildHtml,
-              primary.autoDeploy,
-            ]
-          );
+          let ins;
+          if (canonicalUin) {
+            ins = await query(
+              `INSERT INTO users (email, handle, uin, status_message, site_url, deploy_path, deployment_type, build_html, auto_deploy)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+               RETURNING id`,
+              [
+                email,
+                cleanHandle,
+                canonicalUin,
+                statusMessage,
+                primary.siteUrl,
+                primary.deployPath,
+                primary.deploymentType,
+                primary.buildHtml,
+                primary.autoDeploy,
+              ]
+            );
+          } else {
+            ins = await query(
+              `INSERT INTO users (email, handle, status_message, site_url, deploy_path, deployment_type, build_html, auto_deploy)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+               RETURNING id`,
+              [
+                email,
+                cleanHandle,
+                statusMessage,
+                primary.siteUrl,
+                primary.deployPath,
+                primary.deploymentType,
+                primary.buildHtml,
+                primary.autoDeploy,
+              ]
+            );
+          }
           userId = ins.rows[0].id;
           provisionedHandles.push(`@${cleanHandle}`);
+          await query(`SELECT setval('user_uin_seq', (SELECT GREATEST(COALESCE(MAX(uin), 100100), 100100) FROM users) + 1, false)`).catch(() => {});
         }
 
         const existingSites = await getUserSites(userId);
@@ -537,7 +560,7 @@ adminRouter.post(
             buildHtml: true,
             autoDeploy: true,
           },
-        ]);
+        ], 100107);
 
         const bobId = await ensureQaAccount('qa_bob', 'QA Nekoweb Publisher & Friend', [
           {
@@ -549,7 +572,7 @@ adminRouter.post(
             buildHtml: true,
             autoDeploy: true,
           },
-        ]);
+        ], 100108);
 
         const headlessId = await ensureQaAccount('qa_headless', 'QA Headless JSON API Persona', [
           {
@@ -561,7 +584,7 @@ adminRouter.post(
             buildHtml: false,
             autoDeploy: true,
           },
-        ]);
+        ], 100109);
 
         const friendId = await ensureQaAccount('qa_friend', 'QA Static Friend Grid Follower', [
           {
@@ -573,7 +596,7 @@ adminRouter.post(
             buildHtml: true,
             autoDeploy: true,
           },
-        ]);
+        ], 100110);
 
         const surferId = await ensureQaAccount('qa_surfer', 'QA Cyber-Pass SSO & Guestbook Visitor', [
           {
@@ -585,7 +608,7 @@ adminRouter.post(
             buildHtml: true,
             autoDeploy: false,
           },
-        ]);
+        ], 100111);
 
         const cyberpunkId = await ensureQaAccount('qa_cyberpunk', 'QA Cyberpunk Terminal Hacker', [
           {
@@ -597,7 +620,7 @@ adminRouter.post(
             buildHtml: true,
             autoDeploy: true,
           },
-        ]);
+        ], 100116);
 
         const pixelId = await ensureQaAccount('qa_pixel', 'QA Pixel Art Craftsman', [
           {
@@ -609,7 +632,7 @@ adminRouter.post(
             buildHtml: true,
             autoDeploy: true,
           },
-        ]);
+        ], 100117);
 
         const modemId = await ensureQaAccount('qa_modem', 'QA 28.8k Baud Handshake', [
           {
@@ -621,7 +644,7 @@ adminRouter.post(
             buildHtml: true,
             autoDeploy: false,
           },
-        ]);
+        ], 100118);
 
         const arcadeId = await ensureQaAccount('qa_arcade', 'QA Arcade High Score & CRT Fanatic', [
           {
@@ -633,7 +656,7 @@ adminRouter.post(
             buildHtml: true,
             autoDeploy: true,
           },
-        ]);
+        ], 100120);
 
         const matrixId = await ensureQaAccount('qa_matrix', 'QA Green Phosphor Operator', [
           {
@@ -645,7 +668,7 @@ adminRouter.post(
             buildHtml: true,
             autoDeploy: false,
           },
-        ]);
+        ], 100121);
 
         const synthId = await ensureQaAccount('qa_synth', 'QA GitHub Pages Sound Deck', [
           {
@@ -657,7 +680,7 @@ adminRouter.post(
             buildHtml: true,
             autoDeploy: true,
           },
-        ]);
+        ], 100122);
 
         const allQaIds = [
           aliceId, bobId, headlessId, friendId, surferId,
@@ -891,6 +914,14 @@ adminRouter.get(
 
 /**
  * 9. POST /api/admin/qa-fleet/purge-posts - Clean Up Test Posts/Comments While Preserving QA Users & API Keys
+ *
+ * Empties all content from QA personas (@qa.neogram.club):
+ *   - Purges test posts, comments, likes, guestbook signatures, and notifications.
+ *   - Deletes remote photo assets on Neocities, Nekoweb, and GitHub.
+ *   - Rebuilds clean baseline empty static galleries (posts: [], feed.json: []).
+ *   - Enqueues throttled, rate-paced (3500ms baud delay) background deploy jobs into buildQueue
+ *     so remote static sites on Neocities/Nekoweb/GitHub are updated to empty state.
+ *   - STRICT INVARIANT: Preserves QA accounts (users), friend graphs (follows), and site configs (sites) 100%.
  */
 adminRouter.post(
   '/api/admin/qa-fleet/purge-posts',
@@ -899,38 +930,104 @@ adminRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const adminUser = (req as AdminRequest).adminUser!;
-      const qaUsersRes = await query(`SELECT id, email, handle FROM users WHERE email LIKE '%@qa.neogram.club'`);
+      const qaUsersRes = await query(`SELECT id, email, handle FROM users WHERE email LIKE '%@qa.neogram.club' OR handle LIKE 'qa_%'`);
       const qaUserIds = new Set(qaUsersRes.rows.map((r: any) => r.id));
       const qaHandles = new Set(qaUsersRes.rows.map((r: any) => (r.handle || '').toLowerCase()));
 
-      // 1. Fetch all posts across all static galleries
+      // Query mounted sites for all QA personas
+      const qaSitesRes = await query(`
+        SELECT s.id, s.user_id, s.name, s.slug, s.deployment_type, s.deploy_path, s.deployment_credentials, s.auto_deploy, s.is_default, u.handle, u.email
+        FROM sites s
+        JOIN users u ON s.user_id = u.id
+        WHERE u.email LIKE '%@qa.neogram.club' OR u.handle LIKE 'qa_%'
+      `);
+      const qaSites = qaSitesRes.rows;
+      const siteById = new Map<string, any>();
+      const defaultSiteByUserId = new Map<string, any>();
+      for (const s of qaSites) {
+        siteById.set(s.id, s);
+        if (s.is_default || !defaultSiteByUserId.has(s.user_id)) {
+          defaultSiteByUserId.set(s.user_id, s);
+        }
+      }
+
+      // Non-QA users who must NEVER have their real content deleted (e.g. @wasson, @sheavanlan)
+      const nonQaUsersRes = await query(`SELECT id, handle FROM users WHERE email NOT LIKE '%@qa.neogram.club' AND handle NOT LIKE 'qa_%'`);
+      const nonQaUserIds = new Set(nonQaUsersRes.rows.map((r: any) => r.id));
+      const nonQaHandles = new Set(nonQaUsersRes.rows.map((r: any) => (r.handle || '').toLowerCase()));
+
+      // 1. Fetch all posts across all static galleries & collect QA posts
       const allPosts = await getAllPosts();
       let deletedCount = 0;
+      const deletedPostIds: string[] = [];
+      const remoteFilesBySite = new Map<string, { site: any; files: Set<string> }>();
 
       for (const post of allPosts) {
         const isQaUserId = post.userId && qaUserIds.has(post.userId);
         const isQaAuthor = (post.author && (post.author.toLowerCase().startsWith('qa_') || qaHandles.has(post.author.toLowerCase()))) ||
                            ((post as any).authorHandle && ((post as any).authorHandle.toLowerCase().startsWith('qa_') || qaHandles.has((post as any).authorHandle.toLowerCase())));
-        const isProbeCaption = typeof post.caption === 'string' && (
-          post.caption.startsWith('[:> CONCURRENCY_PROBE') ||
-          post.caption.startsWith('[:> QA_') ||
-          post.caption.startsWith('[:> THREAD_SEED') ||
-          post.caption.startsWith('[:> CONCURRENT_BURST')
-        );
-        const isQaTestHost = typeof post.imageUrl === 'string' && (
-          post.imageUrl.includes('chemicalmachine.neocities.org') ||
-          post.imageUrl.includes('qa-neo-test.nekoweb.org') ||
-          post.imageUrl.includes('qa-neogram--1.neocities.org') ||
-          post.imageUrl.includes('hive210.neocities.org')
-        );
+        const isExplicitNonQa = (post.userId && nonQaUserIds.has(post.userId)) ||
+                                (post.author && nonQaHandles.has(post.author.toLowerCase())) ||
+                                ((post as any).authorHandle && nonQaHandles.has((post as any).authorHandle.toLowerCase()));
 
-        if (isQaUserId || isQaAuthor || isProbeCaption || isQaTestHost) {
+        // Target for purge if it does not belong to a real non-QA creator (e.g. QA personas, test probes, orphan test posts)
+        const shouldPurge = !isExplicitNonQa;
+
+        if (shouldPurge) {
+          deletedPostIds.push(post.id);
+
+          // Collect remote files for remote host purge
+          const targetSite = (post.siteId && siteById.get(post.siteId)) || (post.userId && defaultSiteByUserId.get(post.userId));
+          if (targetSite && targetSite.deployment_credentials && targetSite.deployment_type !== 'none') {
+            if (!remoteFilesBySite.has(targetSite.id)) {
+              remoteFilesBySite.set(targetSite.id, { site: targetSite, files: new Set<string>() });
+            }
+            const entry = remoteFilesBySite.get(targetSite.id)!;
+            const cleanRel = (p: string) => p.replace(/^https?:\/\/[^\/]+\//, '').replace(/^\/+/, '');
+            if (post.imagePath) entry.files.add(cleanRel(post.imagePath));
+            if (post.thumbnailPath) entry.files.add(cleanRel(post.thumbnailPath));
+            for (const pic of (post.photos || [])) {
+              if (pic.imagePath) entry.files.add(cleanRel(pic.imagePath));
+              if (pic.thumbnailPath) entry.files.add(cleanRel(pic.thumbnailPath));
+            }
+          }
+
+          // Delete local upload files if present in public/uploads/
+          for (const picPath of [post.imagePath, post.thumbnailPath, ...(post.photos || []).map(p => p.imagePath), ...(post.photos || []).map(p => p.thumbnailPath)]) {
+            if (picPath && typeof picPath === 'string' && picPath.startsWith('/uploads/')) {
+              const fullLocalPath = path.join(process.cwd(), 'public', picPath);
+              await fs.unlink(fullLocalPath).catch(() => {});
+            }
+          }
+
           await deletePost(post.id);
           deletedCount++;
         }
       }
 
-      // 2. Clean QA comments from remaining active posts
+      // 2. Purge remote image assets from external hosts (Neocities / Nekoweb / GitHub)
+      const { deleteFromNeocities } = await import('../services/neocitiesPublisher');
+      const { deleteFromNekoweb } = await import('../services/nekowebPublisher');
+      const { deleteFromGitHub } = await import('../services/githubPublisher');
+
+      for (const [siteId, { site, files }] of remoteFilesBySite.entries()) {
+        const fileList = Array.from(files).filter(Boolean);
+        if (fileList.length > 0) {
+          try {
+            if (site.deployment_type === 'neocities') {
+              await deleteFromNeocities(siteId, fileList);
+            } else if (site.deployment_type === 'nekoweb') {
+              await deleteFromNekoweb(siteId, fileList);
+            } else if (site.deployment_type === 'github') {
+              await deleteFromGitHub(siteId, fileList);
+            }
+          } catch (delErr: any) {
+            console.warn(`[:> REMOTE PURGE ERROR] Target ${site.handle}/${site.slug}:`, delErr.message || delErr);
+          }
+        }
+      }
+
+      // 3. Clean QA comments from remaining active posts
       const remainingPosts = await getAllPosts();
       for (const post of remainingPosts) {
         if (Array.isArray(post.comments) && post.comments.length > 0) {
@@ -956,17 +1053,20 @@ adminRouter.post(
         }
       }
 
-      // 3. Purge QA entries from database tables
+      // 4. Purge QA entries from database tables (guestbooks, notifications, likes)
       await query(
-        `DELETE FROM guestbook_entries WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club') OR visitor_name LIKE 'qa_%'`
+        `DELETE FROM guestbook_entries WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club' OR handle LIKE 'qa_%') OR visitor_name LIKE 'qa_%'`
       );
       await query(
-        `DELETE FROM notifications WHERE actor_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club')`
+        `DELETE FROM notifications WHERE actor_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club' OR handle LIKE 'qa_%')`
       );
+      if (deletedPostIds.length > 0) {
+        await query(`DELETE FROM post_likes WHERE post_id = ANY($1)`, [deletedPostIds]);
+      }
 
-      // 4. Clean orphan galleries in dist/static-galleries (folders from wiped test runs)
+      // 5. Clean orphan galleries in dist/static-galleries (folders from wiped test runs)
+      const GALLERIES_ROOT = path.join(process.cwd(), 'dist', 'static-galleries');
       try {
-        const GALLERIES_ROOT = path.join(process.cwd(), 'dist', 'static-galleries');
         if (existsSync(GALLERIES_ROOT)) {
           const activeUsers = await query(`SELECT id FROM users`);
           const activeSites = await query(`SELECT id FROM sites`);
@@ -985,8 +1085,69 @@ adminRouter.post(
         }
       } catch (_cleanupErr) {}
 
-      // 5. Trigger static rebuild of remaining users' default sites
-      const nonQaUsers = await query(`SELECT id FROM users WHERE email NOT LIKE '%@qa.neogram.club'`);
+      // 6. Rebuild clean baseline empty static galleries for QA personas & queue remote deploys
+      const { deployToNeocities } = await import('../services/neocitiesPublisher');
+      const { deployToNekoweb } = await import('../services/nekowebPublisher');
+      const { deployToGitHub } = await import('../services/githubPublisher');
+      const { writeFileAtomic } = await import('../utils/atomicFile');
+
+      // Ensure posts.json and feed.json in both site and user directories are emptied for all QA personas
+      for (const s of qaSites) {
+        for (const targetFolder of [s.id, s.user_id]) {
+          const folderPath = path.join(GALLERIES_ROOT, targetFolder);
+          if (existsSync(folderPath)) {
+            const pPath = path.join(folderPath, 'posts.json');
+            const fPath = path.join(folderPath, 'feed.json');
+            try {
+              if (existsSync(pPath)) await writeFileAtomic(pPath, JSON.stringify([], null, 2));
+              if (existsSync(fPath)) {
+                const raw = await fs.readFile(fPath, 'utf-8');
+                const parsed = JSON.parse(raw);
+                parsed.posts = [];
+                await writeFileAtomic(fPath, JSON.stringify(parsed, null, 2));
+              }
+            } catch {}
+          }
+        }
+      }
+
+      let remoteSitesEnqueued = 0;
+      for (const s of qaSites) {
+        // Rebuild local static gallery files with 0 posts
+        try {
+          await buildStaticGallery({ siteId: s.id, userId: s.user_id });
+        } catch (buildErr: any) {
+          console.warn(`[:> QA PURGE REBUILD ERROR] Failed to rebuild local site ${s.id}:`, buildErr.message || buildErr);
+        }
+
+        // If credentials exist, enqueue deploy into buildQueue with 3500ms pacing delay
+        if (s.deployment_credentials && ['neocities', 'nekoweb', 'github'].includes(s.deployment_type)) {
+          remoteSitesEnqueued++;
+          buildQueue.enqueue(
+            `QAPurgeDeploy:${s.deployment_type.toUpperCase()}:${s.handle || s.user_id}/${s.slug}`,
+            async () => {
+              console.log(`[:> QA PURGE SYNC] Deploying empty static gallery to ${s.deployment_type.toUpperCase()} for @${s.handle}/${s.slug}...`);
+              if (s.deployment_type === 'nekoweb') {
+                await deployToNekoweb(s.id, true, { directBuild: true });
+              } else if (s.deployment_type === 'github') {
+                await deployToGitHub(s.id, true, { directBuild: true });
+              } else if (s.deployment_type === 'neocities') {
+                await deployToNeocities(s.id, true, { directBuild: true });
+              }
+            },
+            {
+              priority: 'LOW',
+              throttleDelayMs: 3500,
+              siteInfo: { siteName: s.name, handle: s.handle || s.email },
+            }
+          ).catch((err) => {
+            console.warn(`[:> QA PURGE SYNC ERROR] ${s.handle}/${s.slug}:`, err.message || err);
+          });
+        }
+      }
+
+      // 7. Trigger static rebuild of non-QA users' sites (e.g. @wasson)
+      const nonQaUsers = await query(`SELECT id FROM users WHERE email NOT LIKE '%@qa.neogram.club' AND handle NOT LIKE 'qa_%'`);
       for (const nonQa of nonQaUsers.rows) {
         buildStaticGallery({ userId: nonQa.id }).catch((err) => {
           console.error(`[:> PURGE REBUILD] Error rebuilding user ${nonQa.id}:`, err);
@@ -997,13 +1158,15 @@ adminRouter.post(
         adminId: adminUser.id,
         adminEmail: adminUser.email,
         action: 'PURGE_QA_POSTS',
-        details: { deletedPostsCount: deletedCount },
+        details: { deletedPostsCount: deletedCount, remoteSitesEnqueued },
         ipAddress: req.ip,
       });
 
       res.json({
         ok: true,
-        message: `Purged ${deletedCount} QA test post(s) and comments. Platform static feeds and friends cascades refreshed.`,
+        message: `Purged ${deletedCount} QA test post(s) and comments. Cleaned remote files, rebuilt baseline static galleries, and enqueued ${remoteSitesEnqueued} remote static sync(s).`,
+        deletedCount,
+        remoteSitesEnqueued,
       });
     } catch (err) {
       next(err);
@@ -1012,34 +1175,18 @@ adminRouter.post(
 );
 
 /**
- * 10. POST /api/admin/qa-fleet/wipe - Completely Remove All QA Test Accounts
+ * 10. POST /api/admin/qa-fleet/wipe - Permanently Disabled
+ * (Wiping QA fleet accounts is permanently prohibited to protect accounts, friend graph, and site configs)
  */
 adminRouter.post(
   '/api/admin/qa-fleet/wipe',
   requireAdminApi,
   validateAdminMutationHeader,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const adminUser = (req as AdminRequest).adminUser!;
-      const delUsers = await query(
-        `DELETE FROM users WHERE email LIKE '%@qa.neogram.club' RETURNING id`
-      );
-
-      await logAdminAction({
-        adminId: adminUser.id,
-        adminEmail: adminUser.email,
-        action: 'WIPE_QA_FLEET',
-        details: { deletedUsersCount: delUsers.rowCount || 0 },
-        ipAddress: req.ip,
-      });
-
-      res.json({
-        ok: true,
-        message: `Wiped ${delUsers.rowCount || 0} QA test account(s) from database.`,
-      });
-    } catch (err) {
-      next(err);
-    }
+  async (req: Request, res: Response) => {
+    res.status(403).json({
+      ok: false,
+      error: 'Wiping QA accounts is permanently disabled. QA accounts, friend relationships, and site credentials must be preserved. Use POST /api/admin/qa-fleet/purge-posts to clean content.',
+    });
   }
 );
 

@@ -41,7 +41,7 @@ export const config: AppConfig = {
   encryptionSecret: process.env.ENCRYPTION_SECRET || 'neogram_retro_aes256_vault_key_1996_master_secret',
   storageDir: process.env.STORAGE_DIR || path.resolve(process.cwd(), 'public/uploads'),
   appUrl: process.env.APP_URL || 'http://localhost:4000',
-  enableMemoryDbFallback: process.env.NODE_ENV !== 'production' && (process.env.USE_MEMORY_DB === 'true' || !process.env.DATABASE_URL),
+  enableMemoryDbFallback: process.env.NODE_ENV !== 'production' && process.env.FORCE_EXTERNAL_DB !== 'true',
   resendApiKey: process.env.RESEND_API_KEY,
   emailFrom: process.env.EMAIL_FROM || 'Neogram <auth@neogram.retro>',
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID,
