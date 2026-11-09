@@ -221,37 +221,30 @@
             <!-- Transmissions Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="userPostsGrid">
               {% for post in posts %}
-                <div class="retro-card p-2 flex flex-col gap-2 bg-window border border-main" data-user-post data-site-id="{{ post.siteId or '' }}" data-post-id="{{ post.id }}">
+                <div class="retro-card p-2 flex flex-col gap-2 bg-window border border-main" data-user-post data-site-id="{{ post.siteId or '' }}">
                   
                   <!-- Thumbnail Viewport with Filter Tag & Retro 404 Fallback -->
-                  <div
-                    class="relative bg-black border border-main overflow-hidden group retro-photo-viewport cursor-pointer"
-                    role="button"
-                    tabindex="0"
-                    onclick="openPhotoModal('{{ post.id }}')"
-                    onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openPhotoModal('{{ post.id }}'); }"
-                    title="Click to view full photo transmission"
-                  >
-                    <img
-                      src="{{ post.thumbnailPath or post.imagePath }}"
-                      alt="{{ post.caption or 'Photo' }}"
-                      loading="lazy"
-                      class="w-full h-48 object-cover relative z-10 transition-transform group-hover:scale-105 pointer-events-none"
-                      onerror="this.classList.add('neogram-img--broken'); var vp=this.closest('.retro-photo-viewport'); if(vp) vp.classList.add('has-broken-image');"
-                    />
+                  <div class="relative bg-black border border-main overflow-hidden group retro-photo-viewport">
+                    <a
+                      href="{{ post.livePhotoUrl or (profileUser.galleryUrl + 'photos/' + post.id + '/') if (post.livePhotoUrl or profileUser.galleryUrl) else post.imagePath }}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="block w-full h-full relative z-10"
+                      onclick="if(window.retroAudio) retroAudio.playClick();"
+                    >
+                      <img
+                        src="{{ post.thumbnailPath or post.imagePath }}"
+                        alt="{{ post.caption or 'Photo' }}"
+                        loading="lazy"
+                        class="w-full h-48 object-cover relative z-10 transition-transform group-hover:scale-105"
+                        onerror="this.classList.add('neogram-img--broken'); var vp=this.closest('.retro-photo-viewport'); if(vp) vp.classList.add('has-broken-image');"
+                      />
+                    </a>
 
                     {% if post.filterApplied and post.filterApplied != 'none' %}
                       <div class="absolute top-1.5 left-1.5 z-10">
                         <span class="pixel-badge pixel-badge--green text-[10px] py-0.5 px-1.5 font-bold uppercase tracking-wider">
                           {{ post.filterApplied }}
-                        </span>
-                      </div>
-                    {% endif %}
-
-                    {% if post.photos and post.photos.length > 1 %}
-                      <div class="absolute bottom-1.5 right-1.5 z-10">
-                        <span class="pixel-badge pixel-badge--cyan text-[10px] py-0 px-1 font-bold">
-                          ⧉ {{ post.photos.length }}
                         </span>
                       </div>
                     {% endif %}
@@ -271,17 +264,31 @@
                     </p>
 
                     <div class="flex items-center justify-between text-[11px] text-muted pt-2 mt-auto border-t border-main">
-                      <span id="cardLikes-{{ post.id }}">{{ post.likes or 0 }} likes</span>
+                      <span>{{ post.likes or 0 }} likes</span>
                       <span>{{ post.createdAt | formatDateTime }}</span>
                     </div>
 
-                    <button
-                      type="button"
-                      class="pixel-btn pixel-btn--yellow text-xs font-bold py-1.5 px-2 text-center mt-1 w-full flex items-center justify-center gap-1"
-                      onclick="openPhotoModal('{{ post.id }}')"
-                    >
-                      <span>View &amp; Comment :&gt;</span>
-                    </button>
+                    {% if post.livePhotoUrl or profileUser.galleryUrl %}
+                      <a
+                        href="{{ post.livePhotoUrl or (profileUser.galleryUrl + 'photos/' + post.id + '/') }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="pixel-btn pixel-btn--yellow text-xs font-bold py-1 px-2 text-center mt-1"
+                        onclick="if(window.retroAudio) retroAudio.playClick();"
+                      >
+                        <span>View &amp; Comment :&gt;</span>
+                      </a>
+                    {% elif post.imagePath %}
+                      <a
+                        href="{{ post.imagePath }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="pixel-btn pixel-btn--sm text-xs font-bold py-1 px-2 text-center mt-1 text-muted"
+                        onclick="if(window.retroAudio) retroAudio.playClick();"
+                      >
+                        <span>View Full Image ↗</span>
+                      </a>
+                    {% endif %}
                   </div>
 
                 </div>
@@ -297,446 +304,8 @@
 
 </div>
 
-<!-- Retro Photo Transmission Viewer Modal -->
-<div id="photoModalBackdrop" class="fixed inset-0 bg-black/80 z-[10000] flex items-center justify-center p-2 sm:p-4 hidden" onclick="if(event.target === this) closePhotoModal();">
-  <div class="retro-card p-0 m-0 w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl bg-window border-2 border-main overflow-hidden">
-    <!-- Window Header -->
-    <div class="window-header flex items-center justify-between p-2 shrink-0">
-      <div class="flex items-center gap-2 truncate">
-        <span class="font-bold text-xs truncate" id="photoModalTitle">[:&gt; PHOTO_VIEWER.EXE]</span>
-      </div>
-      <button type="button" class="pixel-btn pixel-btn--sm pixel-btn--crimson text-xs py-0 px-2 font-bold" onclick="closePhotoModal()" title="Close Viewer [Esc]">
-        ✕
-      </button>
-    </div>
-
-    <!-- Modal Content: Scrollable Body -->
-    <div class="p-3 sm:p-4 overflow-y-auto flex-1 font-mono text-xs">
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-        
-        <!-- Media Column (7 cols) -->
-        <div class="md:col-span-7 flex flex-col gap-2">
-          <div class="relative bg-black border-2 border-main overflow-hidden flex items-center justify-center crt-scanlines min-h-[260px] max-h-[60vh]">
-            <img id="photoModalImage" src="" alt="Photo" class="w-full h-auto max-h-[58vh] object-contain transition-all" />
-            
-            <!-- Multi-photo Nav Buttons -->
-            <div id="photoModalCarouselControls" class="absolute inset-x-2 top-1/2 -translate-y-1/2 flex items-center justify-between pointer-events-none hidden">
-              <button type="button" id="photoModalPrevBtn" onclick="navigatePhotoSlide(-1)" class="pixel-btn pixel-btn--sm pointer-events-auto py-1 px-2 font-bold bg-black/80 text-prompt border border-prompt">
-                ◀ PREV
-              </button>
-              <button type="button" id="photoModalNextBtn" onclick="navigatePhotoSlide(1)" class="pixel-btn pixel-btn--sm pointer-events-auto py-1 px-2 font-bold bg-black/80 text-prompt border border-prompt">
-                NEXT ▶
-              </button>
-            </div>
-            
-            <!-- Slide indicator -->
-            <div id="photoModalSlideCounter" class="absolute bottom-2 right-2 pixel-badge pixel-badge--cyan text-xxs font-bold hidden">
-              1 / 1
-            </div>
-          </div>
-
-          <!-- Tags & Shader row -->
-          <div class="flex items-center gap-1.5 flex-wrap pt-1" id="photoModalTags">
-            <span id="photoModalShaderBadge" class="pixel-badge pixel-badge--green text-xxs uppercase font-bold">SHADER: RAW</span>
-            <span id="photoModalMoodBadge" class="pixel-badge pixel-badge--cyan text-xxs font-bold hidden"></span>
-            <span id="photoModalWebringBadge" class="pixel-badge pixel-badge--magenta text-xxs font-bold hidden"></span>
-            <span id="photoModalLocationBadge" class="pixel-badge pixel-badge--yellow text-xxs font-bold hidden"></span>
-          </div>
-        </div>
-
-        <!-- Meta & Comments Column (5 cols) -->
-        <div class="md:col-span-5 flex flex-col gap-3">
-          <!-- Author Info -->
-          <div class="flex items-center justify-between border-b border-main pb-2">
-            <div class="flex items-center gap-2">
-              <img id="photoModalAvatar" src="{{ profileUser.avatarPath }}" alt="Avatar" class="w-8 h-8 pixel-box border border-black object-cover bg-black" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';" />
-              <div>
-                <span id="photoModalAuthor" class="font-bold text-mac block text-xs">@{{ profileUser.handle }}</span>
-                <span id="photoModalDate" class="text-muted text-xxs block">Date</span>
-              </div>
-            </div>
-            <span id="photoModalSiteBadge" class="pixel-badge pixel-badge--yellow text-3xs font-bold hidden"></span>
-          </div>
-
-          <!-- Caption -->
-          <div class="bg-black border border-main p-2.5 text-xs text-prompt leading-relaxed whitespace-pre-wrap max-h-32 overflow-y-auto" id="photoModalCaption">
-          </div>
-
-          <!-- Like Action Strip -->
-          <div class="flex items-center justify-between p-2 bg-window border border-main">
-            <button type="button" id="photoModalLikeBtn" onclick="handlePhotoLike()" class="pixel-btn pixel-btn--yellow text-xs font-bold py-1.5 px-3 flex items-center gap-1.5">
-              <span>⚡ RADICAL</span>
-              <span id="photoModalLikeCount">(0)</span>
-            </button>
-            <a id="photoModalStaticLink" href="#" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--green text-xxs font-bold py-1 px-2 hidden" onclick="if(window.retroAudio) retroAudio.playClick();">
-              <span>Static Host ↗</span>
-            </a>
-          </div>
-
-          <!-- Comments Ledger -->
-          <div class="flex flex-col gap-2 pt-1 border-t border-main">
-            <div class="flex items-center justify-between text-xxs uppercase text-muted font-bold">
-              <span>TRANSMISSION_LEDGER:</span>
-              <span id="photoModalCommentCount">0 comments</span>
-            </div>
-
-            <!-- Comments List -->
-            <div id="photoModalCommentsList" class="flex flex-col gap-2 max-h-44 overflow-y-auto pr-1">
-              <div class="text-muted text-center py-4 border border-dashed border-main text-xxs">
-                NO COMMENTS LOGGED YET
-              </div>
-            </div>
-
-            <!-- Comment Form -->
-            <div id="photoModalCommentFormBox" class="pt-2 border-t border-main">
-              {% if currentUser %}
-                <form id="photoModalCommentForm" onsubmit="handlePhotoCommentSubmit(event)" class="flex flex-col gap-1.5">
-                  <textarea id="photoModalCommentInput" rows="2" placeholder="Leave a cyberspace transmission..." required class="retro-input text-xs w-full p-1.5 resize-none font-mono"></textarea>
-                  <div class="flex items-center justify-between">
-                    <span id="photoModalCommentStatus" class="text-xxs text-muted"></span>
-                    <button type="submit" id="photoModalCommentSubmitBtn" class="pixel-btn pixel-btn--green pixel-btn--sm text-xs font-bold py-1 px-3">
-                      <span>Transmit :&gt;</span>
-                    </button>
-                  </div>
-                </form>
-              {% else %}
-                <div class="text-center p-2 bg-black border border-main">
-                  <p class="text-xxs text-muted mb-1.5">Connect Cyber-Pass to leave a transmission:</p>
-                  <a href="/login" class="pixel-btn pixel-btn--green pixel-btn--sm text-xs font-bold py-1 px-3 inline-block" onclick="if(window.retroAudio) retroAudio.playClick();">
-                    <span>+ Log In to Comment</span>
-                  </a>
-                </div>
-              {% endif %}
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </div>
-  </div>
-</div>
-
-<script id="userPostsData" type="application/json">
-  {{ posts | dump | safe }}
-</script>
-
 <script>
   var isFriendProfile = {{ 'true' if isFriend else 'false' }};
-  var rawUserPosts = [];
-  try {
-    var rawText = document.getElementById('userPostsData').textContent;
-    rawUserPosts = JSON.parse(rawText || '[]');
-  } catch (e) {
-    rawUserPosts = [];
-  }
-
-  var userPostsMap = {};
-  rawUserPosts.forEach(function(p) {
-    userPostsMap[p.id] = p;
-  });
-
-  var currentActivePost = null;
-  var currentSlideIndex = 0;
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function formatIsoDateTime(iso) {
-    if (!iso) return '';
-    try {
-      var d = new Date(iso);
-      return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (e) {
-      return iso;
-    }
-  }
-
-  function openPhotoModal(postId) {
-    var post = userPostsMap[postId];
-    if (!post) return;
-    currentActivePost = post;
-    currentSlideIndex = 0;
-
-    if (window.retroAudio) window.retroAudio.playClick();
-
-    // Set title
-    var titleEl = document.getElementById('photoModalTitle');
-    if (titleEl) {
-      titleEl.textContent = '[:> PHOTO_VIEWER.EXE - ' + (post.id.slice(0, 8)) + '.bitmap]';
-    }
-
-    // Set Author & Date
-    var authorEl = document.getElementById('photoModalAuthor');
-    if (authorEl) authorEl.textContent = '@' + (post.author || '{{ profileUser.handle }}');
-
-    var dateEl = document.getElementById('photoModalDate');
-    if (dateEl) dateEl.textContent = formatIsoDateTime(post.createdAt);
-
-    // Site Badge
-    var siteBadge = document.getElementById('photoModalSiteBadge');
-    if (siteBadge) {
-      if (post.siteName) {
-        siteBadge.textContent = post.siteName;
-        siteBadge.classList.remove('hidden');
-      } else {
-        siteBadge.classList.add('hidden');
-      }
-    }
-
-    // Caption
-    var captionEl = document.getElementById('photoModalCaption');
-    if (captionEl) captionEl.textContent = post.caption || 'No caption provided.';
-
-    // Tags & Badges
-    var shaderBadge = document.getElementById('photoModalShaderBadge');
-    if (shaderBadge) shaderBadge.textContent = 'SHADER: ' + (post.filterApplied ? post.filterApplied.toUpperCase() : 'RAW');
-
-    var moodBadge = document.getElementById('photoModalMoodBadge');
-    if (moodBadge) {
-      if (post.mood) {
-        moodBadge.textContent = post.mood;
-        moodBadge.classList.remove('hidden');
-      } else {
-        moodBadge.classList.add('hidden');
-      }
-    }
-
-    var webringBadge = document.getElementById('photoModalWebringBadge');
-    if (webringBadge) {
-      if (post.webring) {
-        webringBadge.textContent = 'ring: ' + post.webring;
-        webringBadge.classList.remove('hidden');
-      } else {
-        webringBadge.classList.add('hidden');
-      }
-    }
-
-    var locationBadge = document.getElementById('photoModalLocationBadge');
-    if (locationBadge) {
-      if (post.location) {
-        locationBadge.textContent = 'loc: ' + post.location;
-        locationBadge.classList.remove('hidden');
-      } else {
-        locationBadge.classList.add('hidden');
-      }
-    }
-
-    // Like count
-    updateModalLikeDisplay(post.likes || 0);
-
-    // Static Host link
-    var staticLink = document.getElementById('photoModalStaticLink');
-    if (staticLink) {
-      var staticUrl = post.livePhotoUrl || (post.galleryUrl ? (post.galleryUrl + 'photos/' + post.id + '/') : '');
-      if (staticUrl) {
-        staticLink.href = staticUrl;
-        staticLink.classList.remove('hidden');
-      } else {
-        staticLink.classList.add('hidden');
-      }
-    }
-
-    // Update Image & Carousel
-    updateModalImageSlide();
-
-    // Load comments
-    loadModalComments(post.id);
-
-    // Show backdrop & update hash
-    var backdrop = document.getElementById('photoModalBackdrop');
-    if (backdrop) backdrop.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-
-    try {
-      history.replaceState(null, '', '#photo-' + post.id);
-    } catch (e) {}
-  }
-  window.openPhotoModal = openPhotoModal;
-
-  function closePhotoModal() {
-    if (window.retroAudio) window.retroAudio.playClick();
-    var backdrop = document.getElementById('photoModalBackdrop');
-    if (backdrop) backdrop.classList.add('hidden');
-    document.body.style.overflow = '';
-    currentActivePost = null;
-
-    try {
-      history.replaceState(null, '', window.location.pathname + window.location.search);
-    } catch (e) {}
-  }
-  window.closePhotoModal = closePhotoModal;
-
-  function updateModalImageSlide() {
-    if (!currentActivePost) return;
-    var post = currentActivePost;
-    var imgEl = document.getElementById('photoModalImage');
-    var carouselControls = document.getElementById('photoModalCarouselControls');
-    var counterEl = document.getElementById('photoModalSlideCounter');
-
-    var photos = (post.photos && post.photos.length > 0) ? post.photos : [{ imagePath: post.imagePath || post.imageUrl }];
-    if (currentSlideIndex < 0) currentSlideIndex = photos.length - 1;
-    if (currentSlideIndex >= photos.length) currentSlideIndex = 0;
-
-    var currentPic = photos[currentSlideIndex];
-    if (imgEl && currentPic) {
-      imgEl.src = currentPic.imagePath || currentPic.imageUrl || post.imagePath;
-      imgEl.className = 'w-full h-auto max-h-[58vh] object-contain transition-all filter-' + (post.filterApplied || 'none');
-    }
-
-    if (photos.length > 1) {
-      if (carouselControls) carouselControls.classList.remove('hidden');
-      if (counterEl) {
-        counterEl.textContent = (currentSlideIndex + 1) + ' / ' + photos.length;
-        counterEl.classList.remove('hidden');
-      }
-    } else {
-      if (carouselControls) carouselControls.classList.add('hidden');
-      if (counterEl) counterEl.classList.add('hidden');
-    }
-  }
-
-  function navigatePhotoSlide(dir) {
-    if (window.retroAudio) window.retroAudio.playClick();
-    currentSlideIndex += dir;
-    updateModalImageSlide();
-  }
-  window.navigatePhotoSlide = navigatePhotoSlide;
-
-  function updateModalLikeDisplay(likes) {
-    var likeCountEl = document.getElementById('photoModalLikeCount');
-    if (likeCountEl) likeCountEl.textContent = '(' + likes + ')';
-    if (currentActivePost) {
-      var cardLikeEl = document.getElementById('cardLikes-' + currentActivePost.id);
-      if (cardLikeEl) cardLikeEl.textContent = likes + ' likes';
-    }
-  }
-
-  async function handlePhotoLike() {
-    if (!currentActivePost) return;
-    if (window.retroAudio) window.retroAudio.playClick();
-    try {
-      var res = await fetch('/api/posts/' + encodeURIComponent(currentActivePost.id) + '/like', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      var data = await res.json();
-      if (data.ok) {
-        if (window.retroAudio) window.retroAudio.playSuccess();
-        currentActivePost.likes = data.likes;
-        updateModalLikeDisplay(data.likes);
-      } else {
-        alert('[:> REACTION ERROR] ' + (data.error || 'Could not record radical like'));
-      }
-    } catch (e) {
-      alert('[:> NETWORK FAULT] ' + e.message);
-    }
-  }
-  window.handlePhotoLike = handlePhotoLike;
-
-  async function loadModalComments(postId) {
-    var listEl = document.getElementById('photoModalCommentsList');
-    var countEl = document.getElementById('photoModalCommentCount');
-    if (listEl) {
-      listEl.innerHTML = '<div class="text-muted text-center py-4 text-xxs">LOADING TRANSMISSIONS...</div>';
-    }
-
-    try {
-      var res = await fetch('/api/posts/' + encodeURIComponent(postId) + '/comments');
-      var data = await res.json();
-      var comments = (data.ok && Array.isArray(data.comments)) ? data.comments : [];
-
-      if (countEl) countEl.textContent = comments.length + ' comments';
-
-      if (!listEl) return;
-      if (comments.length === 0) {
-        listEl.innerHTML = '<div class="text-muted text-center py-4 border border-dashed border-main text-xxs">NO COMMENTS LOGGED YET</div>';
-        return;
-      }
-
-      listEl.innerHTML = comments.map(function(c) {
-        var authorStr = escapeHtml(c.author || 'visitor');
-        var timeStr = formatIsoDateTime(c.createdAt || c.timestamp);
-        var textStr = escapeHtml(c.text || c.body || '');
-        return '<div class="p-1.5 bg-black border border-main text-xxs space-y-0.5">' +
-          '<div class="flex items-center justify-between text-muted text-3xs">' +
-            '<span class="font-bold text-mac">@' + authorStr + '</span>' +
-            '<span>' + timeStr + '</span>' +
-          '</div>' +
-          '<p class="text-prompt m-0 leading-relaxed whitespace-pre-wrap">' + textStr + '</p>' +
-        '</div>';
-      }).join('');
-    } catch (e) {
-      if (listEl) {
-        listEl.innerHTML = '<div class="text-amber text-center py-2 text-xxs">[:> COULD NOT FETCH COMMENTS]</div>';
-      }
-    }
-  }
-
-  async function handlePhotoCommentSubmit(e) {
-    e.preventDefault();
-    if (!currentActivePost) return;
-    var input = document.getElementById('photoModalCommentInput');
-    var statusEl = document.getElementById('photoModalCommentStatus');
-    var btn = document.getElementById('photoModalCommentSubmitBtn');
-    if (!input || !input.value.trim()) return;
-
-    var text = input.value.trim();
-    if (window.retroAudio) window.retroAudio.playClick();
-    if (statusEl) statusEl.textContent = 'Transmitting...';
-    if (btn) btn.disabled = true;
-
-    try {
-      var res = await fetch('/api/posts/' + encodeURIComponent(currentActivePost.id) + '/comments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text })
-      });
-      var data = await res.json();
-      if (data.ok) {
-        if (window.retroAudio) window.retroAudio.playSuccess();
-        input.value = '';
-        if (statusEl) statusEl.textContent = 'Transmission received!';
-        setTimeout(function() { if (statusEl) statusEl.textContent = ''; }, 2500);
-        loadModalComments(currentActivePost.id);
-      } else {
-        if (statusEl) statusEl.textContent = '';
-        alert('[:> TRANSMISSION ERROR] ' + (data.error || 'Could not post comment'));
-      }
-    } catch (err) {
-      if (statusEl) statusEl.textContent = '';
-      alert('[:> NETWORK FAULT] ' + err.message);
-    } finally {
-      if (btn) btn.disabled = false;
-    }
-  }
-  window.handlePhotoCommentSubmit = handlePhotoCommentSubmit;
-
-  // Keyboard navigation & hash support
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && currentActivePost) {
-      closePhotoModal();
-    } else if (currentActivePost) {
-      if (e.key === 'ArrowLeft') navigatePhotoSlide(-1);
-      else if (e.key === 'ArrowRight') navigatePhotoSlide(1);
-    }
-  });
-
-  window.addEventListener('DOMContentLoaded', function() {
-    if (window.location.hash && window.location.hash.startsWith('#photo-')) {
-      var targetId = window.location.hash.replace('#photo-', '');
-      if (userPostsMap[targetId]) {
-        openPhotoModal(targetId);
-      }
-    }
-  });
 
   function filterUserPosts(siteId) {
     if (window.retroAudio) window.retroAudio.playClick();
