@@ -230,13 +230,13 @@
                       target="_blank"
                       rel="noopener noreferrer"
                       class="block w-full h-full relative z-10"
-                      onclick="if(window.retroAudio) retroAudio.playClick();"
+                      onclick="return openInNativeBrowser(event, this.href);"
                     >
                       <img
                         src="{{ post.thumbnailPath or post.imagePath }}"
                         alt="{{ post.caption or 'Photo' }}"
                         loading="lazy"
-                        class="w-full h-48 object-cover relative z-10 transition-transform group-hover:scale-105"
+                        class="w-full h-48 object-cover relative z-10 transition-transform group-hover:scale-105 pointer-events-none"
                         onerror="this.classList.add('neogram-img--broken'); var vp=this.closest('.retro-photo-viewport'); if(vp) vp.classList.add('has-broken-image');"
                       />
                     </a>
@@ -274,7 +274,7 @@
                         target="_blank"
                         rel="noopener noreferrer"
                         class="pixel-btn pixel-btn--yellow text-xs font-bold py-1 px-2 text-center mt-1"
-                        onclick="if(window.retroAudio) retroAudio.playClick();"
+                        onclick="return openInNativeBrowser(event, this.href);"
                       >
                         <span>View &amp; Comment :&gt;</span>
                       </a>
@@ -284,7 +284,7 @@
                         target="_blank"
                         rel="noopener noreferrer"
                         class="pixel-btn pixel-btn--sm text-xs font-bold py-1 px-2 text-center mt-1 text-muted"
-                        onclick="if(window.retroAudio) retroAudio.playClick();"
+                        onclick="return openInNativeBrowser(event, this.href);"
                       >
                         <span>View Full Image ↗</span>
                       </a>
@@ -306,6 +306,43 @@
 
 <script>
   var isFriendProfile = {{ 'true' if isFriend else 'false' }};
+
+  function openInNativeBrowser(event, url) {
+    if (window.retroAudio) {
+      try { window.retroAudio.playClick(); } catch (e) {}
+    }
+    if (!url) return false;
+
+    // Detect if running as installed standalone PWA
+    var isStandalone = window.navigator.standalone || 
+                       (window.matchMedia && (
+                         window.matchMedia('(display-mode: standalone)').matches ||
+                         window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+                         window.matchMedia('(display-mode: fullscreen)').matches ||
+                         window.matchMedia('(display-mode: minimal-ui)').matches
+                       ));
+
+    if (isStandalone) {
+      // In PWA standalone mode on iOS or Android, default anchor clicks with target='_blank'
+      // are often captured or blocked within the webview. We explicitly launch the native browser.
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      // On iOS, '_system' commands WebKit to hand off the URL to mobile Safari
+      var opened = window.open(url, '_system');
+      if (!opened) {
+        opened = window.open(url, '_blank', 'noopener,noreferrer');
+      }
+      if (!opened) {
+        window.location.assign(url);
+      }
+      return false;
+    }
+    // Normal browser tab: let the native <a href="..." target="_blank"> open normally
+    return true;
+  }
+  window.openInNativeBrowser = openInNativeBrowser;
 
   function filterUserPosts(siteId) {
     if (window.retroAudio) window.retroAudio.playClick();

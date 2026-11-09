@@ -505,22 +505,26 @@ export function createApp(): Express {
             ? String(user.deploy_path).trim().replace(/^\/+|\/+$/g, '')
             : 'neogram');
 
-      // Clean root personal site URL (strips any deploy_path subdirectory)
+      // Clean root personal site URL & gallery URL (preserves repository/subpath for GitHub Pages)
       let cleanRootSiteUrl = '';
+      let cleanBaseUrl = '';
       if (targetSiteUrl && targetSiteUrl.trim()) {
         try {
           const parsed = new URL(targetSiteUrl.startsWith('http') ? targetSiteUrl : `https://${targetSiteUrl}`);
           if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+            const basePath = parsed.pathname.replace(/\/+$/, '');
             cleanRootSiteUrl = `${parsed.protocol}//${parsed.host}`;
+            cleanBaseUrl = `${parsed.protocol}//${parsed.host}${basePath}`;
           }
         } catch (_err) {
           cleanRootSiteUrl = '';
+          cleanBaseUrl = '';
         }
       }
 
       // Static photo gallery URL
-      const galleryUrl = cleanRootSiteUrl
-        ? (targetDeployPath ? `${cleanRootSiteUrl}/${targetDeployPath}/` : `${cleanRootSiteUrl}/`)
+      const galleryUrl = cleanBaseUrl
+        ? (targetDeployPath ? `${cleanBaseUrl}/${targetDeployPath}/` : `${cleanBaseUrl}/`)
         : '';
 
       // Hit counter telemetry

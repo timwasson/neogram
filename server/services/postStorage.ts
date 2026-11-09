@@ -176,10 +176,11 @@ async function hydratePostsWithUserAndSiteInfo(posts: PostRecord[]): Promise<Pos
       if (rawSiteUrl && rawSiteUrl.trim()) {
         try {
           const parsed = new URL(rawSiteUrl.startsWith('http') ? rawSiteUrl.trim() : `https://${rawSiteUrl.trim()}`);
-          const cleanBase = `${parsed.protocol}//${parsed.host}`;
+          const basePath = parsed.pathname.replace(/\/+$/, '');
+          const cleanBase = `${parsed.protocol}//${parsed.host}${basePath}`;
           const cleanDeploy = String(rawDeploy).trim().replace(/^\/+|\/+$/g, '');
 
-          p.siteUrl = cleanBase;
+          p.siteUrl = `${parsed.protocol}//${parsed.host}`;
           p.galleryUrl = cleanDeploy ? `${cleanBase}/${cleanDeploy}/` : `${cleanBase}/`;
           p.livePhotoUrl = cleanDeploy ? `${cleanBase}/${cleanDeploy}/photos/${p.id}/` : `${cleanBase}/photos/${p.id}/`;
         } catch {
