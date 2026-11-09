@@ -2,7 +2,9 @@
 layout: layouts/base.njk
 title: Friends Static Photo Grid
 permalink: "friends/index.html"
+rootPath: ..
 ---
+{% set rel = rootPath or '..' %}
 
 <!-- ==============================================================
      FRIENDS STATIC STREAM BANNER
@@ -29,7 +31,7 @@ permalink: "friends/index.html"
 
     <div class="neogram-banner__actions">
       <span class="neogram-badge neogram-badge--cyan">{{ friendsPosts.length }} TRANSMISSIONS ARCHIVED</span>
-      <a href="{{ '/' | url }}" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
+      <a href="{{ rel }}/" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
         <span>← Back to My Gallery</span>
       </a>
       <a href="{{ site.apiUrl or 'http://localhost:4000' }}/friends" target="_blank" class="neogram-btn neogram-btn--green neogram-btn--sm">
@@ -178,4 +180,4 @@ permalink: "friends/index.html"
 </div>
 
 <!-- Federated Client-Side Dynamic Stream Hydration -->
-<script src="{{ '/embed/friends.js' | url }}"></script>
+<script src="{{ rel }}/embed/friends.js"></script>

@@ -532,9 +532,15 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
       rawDeployPath = targetSite.deploy_path !== null && targetSite.deploy_path !== undefined
         ? String(targetSite.deploy_path).trim().replace(/^\/+|\/+$/g, '')
         : 'neogram';
-      pathPrefix = rawDeployPath ? `/${rawDeployPath}/` : '/';
       baseSiteUrl = targetSite.site_url ? targetSite.site_url.replace(/\/+$/, '') : `https://${author}.neocities.org`;
       fullSiteUrl = rawDeployPath ? `${baseSiteUrl}/${rawDeployPath}` : baseSiteUrl;
+      try {
+        const parsedUrl = new URL(fullSiteUrl.startsWith('http') ? fullSiteUrl : `https://${fullSiteUrl}`);
+        const pathname = parsedUrl.pathname.replace(/\/+$/, '');
+        pathPrefix = pathname ? `${pathname}/` : '/';
+      } catch (_e) {
+        pathPrefix = rawDeployPath ? `/${rawDeployPath}/` : '/';
+      }
       avatarUrl = targetSite.avatar_path || '/icons/default-avatar.svg';
       statusMessage = targetSite.status_message || 'Surfing cyberspace';
       customCssUrl = targetSite.custom_css_url || null;
@@ -570,9 +576,15 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
         rawDeployPath = u.deploy_path !== null && u.deploy_path !== undefined
           ? String(u.deploy_path).trim().replace(/^\/+|\/+$/g, '')
           : 'neogram';
-        pathPrefix = rawDeployPath ? `/${rawDeployPath}/` : '/';
         baseSiteUrl = u.site_url ? u.site_url.replace(/\/+$/, '') : `https://${author}.neocities.org`;
         fullSiteUrl = rawDeployPath ? `${baseSiteUrl}/${rawDeployPath}` : baseSiteUrl;
+        try {
+          const parsedUrl = new URL(fullSiteUrl.startsWith('http') ? fullSiteUrl : `https://${fullSiteUrl}`);
+          const pathname = parsedUrl.pathname.replace(/\/+$/, '');
+          pathPrefix = pathname ? `${pathname}/` : '/';
+        } catch (_e) {
+          pathPrefix = rawDeployPath ? `/${rawDeployPath}/` : '/';
+        }
         avatarUrl = u.avatar_path || '/icons/default-avatar.svg';
         statusMessage = u.status_message || 'Surfing cyberspace';
         customCssUrl = u.custom_css_url || null;

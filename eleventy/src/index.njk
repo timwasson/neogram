@@ -1,7 +1,9 @@
 ---
 layout: layouts/base.njk
 title: Static Photo Stream
+rootPath: .
 ---
+{% set rel = rootPath or '.' %}
 
 <!-- ==============================================================
      STATIC GALLERY BANNER (Retro 90s Geocities/Cyber Homage)
@@ -72,9 +74,9 @@ title: Static Photo Stream
           <div class="neogram-slider neogram-slider--card">
             <div class="neogram-slider__track" tabindex="0" role="region" aria-label="Photo carousel slider">
               {% for pic in post.photos %}
-                <a href="{{ ('/photos/' + post.id + '/') | url }}" class="neogram-slider__slide" id="card-{{ post.id }}-{{ loop.index }}">
+                <a href="{{ rel }}/photos/{{ post.id }}/" class="neogram-slider__slide" id="card-{{ post.id }}-{{ loop.index }}">
                   <img
-                    src="{{ (pic.thumbnailPath or pic.imagePath) | url }}"
+                    src="{{ (pic.thumbnailPath or pic.imagePath) | mediaUrl(rel) }}"
                     alt="{{ post.caption }} ({{ loop.index }}/{{ post.photos.length }})"
                     class="neogram-slider__image filter-{{ post.filterApplied or 'none' }}"
                     loading="lazy"
@@ -92,15 +94,15 @@ title: Static Photo Stream
               <span class="neogram-badge neogram-badge--cyan">⧉ {{ post.photos.length }}</span>
             </div>
             <div class="neogram-card__overlay">
-              <a href="{{ ('/photos/' + post.id + '/') | url }}" class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn">
+              <a href="{{ rel }}/photos/{{ post.id }}/" class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn">
                 <span>VIEW &amp; COMMENT</span>
               </a>
             </div>
           </div>
         {% else %}
-          <a href="{{ ('/photos/' + post.id + '/') | url }}" class="neogram-card__media">
+          <a href="{{ rel }}/photos/{{ post.id }}/" class="neogram-card__media">
             <img
-              src="{{ (post.thumbnailPath or post.imagePath) | url }}"
+              src="{{ (post.thumbnailPath or post.imagePath) | mediaUrl(rel) }}"
               alt="{{ post.caption }}"
               class="neogram-card__image filter-{{ post.filterApplied or 'none' }}"
               loading="lazy"
@@ -142,7 +144,7 @@ title: Static Photo Stream
               <span class="neogram-card__likes">
                 <strong>{{ post.likes or 0 }}</strong> likes
               </span>
-              <a href="{{ ('/photos/' + post.id + '/') | url }}" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
+              <a href="{{ rel }}/photos/{{ post.id }}/" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
                 <span>View Details :&gt;</span>
               </a>
             </div>

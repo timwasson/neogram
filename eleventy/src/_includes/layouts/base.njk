@@ -6,15 +6,16 @@
   <title>{{ title or site.title }} - 90s Retro Static Gallery</title>
   <meta name="description" content="{{ site.description }}">
   
+  {% set rel = rootPath or '.' %}
   <!-- Retro Favicon & Touch Icons -->
-  <link rel="icon" type="image/x-icon" href="{{ '/favicon.ico' | url }}">
-  <link rel="icon" type="image/png" sizes="32x32" href="{{ '/favicon-32x32.png' | url }}">
-  <link rel="icon" type="image/png" sizes="16x16" href="{{ '/favicon-16x16.png' | url }}">
-  <link rel="apple-touch-icon" sizes="180x180" href="{{ '/apple-touch-icon.png' | url }}">
+  <link rel="icon" type="image/x-icon" href="{{ rel }}/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ rel }}/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ rel }}/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ rel }}/apple-touch-icon.png">
 
   <!-- Neogram Retro Framework (Pure Sass, Zero Tailwind) -->
-  <link rel="stylesheet" href="{{ '/css/neogram.css' | url }}">
-  <link rel="stylesheet" href="{{ '/embed/neogram-embed.css' | url }}">
+  <link rel="stylesheet" href="{{ rel }}/css/neogram.css">
+  <link rel="stylesheet" href="{{ rel }}/embed/neogram-embed.css">
   {% if site.customCssUrl %}
   <link rel="stylesheet" href="{{ site.customCssUrl }}">
   {% endif %}
@@ -37,10 +38,10 @@
           <span>🏠 Personal Website ↗</span>
         </a>
       {% endif %}
-      <a href="{{ '/' | url }}" class="neogram-btn neogram-btn--sm">
+      <a href="{{ rel }}/" class="neogram-btn neogram-btn--sm">
         <span>Gallery Grid</span>
       </a>
-      <a href="{{ '/friends/' | url }}" class="neogram-btn neogram-btn--sm">
+      <a href="{{ rel }}/friends/" class="neogram-btn neogram-btn--sm">
         <span>Friends Grid</span>
       </a>
       <a href="{{ site.apiUrl or 'http://localhost:4000' }}" target="_blank" rel="noopener noreferrer" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
@@ -83,7 +84,7 @@
   </footer>
 
   <!-- Retro Audio Engine -->
-  <script src="{{ '/js/retroAudio.js' | url }}"></script>
+  <script src="{{ rel }}/js/retroAudio.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       // Audio click handler for retro buttons
@@ -109,10 +110,10 @@
   </script>
 
   <!-- Optional Neogram Embed Layer -->
-  <script src="{{ '/embed/embed.js' | url }}" async></script>
+  <script src="{{ rel }}/embed/embed.js" async></script>
   {% if site.chatWidgetEnabled %}
   <!-- Neogram Retro Pager Chat Widget -->
-  <script src="{{ '/embed/pager.js' | url }}" data-station="{{ site.author }}" data-auto-init="true" async></script>
+  <script src="{{ rel }}/embed/pager.js" data-station="{{ site.author }}" data-auto-init="true" async></script>
   {% endif %}
 </body>
 </html>

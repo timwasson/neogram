@@ -56,6 +56,17 @@ export default function (eleventyConfig) {
     return str ? String(str).toUpperCase() : '';
   });
 
+  // Relative / absolute media URL resolver for static gallery portability
+  eleventyConfig.addFilter('mediaUrl', (urlStr, rootPath = '.') => {
+    if (!urlStr) return '';
+    if (urlStr.startsWith('http://') || urlStr.startsWith('https://') || urlStr.startsWith('data:')) {
+      return urlStr;
+    }
+    const clean = urlStr.replace(/^\/+/, '');
+    const prefix = (rootPath || '.').replace(/\/+$/, '');
+    return `${prefix}/${clean}`;
+  });
+
   const dirConfig = {
     input: 'eleventy/src',
     includes: '_includes',

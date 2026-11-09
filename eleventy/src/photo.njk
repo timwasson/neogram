@@ -5,13 +5,15 @@ pagination:
   alias: post
 permalink: "photos/{{ post.id }}/index.html"
 layout: "layouts/base.njk"
+rootPath: ../..
 eleventyComputed:
   title: "Photo by @{{ post.author }}"
 ---
+{% set rel = rootPath or '../..' %}
 
 <!-- Back Link to Static Gallery Grid -->
 <div class="neogram-nav-back">
-  <a href="{{ '/' | url }}" class="neogram-btn neogram-btn--yellow">
+  <a href="{{ rel }}/" class="neogram-btn neogram-btn--yellow">
     <span>← BACK TO PHOTO GALLERY GRID</span>
   </a>
   {% if site.baseSiteUrl and site.baseSiteUrl != site.neocitiesUrl %}
@@ -43,7 +45,7 @@ eleventyComputed:
               {% for pic in post.photos %}
                 <div class="neogram-slider__slide" id="slide-{{ post.id }}-{{ loop.index }}">
                   <img
-                    src="{{ pic.imagePath | url }}"
+                    src="{{ pic.imagePath | mediaUrl(rel) }}"
                     alt="{{ post.caption }} ({{ loop.index }}/{{ post.photos.length }})"
                     class="neogram-slider__image filter-{{ post.filterApplied or 'none' }}"
                     onerror="this.classList.add('neogram-img--broken'); if(this.parentElement) this.parentElement.classList.add('has-broken-image');"
@@ -63,7 +65,7 @@ eleventyComputed:
         {% else %}
           <div class="neogram-detail__viewport">
             <img
-              src="{{ post.imagePath | url }}"
+              src="{{ post.imagePath | mediaUrl(rel) }}"
               alt="{{ post.caption }}"
               class="neogram-detail__image filter-{{ post.filterApplied or 'none' }}"
               onerror="this.classList.add('neogram-img--broken'); if(this.parentElement) this.parentElement.classList.add('has-broken-image');"
@@ -195,7 +197,7 @@ eleventyComputed:
 
 <script>
   var API_BASE = '{{ site.apiUrl or "http://localhost:4000" }}';
-  var COMMENTS_JSON_URL = ('{{ post.imagePath | url }}').replace(/\.[a-zA-Z0-9]+$/, '.comments.json');
+  var COMMENTS_JSON_URL = ('{{ post.imagePath | mediaUrl(rel) }}').replace(/\.[a-zA-Z0-9]+$/, '.comments.json');
   var POST_ID = '{{ post.id }}';
 
   function escapeHtml(str) {

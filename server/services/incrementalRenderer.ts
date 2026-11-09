@@ -71,6 +71,16 @@ function createNunjucksEnv(pathPrefix: string): nunjucks.Environment {
 
   env.addFilter('url', createUrlFilter(pathPrefix));
 
+  env.addFilter('mediaUrl', (urlStr: string | undefined, rootPath: string = '.') => {
+    if (!urlStr) return '';
+    if (urlStr.startsWith('http://') || urlStr.startsWith('https://') || urlStr.startsWith('data:')) {
+      return urlStr;
+    }
+    const clean = urlStr.replace(/^\/+/, '');
+    const prefix = (rootPath || '.').replace(/\/+$/, '');
+    return `${prefix}/${clean}`;
+  });
+
   env.addFilter('formatDate', (dateStr: any) => {
     if (!dateStr) return '';
     try {
@@ -124,6 +134,7 @@ export async function renderPhotoPage(siteData: any, post: any): Promise<string>
   const context = {
     post,
     site: siteData,
+    rootPath: '../..',
   };
 
   const bodyHtml = env.renderString(templates.photo!, context);
@@ -133,6 +144,7 @@ export async function renderPhotoPage(siteData: any, post: any): Promise<string>
     ...context,
     content: bodyHtml,
     title,
+    rootPath: '../..',
   });
 }
 
@@ -147,6 +159,7 @@ export async function renderGalleryIndex(siteData: any, posts: any[]): Promise<s
   const context = {
     posts,
     site: siteData,
+    rootPath: '.',
   };
 
   const bodyHtml = env.renderString(templates.index!, context);
@@ -156,6 +169,7 @@ export async function renderGalleryIndex(siteData: any, posts: any[]): Promise<s
     ...context,
     content: bodyHtml,
     title,
+    rootPath: '.',
   });
 }
 
@@ -170,6 +184,7 @@ export async function renderFriendsPage(siteData: any, friendsPosts: any[]): Pro
   const context = {
     friendsPosts,
     site: siteData,
+    rootPath: '..',
   };
 
   const bodyHtml = env.renderString(templates.friends!, context);
@@ -179,6 +194,7 @@ export async function renderFriendsPage(siteData: any, friendsPosts: any[]): Pro
     ...context,
     content: bodyHtml,
     title,
+    rootPath: '..',
   });
 }
 

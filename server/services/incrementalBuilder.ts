@@ -114,7 +114,14 @@ async function resolveTargetContext(siteId?: string, userId?: string) {
     }
   }
 
-  const pathPrefix = rawDeployPath ? `/${rawDeployPath}/` : '/';
+  let pathPrefix = rawDeployPath ? `/${rawDeployPath}/` : '/';
+  try {
+    const parsedUrl = new URL(fullSiteUrl.startsWith('http') ? fullSiteUrl : `https://${fullSiteUrl}`);
+    const pathname = parsedUrl.pathname.replace(/\/+$/, '');
+    pathPrefix = pathname ? `${pathname}/` : '/';
+  } catch (_e) {
+    pathPrefix = rawDeployPath ? `/${rawDeployPath}/` : '/';
+  }
 
   const siteData = {
     title: targetSite?.name ? `${targetSite.name.toUpperCase()} // @${author.toUpperCase()}` : `@${author.toUpperCase()}'S STATIC PHOTO STREAM`,
@@ -124,6 +131,8 @@ async function resolveTargetContext(siteId?: string, userId?: string) {
     avatarUrl,
     description: 'Personal 90s retro static photo stream published via Neogram',
     neocitiesUrl: fullSiteUrl,
+    baseSiteUrl,
+    authorSiteUrl: baseSiteUrl,
     pathPrefix,
     apiUrl: config.appUrl || 'http://localhost:4000',
     systemMood: '[:> SURFING THE RETRO STATIC WEBRING]',
