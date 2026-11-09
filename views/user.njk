@@ -9,7 +9,7 @@
       <a href="/directory" class="text-mac hover:underline font-bold" onclick="if(window.retroAudio) retroAudio.playClick();">:&gt; CYBERSPACE_DIRECTORY</a>
       <span>/</span>
       <span class="text-prompt font-bold">@{{ profileUser.handle }}</span>
-      <span>[#{{ profileUser.uin }}]</span>
+      <span class="text-mac font-bold font-mono">[@{{ profileUser.uin }}]</span>
     </div>
     <div class="flex items-center gap-2">
       <a href="/directory" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2.5" onclick="if(window.retroAudio) retroAudio.playClick();">
@@ -42,20 +42,13 @@
 
         <div class="p-4 flex flex-col items-center text-center gap-3">
           <!-- Avatar Frame -->
-          <div class="relative">
+          <div>
             <img
               src="{{ profileUser.avatarPath }}"
               alt="@{{ profileUser.handle }} Avatar"
               class="w-32 h-32 pixel-box border-4 border-black object-cover bg-black"
               onerror="this.onerror=null;this.src='/icons/default-avatar.svg';"
             />
-            <div class="absolute -bottom-2 -right-2">
-              {% if profileUser.isAway %}
-                <span class="pixel-btn pixel-btn--sm font-bold text-xs py-0.5 px-1 bg-amber text-black flex items-center gap-1" title="Away"><span class="status-led status-led--away"></span> AWAY</span>
-              {% else %}
-                <span class="pixel-btn pixel-btn--green pixel-btn--sm font-bold text-xs py-0.5 px-1 flex items-center gap-1" title="Online"><span class="status-led status-led--online"></span> V.90</span>
-              {% endif %}
-            </div>
           </div>
 
           <!-- Handle & Callsign -->
@@ -64,21 +57,9 @@
               @{{ profileUser.handle }}
             </h1>
             <div class="flex items-center gap-2 flex-wrap justify-center">
-              <span class="pixel-btn pixel-btn--sm text-xs font-bold py-0.5 px-2 bg-window">
+              <span class="pixel-badge pixel-badge--cyan text-xs font-bold py-0.5 px-2 font-mono">
                 Node #{{ profileUser.uin }}
               </span>
-              {% if profileUser.cleanRootSiteUrl %}
-                <a
-                  href="{{ profileUser.cleanRootSiteUrl }}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xs font-bold py-0.5 px-2"
-                  title="Visit root website"
-                  onclick="if(window.retroAudio) retroAudio.playClick();"
-                >
-                  <span>Root Site ↗</span>
-                </a>
-              {% endif %}
             </div>
           </div>
 
@@ -108,19 +89,6 @@
             </div>
           </div>
 
-          <!-- Dynamic SVG Hit Counter -->
-          <div class="w-full flex flex-col items-center gap-1 pt-1">
-            <span class="text-[10px] text-muted font-bold tracking-wider uppercase">
-              DYNAMIC NODE HIT COUNTER
-            </span>
-            <img
-              src="/counter/{{ profileUser.uin }}.svg?style={{ profileUser.counterStyle }}"
-              alt="Hits for #{{ profileUser.uin }}"
-              class="border-2 border-main p-1 bg-black"
-              loading="lazy"
-            />
-          </div>
-
           <!-- Action Buttons / Links -->
           <div class="w-full flex flex-col gap-2 pt-2">
             <!-- Friend / Follow Action -->
@@ -138,10 +106,18 @@
               <div class="pixel-badge pixel-badge--cyan text-xxs font-bold py-1 px-2 text-center w-full">
                 THIS IS YOUR STATION
               </div>
+              <a
+                href="/#settings"
+                class="pixel-btn pixel-btn--sm text-xs font-bold py-2 w-full flex items-center justify-center gap-1.5"
+                onclick="if(window.retroAudio) retroAudio.playClick();"
+              >
+                <span>⚙ Edit Station Settings</span>
+              </a>
             {% else %}
               <a
-                href="/#upload"
+                href="/login"
                 class="pixel-btn pixel-btn--green text-xs font-bold py-2 w-full flex items-center justify-center gap-1.5"
+                onclick="if(window.retroAudio) retroAudio.playClick();"
               >
                 <span>+ Log In to Add Friend</span>
               </a>
@@ -155,7 +131,7 @@
                 class="pixel-btn pixel-btn--yellow text-xs font-bold py-2 w-full flex items-center justify-center gap-1"
                 onclick="if(window.retroAudio) retroAudio.playClick();"
               >
-                <span>Visit Personal Website: {{ profileUser.cleanRootSiteUrl }} ↗</span>
+                <span>Visit Personal Website ↗</span>
               </a>
             {% endif %}
 
@@ -170,13 +146,6 @@
                 <span>View Neogram Photo Gallery ↗</span>
               </a>
             {% endif %}
-
-            <a
-              href="/#chat"
-              class="pixel-btn text-xs font-bold py-2 w-full flex items-center justify-center gap-1"
-            >
-              <span>Open Neogram Instant Messenger (NIM)</span>
-            </a>
           </div>
 
           <!-- Station Metadata Footer -->
@@ -274,7 +243,7 @@
 
                     {% if post.filterApplied and post.filterApplied != 'none' %}
                       <div class="absolute top-1.5 left-1.5 z-10">
-                        <span class="pixel-btn pixel-btn--sm text-[10px] py-0 px-1 font-bold bg-black text-prompt border border-prompt">
+                        <span class="pixel-badge pixel-badge--green text-[10px] py-0.5 px-1.5 font-bold uppercase tracking-wider">
                           {{ post.filterApplied }}
                         </span>
                       </div>
@@ -308,6 +277,16 @@
                         onclick="if(window.retroAudio) retroAudio.playClick();"
                       >
                         <span>View &amp; Comment :&gt;</span>
+                      </a>
+                    {% elif post.imagePath %}
+                      <a
+                        href="{{ post.imagePath }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="pixel-btn pixel-btn--sm text-xs font-bold py-1 px-2 text-center mt-1 text-muted"
+                        onclick="if(window.retroAudio) retroAudio.playClick();"
+                      >
+                        <span>View Full Image ↗</span>
                       </a>
                     {% endif %}
                   </div>

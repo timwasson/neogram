@@ -34,9 +34,10 @@ export async function findUserByHandleOrId(identifier: string) {
     if (res.rows.length > 0) return res.rows[0];
   }
 
-  // 2. Check if identifier is a numeric UIN (e.g. 100101, 749210)
-  if (/^\d{3,10}$/.test(cleanId)) {
-    const byUin = await query('SELECT * FROM users WHERE uin = $1', [parseInt(cleanId, 10)]);
+  // 2. Check if identifier is a numeric UIN (e.g. 100101, @100101, #100101, 749210)
+  const cleanNum = cleanId.replace(/^[@#]/, '');
+  if (/^\d{3,10}$/.test(cleanNum)) {
+    const byUin = await query('SELECT * FROM users WHERE uin = $1', [parseInt(cleanNum, 10)]);
     if (byUin.rows.length > 0) return byUin.rows[0];
   }
 

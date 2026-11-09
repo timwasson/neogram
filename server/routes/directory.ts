@@ -144,7 +144,7 @@ export async function fetchCategorizedDirectory(): Promise<CategorizedDirectory>
       postCount,
       latestPostDate,
       latestThumbnail,
-      profileUrl: `/user/@${encodeURIComponent(handle)}`,
+      profileUrl: `/user/@${uin}`,
       siteUrl: row.siteUrl || undefined,
       galleryUrl,
       createdAt: row.createdAt,

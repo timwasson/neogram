@@ -359,7 +359,7 @@ async function runSmokeTests() {
       const indexContent = await fs.readFile(indexHtmlPath, 'utf-8');
       indexExists = true;
       hasAuthorHeader = indexContent.includes(testUser.handle.toUpperCase());
-      hasCorrectAssetPrefix = indexContent.includes('/photos/css/neogram.css') && indexContent.includes('/photos/embed/neogram-embed.css');
+      hasCorrectAssetPrefix = indexContent.includes('css/neogram.css') && indexContent.includes('embed/neogram-embed.css');
       hasEmbedAssets = await fs.stat(path.join(userGalleryDir, 'embed/neogram-embed.css')).then(() => true).catch(() => false);
       hasCardSlider = indexContent.includes('neogram-slider--card') && indexContent.includes('⧉ 3');
 
@@ -1306,9 +1306,17 @@ async function runSmokeTests() {
     // 18l. Public profile multi-site filter verification
     const userProfileRes = await fetch(`${API_BASE}/user/${testUser.handle}`);
     assertTest('Public GET /user/:handle returns HTTP 200', userProfileRes.status === 200);
+    const userProfileUinRes = await fetch(`${API_BASE}/user/@${testUser.uin}`);
+    assertTest('Public GET /user/@:uin returns HTTP 200', userProfileUinRes.status === 200);
+    const userProfileRawUinRes = await fetch(`${API_BASE}/user/${testUser.uin}`);
+    assertTest('Public GET /user/:uin returns HTTP 200', userProfileRawUinRes.status === 200);
     const userProfileHtml = await userProfileRes.text();
     assertTest('Public profile contains site filter chips', userProfileHtml.includes('filterUserPosts'));
     assertTest('Public profile lists Cyber Shrine 99', userProfileHtml.includes('Cyber Shrine 99'));
+    assertTest('Public profile does NOT contain removed Open NIM button', !userProfileHtml.includes('Open Neogram Instant Messenger'));
+    assertTest('Public profile does NOT contain removed dynamic hit counter', !userProfileHtml.includes('DYNAMIC NODE HIT COUNTER'));
+    assertTest('Public profile does NOT contain removed Root Site button', !userProfileHtml.includes('Root Site ↗'));
+    assertTest('Public profile does NOT contain removed V.90 badge', !userProfileHtml.includes('V.90'));
 
     // 18m. Unmount and delete secondary site
     const deleteSiteRes = await fetch(`${API_BASE}/api/sites/${secondarySiteId}`, {
