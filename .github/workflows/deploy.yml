@@ -13,6 +13,10 @@ jobs:
   validate:
     name: Typecheck & Build Validation
     runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      JWT_SECRET: testing-jwt-secret-with-at-least-32-characters
+      ENCRYPTION_SECRET: testing-encryption-secret-with-at-least-32-characters
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
