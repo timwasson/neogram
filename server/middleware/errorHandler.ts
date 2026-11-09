@@ -48,7 +48,8 @@ export function errorHandler(
 
   res.status(status).json({
     ok: false,
-    error: {
+    error: message,
+    details: {
       status,
       message,
     },

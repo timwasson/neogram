@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { testGitHubConnection } from '../services/githubPublisher';
+import { testGitHubConnection, parseRepoString } from '../services/githubPublisher';
 import { encryptCredentials, decryptCredentials, GitHubCredentials } from '../utils/crypto';
 
 export async function runGitHubPublisherTests() {
@@ -26,6 +26,24 @@ export async function runGitHubPublisherTests() {
   const emptyTokenRes = await testGitHubConnection('');
   assertTest('Rejects empty token', emptyTokenRes.ok === false);
   assertTest('Provides descriptive error for empty token', !!emptyTokenRes.error && emptyTokenRes.error.includes('cannot be empty'));
+
+  // 1b. Test command-like string rejection (e.g. "gh auth token | pbcopy")
+  const cmdTokenRes = await testGitHubConnection('gh auth token | pbcopy');
+  assertTest('Rejects command-like string in PAT field', cmdTokenRes.ok === false);
+  assertTest('Provides helpful hint about shell command', !!cmdTokenRes.error && cmdTokenRes.error.includes('shell command'));
+
+  // 1c. Test repository string parsing across diverse input formats
+  const parsed1 = parseRepoString('username.github.io/my-site');
+  assertTest('parseRepoString strips .github.io from username in username.github.io/my-site', parsed1.owner === 'username' && parsed1.repo === 'my-site');
+
+  const parsed2 = parseRepoString('https://username.github.io/my-site/');
+  assertTest('parseRepoString handles full https://username.github.io/my-site/ URL', parsed2.owner === 'username' && parsed2.repo === 'my-site');
+
+  const parsed3 = parseRepoString('https://github.com/username/my-site.git');
+  assertTest('parseRepoString handles https://github.com/username/my-site.git URL', parsed3.owner === 'username' && parsed3.repo === 'my-site');
+
+  const parsed4 = parseRepoString('my-site', 'fallbackUser');
+  assertTest('parseRepoString uses fallbackUser for bare repo', parsed4.owner === 'fallbackUser' && parsed4.repo === 'my-site');
 
   // 2. Test invalid token rejection (network call to api.github.com/user)
   const invalidTokenRes = await testGitHubConnection('ghp_invalid_token_1234567890abcdef');

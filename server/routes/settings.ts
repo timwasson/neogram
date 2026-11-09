@@ -296,12 +296,12 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
     const finalDeployType = deploymentType || existingUser.deployment_type || 'neocities';
     if (!finalSiteUrl && (creds.siteName || creds.repo)) {
       if (finalDeployType === 'github') {
-        const repoStr = creds.repo || creds.siteName;
-        if (repoStr.includes('/')) {
-          const [ghOwner, ghRepo] = repoStr.split('/');
-          finalSiteUrl = `https://${ghOwner}.github.io/${ghRepo}`;
-        } else {
-          finalSiteUrl = `https://${existingUser.handle || 'user'}.github.io/${repoStr}`;
+        const { parseRepoString } = await import('../services/githubPublisher');
+        const parsed = parseRepoString(creds.repo || creds.siteName || '', existingUser.handle || 'user');
+        if (parsed.repo) {
+          creds.repo = `${parsed.owner}/${parsed.repo}`;
+          creds.siteName = creds.repo;
+          finalSiteUrl = `https://${parsed.owner}.github.io/${parsed.repo}`;
         }
       } else {
         const hostDomain = finalDeployType === 'nekoweb' ? 'nekoweb.org' : 'neocities.org';

@@ -1578,7 +1578,7 @@
                               />
                             </div>
                             <div>
-                              <label class="block font-bold mb-1">API Key (Optional):</label>
+                              <label id="newSiteApiKeyLabel" class="block font-bold mb-1">API Key / Token (Optional):</label>
                               <input
                                 type="password"
                                 id="newSiteApiKey"
@@ -3552,10 +3552,15 @@
         body: formData
       });
 
-      var data = await res.json();
+      var data = await res.json().catch(function() { return {}; });
 
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Carrier transmission failed.');
+        var errorMsg = (typeof data.error === 'string' && data.error)
+          ? data.error
+          : ((data.error && typeof data.error.message === 'string' && data.error.message)
+            || (typeof data.message === 'string' && data.message)
+            || 'Carrier transmission failed.');
+        throw new Error(errorMsg);
       }
 
       await logStep('[:> TRANSMISSION SUCCESSFUL] Photo compiled and published live!', 500);
@@ -4578,6 +4583,14 @@
   function updateNewSiteProviderUI() {
     var type = document.getElementById('newSiteDeployType').value;
     var urlInput = document.getElementById('newSiteUrl');
+    var keyLabel = document.getElementById('newSiteApiKeyLabel');
+    var keyInput = document.getElementById('newSiteApiKey');
+    if (keyLabel) {
+      keyLabel.textContent = type === 'github' ? 'Personal Access Token (PAT):' : (type === 'nekoweb' ? 'Nekoweb API Key:' : 'Neocities API Key:');
+    }
+    if (keyInput) {
+      keyInput.placeholder = type === 'github' ? 'ghp_... or gho_...' : (type === 'none' ? 'None required' : 'API key for auto-deploy');
+    }
     if (!urlInput) return;
     if (type === 'nekoweb') {
       urlInput.placeholder = 'https://yoursite.nekoweb.org';

@@ -286,30 +286,40 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
 
     // 5. High-speed incremental build and delta deploy
     const isFirstDeploy = !targetSite.lastDeployedAt;
-    if (isFirstDeploy && hasApiKey) {
-      if (targetSite.deploymentType === 'nekoweb') {
-        const { deployToNekoweb } = await import('../services/nekowebPublisher');
-        await deployToNekoweb(targetSite.id, true);
-        console.log(`[:> INITIAL DEPLOY] Deployed baseline static assets to Nekoweb for site ${targetSite.id}`);
-      } else if (targetSite.deploymentType === 'github') {
-        const { deployToGitHub } = await import('../services/githubPublisher');
-        await deployToGitHub(targetSite.id, true);
-        console.log(`[:> INITIAL DEPLOY] Deployed baseline static assets to GitHub Pages for site ${targetSite.id}`);
+    try {
+      if (isFirstDeploy && hasApiKey) {
+        if (targetSite.deploymentType === 'nekoweb') {
+          const { deployToNekoweb } = await import('../services/nekowebPublisher');
+          await deployToNekoweb(targetSite.id, true);
+          console.log(`[:> INITIAL DEPLOY] Deployed baseline static assets to Nekoweb for site ${targetSite.id}`);
+        } else if (targetSite.deploymentType === 'github') {
+          const { deployToGitHub } = await import('../services/githubPublisher');
+          await deployToGitHub(targetSite.id, true);
+          console.log(`[:> INITIAL DEPLOY] Deployed baseline static assets to GitHub Pages for site ${targetSite.id}`);
+        } else {
+          const { deployToNeocities } = await import('../services/neocitiesPublisher');
+          await deployToNeocities(targetSite.id, true);
+          console.log(`[:> INITIAL DEPLOY] Deployed baseline static assets to Neocities for site ${targetSite.id}`);
+        }
       } else {
-        const { deployToNeocities } = await import('../services/neocitiesPublisher');
-        await deployToNeocities(targetSite.id, true);
-        console.log(`[:> INITIAL DEPLOY] Deployed baseline static assets to Neocities for site ${targetSite.id}`);
+        const { buildAndDeployNewPhoto } = await import('../services/incrementalBuilder');
+        await buildAndDeployNewPhoto({
+          siteId: targetSite.id,
+          userId: user.id,
+          postId: newPost.id,
+          imagePath: newPost.imagePath,
+          thumbnailPath: newPost.thumbnailPath,
+          photos: photosList,
+        });
       }
-    } else {
-      const { buildAndDeployNewPhoto } = await import('../services/incrementalBuilder');
-      await buildAndDeployNewPhoto({
-        siteId: targetSite.id,
-        userId: user.id,
-        postId: newPost.id,
-        imagePath: newPost.imagePath,
-        thumbnailPath: newPost.thumbnailPath,
-        photos: photosList,
+    } catch (deployErr: any) {
+      console.error(`[:> DEPLOY ERROR] Live deployment failed during publish for site ${targetSite.id}:`, deployErr);
+      const hostName = targetSite.deploymentType === 'github' ? 'GitHub Pages' : (targetSite.deploymentType === 'nekoweb' ? 'Nekoweb' : 'Neocities');
+      res.status(502).json({
+        ok: false,
+        error: `Photo processed and saved to local station, but deployment to ${hostName} failed: ${deployErr.message || 'Remote carrier error'}. Please check your credentials in Settings & Deploy.`,
       });
+      return;
     }
 
     // 6. Cascading rebuild of all friends/followers who follow this user

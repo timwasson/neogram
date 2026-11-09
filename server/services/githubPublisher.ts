@@ -57,14 +57,46 @@ async function githubFetch(
 
 /**
  * Helper to parse repository input into [owner, repoName]
+ * Supports:
+ * - "owner/repo"
+ * - "username.github.io/repo" or "https://username.github.io/repo/"
+ * - "https://github.com/owner/repo"
+ * - "username.github.io" (root user pages repo)
+ * - "repo" (uses fallbackOwner)
  */
-function parseRepoString(input: string, fallbackOwner: string = ''): { owner: string; repo: string } {
-  const trimmed = input.trim().replace(/^\/+|\/+$/g, '');
-  if (trimmed.includes('/')) {
-    const parts = trimmed.split('/');
-    return { owner: parts[0].trim(), repo: parts.slice(1).join('/').trim() };
+export function parseRepoString(input: string, fallbackOwner: string = ''): { owner: string; repo: string } {
+  if (!input || !input.trim()) {
+    return { owner: fallbackOwner, repo: '' };
   }
-  return { owner: fallbackOwner, repo: trimmed };
+  let cleaned = input.trim();
+  cleaned = cleaned.replace(/^https?:\/\//i, '');
+  cleaned = cleaned.replace(/\/+$/, '');
+  cleaned = cleaned.replace(/^github\.com\//i, '');
+  cleaned = cleaned.replace(/\.git$/i, '');
+
+  const ghPagesMatch = cleaned.match(/^([a-zA-Z0-9_\-\.]+)\.github\.io\/(.+)$/i);
+  if (ghPagesMatch) {
+    const owner = ghPagesMatch[1].replace(/\.github\.io$/i, '');
+    const repoPart = ghPagesMatch[2].split('/')[0].trim();
+    return { owner, repo: repoPart };
+  }
+
+  if (cleaned.toLowerCase().endsWith('.github.io')) {
+    const owner = cleaned.slice(0, -10).trim();
+    return { owner, repo: `${owner}.github.io` };
+  }
+
+  if (cleaned.includes('/')) {
+    const parts = cleaned.split('/');
+    let owner = parts[0].trim();
+    if (owner.toLowerCase().endsWith('.github.io')) {
+      owner = owner.slice(0, -10);
+    }
+    const repo = parts[1].trim();
+    return { owner, repo };
+  }
+
+  return { owner: fallbackOwner, repo: cleaned };
 }
 
 /**
@@ -78,6 +110,14 @@ export async function testGitHubConnection(
   try {
     if (!token || !token.trim()) {
       return { ok: false, error: 'GitHub Personal Access Token (PAT) cannot be empty.' };
+    }
+
+    if (/\s|\||\bauth\b/i.test(token.trim())) {
+      return {
+        ok: false,
+        error:
+          'Invalid GitHub token format: It appears a shell command (e.g. "gh auth token") was entered instead of the token value. Please paste the Personal Access Token string itself (e.g. ghp_... or gho_...).',
+      };
     }
 
     // 1. Verify user authentication

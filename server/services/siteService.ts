@@ -317,10 +317,20 @@ export async function createSite(userId: string, input: CreateSiteInput): Promis
   // Encrypt credentials if apiKey provided
   let encryptedCreds: Buffer | null = null;
   if (input.apiKey && input.apiKey.trim()) {
+    let resolvedSiteName = input.siteName || (input.siteUrl ? input.siteUrl.replace(/https?:\/\//, '').replace(/\.(neocities|nekoweb)\.org.*$/, '') : handle);
+    let resolvedRepo = input.repo || input.siteName;
+
+    if (deploymentType === 'github') {
+      const { parseRepoString } = await import('./githubPublisher');
+      const parsed = parseRepoString(input.repo || input.siteName || input.siteUrl || handle, handle);
+      resolvedRepo = parsed.repo ? `${parsed.owner}/${parsed.repo}` : `${handle}/${slug}`;
+      resolvedSiteName = resolvedRepo;
+    }
+
     const creds: any = {
       apiKey: input.apiKey.trim(),
-      siteName: input.siteName || (input.siteUrl ? input.siteUrl.replace(/https?:\/\//, '').replace(/\.(neocities|nekoweb)\.org.*$/, '') : handle),
-      repo: input.repo || input.siteName,
+      siteName: resolvedSiteName,
+      repo: resolvedRepo,
       branch: input.branch || 'gh-pages',
     };
     encryptedCreds = encryptCredentials(creds);
@@ -429,6 +439,19 @@ export async function updateSite(siteId: string, userId: string, input: UpdateSi
   if (input.branch) {
     creds.branch = input.branch.trim();
     credsChanged = true;
+  }
+
+  if (deploymentType === 'github' && (creds.repo || creds.siteName)) {
+    const { parseRepoString } = await import('./githubPublisher');
+    const parsed = parseRepoString(creds.repo || creds.siteName, existing.handle || 'user');
+    if (parsed.repo) {
+      const canonicalRepo = parsed.owner ? `${parsed.owner}/${parsed.repo}` : parsed.repo;
+      if (creds.repo !== canonicalRepo || creds.siteName !== canonicalRepo) {
+        creds.repo = canonicalRepo;
+        creds.siteName = canonicalRepo;
+        credsChanged = true;
+      }
+    }
   }
 
   if (credsChanged) {
