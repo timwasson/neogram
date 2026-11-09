@@ -336,6 +336,18 @@ export async function buildAndDeployNewPhoto(options: {
       { relativePath: 'posts.json', absolutePath: postsJsonPath },
     ];
 
+    // 4b. Capture counter snapshot to data/counter.json if user has a counter configured
+    const { getCounterRelativePath, getCounterSnapshot } = await import('./staticStorage');
+    const counterSnapshot = await getCounterSnapshot(siteId, userId, postId);
+    if (counterSnapshot) {
+      const relCounterPath = getCounterRelativePath();
+      const counterLocalPath = path.join(outputDir, relCounterPath);
+      await fs.mkdir(path.dirname(counterLocalPath), { recursive: true });
+      await fs.writeFile(counterLocalPath, JSON.stringify(counterSnapshot, null, 2), 'utf-8');
+      deltaFiles.push({ relativePath: relCounterPath, absolutePath: counterLocalPath });
+      console.log(`[:> INCREMENTAL BUILD] Counter snapshot captured at hit ${counterSnapshot.hits} -> ${relCounterPath}`);
+    }
+
     if (shouldBuildHtml && newPost) {
       // A. Render new photo detail page
       const photoHtml = await renderPhotoPage(siteData, newPost);

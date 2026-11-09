@@ -4350,6 +4350,8 @@
           authorHtml = '<a href="/user/@' + encodeURIComponent(entry.visitorName) + '" target="_blank" class="font-bold text-mac hover:underline">@' + escapeHtml(entry.visitorName) + '</a>' + uinBadge;
         }
 
+        var visitorBadge = entry.visitorNumber ? ' <span class="text-prompt font-bold text-3xs">[Visitor #' + entry.visitorNumber + ']</span>' : '';
+
         var metaParts = [];
         if (entry.visitorLocation && entry.visitorLocation !== 'Cyberspace') metaParts.push(escapeHtml(entry.visitorLocation));
         var metaStr = metaParts.length ? (' <span class="text-muted text-3xs">(' + metaParts.join(', ') + ')</span>') : '';
@@ -4358,6 +4360,7 @@
           '<div class="flex items-center justify-between border-b border-main pb-1">' +
             '<div class="flex items-center gap-1.5 flex-wrap">' +
               authorHtml +
+              visitorBadge +
               metaStr +
             '</div>' +
             '<button type="button" onclick="deleteGuestbookEntry(\'' + escapeHtml(entry.id) + '\', this)" class="text-crimson font-bold text-xs hover:underline" title="Delete signature">[Delete]</button>' +

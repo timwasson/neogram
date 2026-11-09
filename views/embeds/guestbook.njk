@@ -92,6 +92,9 @@
                   <span class="neogram-guestbook__item-date">[#{{ entry.uin }}]</span>
                 {% endif %}
               {% endif %}
+              {% if entry.visitorNumber %}
+                <span class="neogram-guestbook__item-date">[Visitor #{{ entry.visitorNumber }}]</span>
+              {% endif %}
               <span class="neogram-guestbook__item-date">{{ entry.createdAt | formatDate }}</span>
             </div>
             <p class="neogram-guestbook__item-message">{{ entry.message }}</p>
@@ -307,10 +310,12 @@
               var uinBadge = (pass && pass.uin) ? ' <span class="neogram-guestbook__item-date">[#' + pass.uin + ']</span>' : '';
               authorHtml = '<a href="/user/@' + encodeURIComponent(authorName) + '" target="_blank" rel="noopener noreferrer" class="neogram-guestbook__item-author-link">@' + escapeHtml(authorName) + '</a>' + uinBadge;
             }
+            var visitorBadge = (data.entry && data.entry.visitorNumber) ? ' <span class="neogram-guestbook__item-date">[Visitor #' + data.entry.visitorNumber + ']</span>' : '';
 
             card.innerHTML =
               '<div class="neogram-guestbook__item-header">' +
                 authorHtml +
+                visitorBadge +
                 '<span class="neogram-guestbook__item-date">Just now</span>' +
               '</div>' +
               '<p class="neogram-guestbook__item-message">' + escapeHtml(payload.message) + '</p>';

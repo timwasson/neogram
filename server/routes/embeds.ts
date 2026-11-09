@@ -308,7 +308,8 @@ embedsRouter.get(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:slu
       const entriesRes = await query(
         `SELECT id, visitor_name as "visitorName", visitor_website as "visitorWebsite", 
                 visitor_location as "visitorLocation", mood_icon as "moodIcon", 
-                message, is_anonymous as "isAnonymous", is_moderated as "isModerated", created_at as "createdAt"
+                message, is_anonymous as "isAnonymous", is_moderated as "isModerated", created_at as "createdAt",
+                visitor_number as "visitorNumber"
          FROM guestbook_entries
          WHERE site_id = $1 OR (user_id = $2 AND site_id IS NULL)
          ORDER BY created_at DESC`,
@@ -516,7 +517,12 @@ embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:sl
       }
     }
 
-    const { appendGuestbookEntry } = await import('../services/staticStorage');
+    const { appendGuestbookEntry, getCounterSnapshot, getCounterRelativePath, writeRemoteJson } = await import('../services/staticStorage');
+    
+    // Check if host site has a counter configured; capture visitor milestone hit
+    const counterSnapshot = await getCounterSnapshot(targetSite.id, hostUser.id);
+    const visitorNumber = counterSnapshot ? counterSnapshot.hits : undefined;
+
     const entry = await appendGuestbookEntry(targetSite, {
       visitorName: finalVisitorName,
       uin: finalUin,
@@ -525,12 +531,20 @@ embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:sl
       visitorWebsite: cleanWebsite || undefined,
       moodIcon: moodIcon || '😎',
       message: message.trim(),
+      visitorNumber,
     });
+
+    // If counter is configured, also trigger an updated data/counter.json snapshot on their static host
+    if (counterSnapshot) {
+      writeRemoteJson(targetSite, getCounterRelativePath(), counterSnapshot).catch((err) => {
+        console.warn('[:> GUESTBOOK] Could not push counter.json snapshot:', err);
+      });
+    }
 
     // Mirror to database table with site_id for backwards compatibility & audit
     await query(
-      `INSERT INTO guestbook_entries (id, user_id, site_id, visitor_name, visitor_website, visitor_location, mood_icon, message, is_anonymous)
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO guestbook_entries (id, user_id, site_id, visitor_name, visitor_website, visitor_location, mood_icon, message, is_anonymous, visitor_number)
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9)
        ON CONFLICT DO NOTHING`,
       [
         hostUser.id,
@@ -541,6 +555,7 @@ embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:sl
         (moodIcon || '😎').slice(0, 10),
         message.trim().slice(0, 1000),
         isAnonymous,
+        visitorNumber || null,
       ]
     ).catch(() => {});
 
@@ -1056,7 +1071,8 @@ embedsRouter.get(['/embed/guestbook/:identifier', '/embed/guestbook/:identifier/
       const entriesRes = await query(
         `SELECT id, visitor_name as "visitorName", visitor_website as "visitorWebsite", 
                 visitor_location as "visitorLocation", mood_icon as "moodIcon", 
-                message, is_anonymous as "isAnonymous", created_at as "createdAt"
+                message, is_anonymous as "isAnonymous", created_at as "createdAt",
+                visitor_number as "visitorNumber"
          FROM guestbook_entries
          WHERE site_id = $1 OR (user_id = $2 AND site_id IS NULL)
          ORDER BY created_at DESC`,

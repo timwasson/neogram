@@ -282,3 +282,33 @@ describe('atomicFile: Mutex and writeFileAtomic', () => {
     }
   });
 });
+
+describe('staticStorage: getCounterRelativePath', () => {
+  test('resolves relative path for counter snapshot in data/ directory', async () => {
+    const { getCounterRelativePath, getGuestbookRelativePath } = await import('../services/staticStorage');
+    assert.equal(getCounterRelativePath(), 'data/counter.json');
+    assert.equal(getGuestbookRelativePath(), 'data/guestbook.json');
+  });
+
+  test('appendGuestbookEntry stores and preserves visitorNumber milestone', async () => {
+    const { appendGuestbookEntry } = await import('../services/staticStorage');
+    const mockUser = {
+      id: 'test-user-' + Date.now(),
+      handle: 'cyber_voyager',
+      deploy_path: 'neogram',
+    };
+
+    const entry = await appendGuestbookEntry(mockUser, {
+      visitorName: 'GuestSurfer',
+      message: 'Greetings from the retro web!',
+      visitorNumber: 1337,
+    });
+
+    assert.equal(entry.visitorName, 'GuestSurfer');
+    assert.equal(entry.visitorNumber, 1337);
+
+    // Clean up test files
+    const localDir = path.join(process.cwd(), 'dist/static-galleries', mockUser.id);
+    fs.rmSync(localDir, { recursive: true, force: true });
+  });
+});

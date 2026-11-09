@@ -760,6 +760,17 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
     await fs.writeFile(feedJsonOutPath, JSON.stringify(feedData, null, 2), 'utf-8');
     await fs.writeFile(postsJsonOutPath, JSON.stringify(formattedPosts, null, 2), 'utf-8');
 
+    // Capture counter snapshot to data/counter.json if user has a counter configured
+    const { getCounterRelativePath, getCounterSnapshot } = await import('./staticStorage');
+    const counterSnapshot = await getCounterSnapshot(targetSite?.id || siteId, effectiveUserId);
+    if (counterSnapshot) {
+      const relCounterPath = getCounterRelativePath();
+      const counterLocalPath = path.join(targetOutputDir, relCounterPath);
+      await fs.mkdir(path.dirname(counterLocalPath), { recursive: true });
+      await fs.writeFile(counterLocalPath, JSON.stringify(counterSnapshot, null, 2), 'utf-8');
+      console.log(`[:> STATIC-BUILD] Counter snapshot written (${counterSnapshot.hits} hits) -> ${relCounterPath}`);
+    }
+
     // 7. Invoke Eleventy builder or Headless API mode
     if (shouldBuildHtml) {
       const inputDir = path.join(process.cwd(), 'eleventy/src');

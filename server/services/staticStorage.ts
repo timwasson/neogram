@@ -50,6 +50,55 @@ export function getGuestbookRelativePath(): string {
 }
 
 /**
+ * Returns clean relative file path for a user's visitor counter snapshot JSON.
+ */
+export function getCounterRelativePath(): string {
+  return 'data/counter.json';
+}
+
+export interface CounterSnapshot {
+  version: string;
+  hits: number;
+  style: string;
+  updatedAt: string;
+  lastPhotoId?: string;
+}
+
+/**
+ * Retrieves the current counter snapshot for a site/user if a counter is configured in web_counters.
+ * Returns null if no counter has been initialized.
+ */
+export async function getCounterSnapshot(
+  siteId?: string,
+  userId?: string,
+  postId?: string
+): Promise<CounterSnapshot | null> {
+  if (!siteId && !userId) return null;
+  const { query } = await import('../db');
+  const counterRes = await query(
+    `SELECT hits, style 
+     FROM web_counters 
+     WHERE site_id = $1 OR (user_id = $2 AND site_id IS NULL)
+     ORDER BY site_id NULLS LAST 
+     LIMIT 1`,
+    [siteId || null, userId || null]
+  );
+
+  if (counterRes.rows.length === 0) {
+    return null;
+  }
+
+  const row = counterRes.rows[0];
+  return {
+    version: 'neogram-counter-v1',
+    hits: parseInt(row.hits, 10),
+    style: row.style || 'green_led',
+    updatedAt: new Date().toISOString(),
+    ...(postId ? { lastPhotoId: postId } : {}),
+  };
+}
+
+/**
  * Helper to resolve the clean deploy path prefix configured for a user.
  */
 export function getDeployPathPrefix(user: any): string {
@@ -332,6 +381,7 @@ export interface GuestbookItem {
   moodIcon: string;
   message: string;
   createdAt: string;
+  visitorNumber?: number;
 }
 
 export interface GuestbookPayload {
@@ -354,6 +404,7 @@ export async function appendGuestbookEntry(
     visitorWebsite?: string;
     moodIcon?: string;
     message: string;
+    visitorNumber?: number;
   }
 ): Promise<GuestbookItem> {
   const relPath = getGuestbookRelativePath();
@@ -379,6 +430,7 @@ export async function appendGuestbookEntry(
       moodIcon: entryData.moodIcon || '😎',
       message: entryData.message.trim().slice(0, 1000),
       createdAt: new Date().toISOString(),
+      ...(entryData.visitorNumber !== undefined ? { visitorNumber: entryData.visitorNumber } : {}),
     };
 
     const updatedEntries = Array.isArray(existing.entries) ? existing.entries : [];

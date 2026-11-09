@@ -124,6 +124,7 @@ CREATE TABLE guestbook_entries (
     message TEXT NOT NULL,
     is_anonymous BOOLEAN DEFAULT FALSE,
     is_moderated BOOLEAN DEFAULT FALSE,
+    visitor_number BIGINT, -- Counter hit milestone snapshot (Migration 019)
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -704,6 +705,23 @@ The following matrix documents all server routes, auth requirements, and functio
 - **Post Store Concurrency:** All read-modify-write operations on static JSON data (`posts.json`, `feed.json`, comments) must serialize through the per-station `Mutex` and write via `writeFileAtomic` to prevent data corruption or partial reads under load.
 - **Like De-Duplication & Debounced Deployment:** Likes are recorded in the `post_likes` table (keyed by post ID and user ID or hashed visitor IP). Background static site deployments triggered by like events are debounced with a 20-second coalescing window (`server/services/likeDebouncer.ts`).
 - **Fail-Closed Configuration:** If `NODE_ENV` is unset or blank, the system fails closed and treats the runtime as `production`. Development-only conveniences (such as `ALLOW_DEMO_OTP` and memory DB fallback) are strictly disabled in production.
+
+### 4.32 Web Hit Counters, Sovereign Snapshots (`data/counter.json`), & Guestbook Visitor Numbers
+- **Atomic Database Counter Buffer (`web_counters`):**
+  - Hit counts are tracked in PostgreSQL via `web_counters` (keyed by `site_id`, `hits BIGINT`, `style VARCHAR`).
+  - Strict O(1) storage invariant: each site has exactly one row regardless of traffic volume. Updates execute as in-place PostgreSQL HOT (Heap-Only Tuple) increments without page bloat.
+  - Serves dynamic SVG counters via `/counter/:identifier.svg` and `/counter/:identifier/:slug.svg` with strict no-cache headers in <15ms.
+- **Sovereign Static Host Backup (`data/counter.json`):**
+  - To honor IndieWeb data sovereignty without subjecting visitors or static hosts to WAN read-modify-write latency and API rate limits, Neogram maintains a snapshot JSON file (`data/counter.json`) deployed alongside `data/guestbook.json` in the user's deploy directory (`<deploy_path>/data/counter.json`).
+  - Snapshots are captured and deployed exclusively during intentional, low-frequency events:
+    1. **Photo Publications:** When a photo is published (both incremental delta deploys via `incrementalBuilder.ts` and full Eleventy static compilations via `staticBuilder.ts`), `getCounterSnapshot()` captures `{ version, hits, style, updatedAt, lastPhotoId }` and bundles it into the deployment payload.
+    2. **Guestbook Signatures:** When a visitor submits a signature (`POST /api/guestbook/:identifier`), Neogram captures the current hit count, attaches it to the guestbook entry as `visitorNumber`, and pushes an updated `data/counter.json` snapshot to the remote host via `writeRemoteJson()`.
+- **Zero-Leak Invariant (No "Visitor #0"):**
+  - If a creator has not configured or initialized a hit counter for a site, `getCounterSnapshot()` returns `null`.
+  - In this state:
+    - No `data/counter.json` is generated or uploaded.
+    - `visitorNumber` is strictly omitted from `data/guestbook.json` entries and set to `null` in the database mirror.
+    - Both the guestbook template (`views/embeds/guestbook.njk`) and Workstation UI (`views/index.njk`) guard on `{% if entry.visitorNumber %}` / `if (entry.visitorNumber)`. If absent, null, or zero, the badge is suppressed entirely—ensuring unconfigured stations never render a placeholder or "Visitor #0".
 
 ---
 
