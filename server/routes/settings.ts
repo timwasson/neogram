@@ -665,7 +665,10 @@ settingsRouter.post('/settings/test-connection', async (req: Request, res: Respo
 settingsRouter.post('/deploy/neocities', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).user.userId;
-    const deployResult = await deployToNeocities(userId);
+    const reqSiteId = req.body?.siteId || (req.query?.siteId as string);
+    const targetId = reqSiteId || userId;
+    const isSiteId = Boolean(reqSiteId);
+    const deployResult = await deployToNeocities(targetId, isSiteId);
     res.json({
       ok: true,
       message: deployResult.message,
@@ -687,7 +690,10 @@ settingsRouter.post('/deploy/neocities', async (req: Request, res: Response, nex
 settingsRouter.post('/deploy/nekoweb', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).user.userId;
-    const deployResult = await deployToNekoweb(userId);
+    const reqSiteId = req.body?.siteId || (req.query?.siteId as string);
+    const targetId = reqSiteId || userId;
+    const isSiteId = Boolean(reqSiteId);
+    const deployResult = await deployToNekoweb(targetId, isSiteId);
     res.json({
       ok: true,
       message: deployResult.message,
@@ -709,7 +715,10 @@ settingsRouter.post('/deploy/nekoweb', async (req: Request, res: Response, next:
 settingsRouter.post('/deploy/github', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).user.userId;
-    const deployResult = await deployToGitHub(userId);
+    const reqSiteId = req.body?.siteId || (req.query?.siteId as string);
+    const targetId = reqSiteId || userId;
+    const isSiteId = Boolean(reqSiteId);
+    const deployResult = await deployToGitHub(targetId, isSiteId);
     res.json({
       ok: true,
       message: deployResult.message,
