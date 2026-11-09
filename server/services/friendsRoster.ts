@@ -66,6 +66,28 @@ export async function getFriendsRoster(userId: string, opts: { withPostCounts?: 
 
   return Promise.all(
     friendsRes.rows.map(async (r: any) => {
+      let siteUrl = r.siteUrl;
+      let deployPath = r.deployPath;
+      let siteId = r.siteId;
+      let lastDeployedAt = r.lastDeployedAt;
+
+      // If default site wasn't matched or has an invalid neocities guess with underscores, find user's primary configured site
+      const hasInvalidNeocitiesSubdomain = siteUrl && siteUrl.includes('.neocities.org') && siteUrl.replace(/^https?:\/\//, '').split('.neocities.org')[0].includes('_');
+      if (!siteUrl || hasInvalidNeocitiesSubdomain) {
+        try {
+          const fallbackSite = await query(
+            'SELECT id, site_url, deploy_path, last_deployed_at FROM sites WHERE user_id = $1 ORDER BY is_default DESC, last_deployed_at DESC NULLS LAST, created_at ASC LIMIT 1',
+            [r.id]
+          );
+          if (fallbackSite.rows.length > 0 && fallbackSite.rows[0].site_url) {
+            siteId = fallbackSite.rows[0].id;
+            siteUrl = fallbackSite.rows[0].site_url;
+            deployPath = fallbackSite.rows[0].deploy_path || 'neogram';
+            lastDeployedAt = fallbackSite.rows[0].last_deployed_at;
+          }
+        } catch (_e) {}
+      }
+
       const active = activeSockets.get(r.id);
       let status: string = 'inactive';
       let statusMessage: string = r.statusMessage || 'Surfing cyberspace';
@@ -78,12 +100,16 @@ export async function getFriendsRoster(userId: string, opts: { withPostCounts?: 
 
       return {
         ...r,
+        siteUrl,
+        deployPath,
+        siteId,
+        lastDeployedAt,
         status,
         statusMessage,
         postCount: opts.withPostCounts ? await getPostCountForUser(r.id) : 0,
         avatarPath: r.avatarPath && r.avatarPath.trim() ? r.avatarPath : '/icons/default-avatar.svg',
         profileUrl: `/user/@${encodeURIComponent(r.handle)}`,
-        cleanRootSiteUrl: cleanRootUrl(r.siteUrl),
+        cleanRootSiteUrl: cleanRootUrl(siteUrl),
       } as RosterFriend;
     })
   );

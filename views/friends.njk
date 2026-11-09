@@ -208,7 +208,7 @@
             <!-- Photo Viewport -->
             <div class="relative bg-black border-b border-main overflow-hidden flex items-center justify-center crt-scanlines">
               <a
-                href="{{ post.livePhotoUrl or (post.galleryUrl + 'photos/' + post.id + '/') if (post.livePhotoUrl or post.galleryUrl) else ('https://' + post.author + '.neocities.org/neogram/photos/' + post.id + '/') }}"
+                href="{{ post.livePhotoUrl or (post.galleryUrl + 'photos/' + post.id + '/') if (post.livePhotoUrl or post.galleryUrl) else ('/user/@' + post.author + '#photo-' + post.id) }}"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="block w-full"

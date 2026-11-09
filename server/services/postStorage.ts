@@ -193,6 +193,28 @@ async function hydratePostsWithUserAndSiteInfo(posts: PostRecord[]): Promise<Pos
           p.siteUrl = rawSiteUrl;
         }
       }
+
+      // Ground truth fallback: extract static site host from uploaded image URL if not set
+      if (!p.livePhotoUrl) {
+        const candidateImg = p.imagePath || p.imageUrl || '';
+        if (candidateImg.startsWith('http://') || candidateImg.startsWith('https://')) {
+          try {
+            const parsed = new URL(candidateImg);
+            const host = parsed.hostname.toLowerCase();
+            if (host !== 'neogram.club' && host !== 'localhost' && host !== '127.0.0.1' && !host.includes('app.github.dev')) {
+              const parts = parsed.pathname.split('/').filter(Boolean);
+              const uploadsIdx = parts.indexOf('uploads');
+              let deployPrefix = '';
+              if (uploadsIdx > 0) {
+                deployPrefix = '/' + parts.slice(0, uploadsIdx).join('/');
+              }
+              p.siteUrl = `${parsed.protocol}//${parsed.host}`;
+              p.galleryUrl = `${parsed.protocol}//${parsed.host}${deployPrefix}/`;
+              p.livePhotoUrl = `${parsed.protocol}//${parsed.host}${deployPrefix}/photos/${p.id}/`;
+            }
+          } catch {}
+        }
+      }
     }
   } catch (_e) {
     // If DB is offline, return posts as-is

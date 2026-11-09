@@ -86,8 +86,16 @@ export interface FriendTarget {
  */
 export function resolveFeedUrl(friend: FriendTarget): string {
   let base = (friend.siteUrl || '').trim().replace(/\/+$/, '');
+  // Ignore handle-based neocities guesses that contain invalid characters like underscores
+  if (base.endsWith('.neocities.org')) {
+    const sub = base.replace(/^https?:\/\//, '').replace(/\.neocities\.org$/, '');
+    if (sub.includes('_')) {
+      base = '';
+    }
+  }
   if (!base) {
-    base = `https://${friend.handle}.neocities.org`;
+    const cleanHandle = (friend.handle || 'user').replace(/[^a-zA-Z0-9-]/g, '');
+    base = `https://${cleanHandle || 'user'}.neocities.org`;
   }
   if (base.toLowerCase().endsWith('/feed.json')) {
     return base;
@@ -115,28 +123,56 @@ export function resolvePhotoPageUrl(
   siteUrl?: string,
   imageUrl?: string
 ): string {
-  if (galleryUrl && galleryUrl.trim()) {
-    const clean = galleryUrl.trim().replace(/\/+$/, '').replace(/\/photos$/, '');
-    return `${clean}/photos/${postId}/`;
-  }
-  if (siteUrl && siteUrl.trim()) {
-    const clean = siteUrl.trim().replace(/\/+$/, '').replace(/\/photos$/, '');
-    return `${clean}/photos/${postId}/`;
-  }
+  // 1. Primary Ground Truth: Extract from imageUrl or imagePath if it points to an external static host
+  // e.g. https://chemicalmachine.neocities.org/neogram/uploads/images/1794197165547-qslfc2v.webp
   if (imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
     try {
       const parsed = new URL(imageUrl);
-      const parts = parsed.pathname.split('/').filter(Boolean);
-      const uploadsIdx = parts.indexOf('uploads');
-      let deployPrefix = '';
-      if (uploadsIdx > 0) {
-        deployPrefix = '/' + parts.slice(0, uploadsIdx).join('/');
+      const host = parsed.hostname.toLowerCase();
+      if (host !== 'neogram.club' && host !== 'localhost' && host !== '127.0.0.1' && !host.includes('app.github.dev')) {
+        const parts = parsed.pathname.split('/').filter(Boolean);
+        const uploadsIdx = parts.indexOf('uploads');
+        let deployPrefix = '';
+        if (uploadsIdx > 0) {
+          deployPrefix = '/' + parts.slice(0, uploadsIdx).join('/');
+        }
+        return `${parsed.protocol}//${parsed.host}${deployPrefix}/photos/${postId}/`;
       }
-      return `${parsed.protocol}//${parsed.host}${deployPrefix}/photos/${postId}/`;
     } catch (_e) {}
   }
-  const cleanAuthor = (author || 'user').trim().toLowerCase().replace(/^@/, '');
-  return `https://${cleanAuthor}.neocities.org/neogram/photos/${postId}/`;
+
+  // Helper to validate that a URL is a real configured site, not a bogus handle-based neocities guess with underscores
+  const isValidStationUrl = (urlStr?: string): boolean => {
+    if (!urlStr || typeof urlStr !== 'string' || !urlStr.trim()) return false;
+    try {
+      const u = new URL(urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
+      const h = u.hostname.toLowerCase();
+      if (h === 'neogram.club' || h === 'localhost' || h === '127.0.0.1') return false;
+      if (h.endsWith('.neocities.org')) {
+        const sub = h.replace(/\.neocities\.org$/, '');
+        if (sub.includes('_')) return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // 2. Configured galleryUrl
+  if (galleryUrl && isValidStationUrl(galleryUrl)) {
+    const clean = galleryUrl.trim().replace(/\/+$/, '').replace(/\/photos$/, '');
+    return `${clean}/photos/${postId}/`;
+  }
+
+  // 3. Configured siteUrl
+  if (siteUrl && isValidStationUrl(siteUrl)) {
+    const clean = siteUrl.trim().replace(/\/+$/, '').replace(/\/photos$/, '');
+    return `${clean}/photos/${postId}/`;
+  }
+
+  // 4. Default fallback: Station profile on Neogram
+  const cleanAuthor = (author || 'user').trim().replace(/^@/, '');
+  return `/user/@${encodeURIComponent(cleanAuthor)}#photo-${postId}`;
 }
 
 /**
@@ -225,10 +261,13 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
       }
 
       const siteRes = await query(
-        'SELECT id FROM sites WHERE user_id = $1 ORDER BY is_default DESC, created_at ASC LIMIT 1',
+        'SELECT id, site_url, deploy_path FROM sites WHERE user_id = $1 ORDER BY is_default DESC, last_deployed_at DESC NULLS LAST, created_at ASC LIMIT 1',
         [friend.id]
       );
       if (siteRes.rows.length > 0) {
+        if (siteRes.rows[0].site_url) friend.siteUrl = siteRes.rows[0].site_url;
+        if (siteRes.rows[0].deploy_path) friend.deployPath = siteRes.rows[0].deploy_path;
+        if (siteRes.rows[0].id) friend.siteId = siteRes.rows[0].id;
         const sitePath = path.join(process.cwd(), 'dist/static-galleries', siteRes.rows[0].id, 'feed.json');
         if (existsSync(sitePath)) {
           const content = await fs.readFile(sitePath, 'utf-8');
