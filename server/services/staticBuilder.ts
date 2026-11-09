@@ -736,6 +736,9 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
           likeUrl: `${baseNeogramUrl}/api/posts/${post.id}/like`,
           commentUrl: `${baseNeogramUrl}/api/posts/${post.id}/comments`,
         },
+        siteUrl: post.siteUrl || baseSiteUrl,
+        galleryUrl: post.galleryUrl || `${fullSiteUrl}/`,
+        livePhotoUrl: post.livePhotoUrl || `${fullSiteUrl}/photos/${post.id}/`,
       };
     });
 

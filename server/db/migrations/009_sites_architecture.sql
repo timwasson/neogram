@@ -61,8 +61,7 @@ SELECT
     TRUE,
     last_deployed_at
 FROM users
-WHERE id NOT IN (SELECT user_id FROM sites WHERE user_id IS NOT NULL)
-  AND (SELECT COUNT(*) FROM sites) = 0;
+WHERE NOT EXISTS (SELECT 1 FROM sites);
 
 -- Backfill site_id on existing posts
 UPDATE posts

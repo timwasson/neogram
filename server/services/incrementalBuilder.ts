@@ -268,6 +268,9 @@ async function fetchFormattedPosts(siteId?: string, userId?: string, fullSiteUrl
         likeUrl: `${baseNeogramUrl}/api/posts/${post.id}/like`,
         commentUrl: `${baseNeogramUrl}/api/posts/${post.id}/comments`,
       },
+      siteUrl: post.siteUrl || fullSiteUrl,
+      galleryUrl: post.galleryUrl || (fullSiteUrl ? `${fullSiteUrl}/` : ''),
+      livePhotoUrl: post.livePhotoUrl || (fullSiteUrl ? `${fullSiteUrl}/photos/${post.id}/` : (imageUrl || post.imagePath)),
     };
   });
 }

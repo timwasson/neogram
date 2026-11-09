@@ -181,8 +181,14 @@ async function hydratePostsWithUserAndSiteInfo(posts: PostRecord[]): Promise<Pos
           const cleanDeploy = String(rawDeploy).trim().replace(/^\/+|\/+$/g, '');
 
           p.siteUrl = `${parsed.protocol}//${parsed.host}`;
-          p.galleryUrl = cleanDeploy ? `${cleanBase}/${cleanDeploy}/` : `${cleanBase}/`;
-          p.livePhotoUrl = cleanDeploy ? `${cleanBase}/${cleanDeploy}/photos/${p.id}/` : `${cleanBase}/photos/${p.id}/`;
+          const deployAlreadyInBase = cleanDeploy && cleanBase.toLowerCase().endsWith(`/${cleanDeploy.toLowerCase()}`);
+          if (cleanDeploy && !deployAlreadyInBase) {
+            p.galleryUrl = `${cleanBase}/${cleanDeploy}/`;
+            p.livePhotoUrl = `${cleanBase}/${cleanDeploy}/photos/${p.id}/`;
+          } else {
+            p.galleryUrl = `${cleanBase}/`;
+            p.livePhotoUrl = `${cleanBase}/photos/${p.id}/`;
+          }
         } catch {
           p.siteUrl = rawSiteUrl;
         }

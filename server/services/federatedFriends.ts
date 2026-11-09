@@ -25,6 +25,8 @@ export interface FeedPost {
   commentsCount?: number;
   comments?: any[];
   commentsUrl?: string;
+  galleryUrl?: string;
+  livePhotoUrl?: string;
   actions?: {
     likeUrl?: string;
     commentUrl?: string;
@@ -63,6 +65,8 @@ export interface FriendFeedPost extends FeedPost {
   authorUin?: number;
   authorAvatar?: string;
   authorSiteUrl?: string;
+  galleryUrl?: string;
+  livePhotoUrl?: string;
   profileUrl?: string;
 }
 
@@ -100,6 +104,42 @@ export function resolveFeedUrl(friend: FriendTarget): string {
 }
 
 /**
+ * Resolves the canonical external static photo PAGE URL for any post.
+ * Always resolves to the HTML photo page (e.g. https://<author>.neocities.org/<deploy>/photos/<id>/),
+ * never a raw image asset.
+ */
+export function resolvePhotoPageUrl(
+  postId: string,
+  author: string,
+  galleryUrl?: string,
+  siteUrl?: string,
+  imageUrl?: string
+): string {
+  if (galleryUrl && galleryUrl.trim()) {
+    const clean = galleryUrl.trim().replace(/\/+$/, '').replace(/\/photos$/, '');
+    return `${clean}/photos/${postId}/`;
+  }
+  if (siteUrl && siteUrl.trim()) {
+    const clean = siteUrl.trim().replace(/\/+$/, '').replace(/\/photos$/, '');
+    return `${clean}/photos/${postId}/`;
+  }
+  if (imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
+    try {
+      const parsed = new URL(imageUrl);
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      const uploadsIdx = parts.indexOf('uploads');
+      let deployPrefix = '';
+      if (uploadsIdx > 0) {
+        deployPrefix = '/' + parts.slice(0, uploadsIdx).join('/');
+      }
+      return `${parsed.protocol}//${parsed.host}${deployPrefix}/photos/${postId}/`;
+    } catch (_e) {}
+  }
+  const cleanAuthor = (author || 'user').trim().toLowerCase().replace(/^@/, '');
+  return `https://${cleanAuthor}.neocities.org/neogram/photos/${postId}/`;
+}
+
+/**
  * Normalizes post objects from a user's feed.json so both imageUrl and imagePath
  * are fully-qualified and available for any template or consumer.
  */
@@ -109,9 +149,31 @@ function mapFeedPosts(data: UserFeedPayload, friend: FriendTarget): FriendFeedPo
   const authorAvatar = data.user?.avatarUrl || friend.avatarPath;
   const authorSiteUrl = data.user?.fullSiteUrl || friend.siteUrl;
 
+  const rawBase = (data.user?.fullSiteUrl || friend.siteUrl || '').trim().replace(/\/+$/, '');
+  const deploy = (friend.deployPath || data.user?.deployPath || '').trim().replace(/^\/+|\/+$/g, '');
+  let defaultGalleryUrl = '';
+  if (rawBase) {
+    if (deploy && !rawBase.toLowerCase().endsWith(`/${deploy.toLowerCase()}`)) {
+      defaultGalleryUrl = `${rawBase}/${deploy}/`;
+    } else {
+      defaultGalleryUrl = `${rawBase}/`;
+    }
+  }
+
   return (data.posts || []).map((p) => {
     const imageUrl = p.imageUrl || p.imagePath || '';
     const thumbnailUrl = p.thumbnailUrl || p.thumbnailPath || imageUrl;
+    const galleryUrl = (p as any).galleryUrl || defaultGalleryUrl || friend.siteUrl;
+    let livePhotoUrl = (p as any).livePhotoUrl;
+    if (livePhotoUrl && (livePhotoUrl.endsWith('.webp') || livePhotoUrl.endsWith('.jpg') || livePhotoUrl.endsWith('.png') || !livePhotoUrl.includes('/photos/'))) {
+      livePhotoUrl = '';
+    }
+    if (!livePhotoUrl) {
+      livePhotoUrl = resolvePhotoPageUrl(p.id, author, galleryUrl, authorSiteUrl, imageUrl);
+    } else {
+      livePhotoUrl = livePhotoUrl.replace(/\/photos\/photos\//g, '/photos/');
+    }
+
     return {
       ...p,
       imageUrl,
@@ -124,6 +186,8 @@ function mapFeedPosts(data: UserFeedPayload, friend: FriendTarget): FriendFeedPo
       authorUin,
       authorAvatar,
       authorSiteUrl,
+      galleryUrl,
+      livePhotoUrl,
       profileUrl: `/user/@${encodeURIComponent(author)}`,
     };
   });
@@ -179,18 +243,33 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
       const { getPostsForUser } = await import('./postStorage');
       const userPosts = await getPostsForUser(friend.id);
       if (userPosts && userPosts.length > 0) {
-        return userPosts.map((p) => ({
-          ...p,
-          imageUrl: p.imageUrl || p.imagePath,
-          thumbnailUrl: p.thumbnailUrl || p.thumbnailPath || p.imageUrl || p.imagePath,
-          filter: p.filterApplied || 'none',
-          author: p.author || friend.handle,
-          authorHandle: friend.handle,
-          authorUin: friend.uin,
-          authorAvatar: friend.avatarPath,
-          authorSiteUrl: friend.siteUrl,
-          profileUrl: `/user/@${encodeURIComponent(friend.handle)}`,
-        }));
+        return userPosts.map((p) => {
+          const author = p.author || friend.handle;
+          const galleryUrl = p.galleryUrl || friend.siteUrl;
+          let livePhotoUrl = p.livePhotoUrl;
+          if (livePhotoUrl && (livePhotoUrl.endsWith('.webp') || livePhotoUrl.endsWith('.jpg') || livePhotoUrl.endsWith('.png') || !livePhotoUrl.includes('/photos/'))) {
+            livePhotoUrl = '';
+          }
+          if (!livePhotoUrl) {
+            livePhotoUrl = resolvePhotoPageUrl(p.id, author, galleryUrl, friend.siteUrl, p.imageUrl || p.imagePath);
+          } else {
+            livePhotoUrl = livePhotoUrl.replace(/\/photos\/photos\//g, '/photos/');
+          }
+          return {
+            ...p,
+            imageUrl: p.imageUrl || p.imagePath,
+            thumbnailUrl: p.thumbnailUrl || p.thumbnailPath || p.imageUrl || p.imagePath,
+            filter: p.filterApplied || 'none',
+            author,
+            authorHandle: friend.handle,
+            authorUin: friend.uin,
+            authorAvatar: friend.avatarPath,
+            authorSiteUrl: friend.siteUrl,
+            galleryUrl,
+            livePhotoUrl,
+            profileUrl: `/user/@${encodeURIComponent(friend.handle)}`,
+          };
+        });
       }
     } catch (_localErr) {}
     return null;

@@ -208,9 +208,12 @@
             <!-- Photo Viewport -->
             <div class="relative bg-black border-b border-main overflow-hidden flex items-center justify-center crt-scanlines">
               <a
-                href="/user/@{{ post.author }}"
+                href="{{ post.livePhotoUrl or (post.galleryUrl + 'photos/' + post.id + '/') if (post.livePhotoUrl or post.galleryUrl) else ('https://' + post.author + '.neocities.org/neogram/photos/' + post.id + '/') }}"
+                target="_blank"
+                rel="noopener noreferrer"
                 class="block w-full"
-                onclick="if(window.retroAudio) retroAudio.playClick();"
+                title="Open photo page on static host"
+                onclick="if(typeof openInNativeBrowser === 'function') return openInNativeBrowser(event, this.href); if(window.retroAudio) retroAudio.playClick();"
               >
                 <img
                   src="{{ post.thumbnailUrl or post.imageUrl or post.thumbnailPath or post.imagePath }}"

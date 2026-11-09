@@ -91,6 +91,7 @@
 
   // Global exports
   window.openSmartHandoff = openSmartHandoff;
+  window.openInNativeBrowser = openSmartHandoff;
   window.isPWAStandalone = isPWAStandalone;
 
   // Intercept click events for external links when running inside PWA
