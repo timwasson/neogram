@@ -46,6 +46,7 @@ export interface QaFleet {
   arcade?: QaAgent;
   pixel?: QaAgent;
   synth?: QaAgent;
+  cyberpunk?: QaAgent;
 }
 
 export interface PollOptions {
@@ -145,6 +146,7 @@ export async function loadQaFleet(): Promise<QaFleet> {
     arcade: agents.find((a) => a.handle.toLowerCase() === 'qa_arcade'),
     pixel: agents.find((a) => a.handle.toLowerCase() === 'qa_pixel'),
     synth: agents.find((a) => a.handle.toLowerCase() === 'qa_synth'),
+    cyberpunk: agents.find((a) => a.handle.toLowerCase() === 'qa_cyberpunk'),
   };
 }
 
@@ -223,6 +225,15 @@ async function provisionLocalQaPersonas(baseUrl: string): Promise<QaAgent[]> {
       slug: 'main',
       siteUrl: 'https://timwasson.github.io/neogramtest/',
       deploymentType: 'github',
+      buildHtml: true,
+    },
+    {
+      handle: 'qa_cyberpunk',
+      email: 'qa_cyberpunk@qa.neogram.club',
+      siteName: 'neogramtest',
+      slug: 'main',
+      siteUrl: 'https://neogramtest.neocities.org',
+      deploymentType: 'neocities',
       buildHtml: true,
     },
   ];

@@ -589,10 +589,10 @@ adminRouter.post(
 
         const cyberpunkId = await ensureQaAccount('qa_cyberpunk', 'QA Cyberpunk Terminal Hacker', [
           {
-            name: 'Cyberpunk Matrix Deck',
+            name: 'neogramtest',
             slug: 'main',
             deploymentType: 'neocities',
-            siteUrl: 'https://qa-cyberpunk.neocities.org',
+            siteUrl: 'https://neogramtest.neocities.org',
             deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,
