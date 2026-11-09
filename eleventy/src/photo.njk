@@ -92,7 +92,7 @@ eleventyComputed:
         <!-- Author & Caption -->
         <div class="neogram-detail__author-box">
           <div class="neogram-detail__author-meta">
-            <a href="{{ site.apiUrl or 'https://neogram.club' }}/user/@{{ post.author }}" target="_blank" rel="noopener noreferrer" class="neogram-detail__author-handle hover:underline" title="View @{{ post.author }} on Neogram">@{{ post.author }}</a>
+            <a href="{{ site.apiUrl or 'https://neogram.club' }}/user/{{ post.authorUin or post.uin or post.author }}" target="_blank" rel="noopener noreferrer" class="neogram-detail__author-handle hover:underline" title="View @{{ post.author }} on Neogram">@{{ post.author }}</a>
             <span class="neogram-detail__author-date">{{ post.createdAt | formatDate }}</span>
           </div>
           <p class="neogram-detail__caption">
@@ -130,7 +130,7 @@ eleventyComputed:
                 <div class="neogram-comments__item" data-comment-id="{{ comment.id }}">
                   <div class="neogram-comments__item-header">
                     <span class="neogram-comments__item-author">
-                      <a href="{{ site.apiUrl or 'https://neogram.club' }}/user/{{ comment.userId or comment.author }}" target="_blank" class="neogram-comments__author-link" title="View @{{ comment.author }} on Neogram">@{{ comment.author }}</a>
+                      <a href="{{ site.apiUrl or 'https://neogram.club' }}/user/{{ comment.uin or comment.userId or comment.author }}" target="_blank" class="neogram-comments__author-link" title="View @{{ comment.author }} on Neogram">@{{ comment.author }}</a>
                       {% if comment.uin %}<span class="text-muted font-normal">[#{{ comment.uin }}]</span>{% endif %}
                       {% if comment.siteUrl %}
                         <a href="{{ comment.siteUrl }}" target="_blank" rel="noopener" class="neogram-comments__site-link" title="Visit {{ comment.author }}'s personal site ({{ comment.siteUrl }})">[Site ↗]</a>
@@ -454,7 +454,7 @@ eleventyComputed:
         var siteLinkHtml = isSafeUrl
           ? ' <a href="' + escapeHtml(String(c.siteUrl).trim()) + '" target="_blank" rel="noopener noreferrer" class="neogram-comments__site-link" title="Visit personal website">[Site ↗]</a>'
           : '';
-        var profileUrl = API_BASE + '/user/' + encodeURIComponent(c.userId || c.author || '');
+        var profileUrl = API_BASE + '/user/' + encodeURIComponent(c.uin || c.userId || c.author || '');
         var authorLinkHtml = '<a href="' + escapeHtml(profileUrl) + '" target="_blank" class="neogram-comments__author-link" title="View @' + safeAuthor + ' on Neogram">@' + safeAuthor + '</a>';
 
         item.innerHTML =

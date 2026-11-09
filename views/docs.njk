@@ -254,7 +254,7 @@
                   <div>
                     <h3 class="font-bold text-prompt m-0 uppercase text-xs">Snap, Filter &amp; Publish (Sandbox or Live)</h3>
                     <p class="text-muted m-0 mt-1">
-                      In the <strong>↑ Upload Studio</strong>, snap a photo on your phone or upload an image. Pick an authentic retro filter (like <em>CRT Phosphor</em> or <em>16-Color VGA</em>), write a caption, and hit <strong>Transmit</strong>. Neogram immediately publishes your photo to your public station profile (<code>/user/@yourhandle</code>) even before connecting external hosting!
+                      In the <strong>↑ Upload Studio</strong>, snap a photo on your phone or upload an image. Pick an authentic retro filter (like <em>CRT Phosphor</em> or <em>16-Color VGA</em>), write a caption, and hit <strong>Transmit</strong>. Neogram immediately publishes your photo to your public station profile (<code>/user/:uin</code>) even before connecting external hosting!
                     </p>
                   </div>
                 </div>
@@ -805,7 +805,7 @@
                 </button>
               </div>
               <pre class="docs-code-pre" id="codeCounterLink">&lt;!-- Clickable Hit Counter linking to Cyberspace Station Profile --&gt;
-&lt;a href="{{ appUrl }}/user/@{{ stationHandle }}" target="_blank" rel="noopener noreferrer" title="View Station Telemetry on Neogram"&gt;
+&lt;a href="{{ appUrl }}/user/{{ stationUin or stationHandle }}" target="_blank" rel="noopener noreferrer" title="View Station Telemetry on Neogram"&gt;
   &lt;img src="{{ appUrl }}/counter/{{ stationHandle }}.svg?style=green_led" alt="Hit Counter" /&gt;
 &lt;/a&gt;</pre>
             </div>
@@ -1409,7 +1409,7 @@ body.neogram-site {
               </p>
               <ol class="list-decimal list-inside text-xs space-y-2 text-muted pl-2">
                 <li>
-                  <strong>Public Station Profiles (<code>/user/:identifier</code>):</strong> When logged in, click the green <code>[Add Friend]</code> button on any creator's profile page.
+                  <strong>Public Station Profiles (<code>/user/:uin</code>):</strong> When logged in, click the green <code>[Add Friend]</code> button on any creator's profile page.
                 </li>
                 <li>
                   <strong>Static Neocities Gallery Header (<code>index.html</code>):</strong> Every static Neogram gallery banner features a <code>[Add Friend]</code> button. If you've connected your Cyber-Pass, 1-click adds that creator as a friend directly from their Neocities site!

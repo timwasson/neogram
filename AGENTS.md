@@ -528,7 +528,7 @@ CREATE TABLE post_likes (
     - Immutable numeric Node UID (`UID: #uin`).
     - Station status broadcast message.
     - Public photo transmission count.
-    - Clickable profile link to `/user/@handle`.
+    - Clickable profile link to `/user/:uin`.
   - Direct topnav links for both authenticated workstations and logged-out public visitors, plus quick launcher in the user dropdown menu and guest hero section.
 
 ### 4.25 Cyberspace Documentation Center & Embed Manual (`/docs` & `docs/`)

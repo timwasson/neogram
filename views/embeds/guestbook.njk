@@ -80,11 +80,11 @@
                 <span class="neogram-guestbook__item-author">{{ entry.visitorName }}</span>
               {% else %}
                 <a
-                  href="/user/@{{ entry.visitorName }}"
+                  href="/user/{{ entry.uin or entry.visitorName }}"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="neogram-guestbook__item-author-link"
-                  title="View @{{ entry.visitorName }} on Neogram"
+                  title="View Station on Neogram"
                 >
                   @{{ entry.visitorName }}
                 </a>
@@ -327,7 +327,8 @@
             } else {
               var authorName = pass ? pass.handle : (data.entry ? data.entry.visitorName : finalName);
               var uinBadge = (pass && pass.uin) ? ' <span class="neogram-guestbook__item-date">[#' + pass.uin + ']</span>' : '';
-              authorHtml = '<a href="/user/@' + encodeURIComponent(authorName) + '" target="_blank" rel="noopener noreferrer" class="neogram-guestbook__item-author-link">@' + escapeHtml(authorName) + '</a>' + uinBadge;
+              var authorTarget = (pass && pass.uin) ? pass.uin : (data.entry && data.entry.uin ? data.entry.uin : encodeURIComponent(authorName));
+              authorHtml = '<a href="/user/' + authorTarget + '" target="_blank" rel="noopener noreferrer" class="neogram-guestbook__item-author-link">@' + escapeHtml(authorName) + '</a>' + uinBadge;
             }
             var visitorBadge = (data.entry && data.entry.visitorNumber) ? ' <span class="neogram-guestbook__item-date">[Visitor #' + data.entry.visitorNumber + ']</span>' : '';
 

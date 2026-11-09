@@ -71,7 +71,7 @@ Place this snippet anywhere in your site's HTML (footer, sidebar, or bio box):
 #### Option C: Linked Counter with Workstation Telemetry
 ```html
 <!-- Clickable Hit Counter linking to your Station Profile -->
-<a href="https://neogram.club/user/@your_handle" target="_blank" title="View Station Telemetry on Neogram">
+<a href="https://neogram.club/user/100101" target="_blank" title="View Station Telemetry on Neogram">
   <img src="https://neogram.club/counter/your_handle.svg?style=red_nixie" alt="Hit Counter" />
 </a>
 ```

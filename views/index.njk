@@ -230,12 +230,12 @@
                         <!-- Card Header -->
                         <div class="window-header flex items-center justify-between p-2 text-xs">
                           <a
-                            href="/user/@{{ post.author }}"
+                            href="{{ post.profileUrl or ('/user/' + (post.uin or post.authorUin or post.author)) }}"
                             class="flex items-center gap-1.5 font-bold text-mac hover:underline truncate"
                             onclick="if(window.retroAudio) retroAudio.playClick();"
                           >
                             <span>@{{ post.author }}</span>
-                            {% if post.uin %}<span class="text-muted font-normal text-xxs">[#{{ post.uin }}]</span>{% endif %}
+                            {% if post.uin or post.authorUin %}<span class="text-muted font-normal text-xxs">[#{{ post.uin or post.authorUin }}]</span>{% endif %}
                           </a>
                           <span class="pixel-badge pixel-badge--cyan text-xxs font-bold uppercase shrink-0">
                             {{ post.filterApplied or 'RAW' }}
@@ -245,7 +245,7 @@
                         <!-- Photo Viewport with Retro 404 Fallback -->
                         <div class="relative bg-black border-b border-main overflow-hidden flex items-center justify-center crt-scanlines retro-photo-viewport">
                           <a
-                            href="{{ post.livePhotoUrl or (post.galleryUrl + 'photos/' + post.id + '/') if (post.livePhotoUrl or post.galleryUrl) else ('/user/@' + post.author + '#photo-' + post.id) }}"
+                            href="{{ post.livePhotoUrl or (post.galleryUrl + 'photos/' + post.id + '/') if (post.livePhotoUrl or post.galleryUrl) else ((post.profileUrl or ('/user/' + (post.uin or post.authorUin or post.author))) + '#photo-' + post.id) }}"
                             target="_blank"
                             rel="noopener noreferrer"
                             class="block w-full"
@@ -306,7 +306,7 @@
                                   </a>
                                 {% endif %}
                                 <a
-                                  href="/user/@{{ post.author }}"
+                                  href="{{ post.profileUrl or ('/user/' + (post.uin or post.authorUin or post.author)) }}"
                                   class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xxs font-bold py-0.5 px-2"
                                   onclick="if(window.retroAudio) retroAudio.playClick();"
                                 >
@@ -1016,7 +1016,7 @@
 
                         <div class="flex items-center gap-2 flex-wrap">
                           <a
-                            href="{% if post.livePhotoUrl %}{{ post.livePhotoUrl }}{% elif activeSite and activeSite.siteUrl %}{{ activeSite.siteUrl }}/{{ activeSite.deployPath or 'neogram' }}/photos/{{ post.id }}/{% else %}/user/@{{ currentUser.handle or 'wasson' }}{% endif %}"
+                            href="{% if post.livePhotoUrl %}{{ post.livePhotoUrl }}{% elif activeSite and activeSite.siteUrl %}{{ activeSite.siteUrl }}/{{ activeSite.deployPath or 'neogram' }}/photos/{{ post.id }}/{% else %}/user/{{ currentUser.uin }}{% endif %}"
                             target="_blank"
                             rel="noopener"
                             class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs"
@@ -1027,7 +1027,7 @@
                           <button
                             type="button"
                             class="pixel-btn pixel-btn--sm font-bold text-xs"
-                            data-url="{% if post.livePhotoUrl %}{{ post.livePhotoUrl }}{% elif activeSite and activeSite.siteUrl %}{{ activeSite.siteUrl }}/{{ activeSite.deployPath or 'neogram' }}/photos/{{ post.id }}/{% else %}/user/@{{ currentUser.handle or 'wasson' }}{% endif %}"
+                            data-url="{% if post.livePhotoUrl %}{{ post.livePhotoUrl }}{% elif activeSite and activeSite.siteUrl %}{{ activeSite.siteUrl }}/{{ activeSite.deployPath or 'neogram' }}/photos/{{ post.id }}/{% else %}/user/{{ currentUser.uin }}{% endif %}"
                             onclick="copyPostWebUrl(this.getAttribute('data-url'), this)"
                             title="Copy live URL to clipboard"
                           >
@@ -1365,7 +1365,7 @@
                               />
                             </div>
                             <span class="text-xs text-muted block mt-1.5 leading-relaxed">
-                              3–30 lowercase letters, numbers, underscores, or hyphens. Your station profile URL is anchored to your immutable UIN (<code>/user/@{{ currentUser.uin }}</code>) so it never breaks even if you change your call-sign.
+                              3–30 lowercase letters, numbers, underscores, or hyphens. Your station profile URL is anchored to your immutable UIN (<code>/user/{{ currentUser.uin }}</code>) so it never breaks even if you change your call-sign.
                             </span>
                           </div>
                         </div>
@@ -3582,7 +3582,7 @@
       var finalHost = baseSite || (userHandle ? ('https://' + userHandle + '.neocities.org') : '');
       var photoUrl = (!isSandbox && finalHost && data.post && data.post.id) ? (finalHost.replace(/\/+$/, '') + (deployFolder ? ('/' + deployFolder) : '') + '/photos/' + data.post.id + '/') : '';
       var galleryUrl = (!isSandbox && finalHost) ? (finalHost.replace(/\/+$/, '') + (deployFolder ? ('/' + deployFolder + '/') : '/')) : '';
-      var stationUrl = userHandle ? ('/user/' + userHandle) : '/user';
+      var stationUrl = '{{ currentUser.uin }}' ? ('/user/{{ currentUser.uin }}') : (userHandle ? ('/user/' + userHandle) : '/user');
 
       var actions = '<div class="flex items-center gap-2 flex-wrap mt-2">';
       if (isSandbox) {
@@ -4355,7 +4355,8 @@
           authorHtml = '<span class="font-bold">' + escapeHtml(entry.visitorName) + '</span> <span class="text-muted text-3xs">[Guest]</span>';
         } else {
           var uinBadge = entry.uin ? ' <span class="text-muted font-normal text-3xs">[#' + entry.uin + ']</span>' : '';
-          authorHtml = '<a href="/user/@' + encodeURIComponent(entry.visitorName) + '" target="_blank" class="font-bold text-mac hover:underline">@' + escapeHtml(entry.visitorName) + '</a>' + uinBadge;
+          var profileTarget = entry.uin ? entry.uin : encodeURIComponent(entry.visitorName);
+          authorHtml = '<a href="/user/' + profileTarget + '" target="_blank" class="font-bold text-mac hover:underline">@' + escapeHtml(entry.visitorName) + '</a>' + uinBadge;
         }
 
         var visitorBadge = entry.visitorNumber ? ' <span class="text-prompt font-bold text-3xs">[Visitor #' + entry.visitorNumber + ']</span>' : '';
@@ -5707,7 +5708,7 @@
         card.className = 'retro-card p-2 text-xs flex flex-col gap-1 border border-main bg-window';
         card.id = 'comment-card-' + c.id;
         var uinBadge = c.uin ? ' <span class="text-muted font-normal">[#' + c.uin + ']</span>' : '';
-        var profileUrl = '/user/' + (c.userId || encodeURIComponent(c.author));
+        var profileUrl = '/user/' + (c.uin || c.userId || encodeURIComponent(c.author));
         var cleanSite = sanitizeUrl(c.siteUrl);
         var siteLink = cleanSite ? ' <a href="' + escapeHtml(cleanSite) + '" target="_blank" rel="noopener noreferrer" class="text-xs underline" title="Visit personal website">[Site ↗]</a>' : '';
         var timeStr = '';

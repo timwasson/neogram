@@ -100,7 +100,7 @@
       for (var i = 0; i < posts.length; i++) {
         var p = posts[i];
         var author = p.author || p.authorHandle || 'station';
-        var profileUrl = p.profileUrl || (apiHost + '/user/@' + encodeURIComponent(author));
+        var profileUrl = p.profileUrl || (apiHost + '/user/' + encodeURIComponent(p.authorUin || p.uin || author));
         var filter = p.filter || p.filterApplied || 'none';
         var imgUrl = p.thumbnailUrl || p.imageUrl || p.thumbnailPath || p.imagePath || '';
 

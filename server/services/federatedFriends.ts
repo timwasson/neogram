@@ -121,7 +121,8 @@ export function resolvePhotoPageUrl(
   author: string,
   galleryUrl?: string,
   siteUrl?: string,
-  imageUrl?: string
+  imageUrl?: string,
+  authorUin?: number | string
 ): string {
   // 1. Primary Ground Truth: Extract from imageUrl or imagePath if it points to an external static host
   // e.g. https://chemicalmachine.neocities.org/neogram/uploads/images/1794197165547-qslfc2v.webp
@@ -172,7 +173,8 @@ export function resolvePhotoPageUrl(
 
   // 4. Default fallback: Station profile on Neogram
   const cleanAuthor = (author || 'user').trim().replace(/^@/, '');
-  return `/user/@${encodeURIComponent(cleanAuthor)}#photo-${postId}`;
+  const profileTarget = authorUin ? String(authorUin) : cleanAuthor;
+  return `/user/${encodeURIComponent(profileTarget)}#photo-${postId}`;
 }
 
 /**
@@ -205,7 +207,7 @@ function mapFeedPosts(data: UserFeedPayload, friend: FriendTarget): FriendFeedPo
       livePhotoUrl = '';
     }
     if (!livePhotoUrl) {
-      livePhotoUrl = resolvePhotoPageUrl(p.id, author, galleryUrl, authorSiteUrl, imageUrl);
+      livePhotoUrl = resolvePhotoPageUrl(p.id, author, galleryUrl, authorSiteUrl, imageUrl, authorUin);
     } else {
       livePhotoUrl = livePhotoUrl.replace(/\/photos\/photos\//g, '/photos/');
     }
@@ -224,7 +226,7 @@ function mapFeedPosts(data: UserFeedPayload, friend: FriendTarget): FriendFeedPo
       authorSiteUrl,
       galleryUrl,
       livePhotoUrl,
-      profileUrl: `/user/@${encodeURIComponent(author)}`,
+      profileUrl: authorUin ? `/user/${authorUin}` : `/user/${encodeURIComponent(author)}`,
     };
   });
 }
@@ -306,7 +308,7 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
             authorSiteUrl: friend.siteUrl,
             galleryUrl,
             livePhotoUrl,
-            profileUrl: `/user/@${encodeURIComponent(friend.handle)}`,
+            profileUrl: friend.uin ? `/user/${friend.uin}` : `/user/${encodeURIComponent(friend.handle)}`,
           };
         });
       }

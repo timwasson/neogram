@@ -193,12 +193,12 @@
             <!-- Card Header -->
             <div class="window-header flex items-center justify-between p-2 text-xs">
               <a
-                href="/user/@{{ post.author }}"
+                href="{{ post.profileUrl or ('/user/' + (post.uin or post.authorUin or post.author)) }}"
                 class="flex items-center gap-1.5 font-bold text-mac hover:underline truncate"
                 onclick="if(window.retroAudio) retroAudio.playClick();"
               >
                 <span>@{{ post.author }}</span>
-                {% if post.uin %}<span class="text-muted font-normal text-xxs">[#{{ post.uin }}]</span>{% endif %}
+                {% if post.uin or post.authorUin %}<span class="text-muted font-normal text-xxs">[#{{ post.uin or post.authorUin }}]</span>{% endif %}
               </a>
               <span class="pixel-badge pixel-badge--cyan text-xxs font-bold uppercase shrink-0">
                 {{ post.filterApplied or 'RAW' }}
@@ -208,7 +208,7 @@
             <!-- Photo Viewport -->
             <div class="relative bg-black border-b border-main overflow-hidden flex items-center justify-center crt-scanlines">
               <a
-                href="{{ post.livePhotoUrl or (post.galleryUrl + 'photos/' + post.id + '/') if (post.livePhotoUrl or post.galleryUrl) else ('/user/@' + post.author + '#photo-' + post.id) }}"
+                href="{{ post.livePhotoUrl or (post.galleryUrl + 'photos/' + post.id + '/') if (post.livePhotoUrl or post.galleryUrl) else ((post.profileUrl or ('/user/' + (post.uin or post.authorUin or post.author))) + '#photo-' + post.id) }}"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="block w-full"
@@ -256,7 +256,7 @@
                   </div>
 
                   <a
-                    href="/user/@{{ post.author }}"
+                    href="{{ post.profileUrl or ('/user/' + (post.uin or post.authorUin or post.author)) }}"
                     class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xxs font-bold py-0.5 px-2"
                     onclick="if(window.retroAudio) retroAudio.playClick();"
                   >

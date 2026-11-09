@@ -108,7 +108,7 @@ export async function getFriendsRoster(userId: string, opts: { withPostCounts?: 
         statusMessage,
         postCount: opts.withPostCounts ? await getPostCountForUser(r.id) : 0,
         avatarPath: r.avatarPath && r.avatarPath.trim() ? r.avatarPath : '/icons/default-avatar.svg',
-        profileUrl: `/user/@${encodeURIComponent(r.handle)}`,
+        profileUrl: `/user/${r.uin}`,
         cleanRootSiteUrl: cleanRootUrl(siteUrl),
       } as RosterFriend;
     })

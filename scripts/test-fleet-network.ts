@@ -227,7 +227,7 @@ async function runFleetNetworkTests() {
     },
     body: JSON.stringify({
       name: visitor.handle,
-      website: visitor.sites?.[0]?.siteUrl || `https://neogram.club/user/@${visitor.handle}`,
+      website: visitor.sites?.[0]?.siteUrl || `https://neogram.club/user/${visitor.uin || visitor.handle}`,
       message: testMessage,
       moodIcon: mood,
     }),

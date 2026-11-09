@@ -542,7 +542,7 @@
                     {% if u.isOnline %}
                       <span class="pipeline-led" title="Operator online right now" style="width: 8px; height: 8px; margin-right: 0;"></span>
                     {% endif %}
-                    <a href="/user/@{{ u.handle }}" target="_blank" class="font-bold text-mac hover:underline">
+                    <a href="/user/{{ u.uin }}" target="_blank" class="font-bold text-mac hover:underline">
                       @{{ u.handle }}
                     </a>
                     <span class="text-3xs text-muted font-normal">[#{{ u.uin }}]</span>

@@ -1269,8 +1269,8 @@ async function runSmokeTests() {
     // Verify rendered embed HTML: anon username is NOT hyperlinked, logged-in username IS hyperlinked
     const embedGbRes = await fetch(`${API_BASE}/embed/guestbook/${testUser.handle}/shrine`);
     const embedGbHtml = await embedGbRes.text();
-    assertTest('Embed guestbook renders anonymous visitorName without /user/@ hyperlink', embedGbHtml.includes('RetroSurfer42') && !embedGbHtml.includes('/user/@RetroSurfer42'));
-    assertTest('Embed guestbook renders authenticated visitorName WITH /user/@ hyperlink', embedGbHtml.includes(`/user/@${testUser.handle}`));
+    assertTest('Embed guestbook renders anonymous visitorName without /user/ hyperlink', embedGbHtml.includes('RetroSurfer42') && !embedGbHtml.includes('/user/RetroSurfer42'));
+    assertTest('Embed guestbook renders authenticated visitorName WITH /user/ hyperlink', embedGbHtml.includes(`/user/${testUser.uin}`) || embedGbHtml.includes(`/user/${testUser.handle}`));
     assertTest('Embed guestbook defaults to separate win95.css theme without neogram.css', embedGbHtml.includes('/css/guestbook/win95.css') && !embedGbHtml.includes('/css/neogram.css'));
 
     // Verify theme selector and custom CSS link query params

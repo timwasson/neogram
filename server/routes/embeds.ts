@@ -961,7 +961,7 @@ embedsRouter.post('/api/users/:identifier/follow', async (req: Request, res: Res
         type: 'follow',
         title: `@${currentUser.handle || 'user'} followed your station!`,
         body: 'Added your station to their Cyberspace Friends network.',
-        linkUrl: `/user/@${currentUser.handle || currentUser.id}`,
+        linkUrl: `/user/${currentUser.uin || currentUser.handle || currentUser.id}`,
         icon: '🤝',
       }).catch(() => {});
     }).catch(() => {});

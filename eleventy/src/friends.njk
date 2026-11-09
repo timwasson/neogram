@@ -64,7 +64,7 @@ rootPath: ..
         <!-- Card Window Header -->
         <div class="neogram-card__header">
           <a
-            href="{{ post.profileUrl or ((site.apiUrl or 'http://localhost:4000') + '/user/@' + post.author) }}"
+            href="{{ post.profileUrl or ((site.apiUrl or 'https://neogram.club') + '/user/' + (post.uin or post.authorUin or post.author)) }}"
             target="_blank"
             class="neogram-card__author hover:underline"
             title="View @{{ post.author }} on Neogram"
@@ -80,7 +80,7 @@ rootPath: ..
             <div class="neogram-slider__track" tabindex="0" role="region" aria-label="Friend photo carousel slider">
               {% for pic in post.photos %}
                 <a
-                  href="{{ post.profileUrl or ((site.apiUrl or 'http://localhost:4000') + '/user/@' + post.author) }}"
+                  href="{{ post.profileUrl or ((site.apiUrl or 'https://neogram.club') + '/user/' + (post.uin or post.authorUin or post.author)) }}"
                   target="_blank"
                   class="neogram-slider__slide"
                   id="fcard-{{ post.id }}-{{ loop.index }}"
@@ -105,7 +105,7 @@ rootPath: ..
             </div>
             <div class="neogram-card__overlay">
               <a
-                href="{{ post.profileUrl or ((site.apiUrl or 'http://localhost:4000') + '/user/@' + post.author) }}"
+                href="{{ post.profileUrl or ((site.apiUrl or 'https://neogram.club') + '/user/' + (post.uin or post.authorUin or post.author)) }}"
                 target="_blank"
                 class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn"
               >
@@ -115,7 +115,7 @@ rootPath: ..
           </div>
         {% else %}
           <a
-            href="{{ post.profileUrl or ((site.apiUrl or 'http://localhost:4000') + '/user/@' + post.author) }}"
+            href="{{ post.profileUrl or ((site.apiUrl or 'https://neogram.club') + '/user/' + (post.uin or post.authorUin or post.author)) }}"
             target="_blank"
             class="neogram-card__media"
             title="View @{{ post.author }}'s profile"
@@ -164,7 +164,7 @@ rootPath: ..
                 <strong>{{ post.likes or 0 }}</strong> likes
               </span>
               <a
-                href="{{ post.profileUrl or ((site.apiUrl or 'http://localhost:4000') + '/user/@' + post.author) }}"
+                href="{{ post.profileUrl or ((site.apiUrl or 'https://neogram.club') + '/user/' + (post.uin or post.authorUin or post.author)) }}"
                 target="_blank"
                 class="neogram-btn neogram-btn--yellow neogram-btn--sm"
               >

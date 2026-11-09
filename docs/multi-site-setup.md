@@ -163,7 +163,7 @@ Inside **`[:> SITES_MANAGER.SYS]`** in Settings, each mounted site provides quic
 
 ## 6. Public Profile Integration
 
-Visitors to your central Cyberspace Station profile (`https://neogram.club/user/@your_handle`) can browse your transmissions across all your mounted sites:
+Visitors to your central Cyberspace Station profile (`https://neogram.club/user/:uin`) can browse your transmissions across all your mounted sites:
 
 - Multi-site filter chips at the top of your transmission ledger allow visitors to filter by site (e.g. `[ ALL TRANSMISSIONS ]`, `[ 💾 Main Site ]`, `[ 💾 Cyber Shrine ]`).
 - Every photo transmission displays a high-contrast badge indicating which static site target it was published to.
