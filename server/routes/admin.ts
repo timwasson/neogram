@@ -457,7 +457,7 @@ adminRouter.post(
         defaultSites: Array<{
           name: string;
           slug: string;
-          deploymentType: 'neocities' | 'nekoweb' | 'none';
+          deploymentType: 'neocities' | 'nekoweb' | 'github' | 'none';
           siteUrl: string;
           deployPath: string;
           buildHtml: boolean;
@@ -544,7 +544,7 @@ adminRouter.post(
             name: 'Bob Nekoweb Station',
             slug: 'main',
             deploymentType: 'nekoweb',
-            siteUrl: 'https://neogram.nekoweb.org',
+            siteUrl: 'https://qa-neo-test.nekoweb.org',
             deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,
@@ -556,7 +556,7 @@ adminRouter.post(
             name: 'Headless JSON Feed Target',
             slug: 'json-api',
             deploymentType: 'nekoweb',
-            siteUrl: 'https://qa-headless.nekoweb.org',
+            siteUrl: 'https://neogram.nekoweb.org',
             deployPath: 'neogram-api',
             buildHtml: false,
             autoDeploy: true,
@@ -659,12 +659,12 @@ adminRouter.post(
           },
         ]);
 
-        const synthId = await ensureQaAccount('qa_synth', 'QA FM Synth & Sound Blaster 16', [
+        const synthId = await ensureQaAccount('qa_synth', 'QA GitHub Pages Sound Deck', [
           {
-            name: 'Synthwave Cyber Deck',
+            name: 'Neogram Test Github',
             slug: 'main',
-            deploymentType: 'neocities',
-            siteUrl: 'https://qa-synth.neocities.org',
+            deploymentType: 'github',
+            siteUrl: 'https://timwasson.github.io/neogramtest/',
             deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,

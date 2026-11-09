@@ -43,6 +43,9 @@ export interface QaFleet {
   friend: QaAgent;
   surfer: QaAgent;
   headless: QaAgent;
+  arcade?: QaAgent;
+  pixel?: QaAgent;
+  synth?: QaAgent;
 }
 
 export interface PollOptions {
@@ -139,6 +142,9 @@ export async function loadQaFleet(): Promise<QaFleet> {
     friend: findByHandle('qa_friend'),
     surfer: findByHandle('qa_surfer'),
     headless: findByHandle('qa_headless'),
+    arcade: agents.find((a) => a.handle.toLowerCase() === 'qa_arcade'),
+    pixel: agents.find((a) => a.handle.toLowerCase() === 'qa_pixel'),
+    synth: agents.find((a) => a.handle.toLowerCase() === 'qa_synth'),
   };
 }
 
@@ -190,6 +196,33 @@ async function provisionLocalQaPersonas(baseUrl: string): Promise<QaAgent[]> {
       slug: 'main',
       siteUrl: `${baseUrl}/user/@qa_surfer`,
       deploymentType: 'none',
+      buildHtml: true,
+    },
+    {
+      handle: 'qa_arcade',
+      email: 'qa_arcade@qa.neogram.club',
+      siteName: 'Arcade High Score Grid',
+      slug: 'main',
+      siteUrl: 'https://qa-arcade.nekoweb.org',
+      deploymentType: 'nekoweb',
+      buildHtml: true,
+    },
+    {
+      handle: 'qa_pixel',
+      email: 'qa_pixel@qa.neogram.club',
+      siteName: 'Pixel Arcade Station',
+      slug: 'main',
+      siteUrl: 'https://qa-pixel.nekoweb.org',
+      deploymentType: 'nekoweb',
+      buildHtml: true,
+    },
+    {
+      handle: 'qa_synth',
+      email: 'qa_synth@qa.neogram.club',
+      siteName: 'Neogram Test Github',
+      slug: 'main',
+      siteUrl: 'https://timwasson.github.io/neogramtest/',
+      deploymentType: 'github',
       buildHtml: true,
     },
   ];
