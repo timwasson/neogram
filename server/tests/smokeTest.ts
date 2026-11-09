@@ -1317,6 +1317,9 @@ async function runSmokeTests() {
     assertTest('Public profile does NOT contain removed dynamic hit counter', !userProfileHtml.includes('DYNAMIC NODE HIT COUNTER'));
     assertTest('Public profile does NOT contain removed Root Site button', !userProfileHtml.includes('Root Site ↗'));
     assertTest('Public profile does NOT contain removed V.90 badge', !userProfileHtml.includes('V.90'));
+    assertTest('Public profile contains photo transmission viewer modal', userProfileHtml.includes('photoModalBackdrop'));
+    assertTest('Public profile contains interactive openPhotoModal triggers', userProfileHtml.includes('openPhotoModal'));
+    assertTest('Public profile contains userPostsData JSON payload', userProfileHtml.includes('id="userPostsData"'));
 
     // 18m. Unmount and delete secondary site
     const deleteSiteRes = await fetch(`${API_BASE}/api/sites/${secondarySiteId}`, {
