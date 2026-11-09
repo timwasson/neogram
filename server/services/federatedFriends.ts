@@ -112,6 +112,49 @@ export function resolveFeedUrl(friend: FriendTarget): string {
 }
 
 /**
+ * Validates that a URL is a real configured static hosting destination,
+ * not a generic image CDN (picsum, placebear), localhost, or invalid neocities handle.
+ */
+export function isValidStaticSiteUrl(urlStr?: string): boolean {
+  if (!urlStr || typeof urlStr !== 'string' || !urlStr.trim()) return false;
+  try {
+    const u = new URL(urlStr.startsWith('http') ? urlStr.trim() : `https://${urlStr.trim()}`);
+    const h = u.hostname.toLowerCase();
+    if (h === 'neogram.club' || h === 'localhost' || h === '127.0.0.1' || h.includes('app.github.dev')) return false;
+    // Exclude generic placeholder / image hosting / dummy domains / known redirects
+    if (
+      h === 'user.neocities.org' ||
+      h === 'wasson.neocities.org' ||
+      h === 'picsum.photos' ||
+      h.includes('placebear') ||
+      h.includes('placeholder') ||
+      h.includes('unsplash.com') ||
+      h.includes('dummyimage')
+    ) {
+      return false;
+    }
+    // Neocities sites: subdomains must be alphanumeric/hyphens without underscores and not 'user'
+    if (h.endsWith('.neocities.org')) {
+      const sub = h.replace(/\.neocities\.org$/, '');
+      if (sub === 'user' || sub.includes('_')) return false;
+      return true;
+    }
+    // Nekoweb sites
+    if (h.endsWith('.nekoweb.org')) {
+      const sub = h.replace(/\.nekoweb\.org$/, '');
+      if (sub.includes('_')) return false;
+      return true;
+    }
+    // GitHub Pages sites
+    if (h.endsWith('.github.io')) return true;
+    // Custom domains are allowed if http/https
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Resolves the canonical external static photo PAGE URL for any post.
  * Always resolves to the HTML photo page (e.g. https://<author>.neocities.org/<deploy>/photos/<id>/),
  * never a raw image asset.
@@ -124,15 +167,15 @@ export function resolvePhotoPageUrl(
   imageUrl?: string,
   authorUin?: number | string
 ): string {
-  // 1. Primary Ground Truth: Extract from imageUrl or imagePath if it points to an external static host
+  // 1. Primary Ground Truth: Extract from imageUrl or imagePath if it points to an external static host with /uploads/
   // e.g. https://chemicalmachine.neocities.org/neogram/uploads/images/1794197165547-qslfc2v.webp
   if (imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
     try {
       const parsed = new URL(imageUrl);
-      const host = parsed.hostname.toLowerCase();
-      if (host !== 'neogram.club' && host !== 'localhost' && host !== '127.0.0.1' && !host.includes('app.github.dev')) {
-        const parts = parsed.pathname.split('/').filter(Boolean);
-        const uploadsIdx = parts.indexOf('uploads');
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      const uploadsIdx = parts.indexOf('uploads');
+
+      if (uploadsIdx !== -1 && isValidStaticSiteUrl(parsed.origin)) {
         let deployPrefix = '';
         if (uploadsIdx > 0) {
           deployPrefix = '/' + parts.slice(0, uploadsIdx).join('/');
@@ -142,31 +185,14 @@ export function resolvePhotoPageUrl(
     } catch (_e) {}
   }
 
-  // Helper to validate that a URL is a real configured site, not a bogus handle-based neocities guess with underscores
-  const isValidStationUrl = (urlStr?: string): boolean => {
-    if (!urlStr || typeof urlStr !== 'string' || !urlStr.trim()) return false;
-    try {
-      const u = new URL(urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
-      const h = u.hostname.toLowerCase();
-      if (h === 'neogram.club' || h === 'localhost' || h === '127.0.0.1') return false;
-      if (h.endsWith('.neocities.org')) {
-        const sub = h.replace(/\.neocities\.org$/, '');
-        if (sub.includes('_')) return false;
-      }
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
   // 2. Configured galleryUrl
-  if (galleryUrl && isValidStationUrl(galleryUrl)) {
+  if (galleryUrl && isValidStaticSiteUrl(galleryUrl)) {
     const clean = galleryUrl.trim().replace(/\/+$/, '').replace(/\/photos$/, '');
     return `${clean}/photos/${postId}/`;
   }
 
   // 3. Configured siteUrl
-  if (siteUrl && isValidStationUrl(siteUrl)) {
+  if (siteUrl && isValidStaticSiteUrl(siteUrl)) {
     const clean = siteUrl.trim().replace(/\/+$/, '').replace(/\/photos$/, '');
     return `${clean}/photos/${postId}/`;
   }
@@ -203,7 +229,7 @@ function mapFeedPosts(data: UserFeedPayload, friend: FriendTarget): FriendFeedPo
     const thumbnailUrl = p.thumbnailUrl || p.thumbnailPath || imageUrl;
     const galleryUrl = (p as any).galleryUrl || defaultGalleryUrl || friend.siteUrl;
     let livePhotoUrl = (p as any).livePhotoUrl;
-    if (livePhotoUrl && (livePhotoUrl.endsWith('.webp') || livePhotoUrl.endsWith('.jpg') || livePhotoUrl.endsWith('.png') || !livePhotoUrl.includes('/photos/'))) {
+    if (livePhotoUrl && (livePhotoUrl.endsWith('.webp') || livePhotoUrl.endsWith('.jpg') || livePhotoUrl.endsWith('.png') || !livePhotoUrl.includes('/photos/') || !isValidStaticSiteUrl(livePhotoUrl))) {
       livePhotoUrl = '';
     }
     if (!livePhotoUrl) {

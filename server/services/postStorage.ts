@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import { query } from '../db';
 import { writeFileAtomic, Mutex } from '../utils/atomicFile';
+import { isValidStaticSiteUrl } from './federatedFriends';
 
 // Serialises every read-modify-write against posts.json/feed.json (prevents lost updates, e.g. concurrent likes).
 const postsMutex = new Mutex();
@@ -163,56 +164,67 @@ async function hydratePostsWithUserAndSiteInfo(posts: PostRecord[]): Promise<Pos
     for (const p of posts) {
       const site = p.siteId ? siteMap.get(p.siteId) : null;
       const user = p.userId ? userMap.get(p.userId) : null;
+      const authorUin = user?.uin || (p as any).authorUin || (p as any).uin;
 
       const handle = (user && user.handle) || (user && user.email ? user.email.split('@')[0] : '') || p.handle || p.author || 'user';
       p.author = handle;
       p.handle = handle;
-
-      const rawSiteUrl = (site && site.site_url) || (user && user.site_url) || p.siteUrl || '';
-      const rawDeploy = (site && site.deploy_path !== null && site.deploy_path !== undefined)
-        ? site.deploy_path
-        : ((user && user.deploy_path !== null && user.deploy_path !== undefined) ? user.deploy_path : 'neogram');
-
-      if (rawSiteUrl && rawSiteUrl.trim()) {
-        try {
-          const parsed = new URL(rawSiteUrl.startsWith('http') ? rawSiteUrl.trim() : `https://${rawSiteUrl.trim()}`);
-          const basePath = parsed.pathname.replace(/\/+$/, '');
-          const cleanBase = `${parsed.protocol}//${parsed.host}${basePath}`;
-          const cleanDeploy = String(rawDeploy).trim().replace(/^\/+|\/+$/g, '');
-
-          p.siteUrl = `${parsed.protocol}//${parsed.host}`;
-          const deployAlreadyInBase = cleanDeploy && cleanBase.toLowerCase().endsWith(`/${cleanDeploy.toLowerCase()}`);
-          if (cleanDeploy && !deployAlreadyInBase) {
-            p.galleryUrl = `${cleanBase}/${cleanDeploy}/`;
-            p.livePhotoUrl = `${cleanBase}/${cleanDeploy}/photos/${p.id}/`;
-          } else {
-            p.galleryUrl = `${cleanBase}/`;
-            p.livePhotoUrl = `${cleanBase}/photos/${p.id}/`;
-          }
-        } catch {
-          p.siteUrl = rawSiteUrl;
-        }
+      if (authorUin) {
+        (p as any).authorUin = authorUin;
+        (p as any).uin = authorUin;
       }
 
-      // Ground truth fallback: extract static site host from uploaded image URL if not set
-      if (!p.livePhotoUrl) {
-        const candidateImg = p.imagePath || p.imageUrl || '';
-        if (candidateImg.startsWith('http://') || candidateImg.startsWith('https://')) {
-          try {
-            const parsed = new URL(candidateImg);
-            const host = parsed.hostname.toLowerCase();
-            if (host !== 'neogram.club' && host !== 'localhost' && host !== '127.0.0.1' && !host.includes('app.github.dev')) {
-              const parts = parsed.pathname.split('/').filter(Boolean);
-              const uploadsIdx = parts.indexOf('uploads');
-              let deployPrefix = '';
-              if (uploadsIdx > 0) {
-                deployPrefix = '/' + parts.slice(0, uploadsIdx).join('/');
-              }
-              p.siteUrl = `${parsed.protocol}//${parsed.host}`;
-              p.galleryUrl = `${parsed.protocol}//${parsed.host}${deployPrefix}/`;
-              p.livePhotoUrl = `${parsed.protocol}//${parsed.host}${deployPrefix}/photos/${p.id}/`;
+      // 1. Primary Ground Truth: Extract static site host from uploaded image URL if it points to a real static host
+      const candidateImg = p.imagePath || p.imageUrl || '';
+      let extractedLiveUrl = '';
+      if (candidateImg.startsWith('http://') || candidateImg.startsWith('https://')) {
+        try {
+          const parsed = new URL(candidateImg);
+          const parts = parsed.pathname.split('/').filter(Boolean);
+          const uploadsIdx = parts.indexOf('uploads');
+          if (uploadsIdx !== -1 && isValidStaticSiteUrl(parsed.origin)) {
+            let deployPrefix = '';
+            if (uploadsIdx > 0) {
+              deployPrefix = '/' + parts.slice(0, uploadsIdx).join('/');
             }
-          } catch {}
+            p.siteUrl = `${parsed.protocol}//${parsed.host}`;
+            p.galleryUrl = `${parsed.protocol}//${parsed.host}${deployPrefix}/`;
+            extractedLiveUrl = `${parsed.protocol}//${parsed.host}${deployPrefix}/photos/${p.id}/`;
+          }
+        } catch {}
+      }
+
+      if (extractedLiveUrl) {
+        p.livePhotoUrl = extractedLiveUrl;
+      } else {
+        const rawSiteUrl = (site && site.site_url) || (user && user.deployment_type !== 'none' && user.site_url) || '';
+        const rawDeploy = (site && site.deploy_path !== null && site.deploy_path !== undefined)
+          ? site.deploy_path
+          : ((user && user.deploy_path !== null && user.deploy_path !== undefined) ? user.deploy_path : 'neogram');
+
+        if (rawSiteUrl && isValidStaticSiteUrl(rawSiteUrl)) {
+          try {
+            const parsed = new URL(rawSiteUrl.startsWith('http') ? rawSiteUrl.trim() : `https://${rawSiteUrl.trim()}`);
+            const basePath = parsed.pathname.replace(/\/+$/, '');
+            const cleanBase = `${parsed.protocol}//${parsed.host}${basePath}`;
+            const cleanDeploy = String(rawDeploy).trim().replace(/^\/+|\/+$/g, '');
+
+            p.siteUrl = `${parsed.protocol}//${parsed.host}`;
+            const deployAlreadyInBase = cleanDeploy && cleanBase.toLowerCase().endsWith(`/${cleanDeploy.toLowerCase()}`);
+            if (cleanDeploy && !deployAlreadyInBase) {
+              p.galleryUrl = `${cleanBase}/${cleanDeploy}/`;
+              p.livePhotoUrl = `${cleanBase}/${cleanDeploy}/photos/${p.id}/`;
+            } else {
+              p.galleryUrl = `${cleanBase}/`;
+              p.livePhotoUrl = `${cleanBase}/photos/${p.id}/`;
+            }
+          } catch {
+            p.siteUrl = rawSiteUrl;
+          }
+        } else {
+          // Sandbox or no external static host: fall back to station profile on Neogram
+          const profileTarget = authorUin ? String(authorUin) : handle;
+          p.livePhotoUrl = `/user/${encodeURIComponent(profileTarget)}#photo-${p.id}`;
         }
       }
     }
