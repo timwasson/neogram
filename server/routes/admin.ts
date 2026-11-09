@@ -934,12 +934,16 @@ adminRouter.post(
       const qaUserIds = new Set(qaUsersRes.rows.map((r: any) => r.id));
       const qaHandles = new Set(qaUsersRes.rows.map((r: any) => (r.handle || '').toLowerCase()));
 
-      // Query mounted sites for all QA personas
+      // Query mounted sites for all QA personas and test targets (e.g. neogramtest, chemicalmachine)
       const qaSitesRes = await query(`
         SELECT s.id, s.user_id, s.name, s.slug, s.deployment_type, s.deploy_path, s.deployment_credentials, s.auto_deploy, s.is_default, u.handle, u.email
         FROM sites s
         JOIN users u ON s.user_id = u.id
-        WHERE u.email LIKE '%@qa.neogram.club' OR u.handle LIKE 'qa_%'
+        WHERE u.email LIKE '%@qa.neogram.club'
+           OR u.handle LIKE 'qa_%'
+           OR s.name = 'neogramtest'
+           OR s.site_url LIKE '%neogramtest%'
+           OR s.site_url LIKE '%chemicalmachine%'
       `);
       const qaSites = qaSitesRes.rows;
       const siteById = new Map<string, any>();
@@ -956,41 +960,38 @@ adminRouter.post(
       const nonQaUserIds = new Set(nonQaUsersRes.rows.map((r: any) => r.id));
       const nonQaHandles = new Set(nonQaUsersRes.rows.map((r: any) => (r.handle || '').toLowerCase()));
 
-      // 1. Fetch all posts across all static galleries & collect QA posts
+      // 1. Fetch all posts across all static galleries & collect QA / test posts
       const allPosts = await getAllPosts();
       let deletedCount = 0;
       const deletedPostIds: string[] = [];
-      const remoteFilesBySite = new Map<string, { site: any; files: Set<string> }>();
 
       for (const post of allPosts) {
-        const isQaUserId = post.userId && qaUserIds.has(post.userId);
-        const isQaAuthor = (post.author && (post.author.toLowerCase().startsWith('qa_') || qaHandles.has(post.author.toLowerCase()))) ||
-                           ((post as any).authorHandle && ((post as any).authorHandle.toLowerCase().startsWith('qa_') || qaHandles.has((post as any).authorHandle.toLowerCase())));
-        const isExplicitNonQa = (post.userId && nonQaUserIds.has(post.userId)) ||
-                                (post.author && nonQaHandles.has(post.author.toLowerCase())) ||
-                                ((post as any).authorHandle && nonQaHandles.has((post as any).authorHandle.toLowerCase()));
+        const isQaUserId = Boolean(post.userId && qaUserIds.has(post.userId));
+        const isQaAuthor = Boolean(
+          (post.author && (post.author.toLowerCase().startsWith('qa_') || qaHandles.has(post.author.toLowerCase()))) ||
+          ((post as any).authorHandle && ((post as any).authorHandle.toLowerCase().startsWith('qa_') || qaHandles.has((post as any).authorHandle.toLowerCase())))
+        );
+        const isKnownMockCaption = Boolean(
+          typeof post.caption === 'string' && (
+            post.caption.startsWith('[:>') ||
+            post.caption.startsWith(':>') ||
+            ['nevermind', 'sweet shop.', 'yooooo', 'test for github pages', 'modal manual dismiss test'].includes(post.caption.trim().toLowerCase())
+          )
+        );
+        const isTestSite = Boolean(
+          (post.siteName && post.siteName.toLowerCase().includes('neogramtest')) ||
+          (post.siteSlug && post.siteSlug.toLowerCase().includes('neogramtest')) ||
+          (post.siteUrl && (post.siteUrl.includes('neogramtest') || post.siteUrl.includes('chemicalmachine') || post.siteUrl.includes('qa-neogram') || post.siteUrl.includes('qa-neo-test'))) ||
+          (post.imagePath && (post.imagePath.includes('neogramtest') || post.imagePath.includes('chemicalmachine') || post.imagePath.includes('picsum.photos') || post.imagePath.includes('placebear.com'))) ||
+          (post.imageUrl && (post.imageUrl.includes('neogramtest') || post.imageUrl.includes('chemicalmachine') || post.imageUrl.includes('picsum.photos') || post.imageUrl.includes('placebear.com')))
+        );
+        const isOrphanUser = Boolean(post.userId && !nonQaUserIds.has(post.userId) && !qaUserIds.has(post.userId));
 
-        // Target for purge if it does not belong to a real non-QA creator (e.g. QA personas, test probes, orphan test posts)
-        const shouldPurge = !isExplicitNonQa;
+        // Purge if it belongs to a QA persona, is a test probe / mock caption, is on a test static host, or belongs to an orphan test user
+        const shouldPurge = isQaUserId || isQaAuthor || isKnownMockCaption || isTestSite || isOrphanUser;
 
         if (shouldPurge) {
           deletedPostIds.push(post.id);
-
-          // Collect remote files for remote host purge
-          const targetSite = (post.siteId && siteById.get(post.siteId)) || (post.userId && defaultSiteByUserId.get(post.userId));
-          if (targetSite && targetSite.deployment_credentials && targetSite.deployment_type !== 'none') {
-            if (!remoteFilesBySite.has(targetSite.id)) {
-              remoteFilesBySite.set(targetSite.id, { site: targetSite, files: new Set<string>() });
-            }
-            const entry = remoteFilesBySite.get(targetSite.id)!;
-            const cleanRel = (p: string) => p.replace(/^https?:\/\/[^\/]+\//, '').replace(/^\/+/, '');
-            if (post.imagePath) entry.files.add(cleanRel(post.imagePath));
-            if (post.thumbnailPath) entry.files.add(cleanRel(post.thumbnailPath));
-            for (const pic of (post.photos || [])) {
-              if (pic.imagePath) entry.files.add(cleanRel(pic.imagePath));
-              if (pic.thumbnailPath) entry.files.add(cleanRel(pic.thumbnailPath));
-            }
-          }
 
           // Delete local upload files if present in public/uploads/
           for (const picPath of [post.imagePath, post.thumbnailPath, ...(post.photos || []).map(p => p.imagePath), ...(post.photos || []).map(p => p.thumbnailPath)]) {
@@ -1005,24 +1006,22 @@ adminRouter.post(
         }
       }
 
-      // 2. Purge remote image assets from external hosts (Neocities / Nekoweb / GitHub)
-      const { deleteFromNeocities } = await import('../services/neocitiesPublisher');
-      const { deleteFromNekoweb } = await import('../services/nekowebPublisher');
-      const { deleteFromGitHub } = await import('../services/githubPublisher');
+      // 2. Purge remote photos and uploads from external static hosts (Neocities / Nekoweb / GitHub)
+      const { purgeRemoteNeocitiesPhotos } = await import('../services/neocitiesPublisher');
+      const { purgeRemoteNekowebPhotos } = await import('../services/nekowebPublisher');
 
-      for (const [siteId, { site, files }] of remoteFilesBySite.entries()) {
-        const fileList = Array.from(files).filter(Boolean);
-        if (fileList.length > 0) {
+      for (const s of qaSites) {
+        if (s.deployment_credentials && s.deployment_type !== 'none') {
           try {
-            if (site.deployment_type === 'neocities') {
-              await deleteFromNeocities(siteId, fileList);
-            } else if (site.deployment_type === 'nekoweb') {
-              await deleteFromNekoweb(siteId, fileList);
-            } else if (site.deployment_type === 'github') {
-              await deleteFromGitHub(siteId, fileList);
+            if (s.deployment_type === 'neocities') {
+              console.log(`[:> QA PURGE] Purging remote Neocities photos for site ${s.name} (${s.id})...`);
+              await purgeRemoteNeocitiesPhotos(s.id);
+            } else if (s.deployment_type === 'nekoweb') {
+              console.log(`[:> QA PURGE] Purging remote Nekoweb photos for site ${s.name} (${s.id})...`);
+              await purgeRemoteNekowebPhotos(s.id);
             }
           } catch (delErr: any) {
-            console.warn(`[:> REMOTE PURGE ERROR] Target ${site.handle}/${site.slug}:`, delErr.message || delErr);
+            console.warn(`[:> REMOTE PURGE ERROR] Target ${s.handle}/${s.slug}:`, delErr.message || delErr);
           }
         }
       }
@@ -1053,19 +1052,26 @@ adminRouter.post(
         }
       }
 
-      // 4. Purge QA entries from database tables (guestbooks, notifications, likes)
+      // 4. Purge QA entries from database tables (guestbooks, notifications, likes, chat queue)
       await query(
-        `DELETE FROM guestbook_entries WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club' OR handle LIKE 'qa_%') OR visitor_name LIKE 'qa_%'`
+        `DELETE FROM guestbook_entries WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club' OR handle LIKE 'qa_%') OR visitor_name LIKE 'qa_%' OR message LIKE '[:> %'`
       );
       await query(
-        `DELETE FROM notifications WHERE actor_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club' OR handle LIKE 'qa_%')`
+        `DELETE FROM notifications WHERE actor_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club' OR handle LIKE 'qa_%') OR title LIKE '%[:> %' OR body LIKE '%[:> %'`
       );
+      await query(`
+        DELETE FROM ephemeral_chat_queue 
+        WHERE sender_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club' OR handle LIKE 'qa_%')
+           OR receiver_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club' OR handle LIKE 'qa_%')
+      `);
       if (deletedPostIds.length > 0) {
         await query(`DELETE FROM post_likes WHERE post_id = ANY($1)`, [deletedPostIds]);
       }
 
-      // 5. Clean orphan galleries in dist/static-galleries (folders from wiped test runs)
+      // 5. Clean galleries in dist/static-galleries (empty posts/feed and remove stale photo HTML)
       const GALLERIES_ROOT = path.join(process.cwd(), 'dist', 'static-galleries');
+      const { writeFileAtomic } = await import('../utils/atomicFile');
+
       try {
         if (existsSync(GALLERIES_ROOT)) {
           const activeUsers = await query(`SELECT id FROM users`);
@@ -1076,10 +1082,41 @@ adminRouter.post(
             ...activeSites.rows.map((r: any) => r.id),
           ]);
 
+          const qaFolderSet = new Set([
+            'default',
+            ...qaSites.map((s: any) => s.id),
+            ...qaSites.map((s: any) => s.user_id),
+            ...Array.from(qaUserIds),
+          ]);
+
           const entries = await fs.readdir(GALLERIES_ROOT, { withFileTypes: true });
           for (const entry of entries) {
-            if (entry.isDirectory() && !validIds.has(entry.name)) {
-              await fs.rm(path.join(GALLERIES_ROOT, entry.name), { recursive: true, force: true }).catch(() => {});
+            if (entry.isDirectory()) {
+              const folderPath = path.join(GALLERIES_ROOT, entry.name);
+              if (!validIds.has(entry.name)) {
+                // Delete orphan directory from defunct test runs
+                await fs.rm(folderPath, { recursive: true, force: true }).catch(() => {});
+              } else if (qaFolderSet.has(entry.name)) {
+                // Empty posts.json and feed.json
+                const pPath = path.join(folderPath, 'posts.json');
+                const fPath = path.join(folderPath, 'feed.json');
+                if (existsSync(pPath)) await writeFileAtomic(pPath, JSON.stringify([], null, 2));
+                if (existsSync(fPath)) {
+                  try {
+                    const raw = await fs.readFile(fPath, 'utf-8');
+                    const parsed = JSON.parse(raw);
+                    parsed.posts = [];
+                    parsed.friends = [];
+                    parsed.updatedAt = new Date().toISOString();
+                    await writeFileAtomic(fPath, JSON.stringify(parsed, null, 2));
+                  } catch {}
+                }
+                // Wipe local photos and uploads directories so 11ty starts completely clean
+                await fs.rm(path.join(folderPath, 'photos'), { recursive: true, force: true }).catch(() => {});
+                await fs.rm(path.join(folderPath, 'uploads'), { recursive: true, force: true }).catch(() => {});
+                await fs.rm(path.join(folderPath, '_site', 'photos'), { recursive: true, force: true }).catch(() => {});
+                await fs.rm(path.join(folderPath, '_site', 'uploads'), { recursive: true, force: true }).catch(() => {});
+              }
             }
           }
         }
@@ -1089,27 +1126,6 @@ adminRouter.post(
       const { deployToNeocities } = await import('../services/neocitiesPublisher');
       const { deployToNekoweb } = await import('../services/nekowebPublisher');
       const { deployToGitHub } = await import('../services/githubPublisher');
-      const { writeFileAtomic } = await import('../utils/atomicFile');
-
-      // Ensure posts.json and feed.json in both site and user directories are emptied for all QA personas
-      for (const s of qaSites) {
-        for (const targetFolder of [s.id, s.user_id]) {
-          const folderPath = path.join(GALLERIES_ROOT, targetFolder);
-          if (existsSync(folderPath)) {
-            const pPath = path.join(folderPath, 'posts.json');
-            const fPath = path.join(folderPath, 'feed.json');
-            try {
-              if (existsSync(pPath)) await writeFileAtomic(pPath, JSON.stringify([], null, 2));
-              if (existsSync(fPath)) {
-                const raw = await fs.readFile(fPath, 'utf-8');
-                const parsed = JSON.parse(raw);
-                parsed.posts = [];
-                await writeFileAtomic(fPath, JSON.stringify(parsed, null, 2));
-              }
-            } catch {}
-          }
-        }
-      }
 
       let remoteSitesEnqueued = 0;
       for (const s of qaSites) {

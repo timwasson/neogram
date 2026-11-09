@@ -367,7 +367,7 @@ export async function deleteFromNekoweb(targetId: string, filenames: string[]): 
 
       // STRICT NON-DESTRUCTIVE SAFETY INVARIANT:
       // Neogram must NEVER delete non-Neogram user files!
-      if (!remoteDeletePath.includes('uploads/') && !remoteDeletePath.endsWith('avatar.webp')) {
+      if (!remoteDeletePath.includes('uploads/') && !remoteDeletePath.includes('photos/') && !remoteDeletePath.endsWith('avatar.webp')) {
         console.warn(`[:> NEKOWEB DELETE REFUSED] Unsafe deletion path rejected: ${remoteDeletePath}`);
         continue;
       }
@@ -403,6 +403,72 @@ export async function deleteFromNekoweb(targetId: string, filenames: string[]): 
     return successCount > 0;
   } catch (err: any) {
     console.warn('[:> NEKOWEB DELETE ERROR] Failed to purge remote files:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Safely purges all remote photos and uploads from a Nekoweb site
+ * without touching non-Neogram user files or static gallery layouts.
+ */
+export async function purgeRemoteNekowebPhotos(targetId: string): Promise<boolean> {
+  try {
+    let credsRaw: any;
+    let rawDeployPath: any;
+
+    const siteRes = await query(
+      `SELECT deployment_credentials, deploy_path FROM sites WHERE id = $1`,
+      [targetId]
+    );
+
+    if (siteRes.rows.length > 0) {
+      credsRaw = siteRes.rows[0].deployment_credentials;
+      rawDeployPath = siteRes.rows[0].deploy_path;
+    } else {
+      const userRes = await query(
+        `SELECT deployment_credentials, deploy_path FROM users WHERE id = $1`,
+        [targetId]
+      );
+      if (userRes.rows.length === 0) return false;
+      credsRaw = userRes.rows[0].deployment_credentials;
+      rawDeployPath = userRes.rows[0].deploy_path;
+    }
+
+    const creds = decryptCredentials<NekowebCredentials>(credsRaw);
+    if (!creds || !creds.apiKey || !creds.apiKey.trim()) {
+      return false;
+    }
+
+    const cleanDeployPath = rawDeployPath !== null && rawDeployPath !== undefined
+      ? String(rawDeployPath).trim().replace(/^\/+|\/+$/g, '')
+      : 'neogram';
+
+    const pathsToDelete = cleanDeployPath
+      ? [`/${cleanDeployPath}/photos`, `/${cleanDeployPath}/uploads`]
+      : ['/photos', '/uploads'];
+
+    for (const delPath of pathsToDelete) {
+      try {
+        const params = new URLSearchParams();
+        params.append('pathname', delPath);
+
+        const res = await fetch('https://nekoweb.org/api/files/delete', {
+          method: 'POST',
+          headers: {
+            'Authorization': creds.apiKey.trim(),
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: params.toString(),
+        });
+        console.log(`[:> NEKOWEB PURGE] Deleting directory ${delPath}: HTTP ${res.status}`);
+      } catch (e: any) {
+        console.warn(`[:> NEKOWEB PURGE WARNING] Error deleting ${delPath}:`, e.message);
+      }
+    }
+
+    return true;
+  } catch (err: any) {
+    console.warn('[:> NEKOWEB PURGE ERROR] Failed to purge remote photos for target ${targetId}:', err.message);
     return false;
   }
 }

@@ -329,7 +329,7 @@ export async function deleteFromNeocities(targetId: string, filenames: string[])
 
       // STRICT NON-DESTRUCTIVE SAFETY INVARIANT:
       // Neogram must NEVER delete non-Neogram user files!
-      if (!remoteDeletePath.includes('uploads/') && !remoteDeletePath.endsWith('avatar.webp')) {
+      if (!remoteDeletePath.includes('uploads/') && !remoteDeletePath.includes('photos/') && !remoteDeletePath.endsWith('avatar.webp')) {
         console.warn(`[:> NEOCITIES DELETE REFUSED] Unsafe deletion path rejected: ${remoteDeletePath}`);
         continue;
       }
@@ -360,6 +360,106 @@ export async function deleteFromNeocities(targetId: string, filenames: string[])
     return data.result === 'success';
   } catch (err: any) {
     console.warn(`[:> NEOCITIES DELETE ERROR] Failed to purge remote files:`, err.message);
+    return false;
+  }
+}
+
+/**
+ * Safely purges all remote photos and uploads from a Neocities site
+ * without touching non-Neogram user files or static gallery layouts.
+ */
+export async function purgeRemoteNeocitiesPhotos(targetId: string): Promise<boolean> {
+  try {
+    let credsRaw: any;
+    let rawDeployPath: any;
+
+    const siteRes = await query(
+      `SELECT deployment_credentials, deploy_path FROM sites WHERE id = $1`,
+      [targetId]
+    );
+
+    if (siteRes.rows.length > 0) {
+      credsRaw = siteRes.rows[0].deployment_credentials;
+      rawDeployPath = siteRes.rows[0].deploy_path;
+    } else {
+      const userRes = await query(
+        `SELECT deployment_credentials, deploy_path FROM users WHERE id = $1`,
+        [targetId]
+      );
+      if (userRes.rows.length === 0) return false;
+      credsRaw = userRes.rows[0].deployment_credentials;
+      rawDeployPath = userRes.rows[0].deploy_path;
+    }
+
+    const creds = decryptCredentials<NeocitiesCredentials>(credsRaw);
+    if (!creds || !creds.apiKey || !creds.apiKey.trim()) {
+      return false;
+    }
+
+    const cleanDeployPath = rawDeployPath !== null && rawDeployPath !== undefined
+      ? String(rawDeployPath).trim().replace(/^\/+|\/+$/g, '')
+      : 'neogram';
+
+    // 1. Fetch file list from Neocities
+    const listRes = await fetch('https://neocities.org/api/list', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${creds.apiKey.trim()}`,
+      },
+    });
+
+    const listData = (await listRes.json()) as any;
+    if (!listRes.ok || listData.result !== 'success' || !Array.isArray(listData.files)) {
+      console.warn(`[:> NEOCITIES PURGE WARNING] Could not list files for target ${targetId}:`, listData?.message || listRes.statusText);
+      return false;
+    }
+
+    // 2. Identify all files in photos/ and uploads/ under cleanDeployPath
+    const filesToDelete: string[] = [];
+    for (const f of listData.files) {
+      const p = f.path;
+      if (!p || typeof p !== 'string') continue;
+
+      const isUnderDeploy = cleanDeployPath
+        ? (p.startsWith(`${cleanDeployPath}/photos/`) || p.startsWith(`${cleanDeployPath}/uploads/`) || p === `${cleanDeployPath}/photos` || p === `${cleanDeployPath}/uploads`)
+        : (p.startsWith('photos/') || p.startsWith('uploads/') || p === 'photos' || p === 'uploads');
+
+      if (isUnderDeploy) {
+        filesToDelete.push(p);
+      }
+    }
+
+    if (filesToDelete.length === 0) {
+      console.log(`[:> NEOCITIES PURGE] No remote photos or uploads found to delete for target ${targetId}.`);
+      return true;
+    }
+
+    console.log(`[:> NEOCITIES PURGE] Deleting ${filesToDelete.length} remote photo/upload files for target ${targetId}...`);
+
+    // 3. Batch delete in chunks of 50
+    const chunkSize = 50;
+    for (let i = 0; i < filesToDelete.length; i += chunkSize) {
+      const chunk = filesToDelete.slice(i, i + chunkSize);
+      const formData = new FormData();
+      for (const filePath of chunk) {
+        formData.append('filenames[]', filePath);
+      }
+
+      const delRes = await fetch('https://neocities.org/api/delete', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${creds.apiKey.trim()}`,
+        },
+        body: formData,
+      });
+
+      const delData = (await delRes.json()) as any;
+      console.log(`[:> NEOCITIES PURGE BATCH] Purged ${chunk.length} files:`, delData.message || delData.result);
+    }
+
+    return true;
+  } catch (err: any) {
+    console.warn(`[:> NEOCITIES PURGE ERROR] Failed to purge remote photos for target ${targetId}:`, err.message);
     return false;
   }
 }
