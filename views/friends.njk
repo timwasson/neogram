@@ -91,7 +91,7 @@
           >
             <!-- Friend Identity Top -->
             <div class="flex items-start gap-2.5">
-              <a href="{{ friend.profileUrl }}" class="relative shrink-0" onclick="if(window.retroAudio) retroAudio.playClick();">
+              <a href="{{ friend.profileUrl or ('/user/' + friend.uin) }}" class="relative shrink-0" onclick="if(window.retroAudio) retroAudio.playClick();">
                 <img
                   src="{{ friend.avatarPath }}"
                   alt="@{{ friend.handle }} Avatar"
@@ -107,7 +107,7 @@
               <div class="flex flex-col min-w-0 flex-1">
                 <div class="flex items-center justify-between gap-1">
                   <a
-                    href="{{ friend.profileUrl }}"
+                    href="{{ friend.profileUrl or ('/user/' + friend.uin) }}"
                     class="text-mac font-bold hover:underline truncate"
                     title="@{{ friend.handle }}"
                     onclick="if(window.retroAudio) retroAudio.playClick();"
@@ -145,7 +145,7 @@
                   <span class="text-muted">•</span>
                 {% endif %}
                 <a
-                  href="{{ friend.profileUrl }}"
+                  href="{{ friend.profileUrl or ('/user/' + friend.uin) }}"
                   class="text-prompt hover:underline font-bold"
                   onclick="if(window.retroAudio) retroAudio.playClick();"
                 >

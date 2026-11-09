@@ -56,8 +56,10 @@ jobs:
           script: |
             set -e
             cd /opt/neogram
-            echo "[:> CI/CD] Pulling latest commits from origin/main..."
-            git pull origin main
+            echo "[:> CI/CD] Fetching latest commits from origin/main..."
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
 
             echo "[:> CI/CD] Rebuilding and launching Docker containers..."
             docker compose up -d --build

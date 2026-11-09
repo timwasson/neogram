@@ -113,7 +113,7 @@
               data-uin="{{ user.uin }}"
             >
               <!-- Avatar Frame with Status Indicator -->
-              <a href="{{ user.profileUrl }}" class="directory-avatar-frame shrink-0" onclick="if(window.retroAudio) retroAudio.playClick();">
+              <a href="{{ user.profileUrl or ('/user/' + user.uin) }}" class="directory-avatar-frame shrink-0" onclick="if(window.retroAudio) retroAudio.playClick();">
                 <img
                   src="{{ user.avatarPath }}"
                   alt="@{{ user.handle }} avatar"
@@ -131,7 +131,7 @@
               <div class="flex flex-col gap-1.5 min-w-0 flex-1">
                 <div class="flex items-center justify-between gap-1 flex-wrap">
                   <a
-                    href="{{ user.profileUrl }}"
+                    href="{{ user.profileUrl or ('/user/' + user.uin) }}"
                     class="text-mac font-bold hover:underline text-xs truncate"
                     title="@{{ user.handle }}"
                     onclick="if(window.retroAudio) retroAudio.playClick();"
@@ -166,7 +166,7 @@
 
                 <!-- Latest Photo Thumbnail (if user has published photos) -->
                 {% if user.latestThumbnail %}
-                  <a href="{{ user.profileUrl }}" class="block border border-main bg-black p-0.5 mt-0.5 hover:border-cyan" onclick="if(window.retroAudio) retroAudio.playClick();">
+                  <a href="{{ user.profileUrl or ('/user/' + user.uin) }}" class="block border border-main bg-black p-0.5 mt-0.5 hover:border-cyan" onclick="if(window.retroAudio) retroAudio.playClick();">
                     <img
                       src="{{ user.latestThumbnail }}"
                       alt="Latest photo from @{{ user.handle }}"
@@ -192,7 +192,7 @@
                       </a>
                     {% endif %}
                     <a
-                      href="{{ user.profileUrl }}"
+                      href="{{ user.profileUrl or ('/user/' + user.uin) }}"
                       class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
                       onclick="if(window.retroAudio) retroAudio.playClick();"
                     >
@@ -240,7 +240,7 @@
               data-uin="{{ user.uin }}"
             >
               <!-- Small Thumbnail with Status Dot -->
-              <a href="{{ user.profileUrl }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
+              <a href="{{ user.profileUrl or ('/user/' + user.uin) }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
                 <img
                   src="{{ user.avatarPath }}"
                   alt="@{{ user.handle }} avatar"
@@ -255,7 +255,7 @@
               <div class="flex flex-col gap-1 min-w-0 flex-1">
                 <div class="flex items-center justify-between gap-1">
                   <a
-                    href="{{ user.profileUrl }}"
+                    href="{{ user.profileUrl or ('/user/' + user.uin) }}"
                     class="text-mac font-bold hover:underline text-xs truncate"
                     title="@{{ user.handle }}"
                     onclick="if(window.retroAudio) retroAudio.playClick();"
@@ -287,7 +287,7 @@
                       </a>
                     {% endif %}
                     <a
-                      href="{{ user.profileUrl }}"
+                      href="{{ user.profileUrl or ('/user/' + user.uin) }}"
                       class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
                       onclick="if(window.retroAudio) retroAudio.playClick();"
                     >
@@ -335,7 +335,7 @@
               data-uin="{{ user.uin }}"
             >
               <!-- Small Thumbnail with Status Dot -->
-              <a href="{{ user.profileUrl }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
+              <a href="{{ user.profileUrl or ('/user/' + user.uin) }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
                 <img
                   src="{{ user.avatarPath }}"
                   alt="@{{ user.handle }} avatar"
@@ -350,7 +350,7 @@
               <div class="flex flex-col gap-1 min-w-0 flex-1">
                 <div class="flex items-center justify-between gap-1">
                   <a
-                    href="{{ user.profileUrl }}"
+                    href="{{ user.profileUrl or ('/user/' + user.uin) }}"
                     class="text-mac font-bold hover:underline text-xs truncate"
                     title="@{{ user.handle }}"
                     onclick="if(window.retroAudio) retroAudio.playClick();"
@@ -382,7 +382,7 @@
                       </a>
                     {% endif %}
                     <a
-                      href="{{ user.profileUrl }}"
+                      href="{{ user.profileUrl or ('/user/' + user.uin) }}"
                       class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
                       onclick="if(window.retroAudio) retroAudio.playClick();"
                     >
@@ -430,7 +430,7 @@
               data-uin="{{ user.uin }}"
             >
               <!-- Small Thumbnail with Status Dot -->
-              <a href="{{ user.profileUrl }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
+              <a href="{{ user.profileUrl or ('/user/' + user.uin) }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
                 <img
                   src="{{ user.avatarPath }}"
                   alt="@{{ user.handle }} avatar"
@@ -445,7 +445,7 @@
               <div class="flex flex-col gap-1 min-w-0 flex-1">
                 <div class="flex items-center justify-between gap-1">
                   <a
-                    href="{{ user.profileUrl }}"
+                    href="{{ user.profileUrl or ('/user/' + user.uin) }}"
                     class="text-mac font-bold hover:underline text-xs truncate"
                     title="@{{ user.handle }}"
                     onclick="if(window.retroAudio) retroAudio.playClick();"
@@ -477,7 +477,7 @@
                       </a>
                     {% endif %}
                     <a
-                      href="{{ user.profileUrl }}"
+                      href="{{ user.profileUrl or ('/user/' + user.uin) }}"
                       class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold"
                       onclick="if(window.retroAudio) retroAudio.playClick();"
                     >

@@ -363,7 +363,7 @@
                         id="friendCard-{{ friend.handle }}"
                       >
                         <div class="flex items-start gap-2.5">
-                          <a href="{{ friend.profileUrl }}" class="relative shrink-0" onclick="if(window.retroAudio) retroAudio.playClick();">
+                          <a href="{{ friend.profileUrl or ('/user/' + friend.uin) }}" class="relative shrink-0" onclick="if(window.retroAudio) retroAudio.playClick();">
                             <img
                               src="{{ friend.avatarPath }}"
                               alt="@{{ friend.handle }} Avatar"
@@ -379,7 +379,7 @@
                           <div class="flex flex-col min-w-0 flex-1">
                             <div class="flex items-center justify-between gap-1">
                               <a
-                                href="{{ friend.profileUrl }}"
+                                href="{{ friend.profileUrl or ('/user/' + friend.uin) }}"
                                 class="text-mac font-bold hover:underline truncate"
                                 title="@{{ friend.handle }}"
                                 onclick="if(window.retroAudio) retroAudio.playClick();"
@@ -416,7 +416,7 @@
                               <span class="text-muted">•</span>
                             {% endif %}
                             <a
-                              href="{{ friend.profileUrl }}"
+                              href="{{ friend.profileUrl or ('/user/' + friend.uin) }}"
                               class="text-prompt hover:underline font-bold"
                               onclick="if(window.retroAudio) retroAudio.playClick();"
                             >
@@ -512,19 +512,19 @@
                       <div class="directory-grid" id="activeGrid">
                         {% for user in activeUsers %}
                           <article class="directory-card directory-card--active" data-handle="{{ user.handle | lower }}" data-uin="{{ user.uin }}">
-                            <a href="{{ user.profileUrl }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
+                            <a href="{{ user.profileUrl or ('/user/' + user.uin) }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
                               <img src="{{ user.avatarPath }}" alt="@{{ user.handle }}" class="directory-avatar-img" loading="lazy" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';" />
                               <span class="directory-status-dot directory-status-dot--active" title="Active (Online)"></span>
                             </a>
                             <div class="flex flex-col gap-1 min-w-0 flex-1">
                               <div class="flex items-center justify-between gap-1">
-                                <a href="{{ user.profileUrl }}" class="text-mac font-bold hover:underline text-xs truncate">@{{ user.handle }}</a>
+                                <a href="{{ user.profileUrl or ('/user/' + user.uin) }}" class="text-mac font-bold hover:underline text-xs truncate">@{{ user.handle }}</a>
                                 <span class="pixel-badge pixel-badge--cyan font-bold text-xxs shrink-0">#{{ user.uin }}</span>
                               </div>
                               <div class="text-prompt text-xxs truncate">"{{ user.statusMessage }}"</div>
                               <div class="flex items-center justify-between pt-1 border-t border-main text-xxs text-muted mt-0.5">
                                 <span>{{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
-                                <a href="{{ user.profileUrl }}" class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold">Profile :&gt;</a>
+                                <a href="{{ user.profileUrl or ('/user/' + user.uin) }}" class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold">Profile :&gt;</a>
                               </div>
                             </div>
                           </article>
@@ -554,19 +554,19 @@
                       <div class="directory-grid" id="awayGrid">
                         {% for user in awayUsers %}
                           <article class="directory-card directory-card--away" data-handle="{{ user.handle | lower }}" data-uin="{{ user.uin }}">
-                            <a href="{{ user.profileUrl }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
+                            <a href="{{ user.profileUrl or ('/user/' + user.uin) }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
                               <img src="{{ user.avatarPath }}" alt="@{{ user.handle }}" class="directory-avatar-img" loading="lazy" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';" />
                               <span class="directory-status-dot directory-status-dot--away" title="Away"></span>
                             </a>
                             <div class="flex flex-col gap-1 min-w-0 flex-1">
                               <div class="flex items-center justify-between gap-1">
-                                <a href="{{ user.profileUrl }}" class="text-mac font-bold hover:underline text-xs truncate">@{{ user.handle }}</a>
+                                <a href="{{ user.profileUrl or ('/user/' + user.uin) }}" class="text-mac font-bold hover:underline text-xs truncate">@{{ user.handle }}</a>
                                 <span class="pixel-badge pixel-badge--cyan font-bold text-xxs shrink-0">#{{ user.uin }}</span>
                               </div>
                               <div class="text-amber text-xxs truncate">"{{ user.statusMessage }}"</div>
                               <div class="flex items-center justify-between pt-1 border-t border-main text-xxs text-muted mt-0.5">
                                 <span>{{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
-                                <a href="{{ user.profileUrl }}" class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold">Profile :&gt;</a>
+                                <a href="{{ user.profileUrl or ('/user/' + user.uin) }}" class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold">Profile :&gt;</a>
                               </div>
                             </div>
                           </article>
@@ -596,19 +596,19 @@
                       <div class="directory-grid" id="inactiveGrid">
                         {% for user in inactiveUsers %}
                           <article class="directory-card directory-card--inactive" data-handle="{{ user.handle | lower }}" data-uin="{{ user.uin }}">
-                            <a href="{{ user.profileUrl }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
+                            <a href="{{ user.profileUrl or ('/user/' + user.uin) }}" class="directory-avatar-frame" onclick="if(window.retroAudio) retroAudio.playClick();">
                               <img src="{{ user.avatarPath }}" alt="@{{ user.handle }}" class="directory-avatar-img" loading="lazy" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';" />
                               <span class="directory-status-dot directory-status-dot--inactive" title="Inactive"></span>
                             </a>
                             <div class="flex flex-col gap-1 min-w-0 flex-1">
                               <div class="flex items-center justify-between gap-1">
-                                <a href="{{ user.profileUrl }}" class="text-mac font-bold hover:underline text-xs truncate">@{{ user.handle }}</a>
+                                <a href="{{ user.profileUrl or ('/user/' + user.uin) }}" class="text-mac font-bold hover:underline text-xs truncate">@{{ user.handle }}</a>
                                 <span class="pixel-badge pixel-badge--cyan font-bold text-xxs shrink-0">#{{ user.uin }}</span>
                               </div>
                               <div class="text-muted text-xxs truncate">"{{ user.statusMessage }}"</div>
                               <div class="flex items-center justify-between pt-1 border-t border-main text-xxs text-muted mt-0.5">
                                 <span>{{ user.postCount }} photo{% if user.postCount != 1 %}s{% endif %}</span>
-                                <a href="{{ user.profileUrl }}" class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold">Profile :&gt;</a>
+                                <a href="{{ user.profileUrl or ('/user/' + user.uin) }}" class="pixel-btn pixel-btn--sm text-xxs py-0 px-2 font-bold">Profile :&gt;</a>
                               </div>
                             </div>
                           </article>
