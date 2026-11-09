@@ -24,14 +24,13 @@
     "test:social-security": "tsx server/tests/socialAndSecurityTest.ts",
     "test:browser": "tsx server/tests/browserMultiResTest.ts",
     "test:browser:ui": "tsx --test server/tests/browser.ui.test.ts",
-    "test:multiphoto": "tsx server/tests/multiPhotoGalleryTest.ts",
     "test:load": "tsx server/tests/loadAndConcurrencyTest.ts",
     "test:live-hosts": "tsx server/tests/liveHostVerificationTest.ts",
     "test:github": "tsx server/tests/githubPublisherTest.ts",
     "test:fleet": "tsx scripts/test-fleet-network.ts",
     "qa:purge": "tsx scripts/purge-qa-fleet.ts",
     "db:sync-prod": "tsx scripts/sync-db.ts",
-    "test:all": "npm test && npm run test:security && npm run test:unit && npm run test:avatar && npm run test:fleet && npm run test:github && npm run test:multiphoto && npm run test:social-security && npm run test:bot-static && npm run test:browser"
+    "test:all": "npm test && npm run test:security && npm run test:unit && npm run test:avatar && npm run test:fleet && npm run test:github && npm run test:social-security && npm run test:bot-static && npm run test:browser"
   },
   "dependencies": {
     "@11ty/eleventy": "^3.1.7",

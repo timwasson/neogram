@@ -84,6 +84,7 @@ export interface TestRecord {
 export async function loadQaFleet(): Promise<QaFleet> {
   const args = process.argv.slice(2);
   const forceLocal = args.includes('--local');
+  const forceProd = args.includes('--prod');
   const bundlePath = path.resolve(process.cwd(), 'qa-sessions.json');
 
   let bundle: any = { targetUrl: 'https://neogram.club', agents: [] };
@@ -95,6 +96,8 @@ export async function loadQaFleet(): Promise<QaFleet> {
   const resolvedBaseUrl = (
     forceLocal
       ? 'http://localhost:4000'
+      : forceProd
+      ? 'https://neogram.club'
       : process.env.TARGET_URL || bundle.targetUrl || 'https://neogram.club'
   ).replace(/\/+$/, '');
 

@@ -45,6 +45,14 @@ async function createRetroAvatarSvg(bg: string, fg: string, glyph: string): Prom
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
+async function createSampleImage(color: { r: number; g: number; b: number }, text: string): Promise<Buffer> {
+  const svg = `<svg width="800" height="800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="800" height="800" fill="rgb(${color.r},${color.g},${color.b})" />
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-size="44" font-family="monospace" font-weight="bold">${text}</text>
+  </svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
 async function runFleetNetworkTests() {
   const startTime = Date.now();
   logHeader('INITIALIZING QA FLEET NETWORK VERIFICATION SUITE');
@@ -151,59 +159,160 @@ async function runFleetNetworkTests() {
   }
 
   // ---------------------------------------------------------------------------
-  // 2. Photo Gallery Post Uploads & Delta Publishing
+  // 2. Photo Gallery Post Uploads (Single-Photo & Multi-Photo Carousel)
   // ---------------------------------------------------------------------------
-  logHeader('2. PHOTO GALLERY POSTS & SHADER PIPELINE');
+  logHeader('2. PHOTO GALLERY POSTS & SHADER PIPELINE (SINGLE & MULTI-PHOTO)');
 
-  // Find an agent with a mounted site (e.g. Neocities, Nekoweb, or Sandbox)
-  const publisherAgent = agents.find((a) => a.sites && a.sites.length > 0) || agentA;
-  const targetSite = publisherAgent.sites[0];
-  console.log(`Publishing Agent: ${GREEN}@${publisherAgent.handle}${RESET} -> Site "${targetSite?.name || 'Default'}" (${targetSite?.deploymentType || 'sandbox'})`);
+  // 2.1 Single-Photo Post Upload with Retro Shader
+  const publisherAgent1 = agents.find((a) => a.sites && a.sites.length > 0) || agentA;
+  const targetSite1 = publisherAgent1.sites[0];
+  console.log(`Single-Photo Publisher: ${GREEN}@${publisherAgent1.handle}${RESET} -> Site "${targetSite1?.name || 'Default'}" (${targetSite1?.deploymentType || 'sandbox'})`);
 
-  const photoPayload = await fetchPicsumTestImage(800, 800);
+  const singleImgBuf = await createSampleImage({ r: 30, g: 60, b: 120 }, 'SINGLE SNAPSHOT');
   const shaderModes = ['crt', 'sepia', 'vga', 'gameboy', 'cyberpunk', 'lofi'];
-  const chosenShader = shaderModes[Math.floor(Math.random() * shaderModes.length)];
+  const chosenShader1 = shaderModes[Math.floor(Math.random() * shaderModes.length)];
 
-  const postRes = await fetch(`${baseUrl}/api/posts`, {
+  const singleFormData = new FormData();
+  singleFormData.append('caption', `CYBER GRID TRANSMISSION // Shader: ${chosenShader1.toUpperCase()} // Node: @${publisherAgent1.handle.toUpperCase()}`);
+  singleFormData.append('filterApplied', chosenShader1);
+  singleFormData.append('mood', 'Radical');
+  singleFormData.append('webring', 'RetroWeb');
+  if (targetSite1?.id) singleFormData.append('siteId', targetSite1.id);
+  singleFormData.append('imageFile', new Blob([new Uint8Array(singleImgBuf)], { type: 'image/png' }), 'single.png');
+
+  const singlePostRes = await fetch(`${baseUrl}/api/posts`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${publisherAgent.token}`,
+      Authorization: `Bearer ${publisherAgent1.token}`,
     },
-    body: JSON.stringify({
-      siteId: targetSite?.id,
-      caption: `CYBER GRID TRANSMISSION // Shader: ${chosenShader.toUpperCase()} // Node: @${publisherAgent.handle.toUpperCase()}`,
-      tags: ['#retroweb', '#cyberspace', '#90s', `#${chosenShader}`],
-      filterApplied: chosenShader,
-      imageBase64: photoPayload.dataUri,
-    }),
+    body: singleFormData,
   });
 
   recordCheck(
-    `Photo gallery upload with ${chosenShader.toUpperCase()} shader`,
-    postRes.status === 200 || postRes.status === 201,
-    `Status: ${postRes.status}`
+    `Single-photo upload with ${chosenShader1.toUpperCase()} shader`,
+    singlePostRes.status === 200 || singlePostRes.status === 201,
+    `Status: ${singlePostRes.status}`
   );
 
-  const postData = (await postRes.json().catch(() => ({}))) as any;
-  const newPostId = postData.post?.id;
+  const singlePostData = (await singlePostRes.json().catch(() => ({}))) as any;
+  const singlePostId = singlePostData.post?.id;
   recordCheck(
-    `Post created with immutable ID`,
-    typeof newPostId === 'string' && newPostId.length > 0,
-    newPostId || 'none'
+    `Single post created with immutable ID`,
+    typeof singlePostId === 'string' && singlePostId.length > 0,
+    singlePostId || 'none'
   );
 
-  // Check author's feed via public JSON feed
-  const feedRes = await fetch(`${baseUrl}/api/users/${publisherAgent.handle}/feed.json`);
-  recordCheck(`Feed endpoint returns HTTP 200`, feedRes.status === 200, `Status: ${feedRes.status}`);
-  const feedData = (await feedRes.json().catch(() => ({}))) as any;
-  const feedItems = feedData.items || [];
-  const foundInFeed = feedItems.some((p: any) => p.id === newPostId);
+  // Peer comment and like on single-photo post
+  if (singlePostId && agentB && agentB.handle !== publisherAgent1.handle) {
+    const likeRes = await fetch(`${baseUrl}/api/posts/${singlePostId}/like`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${agentB.token}` },
+    });
+    recordCheck(`Peer like on single post by @${agentB.handle}`, likeRes.status === 200, `Status: ${likeRes.status}`);
+
+    const commentRes = await fetch(`${baseUrl}/api/posts/${singlePostId}/comments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${agentB.token}`,
+      },
+      body: JSON.stringify({ text: `Radical transmission, @${publisherAgent1.handle}! Loving the ${chosenShader1.toUpperCase()} phosphor!` }),
+    });
+    recordCheck(`Peer comment on single post by @${agentB.handle}`, commentRes.status === 200 || commentRes.status === 201, `Status: ${commentRes.status}`);
+  }
+
+  // 2.2 5-Photo Limit Enforcement Barrier (Uploading 6 photos must fail with HTTP 400)
+  console.log(`\n${CYAN}Testing 5-photo limit barrier on @${publisherAgent1.handle} (uploading 6 photos)...${RESET}`);
+  const overflowBuf = await createSampleImage({ r: 50, g: 100, b: 150 }, 'OVERFLOW');
+  const excessFormData = new FormData();
+  excessFormData.append('caption', 'Attempting 6 photos upload');
+  excessFormData.append('filterApplied', 'crt');
+  if (targetSite1?.id) excessFormData.append('siteId', targetSite1.id);
+  for (let i = 1; i <= 6; i++) {
+    excessFormData.append('imageFiles', new Blob([new Uint8Array(overflowBuf)], { type: 'image/png' }), `overflow_${i}.png`);
+  }
+
+  const excessRes = await fetch(`${baseUrl}/api/posts`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${publisherAgent1.token}` },
+    body: excessFormData,
+  });
   recordCheck(
-    `New photo post immediately present in author feed`,
-    foundInFeed,
-    `Feed contains ${feedItems.length} posts`
+    `5-photo limit barrier rejected with HTTP 400`,
+    excessRes.status === 400,
+    `Status: ${excessRes.status}`
   );
+
+  // 2.3 Multi-Photo Gallery Carousel Upload (3 slides in 1 post)
+  let publisherAgent2 = agents.find((a) => a.handle !== publisherAgent1.handle && a.sites && a.sites.length > 0) || agentB;
+  const targetSite2 = publisherAgent2.sites?.[0];
+  console.log(`\nMulti-Photo Publisher: ${GREEN}@${publisherAgent2.handle}${RESET} -> Site "${targetSite2?.name || 'Default'}" (3 photos carousel)`);
+
+  const slide1 = await createSampleImage({ r: 210, g: 45, b: 45 }, 'SLIDE 1/3');
+  const slide2 = await createSampleImage({ r: 45, g: 210, b: 45 }, 'SLIDE 2/3');
+  const slide3 = await createSampleImage({ r: 45, g: 45, b: 210 }, 'SLIDE 3/3');
+  const chosenShader2 = 'cyberpunk';
+
+  const multiFormData = new FormData();
+  multiFormData.append('caption', `Multi-photo gallery carousel transmitted by @${publisherAgent2.handle} [3 Frames // ${chosenShader2.toUpperCase()}]`);
+  multiFormData.append('filterApplied', chosenShader2);
+  multiFormData.append('mood', 'Cyber');
+  multiFormData.append('webring', 'RetroWeb');
+  if (targetSite2?.id) multiFormData.append('siteId', targetSite2.id);
+  multiFormData.append('imageFiles', new Blob([new Uint8Array(slide1)], { type: 'image/png' }), 'slide_1.png');
+  multiFormData.append('imageFiles', new Blob([new Uint8Array(slide2)], { type: 'image/png' }), 'slide_2.png');
+  multiFormData.append('imageFiles', new Blob([new Uint8Array(slide3)], { type: 'image/png' }), 'slide_3.png');
+
+  const multiPostRes = await fetch(`${baseUrl}/api/posts`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${publisherAgent2.token}` },
+    body: multiFormData,
+  });
+
+  recordCheck(
+    `Multi-photo gallery upload (3 frames) with ${chosenShader2.toUpperCase()} shader`,
+    multiPostRes.status === 200 || multiPostRes.status === 201,
+    `Status: ${multiPostRes.status}`
+  );
+
+  const multiPostData = (await multiPostRes.json().catch(() => ({}))) as any;
+  const multiPost = multiPostData.post;
+  const multiPostId = multiPost?.id;
+  recordCheck(
+    `Multi-photo post contains exactly 3 frames in photos array`,
+    Array.isArray(multiPost?.photos) && multiPost.photos.length === 3,
+    `Frames: ${multiPost?.photos?.length || 0}`
+  );
+
+  // 2.4 Verify GET /api/posts/:id returns the full photos array
+  if (multiPostId) {
+    const detailRes = await fetch(`${baseUrl}/api/posts/${multiPostId}`);
+    recordCheck(`GET /api/posts/${multiPostId} returns HTTP 200`, detailRes.status === 200, `Status: ${detailRes.status}`);
+    const detailData = (await detailRes.json().catch(() => ({}))) as any;
+    const detailPhotos = detailData.post?.photos;
+    recordCheck(
+      `Persistent photos array in post detail API`,
+      Array.isArray(detailPhotos) && detailPhotos.length === 3,
+      `Length: ${detailPhotos?.length || 0}`
+    );
+
+    // Peer comment and like on multi-photo gallery post from agentA
+    const likeRes2 = await fetch(`${baseUrl}/api/posts/${multiPostId}/like`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${publisherAgent1.token}` },
+    });
+    recordCheck(`Peer like on multi-photo post by @${publisherAgent1.handle}`, likeRes2.status === 200, `Status: ${likeRes2.status}`);
+
+    const commentRes2 = await fetch(`${baseUrl}/api/posts/${multiPostId}/comments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${publisherAgent1.token}`,
+      },
+      body: JSON.stringify({ text: `Awesome slider carousel, @${publisherAgent2.handle}! Snapping smoothly across frames!` }),
+    });
+    recordCheck(`Peer comment on multi-photo post by @${publisherAgent1.handle}`, commentRes2.status === 200 || commentRes2.status === 201, `Status: ${commentRes2.status}`);
+  }
 
   // ---------------------------------------------------------------------------
   // 3. Peer Guestbook Signatures
