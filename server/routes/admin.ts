@@ -623,18 +623,6 @@ adminRouter.post(
           },
         ]);
 
-        const retroId = await ensureQaAccount('qa_retro', 'QA Geocities 1996 Wanderer', [
-          {
-            name: 'Retro Webring Outpost',
-            slug: 'main',
-            deploymentType: 'neocities',
-            siteUrl: 'https://qa-retro.neocities.org',
-            deployPath: 'neogram',
-            buildHtml: true,
-            autoDeploy: true,
-          },
-        ]);
-
         const arcadeId = await ensureQaAccount('qa_arcade', 'QA Arcade High Score & CRT Fanatic', [
           {
             name: 'Arcade High Score Grid',
@@ -673,7 +661,7 @@ adminRouter.post(
 
         const allQaIds = [
           aliceId, bobId, headlessId, friendId, surferId,
-          cyberpunkId, pixelId, modemId, retroId, arcadeId, matrixId, synthId
+          cyberpunkId, pixelId, modemId, arcadeId, matrixId, synthId
         ];
 
         // 1. Wire reciprocal friend relationships among all QA personas

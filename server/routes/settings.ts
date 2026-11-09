@@ -412,21 +412,30 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
 settingsRouter.post('/settings/test-neocities', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).user.userId;
-    const { apiKey } = req.body;
+    const { apiKey, siteId } = req.body;
 
     let keyToTest: string | null = null;
 
     if (apiKey && typeof apiKey === 'string' && !apiKey.startsWith('••••') && apiKey.trim().length > 0) {
       keyToTest = apiKey.trim();
     } else {
-      // Look up stored key in database
-      const userRes = await query(
-        `SELECT deployment_credentials FROM users WHERE id = $1`,
-        [userId]
-      );
-      if (userRes.rows.length > 0) {
-        const creds = decryptCredentials<NeocitiesCredentials>(userRes.rows[0].deployment_credentials);
-        keyToTest = creds?.apiKey || null;
+      // Look up stored key in database (check site first if siteId provided, fallback to user)
+      if (siteId) {
+        const siteRes = await query('SELECT deployment_credentials FROM sites WHERE id = $1 AND user_id = $2', [siteId, userId]);
+        if (siteRes.rows.length > 0) {
+          const creds = decryptCredentials<NeocitiesCredentials>(siteRes.rows[0].deployment_credentials);
+          keyToTest = creds?.apiKey || null;
+        }
+      }
+      if (!keyToTest) {
+        const userRes = await query(
+          `SELECT deployment_credentials FROM users WHERE id = $1`,
+          [userId]
+        );
+        if (userRes.rows.length > 0) {
+          const creds = decryptCredentials<NeocitiesCredentials>(userRes.rows[0].deployment_credentials);
+          keyToTest = creds?.apiKey || null;
+        }
       }
     }
 
