@@ -108,10 +108,31 @@ class BuildQueue {
       priority?: 'HIGH' | 'LOW';
       throttleDelayMs?: number;
       isSweepJob?: boolean;
+      dedupe?: boolean;
       siteInfo?: { siteName: string; handle: string };
     } = {}
   ): Promise<T> {
     const priority = options.priority || 'HIGH';
+
+    // Coalesce duplicate LOW-priority background cascade jobs (e.g., IncrementalFriends:<userId>)
+    if (options.dedupe && priority === 'LOW') {
+      const existing = this.lowQueue.find((t) => t.taskName === taskName);
+      if (existing) {
+        return new Promise<T>((resolve, reject) => {
+          const prevResolve = existing.resolve;
+          const prevReject = existing.reject;
+          existing.resolve = (val: any) => {
+            prevResolve(val);
+            resolve(val);
+          };
+          existing.reject = (err: any) => {
+            prevReject(err);
+            reject(err);
+          };
+        });
+      }
+    }
+
     const enqueueTime = Date.now();
     const enqueuedAtIso = new Date(enqueueTime).toISOString();
     const id = `build_${enqueueTime}_${Math.random().toString(36).substring(2, 7)}`;

@@ -180,21 +180,27 @@ async function dispatchDeltaDeploy(
 ): Promise<{ deployed: boolean; durationMs: number }> {
   if (!credsRaw || files.length === 0) return { deployed: false, durationMs: 0 };
 
-  if (deploymentType === 'neocities') {
-    const creds = decryptCredentials<NeocitiesCredentials>(credsRaw);
-    if (!creds || !creds.apiKey || !creds.apiKey.trim()) return { deployed: false, durationMs: 0 };
-    const res = await deployFilesToNeocities(targetId, files, isSiteId);
-    return { deployed: res.ok, durationMs: res.durationMs };
-  } else if (deploymentType === 'nekoweb') {
-    const creds = decryptCredentials<NekowebCredentials>(credsRaw);
-    if (!creds || !creds.apiKey || !creds.apiKey.trim()) return { deployed: false, durationMs: 0 };
-    const res = await deployFilesToNekoweb(targetId, files, isSiteId);
-    return { deployed: res.ok, durationMs: res.durationMs };
-  } else if (deploymentType === 'github') {
-    const creds = decryptCredentials<GitHubCredentials>(credsRaw);
-    if (!creds || !creds.apiKey || !creds.apiKey.trim()) return { deployed: false, durationMs: 0 };
-    const res = await deployFilesToGitHub(targetId, files, isSiteId);
-    return { deployed: res.ok, durationMs: res.durationMs };
+  const startTime = Date.now();
+  try {
+    if (deploymentType === 'neocities') {
+      const creds = decryptCredentials<NeocitiesCredentials>(credsRaw);
+      if (!creds || !creds.apiKey || !creds.apiKey.trim()) return { deployed: false, durationMs: 0 };
+      const res = await deployFilesToNeocities(targetId, files, isSiteId);
+      return { deployed: res.ok, durationMs: res.durationMs };
+    } else if (deploymentType === 'nekoweb') {
+      const creds = decryptCredentials<NekowebCredentials>(credsRaw);
+      if (!creds || !creds.apiKey || !creds.apiKey.trim()) return { deployed: false, durationMs: 0 };
+      const res = await deployFilesToNekoweb(targetId, files, isSiteId);
+      return { deployed: res.ok, durationMs: res.durationMs };
+    } else if (deploymentType === 'github') {
+      const creds = decryptCredentials<GitHubCredentials>(credsRaw);
+      if (!creds || !creds.apiKey || !creds.apiKey.trim()) return { deployed: false, durationMs: 0 };
+      const res = await deployFilesToGitHub(targetId, files, isSiteId);
+      return { deployed: res.ok, durationMs: res.durationMs };
+    }
+  } catch (err: any) {
+    console.warn(`[:> DELTA DEPLOY WARNING] Remote ${deploymentType} deploy deferred for ${targetId}: ${err.message || err}`);
+    return { deployed: false, durationMs: Date.now() - startTime };
   }
 
   return { deployed: false, durationMs: 0 };
@@ -404,7 +410,7 @@ export async function buildAndDeployNewPhoto(options: {
 
     // 6. Deploy delta files directly to host
     let deployedRemote = false;
-    if (deploymentType === 'neocities' || deploymentType === 'nekoweb') {
+    if (deploymentType === 'neocities' || deploymentType === 'nekoweb' || deploymentType === 'github') {
       const deployRes = await dispatchDeltaDeploy(siteId, deploymentType, deploymentCredsRaw, deltaFiles, true);
       deployedRemote = deployRes.deployed;
 
@@ -513,10 +519,10 @@ export async function buildAndDeployComment(options: {
       deltaFiles.push({ relativePath: `photos/${postId}/index.html`, absolutePath: photoFile });
     }
 
-    // 5. Deploy delta files to host (Neocities or Nekoweb)
+    // 5. Deploy delta files to host (Neocities, Nekoweb, or GitHub)
     let deployedRemote = false;
     const targetDeployId = siteId || ctx.targetSite?.id || userId;
-    if (deploymentType === 'neocities' || deploymentType === 'nekoweb') {
+    if (deploymentType === 'neocities' || deploymentType === 'nekoweb' || deploymentType === 'github') {
       const deployRes = await dispatchDeltaDeploy(targetDeployId, deploymentType, deploymentCredsRaw, deltaFiles, !!siteId);
       deployedRemote = deployRes.deployed;
     }
@@ -577,6 +583,7 @@ export async function buildAndDeployFriendFeed(followerUserId: string): Promise<
 
     const friendTargets = friendsRes.rows.map((r: any) => ({
       id: r.id,
+      email: r.email,
       handle: r.handle,
       uin: r.uin,
       avatarPath: r.avatarPath,
@@ -629,7 +636,7 @@ export async function buildAndDeployFriendFeed(followerUserId: string): Promise<
     // 4. Deploy delta files (1-2 files only)
     let deployedRemote = false;
     const targetDeployId = ctx.targetSite?.id || followerUserId;
-    if (ctx.autoDeploy && (deploymentType === 'neocities' || deploymentType === 'nekoweb')) {
+    if (ctx.autoDeploy && (deploymentType === 'neocities' || deploymentType === 'nekoweb' || deploymentType === 'github')) {
       const deployRes = await dispatchDeltaDeploy(targetDeployId, deploymentType, deploymentCredsRaw, deltaFiles, !!ctx.targetSite);
       deployedRemote = deployRes.deployed;
     }
@@ -645,5 +652,9 @@ export async function buildAndDeployFriendFeed(followerUserId: string): Promise<
       durationMs,
       deployedRemote,
     };
+  }, {
+    priority: 'LOW',
+    dedupe: true,
+    throttleDelayMs: 1200,
   });
 }

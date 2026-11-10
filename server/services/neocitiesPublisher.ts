@@ -513,6 +513,8 @@ export async function triggerAutoDeployIfEnabled(targetId: string): Promise<void
   }
 }
 
+const lastNeocitiesUploadByKey = new Map<string, number>();
+
 /**
  * Deploys an explicit list of delta files directly to Neocities without full directory scan.
  * Drastically speeds up photo uploads, comments, and friend feed updates.
@@ -570,35 +572,46 @@ export async function deployFilesToNeocities(
     ? String(site.deploy_path).trim().replace(/^\/+|\/+$/g, '')
     : 'neogram';
 
-  const formData = new FormData();
-  let validCount = 0;
-
-  for (const file of files) {
-    let fileBytes: Buffer;
-    if (file.content !== undefined) {
-      fileBytes = Buffer.isBuffer(file.content) ? file.content : Buffer.from(file.content, 'utf-8');
-    } else if (file.absolutePath) {
-      fileBytes = await fs.readFile(file.absolutePath);
-    } else {
-      continue;
-    }
-
-    const blob = new Blob([new Uint8Array(fileBytes)]);
-    const sanitizedDeploy = rawDeployPath.replace(/[^a-zA-Z0-9_-]/g, '');
-    const cleanRel = path.posix.normalize(file.relativePath).replace(/^(\.\.(\/|\\|$))+/, '');
-    const remotePath = sanitizedDeploy
-      ? path.posix.join(sanitizedDeploy, cleanRel)
-      : cleanRel;
-
-    formData.append(remotePath, blob, path.basename(remotePath));
-    validCount++;
+  // Enforce per-API-key rate pacing (2200ms min interval) so rapid multi-post uploads to the same site don't trip 429
+  const lastTs = lastNeocitiesUploadByKey.get(apiKey) || 0;
+  const elapsedSinceLast = Date.now() - lastTs;
+  if (elapsedSinceLast < 2200) {
+    await new Promise((r) => setTimeout(r, 2200 - elapsedSinceLast));
   }
 
+  const buildFormData = async () => {
+    const fd = new FormData();
+    let count = 0;
+    for (const file of files) {
+      let fileBytes: Buffer;
+      if (file.content !== undefined) {
+        fileBytes = Buffer.isBuffer(file.content) ? file.content : Buffer.from(file.content, 'utf-8');
+      } else if (file.absolutePath) {
+        fileBytes = await fs.readFile(file.absolutePath);
+      } else {
+        continue;
+      }
+
+      const blob = new Blob([new Uint8Array(fileBytes)]);
+      const sanitizedDeploy = rawDeployPath.replace(/[^a-zA-Z0-9_-]/g, '');
+      const cleanRel = path.posix.normalize(file.relativePath).replace(/^(\.\.(\/|\\|$))+/, '');
+      const remotePath = sanitizedDeploy
+        ? path.posix.join(sanitizedDeploy, cleanRel)
+        : cleanRel;
+
+      fd.append(remotePath, blob, path.basename(remotePath));
+      count++;
+    }
+    return { formData: fd, validCount: count };
+  };
+
+  const { formData, validCount } = await buildFormData();
   if (validCount === 0) {
     return { ok: true, message: 'No valid files provided.', filesCount: 0, durationMs: 0 };
   }
 
-  const res = await fetch('https://neocities.org/api/upload', {
+  lastNeocitiesUploadByKey.set(apiKey, Date.now());
+  let res = await fetch('https://neocities.org/api/upload', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
@@ -606,7 +619,25 @@ export async function deployFilesToNeocities(
     body: formData,
   });
 
-  const data = (await res.json()) as any;
+  let data = (await res.json().catch(() => ({}))) as any;
+  if (!res.ok || data.result !== 'success') {
+    const msg = (data.message || '').toLowerCase();
+    if (res.status === 429 || msg.includes('rate limit') || msg.includes('too many')) {
+      console.warn('[:> NEOCITIES DELTA DEPLOY] Rate limit encountered; pausing 3500ms and retrying...');
+      await new Promise((r) => setTimeout(r, 3500));
+      const retryPayload = await buildFormData();
+      lastNeocitiesUploadByKey.set(apiKey, Date.now());
+      res = await fetch('https://neocities.org/api/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: retryPayload.formData,
+      });
+      data = (await res.json().catch(() => ({}))) as any;
+    }
+  }
+
   if (!res.ok || data.result !== 'success') {
     const msg = (data.message || '').toLowerCase();
     if (res.status === 429 || msg.includes('rate limit') || msg.includes('too many')) {
