@@ -8,6 +8,7 @@ import {
   markAllNotificationsRead,
 } from '../services/notificationService';
 import {
+  ensureVapidKeys,
   getVapidPublicKey,
   savePushSubscription,
   removePushSubscription,
@@ -39,8 +40,8 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
  */
 notificationsRouter.get('/notifications/vapid-public-key', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const publicKey = getVapidPublicKey();
-    res.json({ ok: true, publicKey });
+    const keys = await ensureVapidKeys();
+    res.json({ ok: true, publicKey: keys.publicKey || getVapidPublicKey() });
   } catch (err) {
     next(err);
   }

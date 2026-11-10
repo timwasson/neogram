@@ -350,12 +350,59 @@
       return outputArray;
     },
 
+    areUint8ArraysEqual: function (a, b) {
+      if (!a || !b || a.length !== b.length) return false;
+      for (var i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) return false;
+      }
+      return true;
+    },
+
+    resolveVapidPublicKey: function () {
+      var vapidKey = window.NEOGRAM_VAPID_PUBLIC_KEY;
+      if (!vapidKey) {
+        var meta = document.querySelector('meta[name="vapid-public-key"]');
+        if (meta && meta.content) vapidKey = meta.content;
+      }
+      if (vapidKey) {
+        return Promise.resolve(vapidKey);
+      }
+      return fetch('/api/notifications/vapid-public-key')
+        .then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status + ' fetching VAPID key');
+          return res.json();
+        })
+        .then(function (data) {
+          if (!data || !data.publicKey) throw new Error('Missing VAPID public key');
+          window.NEOGRAM_VAPID_PUBLIC_KEY = data.publicKey;
+          return data.publicKey;
+        });
+    },
+
     syncPushSubscription: function () {
       var self = this;
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-      navigator.serviceWorker.ready.then(function (reg) {
+      Promise.all([
+        navigator.serviceWorker.ready,
+        self.resolveVapidPublicKey().catch(function () { return null; }),
+      ]).then(function (results) {
+        var reg = results[0];
+        var serverPublicKey = results[1];
         return reg.pushManager.getSubscription().then(function (subscription) {
           if (subscription) {
+            if (serverPublicKey && subscription.options && subscription.options.applicationServerKey) {
+              var existingKeyBytes = new Uint8Array(subscription.options.applicationServerKey);
+              var expectedKeyBytes = self.urlBase64ToUint8Array(serverPublicKey);
+              if (!self.areUint8ArraysEqual(existingKeyBytes, expectedKeyBytes)) {
+                console.log('[:> WEB PUSH] VAPID key rotation detected. Rotating device push subscription...');
+                return subscription.unsubscribe().then(function () {
+                  return self.subscribePush();
+                }).catch(function (rotErr) {
+                  console.warn('[:> WEB PUSH ROTATION WARN]', rotErr);
+                });
+              }
+            }
+
             var subJson = subscription.toJSON();
             if (subJson && subJson.keys) {
               return fetch('/api/notifications/push-subscription', {
@@ -389,27 +436,7 @@
         return Promise.reject(new Error('Push messaging is not supported in this browser.'));
       }
 
-      // Check synchronous in-memory key first to preserve user-gesture activation on iOS Safari
-      var vapidKey = window.NEOGRAM_VAPID_PUBLIC_KEY;
-      if (!vapidKey) {
-        var meta = document.querySelector('meta[name="vapid-public-key"]');
-        if (meta && meta.content) vapidKey = meta.content;
-      }
-
-      var getKeyPromise = vapidKey
-        ? Promise.resolve(vapidKey)
-        : fetch('/api/notifications/vapid-public-key')
-            .then(function (res) {
-              if (!res.ok) throw new Error('HTTP ' + res.status + ' fetching VAPID key');
-              return res.json();
-            })
-            .then(function (data) {
-              if (!data || !data.publicKey) throw new Error('Missing VAPID public key');
-              window.NEOGRAM_VAPID_PUBLIC_KEY = data.publicKey;
-              return data.publicKey;
-            });
-
-      return getKeyPromise.then(function (publicKey) {
+      return self.resolveVapidPublicKey().then(function (publicKey) {
         var applicationServerKey = self.urlBase64ToUint8Array(publicKey);
         return navigator.serviceWorker.ready.then(function (reg) {
           return reg.pushManager.getSubscription().then(function (existingSub) {

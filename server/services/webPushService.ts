@@ -3,21 +3,149 @@ import path from 'path';
 import { generateVAPIDKeys, setVapidDetails, sendNotification } from 'web-push';
 import { config } from '../config';
 import { query } from '../db';
+import { encryptCredentials, decryptCredentials } from '../utils/crypto';
 
-interface VapidKeys {
+export interface VapidKeys {
   publicKey: string;
   privateKey: string;
 }
 
+const VAPID_SETTINGS_KEY = 'vapid_keys_v1';
+
 let cachedKeys: VapidKeys | null = null;
 let isVapidConfigured = false;
+let initPromise: Promise<VapidKeys> | null = null;
+
+function readLocalOrGenerateVapidKeys(): VapidKeys {
+  const keyFilePath = path.resolve(process.cwd(), '.vapid-keys.json');
+  if (fs.existsSync(keyFilePath)) {
+    try {
+      const raw = fs.readFileSync(keyFilePath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed.publicKey && parsed.privateKey) {
+        return {
+          publicKey: String(parsed.publicKey).trim(),
+          privateKey: String(parsed.privateKey).trim(),
+        };
+      }
+    } catch (err) {
+      console.warn('[:> WEB PUSH] Could not read existing .vapid-keys.json:', err);
+    }
+  }
+
+  const generated = generateVAPIDKeys();
+  const keys: VapidKeys = {
+    publicKey: generated.publicKey,
+    privateKey: generated.privateKey,
+  };
+  try {
+    fs.writeFileSync(keyFilePath, JSON.stringify(keys, null, 2), { mode: 0o600 });
+    console.log('[:> WEB PUSH] Generated new persistent VAPID keypair in .vapid-keys.json');
+  } catch (writeErr) {
+    console.warn('[:> WEB PUSH WARNING] Could not persist .vapid-keys.json to disk:', writeErr);
+  }
+  return keys;
+}
+
+async function persistVapidKeysToDatabase(keys: VapidKeys): Promise<VapidKeys> {
+  try {
+    const encryptedPayload = encryptCredentials(keys).toString('base64');
+    await query(
+      `INSERT INTO system_settings (key, value, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (key) DO NOTHING`,
+      [VAPID_SETTINGS_KEY, encryptedPayload]
+    );
+
+    const res = await query(
+      `SELECT value FROM system_settings WHERE key = $1 LIMIT 1`,
+      [VAPID_SETTINGS_KEY]
+    );
+    if (res.rows.length > 0 && res.rows[0].value) {
+      const stored = decryptCredentials<VapidKeys>(res.rows[0].value);
+      if (stored && stored.publicKey && stored.privateKey) {
+        return {
+          publicKey: String(stored.publicKey).trim(),
+          privateKey: String(stored.privateKey).trim(),
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[:> WEB PUSH WARNING] Could not persist VAPID keys in system_settings:', err);
+  }
+  return keys;
+}
 
 /**
- * Initializes and retrieves the VAPID keypair for Web Push.
+ * Asynchronously initializes and retrieves the VAPID keypair, persisting
+ * auto-generated keys in PostgreSQL (system_settings) so they survive
+ * stateless Docker container rebuilds and redeployments.
+ *
  * Priority:
  *  1. Environment variables (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY)
- *  2. Local persistent cache (.vapid-keys.json)
- *  3. Auto-generated new keypair (written to .vapid-keys.json)
+ *  2. PostgreSQL system_settings ('vapid_keys_v1', AES-256-GCM encrypted)
+ *  3. Local cache (.vapid-keys.json) or auto-generated keypair -> saved to PostgreSQL
+ */
+export async function ensureVapidKeys(): Promise<VapidKeys> {
+  if (cachedKeys) {
+    return cachedKeys;
+  }
+  if (initPromise) {
+    return initPromise;
+  }
+
+  initPromise = (async () => {
+    try {
+      // 1. Environment variables
+      if (config.vapidPublicKey && config.vapidPrivateKey) {
+        cachedKeys = {
+          publicKey: config.vapidPublicKey.trim(),
+          privateKey: config.vapidPrivateKey.trim(),
+        };
+        initWebPush(cachedKeys);
+        return cachedKeys;
+      }
+
+      // 2. PostgreSQL persistent system_settings ledger
+      try {
+        const res = await query(
+          `SELECT value FROM system_settings WHERE key = $1 LIMIT 1`,
+          [VAPID_SETTINGS_KEY]
+        );
+        if (res.rows.length > 0 && res.rows[0].value) {
+          const decrypted = decryptCredentials<VapidKeys>(res.rows[0].value);
+          if (decrypted && decrypted.publicKey && decrypted.privateKey) {
+            cachedKeys = {
+              publicKey: String(decrypted.publicKey).trim(),
+              privateKey: String(decrypted.privateKey).trim(),
+            };
+            initWebPush(cachedKeys);
+            console.log('[:> WEB PUSH] Loaded persistent VAPID keypair from PostgreSQL system_settings');
+            return cachedKeys;
+          }
+        }
+      } catch (dbReadErr) {
+        console.warn('[:> WEB PUSH] Could not read VAPID keys from system_settings:', dbReadErr);
+      }
+
+      // 3. Fallback to local file or generate new, then persist into PostgreSQL
+      const fallbackKeys = readLocalOrGenerateVapidKeys();
+      const canonicalKeys = await persistVapidKeysToDatabase(fallbackKeys);
+      cachedKeys = canonicalKeys;
+      initWebPush(cachedKeys);
+      console.log('[:> WEB PUSH] Persisted VAPID keypair to PostgreSQL system_settings');
+      return cachedKeys;
+    } finally {
+      initPromise = null;
+    }
+  })();
+
+  return initPromise;
+}
+
+/**
+ * Synchronously retrieves the active VAPID keypair.
+ * In production, ensureVapidKeys() is awaited at server boot so cachedKeys is already populated.
  */
 export function getVapidKeys(): VapidKeys {
   if (cachedKeys) {
@@ -34,39 +162,18 @@ export function getVapidKeys(): VapidKeys {
     return cachedKeys;
   }
 
-  // 2. Persistent file cache
-  const keyFilePath = path.resolve(process.cwd(), '.vapid-keys.json');
-  if (fs.existsSync(keyFilePath)) {
-    try {
-      const raw = fs.readFileSync(keyFilePath, 'utf-8');
-      const parsed = JSON.parse(raw);
-      if (parsed.publicKey && parsed.privateKey) {
-        cachedKeys = {
-          publicKey: parsed.publicKey,
-          privateKey: parsed.privateKey,
-        };
-        initWebPush(cachedKeys);
-        return cachedKeys;
-      }
-    } catch (err) {
-      console.warn('[:> WEB PUSH] Could not read existing .vapid-keys.json:', err);
-    }
-  }
-
-  // 3. Auto-generate new VAPID keys
+  // 2. Synchronous fallback (e.g. unit tests creating app without full bootstrap)
   try {
-    const generated = generateVAPIDKeys();
-    cachedKeys = {
-      publicKey: generated.publicKey,
-      privateKey: generated.privateKey,
-    };
-    try {
-      fs.writeFileSync(keyFilePath, JSON.stringify(cachedKeys, null, 2), { mode: 0o600 });
-      console.log('[:> WEB PUSH] Generated new persistent VAPID keypair in .vapid-keys.json');
-    } catch (writeErr) {
-      console.warn('[:> WEB PUSH WARNING] Could not persist .vapid-keys.json to disk:', writeErr);
-    }
+    const keys = readLocalOrGenerateVapidKeys();
+    cachedKeys = keys;
     initWebPush(cachedKeys);
+    void persistVapidKeysToDatabase(keys).then((canonical) => {
+      if (canonical.publicKey !== keys.publicKey) {
+        cachedKeys = canonical;
+        isVapidConfigured = false;
+        initWebPush(cachedKeys);
+      }
+    });
     return cachedKeys;
   } catch (genErr) {
     console.error('[:> WEB PUSH FATAL] Failed to generate VAPID keys:', genErr);
@@ -113,7 +220,7 @@ export async function savePushSubscription(
   }
 
   // Ensure VAPID is initialized
-  getVapidKeys();
+  await ensureVapidKeys();
 
   await query(
     `INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, user_agent, updated_at)
@@ -176,7 +283,7 @@ export async function sendPushNotificationToUser(
   data: WebPushNotificationData
 ): Promise<{ sentCount: number; failedCount: number; prunedCount: number }> {
   try {
-    getVapidKeys();
+    await ensureVapidKeys();
   } catch (err) {
     console.warn('[:> WEB PUSH] Skipping push dispatch: VAPID keys unconfigured.', err);
     return { sentCount: 0, failedCount: 0, prunedCount: 0 };
@@ -229,9 +336,15 @@ export async function sendPushNotificationToUser(
     } catch (err: any) {
       failedCount++;
       const statusCode = err.statusCode || err.status;
-      // HTTP 404 Not Found or 410 Gone means the subscription is permanently invalid
-      if (statusCode === 404 || statusCode === 410) {
-        console.log(`[:> WEB PUSH PRUNE] Subscription expired (HTTP ${statusCode}). Removing endpoint: ${row.endpoint.slice(0, 45)}...`);
+      const errBody = typeof err.body === 'string' ? err.body : '';
+      const isVapidMismatch =
+        statusCode === 401 ||
+        statusCode === 403 ||
+        errBody.includes('VapidPkHashMismatch') ||
+        errBody.includes('BadJwtToken');
+      // HTTP 404/410 (expired) or 401/403/VapidPkHashMismatch (bound to rotated VAPID key) are permanently invalid
+      if (statusCode === 404 || statusCode === 410 || isVapidMismatch) {
+        console.log(`[:> WEB PUSH PRUNE] Subscription invalid (HTTP ${statusCode}). Removing endpoint: ${row.endpoint.slice(0, 45)}...`);
         try {
           await query(`DELETE FROM push_subscriptions WHERE endpoint = $1`, [row.endpoint]);
           prunedCount++;

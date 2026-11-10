@@ -615,6 +615,14 @@ Neogram features a centralized, real-time notification engine connecting social 
   - For NIM direct messages, notification records strictly persist sender metadata (e.g. `title: "New NIM Transmission"`, `body: "@handle sent you a transmission"`).
   - The message body text is **never stored in PostgreSQL**, fully preserving the 0-byte server chat retention invariant.
 
+- **Web Push & Persistent VAPID Key Invariant (`server/services/webPushService.ts`):**
+  - **Cross-Deploy Key Persistence:** Because Apple APNs and FCM cryptographically bind every device `PushSubscription` endpoint to the exact `applicationServerKey` (VAPID public key) active at subscription time, the server's VAPID keypair must never rotate across stateless Docker container rebuilds (`docker compose up -d --build`).
+  - **Resolution Priority (`ensureVapidKeys()`):**
+    1. Environment variables (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`, passed through `docker-compose.yml`).
+    2. PostgreSQL `system_settings` (`key = 'vapid_keys_v1'`), encrypted at rest using AES-256-GCM (`encryptCredentials` / `decryptCredentials`).
+    3. Local fallback (`.vapid-keys.json`) or auto-generated keypair, which is immediately encrypted and persisted into `system_settings` (`ON CONFLICT DO NOTHING`) at server boot (`server/index.ts`).
+  - **Client Self-Healing & Server Pruning:** On load, `syncPushSubscription()` (`public/js/notifications.js`) compares the browser's `subscription.options.applicationServerKey` bytes against the server's active `VAPID_PUBLIC_KEY` and automatically unsubscribes and re-subscribes if a key rotation ever occurs. The Service Worker (`public/sw.js`) also handles `pushsubscriptionchange` events, and `sendPushNotificationToUser()` automatically prunes dead or mismatched endpoints (`404`, `410`, `401`, `403`, `VapidPkHashMismatch`).
+
 ### 4.28 Multi-Site Architecture & Target Routing (1 User : N Sites)
 
 Neogram fully decouples creator user identity (immutable numeric ICQ `#uin` and `@handle`) from static site deployments:
@@ -677,6 +685,10 @@ The following matrix documents all server routes, auth requirements, and functio
 | **Friends Network** | `GET` | `/api/users/:identifier/friend-status` | None (CORS: *) | Checks `isFriend` and `isSelf` state for active caller, plus `followersCount` and `followingCount`. |
 | **Friends Network** | `GET` | `/api/friends` | Bearer / Cookie | Returns JSON list of followed friends and chronological photos stream. |
 | **Directory & Profiles**| `GET` | `/api/directory`, `/api/users` | None (CORS: *) | Headless directory JSON categorized by presence: Active (🟢), Away (🟡), Inactive (⚪). Alphabetical sequence by handle. |
+| **Notifications** | `GET` | `/api/notifications/vapid-public-key` | None (Public) | Returns the server's persistent VAPID public key for `PushManager.subscribe()`. |
+| **Notifications** | `POST` | `/api/notifications/push-subscription` | Bearer / Cookie | Registers or updates a device Web Push subscription (`endpoint`, `p256dh`, `auth`) in `push_subscriptions`. |
+| **Notifications** | `DELETE` | `/api/notifications/push-subscription` | Bearer / Cookie | Removes a device Web Push subscription by `endpoint`. |
+| **Notifications** | `POST` | `/api/notifications/test-push` | Bearer / Cookie | Dispatches an immediate native Web Push test packet via APNs/FCM to the user's registered devices. |
 | **Notifications** | `GET` | `/api/notifications` | Bearer / Cookie | Returns user's notifications inbox (`notifications`) and total unread counter (`unreadCount`). |
 | **Notifications** | `POST` | `/api/notifications/:id/read` | Bearer / Cookie | Marks single notification as read (`is_read = TRUE`). |
 | **Notifications** | `POST` | `/api/notifications/read-all` | Bearer / Cookie | Marks all notifications for active user as read. |

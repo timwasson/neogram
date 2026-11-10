@@ -16,7 +16,7 @@ import { getTickerAnnouncement } from './services/systemSettings';
 import { COOKIE_NAME, verifySessionToken, clearSessionCookie, extractToken, signSessionToken, signPassToken, signHandoffToken, verifyHandoffToken, setSessionCookie, UserSessionPayload } from './auth/jwt';
 import { getUserById } from './auth/service';
 import { getFriendsRoster } from './services/friendsRoster';
-import { getVapidPublicKey } from './services/webPushService';
+import { ensureVapidKeys, getVapidPublicKey } from './services/webPushService';
 import { config } from './config';
 
 export function createApp(): Express {
@@ -220,9 +220,14 @@ export function createApp(): Express {
     }
 
     try {
-      res.locals.vapidPublicKey = getVapidPublicKey();
+      const vapid = await ensureVapidKeys();
+      res.locals.vapidPublicKey = vapid.publicKey;
     } catch {
-      res.locals.vapidPublicKey = '';
+      try {
+        res.locals.vapidPublicKey = getVapidPublicKey();
+      } catch {
+        res.locals.vapidPublicKey = '';
+      }
     }
 
     try {

@@ -3,7 +3,7 @@
  * Offline caching, navigation fallback, and carrier status management.
  */
 
-const CACHE_NAME = 'neogram-shell-v5';
+const CACHE_NAME = 'neogram-shell-v6';
 
 const STATIC_PRECACHE = [
   '/',
@@ -12,7 +12,7 @@ const STATIC_PRECACHE = [
   '/js/retroAudio.js',
   '/js/aimMessenger.js',
   '/js/notifications.js',
-  '/js/notifications.js?v=3.2',
+  '/js/notifications.js?v=3.3',
   '/js/pwa.js',
   '/js/pwa.js?v=3.2',
   '/manifest.json',
@@ -166,6 +166,42 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// PushSubscriptionChange: Auto-recover if APNs/browser rotates or invalidates the push token
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    fetch('/api/notifications/vapid-public-key')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data || !data.publicKey) throw new Error('Missing VAPID public key');
+        const padding = '='.repeat((4 - (data.publicKey.length % 4)) % 4);
+        const base64 = (data.publicKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = atob(base64);
+        const applicationServerKey = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+          applicationServerKey[i] = rawData.charCodeAt(i);
+        }
+        return self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey,
+        });
+      })
+      .then((newSub) => {
+        const subJson = newSub.toJSON();
+        return fetch('/api/notifications/push-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: newSub.endpoint,
+            keys: subJson.keys,
+          }),
+        });
+      })
+      .catch((err) => {
+        console.warn('[:> SW PUSH RE-SUBSCRIBE WARN]', err);
+      })
+  );
 });
 
 // Notification Click: Focus window and navigate to target URL

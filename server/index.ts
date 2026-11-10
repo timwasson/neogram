@@ -21,6 +21,9 @@ async function bootstrap() {
       `[:> DB STATUS] Database online (${dbStatus.isMemory ? 'In-Memory pg-mem' : 'Live PostgreSQL'})`
     );
 
+    const { ensureVapidKeys } = await import('./services/webPushService');
+    await ensureVapidKeys();
+
     const { seedInitialPostsIfEmpty } = await import('./db/seed');
     await seedInitialPostsIfEmpty();
 
