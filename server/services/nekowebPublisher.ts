@@ -28,6 +28,66 @@ export interface NekowebSiteInfo {
   last_updated?: string;
 }
 
+const nekowebRootFoldersCache = new Map<string, { expiresAt: number; folders: Set<string> }>();
+
+/**
+ * Resolves the target directory prefix on Nekoweb, automatically supporting Nekoweb multi-site accounts
+ * where each domain is stored in a root-level `/<domain>` folder (e.g. `/qa-neo-test.nekoweb.org/neogram`).
+ */
+async function resolveNekowebDeployPrefix(
+  apiKey: string,
+  siteUrl: string | null | undefined,
+  rawDeployPath: string
+): Promise<string> {
+  const cleanDeployPath = rawDeployPath.trim().replace(/^\/+|\/+$/g, '');
+  if (!siteUrl) return cleanDeployPath;
+
+  let hostname = '';
+  try {
+    hostname = new URL(siteUrl).hostname.toLowerCase();
+  } catch {
+    return cleanDeployPath;
+  }
+  if (!hostname) return cleanDeployPath;
+
+  try {
+    const cacheKey = apiKey.trim();
+    const now = Date.now();
+    let cached = nekowebRootFoldersCache.get(cacheKey);
+    if (!cached || cached.expiresAt < now) {
+      const res = await fetch('https://nekoweb.org/api/files/readfolder?pathname=/', {
+        method: 'GET',
+        headers: { Authorization: cacheKey },
+      });
+      if (res.ok) {
+        const entries = (await res.json().catch(() => [])) as any[];
+        const folders = new Set<string>();
+        if (Array.isArray(entries)) {
+          for (const entry of entries) {
+            if (entry && entry.dir && typeof entry.name === 'string') {
+              folders.add(entry.name.toLowerCase());
+            }
+          }
+        }
+        cached = { expiresAt: now + 60000, folders };
+        nekowebRootFoldersCache.set(cacheKey, cached);
+      }
+    }
+
+    if (cached && cached.folders.has(hostname)) {
+      if (!cleanDeployPath) return hostname;
+      if (cleanDeployPath.toLowerCase() === hostname || cleanDeployPath.toLowerCase().startsWith(hostname + '/')) {
+        return cleanDeployPath;
+      }
+      return `${hostname}/${cleanDeployPath}`;
+    }
+  } catch {
+    // Fallback to cleanDeployPath if folder listing fails
+  }
+
+  return cleanDeployPath;
+}
+
 /**
  * Validates a Nekoweb API key by querying the /site/info endpoint.
  */
@@ -176,8 +236,13 @@ export async function deployToNekoweb(
   const rawDeployPath = site.deploy_path !== null && site.deploy_path !== undefined
     ? String(site.deploy_path).trim().replace(/^\/+|\/+$/g, '')
     : 'neogram';
+  const effectiveDeployPath = await resolveNekowebDeployPrefix(
+    apiKey,
+    site.site_url || user.site_url,
+    rawDeployPath
+  );
 
-  console.log(`[:> NEKOWEB DEPLOY] Initiating deployment for @${user.handle || user.email} (site: "${site.name}", target folder: "${rawDeployPath || 'root'}")...`);
+  console.log(`[:> NEKOWEB DEPLOY] Initiating deployment for @${user.handle || user.email} (site: "${site.name}", target folder: "${effectiveDeployPath || 'root'}")...`);
 
   // 2. Compile static gallery via 11ty
   const buildOptions = {
@@ -244,7 +309,7 @@ export async function deployToNekoweb(
   }
 
   // Step 5C: Import and extract ZIP archive into destination folder
-  const destinationPath = rawDeployPath ? `/${rawDeployPath}` : '/';
+  const destinationPath = effectiveDeployPath ? `/${effectiveDeployPath}` : '/';
   console.log(`[:> NEKOWEB DEPLOY] Extracting static archive into target path: "${destinationPath}"...`);
 
   const importParams = new URLSearchParams();
@@ -332,31 +397,35 @@ export async function deleteFromNekoweb(targetId: string, filenames: string[]): 
   try {
     let credsRaw: any;
     let rawDeployPath: any;
+    let siteUrl: any;
 
     const siteRes = await query(
-      `SELECT deployment_credentials, deploy_path FROM sites WHERE id = $1`,
+      `SELECT deployment_credentials, deploy_path, site_url FROM sites WHERE id = $1`,
       [targetId]
     );
 
     if (siteRes.rows.length > 0) {
       credsRaw = siteRes.rows[0].deployment_credentials;
       rawDeployPath = siteRes.rows[0].deploy_path;
+      siteUrl = siteRes.rows[0].site_url;
     } else {
       const userRes = await query(
-        `SELECT deployment_credentials, deploy_path FROM users WHERE id = $1`,
+        `SELECT deployment_credentials, deploy_path, site_url FROM users WHERE id = $1`,
         [targetId]
       );
       if (userRes.rows.length === 0) return false;
       credsRaw = userRes.rows[0].deployment_credentials;
       rawDeployPath = userRes.rows[0].deploy_path;
+      siteUrl = userRes.rows[0].site_url;
     }
 
     const creds = decryptCredentials<NekowebCredentials>(credsRaw);
     if (!creds || !creds.apiKey) return false;
 
-    const cleanDeployPath = rawDeployPath !== null && rawDeployPath !== undefined
+    const baseDeployPath = rawDeployPath !== null && rawDeployPath !== undefined
       ? String(rawDeployPath).trim().replace(/^\/+|\/+$/g, '')
       : 'neogram';
+    const cleanDeployPath = await resolveNekowebDeployPrefix(creds.apiKey.trim(), siteUrl, baseDeployPath);
 
     let successCount = 0;
 
@@ -416,23 +485,26 @@ export async function purgeRemoteNekowebPhotos(targetId: string): Promise<boolea
   try {
     let credsRaw: any;
     let rawDeployPath: any;
+    let siteUrl: any;
 
     const siteRes = await query(
-      `SELECT deployment_credentials, deploy_path FROM sites WHERE id = $1`,
+      `SELECT deployment_credentials, deploy_path, site_url FROM sites WHERE id = $1`,
       [targetId]
     );
 
     if (siteRes.rows.length > 0) {
       credsRaw = siteRes.rows[0].deployment_credentials;
       rawDeployPath = siteRes.rows[0].deploy_path;
+      siteUrl = siteRes.rows[0].site_url;
     } else {
       const userRes = await query(
-        `SELECT deployment_credentials, deploy_path FROM users WHERE id = $1`,
+        `SELECT deployment_credentials, deploy_path, site_url FROM users WHERE id = $1`,
         [targetId]
       );
       if (userRes.rows.length === 0) return false;
       credsRaw = userRes.rows[0].deployment_credentials;
       rawDeployPath = userRes.rows[0].deploy_path;
+      siteUrl = userRes.rows[0].site_url;
     }
 
     const creds = decryptCredentials<NekowebCredentials>(credsRaw);
@@ -440,13 +512,17 @@ export async function purgeRemoteNekowebPhotos(targetId: string): Promise<boolea
       return false;
     }
 
-    const cleanDeployPath = rawDeployPath !== null && rawDeployPath !== undefined
+    const baseDeployPath = rawDeployPath !== null && rawDeployPath !== undefined
       ? String(rawDeployPath).trim().replace(/^\/+|\/+$/g, '')
       : 'neogram';
+    const cleanDeployPath = await resolveNekowebDeployPrefix(creds.apiKey.trim(), siteUrl, baseDeployPath);
 
     const pathsToDelete = cleanDeployPath
       ? [`/${cleanDeployPath}/photos`, `/${cleanDeployPath}/uploads`]
       : ['/photos', '/uploads'];
+    if (baseDeployPath && baseDeployPath !== cleanDeployPath) {
+      pathsToDelete.push(`/${baseDeployPath}/photos`, `/${baseDeployPath}/uploads`);
+    }
 
     for (const delPath of pathsToDelete) {
       try {
@@ -578,6 +654,11 @@ export async function deployFilesToNekoweb(
   const rawDeployPath = site.deploy_path !== null && site.deploy_path !== undefined
     ? String(site.deploy_path).trim().replace(/^\/+|\/+$/g, '')
     : 'neogram';
+  const effectiveDeployPath = await resolveNekowebDeployPrefix(
+    apiKey,
+    site.site_url || user.site_url,
+    rawDeployPath
+  );
 
   // Group files by destination folder on Nekoweb
   const filesByDir = new Map<string, Array<{ filename: string; bytes: Buffer }>>();
@@ -594,8 +675,8 @@ export async function deployFilesToNekoweb(
     }
 
     const cleanRel = path.posix.normalize(file.relativePath).replace(/^(\.\.(\/|\\|$))+/, '');
-    const remotePath = rawDeployPath
-      ? path.posix.join(rawDeployPath, cleanRel)
+    const remotePath = effectiveDeployPath
+      ? path.posix.join(effectiveDeployPath, cleanRel)
       : cleanRel;
     const dir = path.posix.dirname(remotePath);
     const normalizedDir = dir === '.' ? '/' : (dir.startsWith('/') ? dir : `/${dir}`);

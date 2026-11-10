@@ -15,7 +15,17 @@
  */
 
 import sharp from 'sharp';
-import { loadQaFleet, GREEN, RED, YELLOW, CYAN, MAGENTA, RESET, BOLD } from '../server/tests/helpers/qaHarness';
+import {
+  loadQaFleet,
+  fetchPicsumTestImage,
+  GREEN,
+  RED,
+  YELLOW,
+  CYAN,
+  MAGENTA,
+  RESET,
+  BOLD,
+} from '../server/tests/helpers/qaHarness';
 
 let passedChecks = 0;
 let totalChecks = 0;
@@ -77,52 +87,33 @@ async function createRetroAvatarSvg(bg: string, fg: string, glyph: string): Prom
 }
 
 /**
- * Generates visually distinct 90s retro synthwave / cyber-grid / arcade artwork frames
+ * Checks whether a candidate QA site is a working, filled-out, non-headless static site profile.
+ * Excludes headless accounts, sandbox ('none') accounts, sites missing API keys, and unresolvable/404 domains.
  */
-async function createRetroArtworkFrame(themeIndex: number, title: string, subtitle: string): Promise<Buffer> {
-  const palettes = [
-    { bg1: '#0b001a', bg2: '#2d004d', sun: '#ff007f', grid: '#00f0ff', text: '#ffffff' },
-    { bg1: '#001220', bg2: '#003844', sun: '#ffcc00', grid: '#00ff88', text: '#e0ffff' },
-    { bg1: '#1a0900', bg2: '#4d1900', sun: '#ff4400', grid: '#ffaa00', text: '#fff5e6' },
-    { bg1: '#050517', bg2: '#1b1b3a', sun: '#7b2cbf', grid: '#ff9e00', text: '#f8f9fa' },
-    { bg1: '#001a09', bg2: '#003d16', sun: '#00ff66', grid: '#33ffcc', text: '#e6ffee' },
-    { bg1: '#1f0018', bg2: '#420039', sun: '#00e5ff', grid: '#ff00aa', text: '#ffffff' },
-  ];
-  const p = palettes[themeIndex % palettes.length];
-  const safeTitle = title.replace(/[<>&"']/g, '');
-  const safeSub = subtitle.replace(/[<>&"']/g, '');
-
-  const svg = `<svg width="800" height="800" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="${p.bg1}" />
-        <stop offset="65%" stop-color="${p.bg2}" />
-        <stop offset="100%" stop-color="#050505" />
-      </linearGradient>
-    </defs>
-    <rect width="800" height="800" fill="url(#sky)" />
-    <!-- Retro Sun -->
-    <circle cx="400" cy="340" r="150" fill="${p.sun}" opacity="0.88" />
-    <rect x="230" y="360" width="340" height="12" fill="${p.bg2}" />
-    <rect x="230" y="390" width="340" height="16" fill="${p.bg2}" />
-    <rect x="230" y="424" width="340" height="22" fill="${p.bg2}" />
-    <!-- Horizon & Perspective Grid -->
-    <line x1="0" y1="480" x2="800" y2="480" stroke="${p.grid}" stroke-width="4" />
-    <line x1="0" y1="530" x2="800" y2="530" stroke="${p.grid}" stroke-width="2" opacity="0.7" />
-    <line x1="0" y1="590" x2="800" y2="590" stroke="${p.grid}" stroke-width="2" opacity="0.7" />
-    <line x1="0" y1="665" x2="800" y2="665" stroke="${p.grid}" stroke-width="2" opacity="0.7" />
-    <line x1="0" y1="750" x2="800" y2="750" stroke="${p.grid}" stroke-width="3" opacity="0.8" />
-    <line x1="400" y1="480" x2="0" y2="800" stroke="${p.grid}" stroke-width="2" opacity="0.6" />
-    <line x1="400" y1="480" x2="200" y2="800" stroke="${p.grid}" stroke-width="2" opacity="0.6" />
-    <line x1="400" y1="480" x2="400" y2="800" stroke="${p.grid}" stroke-width="2" opacity="0.6" />
-    <line x1="400" y1="480" x2="600" y2="800" stroke="${p.grid}" stroke-width="2" opacity="0.6" />
-    <line x1="400" y1="480" x2="800" y2="800" stroke="${p.grid}" stroke-width="2" opacity="0.6" />
-    <!-- HUD Border & Typography -->
-    <rect x="24" y="24" width="752" height="752" fill="none" stroke="${p.grid}" stroke-width="4" />
-    <text x="400" y="110" text-anchor="middle" fill="${p.text}" font-size="38" font-family="monospace" font-weight="bold">${safeTitle}</text>
-    <text x="400" y="160" text-anchor="middle" fill="${p.grid}" font-size="24" font-family="monospace">${safeSub}</text>
-  </svg>`;
-  return sharp(Buffer.from(svg)).png().toBuffer();
+async function isSiteReachableForUploads(siteUrl: string | undefined, isLocal: boolean): Promise<boolean> {
+  if (!siteUrl || !siteUrl.startsWith('http')) return false;
+  if (isLocal) return true;
+  try {
+    const cleanRoot = siteUrl.replace(/\/+$/, '');
+    const res = await fetch(cleanRoot, {
+      method: 'GET',
+      headers: { 'User-Agent': 'Neogram-QA-Probe/1.0' },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (res.status === 404) {
+      const body = await res.text().catch(() => '');
+      // Nekoweb returns 404 with "404 Not Found" if the subdomain itself does not exist,
+      // whereas an existing GitHub Pages repo without root index.html might return 404 at root
+      if (cleanRoot.includes('nekoweb.org') || cleanRoot.includes('neocities.org')) {
+        if (body.includes('Site not found') || body.includes('Page Not Found') || res.status === 404) {
+          return false;
+        }
+      }
+    }
+    return res.status < 500;
+  } catch {
+    return false;
+  }
 }
 
 interface HealthSnapshot {
@@ -281,25 +272,46 @@ async function runFleetNetworkTests() {
   // ---------------------------------------------------------------------------
   logHeader('3. RANDOMIZED SINGLE & MULTI-PHOTO CONCURRENT UPLOAD WAVE');
 
-  // Collect candidate (agent, site) pairs, prioritizing live API-key sites plus random sandbox agents
+  // Collect candidate (agent, site) pairs strictly from accounts with filled-out, working, non-headless site profiles
   const allTargets: Array<{ agent: typeof agents[0]; site: any }> = [];
   for (const ag of shuffle(agents)) {
+    if (ag.handle.toLowerCase() === 'qa_headless') continue;
     if (ag.sites && ag.sites.length > 0) {
       for (const s of ag.sites) {
-        allTargets.push({ agent: ag, site: s });
+        if (
+          s &&
+          s.hasApiKey &&
+          s.deploymentType &&
+          s.deploymentType !== 'none' &&
+          s.buildHtml !== false &&
+          s.siteUrl &&
+          !s.siteUrl.includes('/user/')
+        ) {
+          allTargets.push({ agent: ag, site: s });
+        }
       }
-    } else {
-      allTargets.push({ agent: ag, site: null });
     }
   }
 
-  const keyedTargets = shuffle(allTargets.filter((t) => t.site?.hasApiKey));
-  const sandboxTargets = shuffle(allTargets.filter((t) => !t.site?.hasApiKey));
-  const selectedTargets = [...keyedTargets, ...sandboxTargets.slice(0, 1)].slice(0, Math.max(keyedTargets.length, 6));
+  const verifiedTargets: Array<{ agent: typeof agents[0]; site: any }> = [];
+  for (const cand of allTargets) {
+    const reachable = await isSiteReachableForUploads(cand.site.siteUrl, fleet.isLocal);
+    if (reachable) {
+      verifiedTargets.push(cand);
+    } else {
+      console.log(`  ${YELLOW}[SKIP]${RESET} Excluding @${cand.agent.handle} (${cand.site.siteUrl}) — remote domain unreachable/unconfigured`);
+    }
+  }
+
+  const selectedTargets = shuffle(verifiedTargets).slice(0, Math.max(verifiedTargets.length, 6));
+  if (selectedTargets.length === 0) {
+    console.error(`${RED}[:> ERROR] No reachable, non-headless QA site profiles with API keys found for image uploads.${RESET}`);
+    process.exit(1);
+  }
 
   // Assign a mix of single-photo (1 frame) and multi-photo (2-4 frames) across the selected targets
   // Guarantee at least 3 multi-photo carousel posts and multiple single-photo posts
-  const baseFramePattern = [1, 3, 1, 2, 1, 4, 1, 2, 3, 1];
+  const baseFramePattern = [1, 3, 1, 2, 4, 2, 1, 3, 1, 2];
   const frameCounts = shuffle(baseFramePattern.slice(0, selectedTargets.length));
   const shaders = ['crt', 'sepia', 'vga', 'gameboy', 'cyberpunk', 'lofi'];
   const moods = ['Radical', 'Cyber', 'Chill', 'Nostalgic', '90s Kid', 'Dial-Up'];
@@ -316,13 +328,17 @@ async function runFleetNetworkTests() {
   // 3.1 Verify 5-Photo Limit Enforcement Barrier (Uploading 6 photos must return HTTP 400)
   const barrierTarget = selectedTargets[0];
   console.log(`${CYAN}Testing 5-photo limit barrier on @${barrierTarget.agent.handle} (6 frames -> HTTP 400)...${RESET}`);
-  const overflowBuf = await createRetroArtworkFrame(0, 'OVERFLOW TEST', 'FRAME LIMIT');
+  const overflowPhoto = await fetchPicsumTestImage(800, 800);
   const excessFormData = new FormData();
   excessFormData.append('caption', 'Attempting 6 photos upload');
   excessFormData.append('filterApplied', 'crt');
   if (barrierTarget.site?.id) excessFormData.append('siteId', barrierTarget.site.id);
   for (let i = 1; i <= 6; i++) {
-    excessFormData.append('imageFiles', new Blob([new Uint8Array(overflowBuf)], { type: 'image/png' }), `overflow_${i}.png`);
+    excessFormData.append(
+      'imageFiles',
+      new Blob([new Uint8Array(overflowPhoto.buffer)], { type: overflowPhoto.mimeType }),
+      `overflow_${i}.jpg`
+    );
   }
   const excessRes = await fetch(`${baseUrl}/api/posts`, {
     method: 'POST',
@@ -331,8 +347,8 @@ async function runFleetNetworkTests() {
   });
   recordCheck(`5-photo limit barrier rejected with HTTP 400`, excessRes.status === 400, `Status: ${excessRes.status}`);
 
-  // 3.2 Pre-generate artwork buffers and launch concurrent multi-account upload wave
-  console.log(`\n${MAGENTA}${BOLD}Launching concurrent upload wave across ${selectedTargets.length} station targets...${RESET}`);
+  // 3.2 Fetch real photographs from picsum.photos and launch concurrent multi-account upload wave
+  console.log(`\n${MAGENTA}${BOLD}Fetching placeholder photographs (picsum.photos) and launching concurrent upload wave across ${selectedTargets.length} verified station targets...${RESET}`);
   const uploadPayloads = await Promise.all(
     selectedTargets.map(async (target, idx) => {
       const numFrames = frameCounts[idx] || 1;
@@ -341,14 +357,10 @@ async function runFleetNetworkTests() {
       const webring = webrings[idx % webrings.length];
       const baseCaption = captions[idx % captions.length];
       const isMulti = numFrames > 1;
-      const frames: Buffer[] = [];
+      const frames: Array<{ buffer: Buffer; mimeType: string }> = [];
       for (let f = 1; f <= numFrames; f++) {
-        const buf = await createRetroArtworkFrame(
-          idx + f,
-          isMulti ? `${target.agent.handle.toUpperCase()} [${f}/${numFrames}]` : `${target.agent.handle.toUpperCase()}`,
-          `${shader.toUpperCase()} // ${target.site?.slug || 'STATION'}`
-        );
-        frames.push(buf);
+        const pic = await fetchPicsumTestImage(800, 800);
+        frames.push({ buffer: pic.buffer, mimeType: pic.mimeType });
       }
       return {
         target,
@@ -380,11 +392,13 @@ async function runFleetNetworkTests() {
       if (item.target.site?.id) fd.append('siteId', item.target.site.id);
 
       if (item.isMulti) {
-        item.frames.forEach((buf, idx) => {
-          fd.append('imageFiles', new Blob([new Uint8Array(buf)], { type: 'image/png' }), `slide_${idx + 1}.png`);
+        item.frames.forEach((frame, idx) => {
+          const ext = frame.mimeType.includes('png') ? 'png' : 'jpg';
+          fd.append('imageFiles', new Blob([new Uint8Array(frame.buffer)], { type: frame.mimeType }), `slide_${idx + 1}.${ext}`);
         });
       } else {
-        fd.append('imageFile', new Blob([new Uint8Array(item.frames[0])], { type: 'image/png' }), 'single.png');
+        const ext = item.frames[0].mimeType.includes('png') ? 'png' : 'jpg';
+        fd.append('imageFile', new Blob([new Uint8Array(item.frames[0].buffer)], { type: item.frames[0].mimeType }), `single.${ext}`);
       }
 
       const res = await fetch(`${baseUrl}/api/posts`, {
@@ -570,6 +584,53 @@ async function runFleetNetworkTests() {
     wassonFeedRes.status === 200 && wassonPosts.length >= uniqueAuthorsCount,
     `Posts in @wasson feed: ${wassonPosts.length} (from ${uniqueAuthorsCount} distinct QA friends)`
   );
+
+  // Verify that ZERO headless posts exist on @wasson's feed and every QA post image URL returns HTTP 200
+  const headlessPostsInFeed = wassonPosts.filter((p: any) => {
+    const author = (p.author?.handle || p.authorHandle || p.author || p.handle || '').toLowerCase().replace(/^@/, '');
+    return author === 'qa_headless';
+  });
+  recordCheck(
+    `STRICT INVARIANT: @wasson feed contains ZERO headless (@qa_headless) posts`,
+    headlessPostsInFeed.length === 0,
+    `Headless posts: ${headlessPostsInFeed.length}`
+  );
+
+  if (!fleet.isLocal && createdPosts.length > 0) {
+    let liveImagesOk = 0;
+    let liveImagesChecked = 0;
+    const failedUrls: string[] = [];
+
+    for (const c of createdPosts) {
+      const imgUrl = c.post?.imageUrl;
+      if (typeof imgUrl === 'string' && imgUrl.startsWith('http')) {
+        liveImagesChecked++;
+        let ok = false;
+        // GitHub Pages CDN can take a few seconds to serve newly committed files
+        const maxRetries = imgUrl.includes('github.io') ? 10 : 4;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            const imgRes = await fetch(`${imgUrl}?t=${Date.now()}`, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+            if (imgRes.status === 200) {
+              ok = true;
+              break;
+            }
+          } catch {}
+          if (attempt < maxRetries) {
+            await new Promise((r) => setTimeout(r, 2000));
+          }
+        }
+        if (ok) liveImagesOk++;
+        else failedUrls.push(imgUrl);
+      }
+    }
+
+    recordCheck(
+      `All ${liveImagesChecked} newly published static post image URLs return HTTP 200 (zero 404s)`,
+      liveImagesOk === liveImagesChecked,
+      failedUrls.length > 0 ? `404/unreachable: ${failedUrls.join(', ')}` : `${liveImagesOk}/${liveImagesChecked} HTTP 200`
+    );
+  }
 
   // Invariant B: User @sheavanlan
   const sheavanlanFeedRes = await fetch(`${baseUrl}/api/user/sheavanlan/friends-feed`);
