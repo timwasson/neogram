@@ -315,3 +315,52 @@ describe('staticStorage: getCounterRelativePath', () => {
     fs.rmSync(localDir, { recursive: true, force: true });
   });
 });
+
+describe('avatar: default colored variants and remote static host resolution', () => {
+  test('getDefaultAvatarPath deterministically maps UINs/handles to colored SVG icons', async () => {
+    const { getDefaultAvatarPath, DEFAULT_AVATAR_VARIANTS } = await import('../utils/avatar');
+    assert.equal(getDefaultAvatarPath(null), '/icons/default-avatar.svg');
+    const seen = new Set<string>();
+    for (let uin = 100101; uin < 100101 + DEFAULT_AVATAR_VARIANTS.length; uin++) {
+      const p = getDefaultAvatarPath(uin);
+      assert.ok(p.startsWith('/icons/default-avatar') && p.endsWith('.svg'));
+      seen.add(p);
+    }
+    assert.equal(seen.size, DEFAULT_AVATAR_VARIANTS.length);
+  });
+
+  test('resolveAvatarPath enforces default avatar for headless users and static URL for remote users', async () => {
+    const { resolveAvatarPath, isRemoteAvatarUrl } = await import('../utils/avatar');
+
+    // Headless user without remote publishing always gets default avatar even if legacy path present
+    const headlessAvatar = resolveAvatarPath({
+      avatarPath: '/uploads/avatars/legacy-123.webp',
+      hasRemotePublishing: false,
+      deploymentType: 'none',
+      uin: 100102,
+      handle: 'qa_surfer',
+    });
+    assert.ok(headlessAvatar.startsWith('/icons/default-avatar'));
+    assert.equal(isRemoteAvatarUrl(headlessAvatar), false);
+
+    // Remote user with static host URL gets their static image URL
+    const remoteUrl = 'https://chemicalmachine.neocities.org/neogram/avatar.webp?v=12345';
+    const remoteAvatar = resolveAvatarPath({
+      avatarPath: remoteUrl,
+      hasRemotePublishing: true,
+      deploymentType: 'neocities',
+      siteUrl: 'https://chemicalmachine.neocities.org',
+      uin: 100101,
+      handle: 'qa_alice',
+    });
+    assert.equal(remoteAvatar, remoteUrl);
+    assert.equal(isRemoteAvatarUrl(remoteAvatar), true);
+  });
+
+  test('fetchPravatarTestImage returns a valid image buffer and dataUri', async () => {
+    const { fetchPravatarTestImage } = await import('./helpers/qaHarness');
+    const img = await fetchPravatarTestImage('qa_alice_test', 128);
+    assert.ok(Buffer.isBuffer(img.buffer) && img.buffer.byteLength > 100);
+    assert.ok(img.dataUri.startsWith('data:image/'));
+  });
+});

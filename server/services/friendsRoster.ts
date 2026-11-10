@@ -1,6 +1,7 @@
 import { query } from '../db';
 import { activeSockets } from './chatSocket';
 import { getPostCountForUser } from './postStorage';
+import { resolveAvatarPath } from '../utils/avatar';
 
 export interface RosterFriend {
   id: string;
@@ -53,6 +54,7 @@ export async function getFriendsRoster(userId: string, opts: { withPostCounts?: 
        u.is_away as "isAway",
        COALESCE(s.site_url, u.site_url) as "siteUrl",
        COALESCE(s.deploy_path, u.deploy_path) as "deployPath",
+       COALESCE(s.deployment_type, u.deployment_type) as "deploymentType",
        COALESCE(s.last_deployed_at, u.last_deployed_at) as "lastDeployedAt",
        s.id as "siteId",
        f.created_at as "friendedAt"
@@ -107,7 +109,13 @@ export async function getFriendsRoster(userId: string, opts: { withPostCounts?: 
         status,
         statusMessage,
         postCount: opts.withPostCounts ? await getPostCountForUser(r.id) : 0,
-        avatarPath: r.avatarPath && r.avatarPath.trim() ? r.avatarPath : '/icons/default-avatar.svg',
+        avatarPath: resolveAvatarPath({
+          avatarPath: r.avatarPath,
+          deploymentType: r.deploymentType,
+          siteUrl,
+          uin: r.uin,
+          handle: r.handle,
+        }),
         profileUrl: `/user/${r.uin}`,
         cleanRootSiteUrl: cleanRootUrl(siteUrl),
       } as RosterFriend;

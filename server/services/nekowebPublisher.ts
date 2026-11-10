@@ -375,8 +375,8 @@ export async function deployToNekoweb(
       body: `Synchronized ${filesToUpload.length} files to your Nekoweb static host (${durationMs}ms).`,
       linkUrl: deployedSiteUrl,
       icon: '🚀',
-    }).catch(() => {});
-  }).catch(() => {});
+    }).catch(() => { });
+  }).catch(() => { });
 
   return {
     ok: true,
@@ -712,7 +712,7 @@ export async function deployFilesToNekoweb(
             body: createParams.toString(),
           });
           ensuredDirs.add(accum);
-        } catch (_dirErr) {}
+        } catch (_dirErr) { }
       }
     }
 

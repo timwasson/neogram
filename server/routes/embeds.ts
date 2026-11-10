@@ -5,6 +5,7 @@ import { generateCounterSvg, CounterStyle } from '../services/counterSvg';
 import { COOKIE_NAME, verifySessionToken, extractToken } from '../auth/jwt';
 import { getUserById } from '../auth/service';
 import { getPostsForSite, getPostsForUser, getPostCountForUser } from '../services/postStorage';
+import { resolveAvatarPath } from '../utils/avatar';
 
 export const embedsRouter = Router();
 
@@ -840,6 +841,7 @@ embedsRouter.get('/api/friends', async (req: Request, res: Response) => {
         u.is_away as "isAway",
         COALESCE(s.site_url, u.site_url) as "siteUrl",
         COALESCE(s.deploy_path, u.deploy_path) as "deployPath",
+        COALESCE(s.deployment_type, u.deployment_type) as "deploymentType",
         COALESCE(s.last_deployed_at, u.last_deployed_at) as "lastDeployedAt",
         s.id as "siteId",
         f.created_at as "friendedAt",
@@ -851,13 +853,24 @@ embedsRouter.get('/api/friends', async (req: Request, res: Response) => {
       ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC
     `, [currentUser.id]);
 
+    const normalizedFriends = friendsRes.rows.map((r: any) => ({
+      ...r,
+      avatarPath: resolveAvatarPath({
+        avatarPath: r.avatarPath,
+        deploymentType: r.deploymentType,
+        siteUrl: r.siteUrl,
+        uin: r.uin,
+        handle: r.handle,
+      }),
+    }));
+
     // Federated aggregation: merge friends' remote feeds directly over WAN
     const { aggregateFederatedFriendsFeed } = await import('../services/federatedFriends');
-    const posts = await aggregateFederatedFriendsFeed(friendsRes.rows, 100);
+    const posts = await aggregateFederatedFriendsFeed(normalizedFriends, 100);
 
     res.json({
       ok: true,
-      friends: friendsRes.rows,
+      friends: normalizedFriends,
       posts,
     });
   } catch (err: any) {
@@ -887,6 +900,7 @@ embedsRouter.get('/api/user/:identifier/friends-feed', async (req: Request, res:
         u.avatar_path as "avatarPath",
         COALESCE(s.site_url, u.site_url) as "siteUrl",
         COALESCE(s.deploy_path, u.deploy_path) as "deployPath",
+        COALESCE(s.deployment_type, u.deployment_type) as "deploymentType",
         COALESCE(s.last_deployed_at, u.last_deployed_at) as "lastDeployedAt",
         s.id as "siteId"
       FROM follows f
@@ -896,8 +910,19 @@ embedsRouter.get('/api/user/:identifier/friends-feed', async (req: Request, res:
       ORDER BY LOWER(COALESCE(u.handle, split_part(u.email, '@', 1))) ASC
     `, [targetUser.id]);
 
+    const normalizedFriends = friendsRes.rows.map((r: any) => ({
+      ...r,
+      avatarPath: resolveAvatarPath({
+        avatarPath: r.avatarPath,
+        deploymentType: r.deploymentType,
+        siteUrl: r.siteUrl,
+        uin: r.uin,
+        handle: r.handle,
+      }),
+    }));
+
     const { aggregateFederatedFriendsFeed } = await import('../services/federatedFriends');
-    const posts = await aggregateFederatedFriendsFeed(friendsRes.rows, 100);
+    const posts = await aggregateFederatedFriendsFeed(normalizedFriends, 100);
 
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'public, max-age=60');
@@ -1184,7 +1209,13 @@ embedsRouter.get(['/api/chat/status/:identifier', '/api/chat/status/:identifier/
       uin: user.uin ? parseInt(user.uin, 10) : undefined,
       status: isOnline ? status : 'offline',
       statusMessage,
-      avatarPath: user.avatar_path || '/icons/default-avatar.svg',
+      avatarPath: resolveAvatarPath({
+        avatarPath: user.avatar_path,
+        deploymentType: targetSite?.deploymentType || user.deployment_type,
+        siteUrl: targetSite?.siteUrl || user.site_url,
+        uin: user.uin,
+        handle,
+      }),
       siteName: targetSite ? targetSite.name : null,
       siteSlug: targetSite ? targetSite.slug : null,
       widgetEnabled,
@@ -1452,7 +1483,13 @@ embedsRouter.get(['/embed/pager/:identifier', '/embed/pager/:identifier/:slug'],
       uin: user.uin ? parseInt(user.uin, 10) : undefined,
       status: isOnline ? status : 'offline',
       statusMessage,
-      avatarPath: user.avatar_path || '/icons/default-avatar.svg',
+      avatarPath: resolveAvatarPath({
+        avatarPath: user.avatar_path,
+        deploymentType: targetSite?.deploymentType || user.deployment_type,
+        siteUrl: targetSite?.siteUrl || user.site_url,
+        uin: user.uin,
+        handle,
+      }),
       siteName: targetSite ? targetSite.name : null,
       siteSlug: targetSite ? targetSite.slug : null,
       widgetEnabled,

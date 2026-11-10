@@ -4,6 +4,7 @@ import { existsSync } from 'fs';
 import Eleventy from '@11ty/eleventy';
 import { query, initDatabase } from '../db';
 import { config } from '../config';
+import { resolveAvatarPath } from '../utils/avatar';
 
 export interface StaticBuildOptions {
   userId?: string;
@@ -449,9 +450,10 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
     }
 
     // Multi-tenant isolated output folder per site or user
+    const resolvedSiteId = siteId || targetSite?.id;
     const targetOutputDir = options.outputDir || (
-      siteId
-        ? path.join(process.cwd(), 'dist/static-galleries', siteId)
+      resolvedSiteId
+        ? path.join(process.cwd(), 'dist/static-galleries', resolvedSiteId)
         : (userId 
             ? path.join(process.cwd(), 'dist/static-galleries', userId)
             : path.join(process.cwd(), 'dist/static-galleries/default'))
@@ -461,8 +463,8 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
     const { getPostsForSite, getPostsForUser, getAllPosts } = await import('./postStorage');
     const { getCommentsRelativePath } = await import('./staticStorage');
 
-    const rawPosts = siteId
-      ? await getPostsForSite(siteId)
+    const rawPosts = resolvedSiteId
+      ? await getPostsForSite(resolvedSiteId)
       : (userId ? await getPostsForUser(userId) : await getAllPosts());
 
     // If siteId is the user's default/primary site, adopt any unassigned posts belonging to effectiveUserId
@@ -563,7 +565,13 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
       } catch (_e) {
         pathPrefix = rawDeployPath ? `/${rawDeployPath}/` : '/';
       }
-      avatarUrl = targetSite.avatar_path || '/icons/default-avatar.svg';
+      avatarUrl = resolveAvatarPath({
+        avatarPath: targetSite.avatar_path,
+        deploymentType: targetSite.deployment_type,
+        siteUrl: targetSite.site_url,
+        uin: authorUin,
+        handle: author,
+      });
       statusMessage = targetSite.status_message || 'Surfing cyberspace';
       customCssUrl = targetSite.custom_css_url || null;
       shouldBuildHtml = targetSite.build_html !== false;
@@ -607,7 +615,13 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
         } catch (_e) {
           pathPrefix = rawDeployPath ? `/${rawDeployPath}/` : '/';
         }
-        avatarUrl = u.avatar_path || '/icons/default-avatar.svg';
+        avatarUrl = resolveAvatarPath({
+          avatarPath: u.avatar_path,
+          deploymentType: u.deployment_type,
+          siteUrl: u.site_url,
+          uin: authorUin,
+          handle: author,
+        });
         statusMessage = u.status_message || 'Surfing cyberspace';
         customCssUrl = u.custom_css_url || null;
         shouldBuildHtml = u.build_html !== false;
@@ -665,7 +679,12 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
         email: r.email,
         handle: r.handle,
         uin: r.uin,
-        avatarPath: r.avatarPath,
+        avatarPath: resolveAvatarPath({
+          avatarPath: r.avatarPath,
+          siteUrl: r.siteUrl,
+          uin: r.uin,
+          handle: r.handle,
+        }),
         siteUrl: r.siteUrl,
         deployPath: r.deployPath,
         lastDeployedAt: r.lastDeployedAt,

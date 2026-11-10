@@ -586,6 +586,7 @@ export function createApp(): Express {
       // Fetch public sites for this station node
       const sitesRes = await query(
         `SELECT id, name, slug, site_url as "siteUrl", deploy_path as "deployPath",
+                deployment_type as "deploymentType",
                 is_default as "isDefault", last_deployed_at as "lastDeployedAt"
          FROM sites
          WHERE user_id = $1
@@ -648,6 +649,15 @@ export function createApp(): Express {
         isFriend = followRes.rows.length > 0;
       }
 
+      const { resolveAvatarPath } = await import('./utils/avatar');
+      const resolvedProfileAvatar = resolveAvatarPath({
+        avatarPath: user.avatar_path,
+        deploymentType: primarySite?.deploymentType || user.deployment_type,
+        siteUrl: targetSiteUrl || user.site_url,
+        uin: user.uin,
+        handle: stationHandle,
+      });
+
       res.render('user', {
         title: `Neogram - Station @${stationHandle} [#${user.uin}]`,
         activeView: 'profile',
@@ -661,7 +671,7 @@ export function createApp(): Express {
           siteUrl: targetSiteUrl || user.site_url,
           cleanRootSiteUrl,
           galleryUrl,
-          avatarPath: user.avatar_path || '/icons/default-avatar.svg',
+          avatarPath: resolvedProfileAvatar,
           statusMessage: user.status_message || 'Surfing cyberspace',
           isAway: !!user.is_away,
           createdAt: user.created_at,

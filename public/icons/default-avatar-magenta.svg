@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Retro 90s Dark Surface -->
+  <rect width="128" height="128" fill="#180b16" />
+  
+  <!-- CRT Monitor Bezel (Charcoal Slate Computer) -->
+  <rect x="14" y="14" width="100" height="80" rx="3" fill="#c4b8c2" stroke="#000000" stroke-width="3" />
+  <rect x="18" y="18" width="92" height="72" rx="2" fill="#d8ccd6" />
+  
+  <!-- CRT Screen (Sunken Plum Matrix) -->
+  <rect x="24" y="24" width="80" height="60" rx="3" fill="#10050d" stroke="#483844" stroke-width="2" />
+  
+  <!-- Phosphor Scanlines -->
+  <line x1="24" y1="36" x2="104" y2="36" stroke="#2d0b24" stroke-width="1" />
+  <line x1="24" y1="48" x2="104" y2="48" stroke="#2d0b24" stroke-width="1" />
+  <line x1="24" y1="60" x2="104" y2="60" stroke="#2d0b24" stroke-width="1" />
+  <line x1="24" y1="72" x2="104" y2="72" stroke="#2d0b24" stroke-width="1" />
+  
+  <!-- Synthwave Magenta Pixel Shades -->
+  <rect x="36" y="38" width="22" height="14" fill="#ff00aa" stroke="#000000" stroke-width="2" />
+  <rect x="70" y="38" width="22" height="14" fill="#ff00aa" stroke="#000000" stroke-width="2" />
+  <rect x="58" y="42" width="12" height="4" fill="#ff00aa" />
+  
+  <!-- Pixel Glare Reflection -->
+  <rect x="38" y="40" width="6" height="4" fill="#ffffff" />
+  <rect x="72" y="40" width="6" height="4" fill="#ffffff" />
+  
+  <!-- Retro Magenta Phosphor Smile -->
+  <rect x="44" y="64" width="6" height="4" fill="#ff00aa" />
+  <rect x="50" y="68" width="28" height="4" fill="#ff00aa" />
+  <rect x="78" y="64" width="6" height="4" fill="#ff00aa" />
+  
+  <!-- Monitor Stand -->
+  <polygon points="50,94 78,94 84,108 44,108" fill="#9c8c98" stroke="#000000" stroke-width="2" />
+  <rect x="34" y="108" width="60" height="8" rx="1" fill="#c4b8c2" stroke="#000000" stroke-width="2" />
+  
+  <!-- Power LED Indicator (Glowing Cyan) -->
+  <circle cx="98" cy="88" r="2" fill="#00e5ff" />
+</svg>
+

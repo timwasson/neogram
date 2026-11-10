@@ -399,6 +399,53 @@ export async function fetchPicsumTestImage(
 }
 
 /**
+ * 2b. Pravatar Test Profile Avatar Fetcher & Generator
+ * Grabs a portrait avatar from https://i.pravatar.cc/ for automated QA profile deploys
+ * so QA station profiles with remote hosts get realistic portrait avatars deployed to their
+ * static sites (`avatar.webp`), just like Picsum is used for the photo feed.
+ * Falls back cleanly to a Sharp-generated retro avatar buffer if network is unreachable.
+ */
+export async function fetchPravatarTestImage(
+  seed?: string,
+  size = 256
+): Promise<{ buffer: Buffer; mimeType: string; dataUri: string }> {
+  const resolvedSeed = seed || `neogram_${Math.random().toString(36).substring(2, 10)}`;
+  try {
+    const res = await fetch(`https://i.pravatar.cc/${size}?u=${encodeURIComponent(resolvedSeed)}`, {
+      signal: AbortSignal.timeout(5000),
+      redirect: 'follow',
+    });
+    if (res.ok) {
+      const buffer = Buffer.from(await res.arrayBuffer());
+      const mimeType = res.headers.get('content-type') || 'image/jpeg';
+      if (buffer.byteLength > 100) {
+        return {
+          buffer,
+          mimeType,
+          dataUri: `data:${mimeType};base64,${buffer.toString('base64')}`,
+        };
+      }
+    }
+  } catch {
+    // Offline / timeout fallback
+  }
+
+  const label = resolvedSeed.replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase() || 'QA';
+  const fallbackSvg = `<svg width="${size}" height="${size}" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+    <rect width="256" height="256" fill="#0d1117" />
+    <circle cx="128" cy="128" r="96" fill="#00e5ff" />
+    <text x="128" y="148" font-size="64" font-family="monospace" font-weight="bold" fill="#0d1117" text-anchor="middle" dominant-baseline="middle">${label}</text>
+  </svg>`;
+  const buffer = await sharp(Buffer.from(fallbackSvg)).png().toBuffer();
+
+  return {
+    buffer,
+    mimeType: 'image/png',
+    dataUri: `data:image/png;base64,${buffer.toString('base64')}`,
+  };
+}
+
+/**
  * Test Image Generator (`createTestImageBase64(label, color)`)
  * Returns a data URI of a random photograph from https://picsum.photos/.
  */

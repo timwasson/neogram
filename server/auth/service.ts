@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { query } from '../db';
 import { sendOtpNotification } from '../services/notifier';
 import { config } from '../config';
+import { isRemoteAvatarUrl, resolveAvatarPath } from '../utils/avatar';
 
 export interface AuthUser {
   id: string;
@@ -13,6 +14,7 @@ export interface AuthUser {
   deployPath?: string;
   deploymentType?: string;
   avatarPath?: string;
+  hasCustomAvatar?: boolean;
   hasApiKey?: boolean;
   isBanned?: boolean;
   isAdmin?: boolean;
@@ -225,16 +227,25 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
   console.log(`[:> AUTH SUCCESS] User node authenticated: @${user.handle} (UIN: #${user.uin})`);
 
   const isAdmin = config.adminEmails.includes(user.email.toLowerCase());
+  const parsedUin = user.uin ? parseInt(user.uin, 10) : undefined;
+  const resolvedAvatar = resolveAvatarPath({
+    avatarPath: user.avatar_path,
+    deploymentType: user.deployment_type,
+    siteUrl: user.site_url,
+    uin: parsedUin,
+    handle: user.handle,
+  });
 
   return {
     id: user.id,
     email: user.email,
     handle: user.handle,
-    uin: user.uin ? parseInt(user.uin, 10) : undefined,
+    uin: parsedUin,
     siteUrl: user.site_url,
     deployPath: user.deploy_path || 'neogram',
     deploymentType: user.deployment_type,
-    avatarPath: user.avatar_path,
+    avatarPath: resolvedAvatar,
+    hasCustomAvatar: isRemoteAvatarUrl(resolvedAvatar),
     isBanned: false,
     isAdmin,
   };
@@ -248,6 +259,7 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
   if (!res.rows[0]) return null;
   const user = res.rows[0];
   let hasApiKey = false;
+  let effectiveDeploymentType = user.deploymentType || 'none';
   if (user.deployment_credentials) {
     try {
       const { decryptCredentials } = await import('../utils/crypto');
@@ -262,20 +274,31 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
     ? String(user.deployPath).trim().replace(/^\/+|\/+$/g, '')
     : 'neogram';
 
-  if (!baseSite) {
-    try {
-      const siteRes = await query(
-        'SELECT site_url, deploy_path FROM sites WHERE user_id = $1 ORDER BY is_default DESC, created_at ASC LIMIT 1',
-        [id]
-      );
-      if (siteRes.rows[0]?.site_url) {
-        baseSite = siteRes.rows[0].site_url.trim();
-        if (siteRes.rows[0].deploy_path !== null && siteRes.rows[0].deploy_path !== undefined) {
-          rawDeploy = String(siteRes.rows[0].deploy_path).trim().replace(/^\/+|\/+$/g, '');
+  try {
+    const siteRes = await query(
+      'SELECT site_url, deploy_path, deployment_type, deployment_credentials FROM sites WHERE user_id = $1 ORDER BY is_default DESC, created_at ASC LIMIT 1',
+      [id]
+    );
+    const primarySite = siteRes.rows[0];
+    if (primarySite) {
+      if (primarySite.site_url && !baseSite) {
+        baseSite = primarySite.site_url.trim();
+        if (primarySite.deploy_path !== null && primarySite.deploy_path !== undefined) {
+          rawDeploy = String(primarySite.deploy_path).trim().replace(/^\/+|\/+$/g, '');
         }
       }
-    } catch (_e) {}
-  }
+      if (primarySite.deployment_type) {
+        effectiveDeploymentType = primarySite.deployment_type;
+      }
+      if (!hasApiKey && primarySite.deployment_credentials) {
+        try {
+          const { decryptCredentials } = await import('../utils/crypto');
+          const creds = decryptCredentials<{ apiKey?: string }>(primarySite.deployment_credentials);
+          hasApiKey = !!(creds && creds.apiKey);
+        } catch {}
+      }
+    }
+  } catch (_e) {}
 
   let cleanBaseSite: string | undefined = undefined;
   if (baseSite) {
@@ -292,17 +315,28 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
     : (cleanBaseSite ? `${cleanBaseSite}/` : undefined);
 
   const isAdmin = config.adminEmails.includes(user.email.toLowerCase());
+  const parsedUin = user.uin ? parseInt(user.uin, 10) : undefined;
+  const hasRemotePublishing = Boolean(hasApiKey && effectiveDeploymentType !== 'none');
+  const resolvedAvatar = resolveAvatarPath({
+    avatarPath: user.avatarPath,
+    hasRemotePublishing,
+    deploymentType: effectiveDeploymentType,
+    siteUrl: baseSite,
+    uin: parsedUin,
+    handle: user.handle,
+  });
 
   return {
     id: user.id,
     email: user.email,
     handle: user.handle,
-    uin: user.uin ? parseInt(user.uin, 10) : undefined,
+    uin: parsedUin,
     siteUrl: cleanBaseSite,
     galleryUrl,
     deployPath: rawDeploy,
-    deploymentType: user.deploymentType,
-    avatarPath: user.avatarPath,
+    deploymentType: effectiveDeploymentType,
+    avatarPath: resolvedAvatar,
+    hasCustomAvatar: isRemoteAvatarUrl(resolvedAvatar),
     hasApiKey,
     isBanned: !!user.isBanned,
     banReason: user.banReason,

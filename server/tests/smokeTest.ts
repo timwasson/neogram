@@ -202,9 +202,9 @@ async function runSmokeTests() {
     assertTest('Saved deployPath persists as "photos"', settingsPutData.settings?.deployPath === 'photos');
 
     // -------------------------------------------------------------------------
-    // TEST 6b: Profile Avatar Upload & Removal
+    // TEST 6b: Profile Avatar Zero-Retention & Default Avatar Invariant
     // -------------------------------------------------------------------------
-    logHeader('6b. PROFILE AVATAR UPLOAD & REMOVAL');
+    logHeader('6b. PROFILE AVATAR ZERO-RETENTION & DEFAULT AVATAR INVARIANT');
     const avatarSvg = `<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="#00ff66"/></svg>`;
     const avatarBuf = await sharp(Buffer.from(avatarSvg)).png().toBuffer();
     const avatarForm = new FormData();
@@ -218,10 +218,10 @@ async function runSmokeTests() {
     assertTest('POST /api/settings/profile with avatarFile returns HTTP 200', avatarUploadRes.status === 200);
     const avatarUploadData = await avatarUploadRes.json() as any;
     assertTest(
-      'Avatar response contains WebP avatarPath',
-      Boolean(avatarUploadData.user?.avatarPath && avatarUploadData.user.avatarPath.startsWith('/uploads/avatars/') && avatarUploadData.user.avatarPath.endsWith('.webp'))
+      'Headless / unconfigured user without remote API key receives default colored avatar (never stored on Neogram)',
+      Boolean(avatarUploadData.user?.avatarPath && avatarUploadData.user.avatarPath.startsWith('/icons/default-avatar') && avatarUploadData.user.avatarPath.endsWith('.svg'))
     );
-    assertTest('Avatar response hasCustomAvatar = true', avatarUploadData.user?.hasCustomAvatar === true);
+    assertTest('Headless / unconfigured user hasCustomAvatar = false', avatarUploadData.user?.hasCustomAvatar === false);
 
     // Test base64 JSON upload
     const b64Avatar = `data:image/png;base64,${avatarBuf.toString('base64')}`;
@@ -248,7 +248,7 @@ async function runSmokeTests() {
     });
     assertTest('POST /api/settings/profile with removeAvatar returns HTTP 200', avatarRemoveRes.status === 200);
     const avatarRemoveData = await avatarRemoveRes.json() as any;
-    assertTest('Avatar reset to default-avatar.svg', avatarRemoveData.user?.avatarPath === '/icons/default-avatar.svg');
+    assertTest('Avatar reset to default-avatar variant', Boolean(avatarRemoveData.user?.avatarPath?.startsWith('/icons/default-avatar')));
     assertTest('hasCustomAvatar reset to false', avatarRemoveData.user?.hasCustomAvatar === false);
 
     // -------------------------------------------------------------------------

@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { query } from '../db';
 import { activeSockets } from '../services/chatSocket';
 import { getPostsForUser } from '../services/postStorage';
+import { resolveAvatarPath } from '../utils/avatar';
 
 export const directoryRouter = Router();
 
@@ -75,6 +76,7 @@ export async function fetchCategorizedDirectory(): Promise<CategorizedDirectory>
       u.is_away as "isAway",
       COALESCE(s.site_url, u.site_url) as "siteUrl",
       COALESCE(s.deploy_path, u.deploy_path) as "deployPath",
+      COALESCE(s.deployment_type, u.deployment_type) as "deploymentType",
       u.created_at as "createdAt",
       0 as "postCount"
     FROM users u
@@ -91,7 +93,13 @@ export async function fetchCategorizedDirectory(): Promise<CategorizedDirectory>
   for (const row of usersRes.rows) {
     const handle = (row.handle || row.email.split('@')[0] || 'surfer').trim();
     const uin = row.uin ? parseInt(row.uin, 10) : 100101;
-    const avatarPath = row.avatarPath && row.avatarPath.trim() ? row.avatarPath : '/icons/default-avatar.svg';
+    const avatarPath = resolveAvatarPath({
+      avatarPath: row.avatarPath,
+      deploymentType: row.deploymentType,
+      siteUrl: row.siteUrl,
+      uin,
+      handle,
+    });
     
     // Retrieve posts to inspect latest photo timestamp and count
     const posts = await getPostsForUser(row.id);

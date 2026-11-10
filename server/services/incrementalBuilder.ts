@@ -11,6 +11,7 @@ import { deployFilesToNeocities, DeltaFile } from './neocitiesPublisher';
 import { deployFilesToNekoweb } from './nekowebPublisher';
 import { deployFilesToGitHub } from './githubPublisher';
 import { decryptCredentials, NeocitiesCredentials, NekowebCredentials, GitHubCredentials } from '../utils/crypto';
+import { resolveAvatarPath } from '../utils/avatar';
 
 export interface IncrementalResult {
   ok: boolean;
@@ -76,7 +77,13 @@ async function resolveTargetContext(siteId?: string, userId?: string) {
       : 'neogram';
     baseSiteUrl = targetSite.site_url ? targetSite.site_url.replace(/\/+$/, '') : `https://${author}.neocities.org`;
     fullSiteUrl = rawDeployPath ? `${baseSiteUrl}/${rawDeployPath}` : baseSiteUrl;
-    avatarUrl = targetSite.avatar_path || '/icons/default-avatar.svg';
+    avatarUrl = resolveAvatarPath({
+      avatarPath: targetSite.avatar_path,
+      deploymentType: targetSite.deployment_type,
+      siteUrl: targetSite.site_url,
+      uin: authorUin,
+      handle: author,
+    });
     statusMessage = targetSite.status_message || 'Surfing cyberspace';
     customCssUrl = targetSite.custom_css_url || null;
     shouldBuildHtml = targetSite.build_html !== false;
@@ -98,7 +105,13 @@ async function resolveTargetContext(siteId?: string, userId?: string) {
         : 'neogram';
       baseSiteUrl = u.site_url ? u.site_url.replace(/\/+$/, '') : `https://${author}.neocities.org`;
       fullSiteUrl = rawDeployPath ? `${baseSiteUrl}/${rawDeployPath}` : baseSiteUrl;
-      avatarUrl = u.avatar_path || '/icons/default-avatar.svg';
+      avatarUrl = resolveAvatarPath({
+        avatarPath: u.avatar_path,
+        deploymentType: u.deployment_type,
+        siteUrl: u.site_url,
+        uin: authorUin,
+        handle: author,
+      });
       statusMessage = u.status_message || 'Surfing cyberspace';
       customCssUrl = u.custom_css_url || null;
       shouldBuildHtml = u.build_html !== false;
@@ -140,8 +153,9 @@ async function resolveTargetContext(siteId?: string, userId?: string) {
     chatWidgetEnabled,
   };
 
-  const outputDir = siteId
-    ? path.join(process.cwd(), 'dist/static-galleries', siteId)
+  const resolvedSiteId = siteId || targetSite?.id;
+  const outputDir = resolvedSiteId
+    ? path.join(process.cwd(), 'dist/static-galleries', resolvedSiteId)
     : (userId
         ? path.join(process.cwd(), 'dist/static-galleries', userId)
         : path.join(process.cwd(), 'dist/static-galleries/default'));
@@ -586,7 +600,12 @@ export async function buildAndDeployFriendFeed(followerUserId: string): Promise<
       email: r.email,
       handle: r.handle,
       uin: r.uin,
-      avatarPath: r.avatarPath,
+      avatarPath: resolveAvatarPath({
+        avatarPath: r.avatarPath,
+        siteUrl: r.siteUrl,
+        uin: r.uin,
+        handle: r.handle,
+      }),
       siteUrl: r.siteUrl,
       deployPath: r.deployPath,
       lastDeployedAt: r.lastDeployedAt,

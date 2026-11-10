@@ -10,6 +10,7 @@ import { testNeocitiesConnection, deployToNeocities } from '../services/neocitie
 import { testNekowebConnection, deployToNekoweb } from '../services/nekowebPublisher';
 import { testGitHubConnection, deployToGitHub } from '../services/githubPublisher';
 import { processAvatarBuffer } from '../services/imageProcessor';
+import { getDefaultAvatarPath, isRemoteAvatarUrl, resolveAvatarPath } from '../utils/avatar';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -66,6 +67,16 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
       ? ((await getSiteById(reqSiteId, userId)) || (await getDefaultSite(userId)))
       : (await getDefaultSite(userId));
 
+    const hasRemotePublishing = Boolean(activeSite ? (activeSite.hasApiKey && activeSite.deploymentType !== 'none') : false);
+    const resolvedAvatar = resolveAvatarPath({
+      avatarPath: user.avatar_path,
+      hasRemotePublishing,
+      deploymentType: activeSite?.deploymentType || user.deployment_type,
+      siteUrl: activeSite?.siteUrl || user.site_url,
+      uin: user.uin,
+      handle: user.handle,
+    });
+
     res.json({
       ok: true,
       settings: {
@@ -73,8 +84,8 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
         uin: user.uin ? parseInt(user.uin, 10) : undefined,
         handle: user.handle,
         email: user.email,
-        avatarPath: user.avatar_path || '/icons/default-avatar.svg',
-        hasCustomAvatar: !!user.avatar_path,
+        avatarPath: resolvedAvatar,
+        hasCustomAvatar: isRemoteAvatarUrl(resolvedAvatar),
         siteId: activeSite ? activeSite.id : null,
         siteSlug: activeSite ? activeSite.slug : null,
         siteUrl: activeSite ? (activeSite.siteUrl || `https://${user.handle || 'user'}.neocities.org`) : (user.site_url || `https://${user.handle || 'user'}.neocities.org`),
@@ -145,8 +156,20 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
       setSessionCookie(res, newToken);
     }
 
+    // 1b. Optional statusMessage update if provided
+    if (typeof req.body.statusMessage === 'string' && req.body.statusMessage.trim()) {
+      await query('UPDATE users SET status_message = $1, updated_at = NOW() WHERE id = $2', [
+        req.body.statusMessage.trim().slice(0, 150),
+        userId,
+      ]);
+    }
+
+    const { getDefaultSite } = await import('../services/siteService');
+    const defaultSite = await getDefaultSite(userId);
+    const hasRemotePublishing = Boolean(defaultSite && defaultSite.hasApiKey && defaultSite.deploymentType !== 'none');
+
     // 2. Avatar processing / removal
-    let newAvatarPath = user.avatar_path;
+    let newAvatarPath: string | null = isRemoteAvatarUrl(user.avatar_path) && hasRemotePublishing ? user.avatar_path : null;
     if (removeAvatar === 'true' || removeAvatar === true) {
       newAvatarPath = null;
       await query('UPDATE users SET avatar_path = NULL, updated_at = NOW() WHERE id = $1', [userId]);
@@ -166,8 +189,6 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
 
       // If user has a mounted remote site, also delete avatar.webp from remote host
       try {
-        const { getDefaultSite } = await import('../services/siteService');
-        const defaultSite = await getDefaultSite(userId);
         if (defaultSite && defaultSite.deploymentType !== 'none') {
           if (defaultSite.deploymentType === 'neocities') {
             const { deleteFromNeocities } = await import('../services/neocitiesPublisher');
@@ -196,8 +217,13 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
           bufferToProcess = Buffer.from(cleanB64, 'base64');
         }
         const processed = await processAvatarBuffer(bufferToProcess, userId);
-        newAvatarPath = processed.avatarPath;
-        await query('UPDATE users SET avatar_path = $1, updated_at = NOW() WHERE id = $2', [newAvatarPath, userId]);
+        if (processed.deployedRemote && processed.avatarPath) {
+          newAvatarPath = processed.avatarPath;
+          await query('UPDATE users SET avatar_path = $1, updated_at = NOW() WHERE id = $2', [newAvatarPath, userId]);
+        } else {
+          newAvatarPath = null;
+          await query('UPDATE users SET avatar_path = NULL, updated_at = NOW() WHERE id = $1', [userId]);
+        }
       } catch (imgErr: any) {
         res.status(400).json({
           ok: false,
@@ -209,8 +235,17 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
 
     // Background 11ty static rebuild
     import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery({ userId }))
+      .then((m) => m.buildStaticGallery({ siteId: defaultSite?.id, userId }))
       .catch((err) => console.error('[:> 11ty] Profile rebuild error:', err));
+
+    const finalAvatarPath = resolveAvatarPath({
+      avatarPath: newAvatarPath,
+      hasRemotePublishing,
+      deploymentType: defaultSite?.deploymentType,
+      siteUrl: defaultSite?.siteUrl,
+      uin: user.uin,
+      handle: newHandle,
+    });
 
     res.json({
       ok: true,
@@ -219,8 +254,8 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
         id: userId,
         uin: user.uin ? parseInt(user.uin, 10) : undefined,
         handle: newHandle,
-        avatarPath: newAvatarPath || '/icons/default-avatar.svg',
-        hasCustomAvatar: !!newAvatarPath,
+        avatarPath: finalAvatarPath,
+        hasCustomAvatar: isRemoteAvatarUrl(finalAvatarPath),
       },
     });
   } catch (err) {

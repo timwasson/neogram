@@ -18,6 +18,7 @@ import sharp from 'sharp';
 import {
   loadQaFleet,
   fetchPicsumTestImage,
+  fetchPravatarTestImage,
   GREEN,
   RED,
   YELLOW,
@@ -190,49 +191,112 @@ async function runFleetNetworkTests() {
   };
 
   // ---------------------------------------------------------------------------
-  // 1. Profile Avatar Lifecycle across Random QA Personas
+  // 1. Discover Verified Remote-Publishing QA Sites & Test Pravatar Avatars
   // ---------------------------------------------------------------------------
-  logHeader('1. PROFILE AVATAR GENERATION & DEPLOYMENT');
+  logHeader('1. PRAVATAR PROFILE AVATAR DEPLOYMENT & HEADLESS DEFAULT VERIFICATION');
 
-  const shuffledAgents = shuffle(agents);
-  const agentA = shuffledAgents[0];
-  const agentB = shuffledAgents[1] || shuffledAgents[0];
+  // Collect candidate (agent, site) pairs strictly from accounts with filled-out, working, non-headless site profiles
+  const allTargets: Array<{ agent: typeof agents[0]; site: any }> = [];
+  for (const ag of shuffle(agents)) {
+    if (ag.handle.toLowerCase() === 'qa_headless') continue;
+    if (ag.sites && ag.sites.length > 0) {
+      for (const s of ag.sites) {
+        if (
+          s &&
+          s.hasApiKey &&
+          s.deploymentType &&
+          s.deploymentType !== 'none' &&
+          s.buildHtml !== false &&
+          s.siteUrl &&
+          !s.siteUrl.includes('/user/')
+        ) {
+          allTargets.push({ agent: ag, site: s });
+        }
+      }
+    }
+  }
 
-  console.log(`Selected Agent A (Multipart): ${GREEN}@${agentA.handle}${RESET} (UIN #${agentA.uin})`);
-  const avatarBufA = await createRetroAvatarSvg('#001133', '#00ffcc', '⚡');
-  const formA = new FormData();
-  formA.append('avatarFile', new Blob([new Uint8Array(avatarBufA)], { type: 'image/png' }), 'avatar.png');
-  formA.append('statusMessage', 'Surfing Cyberspace (QA Agent)');
+  const verifiedTargets: Array<{ agent: typeof agents[0]; site: any }> = [];
+  for (const cand of allTargets) {
+    const reachable = await isSiteReachableForUploads(cand.site.siteUrl, cand.site.deployPath, fleet.isLocal);
+    if (reachable) {
+      verifiedTargets.push(cand);
+    } else {
+      console.log(`  ${YELLOW}[SKIP]${RESET} Excluding @${cand.agent.handle} (${cand.site.siteUrl}) — remote gallery unreachable/unconfigured`);
+    }
+  }
 
-  const uploadResA = await fetch(`${baseUrl}/api/settings/profile`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${agentA.token}` },
-    body: formA,
-  });
-  recordCheck(`Multipart avatar upload for @${agentA.handle}`, uploadResA.status === 200, `Status: ${uploadResA.status}`);
-
-  const dataA = (await uploadResA.json().catch(() => ({}))) as any;
-  const avatarPathA = dataA.user?.avatarPath;
-  recordCheck(
-    `Avatar response returns valid WebP path`,
-    typeof avatarPathA === 'string' && avatarPathA.includes('.webp'),
-    avatarPathA || 'null'
+  // Unique verified agents with remote static sites
+  const uniqueRemoteAgents = Array.from(
+    new Map(verifiedTargets.map((t) => [t.agent.handle, t.agent])).values()
   );
 
-  console.log(`Selected Agent B (Base64): ${GREEN}@${agentB.handle}${RESET} (UIN #${agentB.uin})`);
-  const avatarBufB = await createRetroAvatarSvg('#220022', '#ff00aa', '★');
-  const uploadResB = await fetch(`${baseUrl}/api/settings/profile`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${agentB.token}`,
-    },
-    body: JSON.stringify({
-      avatarBase64: `data:image/png;base64,${avatarBufB.toString('base64')}`,
-      statusMessage: 'Retro Matrix Operator',
-    }),
-  });
-  recordCheck(`Base64 avatar upload for @${agentB.handle}`, uploadResB.status === 200, `Status: ${uploadResB.status}`);
+  // Upload Pravatar profile avatars across verified remote-publishing QA agents
+  // First agent uses Multipart (avatarFile), remaining verified agents use Base64 (avatarBase64)
+  for (let i = 0; i < uniqueRemoteAgents.length; i++) {
+    const remoteAgent = uniqueRemoteAgents[i];
+    const mode = i === 0 ? 'Multipart' : 'Base64';
+    const pravatarSeed = `${remoteAgent.handle}_${Date.now()}`;
+    const pravatar = await fetchPravatarTestImage(pravatarSeed, 256);
+
+    console.log(`Uploading Pravatar (${mode}) -> ${GREEN}@${remoteAgent.handle}${RESET} (UIN #${remoteAgent.uin})`);
+
+    let uploadRes: Response;
+    if (i === 0) {
+      const form = new FormData();
+      form.append('avatarFile', new Blob([new Uint8Array(pravatar.buffer)], { type: pravatar.mimeType }), 'pravatar.jpg');
+      form.append('statusMessage', 'Surfing Cyberspace (QA Agent)');
+      uploadRes = await fetch(`${baseUrl}/api/settings/profile`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${remoteAgent.token}` },
+        body: form,
+      });
+    } else {
+      uploadRes = await fetch(`${baseUrl}/api/settings/profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${remoteAgent.token}`,
+        },
+        body: JSON.stringify({
+          avatarBase64: pravatar.dataUri,
+          statusMessage: 'Retro Matrix Operator',
+        }),
+      });
+    }
+
+    recordCheck(
+      `Pravatar ${mode} upload for remote station @${remoteAgent.handle}`,
+      uploadRes.status === 200,
+      `Status: ${uploadRes.status}`
+    );
+
+    const data = (await uploadRes.json().catch(() => ({}))) as any;
+    const avatarPath = data.user?.avatarPath;
+    recordCheck(
+      `@${remoteAgent.handle} avatar deployed to static host URL (.webp)`,
+      typeof avatarPath === 'string' && avatarPath.startsWith('http') && avatarPath.includes('avatar.webp'),
+      avatarPath || 'null'
+    );
+  }
+
+  // Verify headless / non-remote user (@qa_surfer) always gets the default profile image
+  const surferAgent = agents.find((a) => a.handle.toLowerCase() === 'qa_surfer');
+  if (surferAgent) {
+    const surferSettingsRes = await fetch(`${baseUrl}/api/settings`, {
+      headers: { Authorization: `Bearer ${surferAgent.token}` },
+    });
+    const surferSettings = (await surferSettingsRes.json().catch(() => ({}))) as any;
+    const surferAvatar = surferSettings.settings?.avatarPath || '';
+    const surferHasCustom = surferSettings.settings?.hasCustomAvatar;
+    recordCheck(
+      `Headless/non-remote user @${surferAgent.handle} always gets default profile image`,
+      surferAvatar.startsWith('/icons/default-avatar') && surferHasCustom === false,
+      `${surferAvatar} (hasCustomAvatar=${surferHasCustom})`
+    );
+  }
+
+  const shuffledAgents = shuffle(agents);
 
   // ---------------------------------------------------------------------------
   // 2. Reciprocal Friend / Follow Graph Verification
@@ -269,37 +333,6 @@ async function runFleetNetworkTests() {
   // 3. Randomized Single-Photo & Multi-Photo Uploads (Concurrent Queue Wave)
   // ---------------------------------------------------------------------------
   logHeader('3. RANDOMIZED SINGLE & MULTI-PHOTO CONCURRENT UPLOAD WAVE');
-
-  // Collect candidate (agent, site) pairs strictly from accounts with filled-out, working, non-headless site profiles
-  const allTargets: Array<{ agent: typeof agents[0]; site: any }> = [];
-  for (const ag of shuffle(agents)) {
-    if (ag.handle.toLowerCase() === 'qa_headless') continue;
-    if (ag.sites && ag.sites.length > 0) {
-      for (const s of ag.sites) {
-        if (
-          s &&
-          s.hasApiKey &&
-          s.deploymentType &&
-          s.deploymentType !== 'none' &&
-          s.buildHtml !== false &&
-          s.siteUrl &&
-          !s.siteUrl.includes('/user/')
-        ) {
-          allTargets.push({ agent: ag, site: s });
-        }
-      }
-    }
-  }
-
-  const verifiedTargets: Array<{ agent: typeof agents[0]; site: any }> = [];
-  for (const cand of allTargets) {
-    const reachable = await isSiteReachableForUploads(cand.site.siteUrl, cand.site.deployPath, fleet.isLocal);
-    if (reachable) {
-      verifiedTargets.push(cand);
-    } else {
-      console.log(`  ${YELLOW}[SKIP]${RESET} Excluding @${cand.agent.handle} (${cand.site.siteUrl}) — remote gallery unreachable/unconfigured`);
-    }
-  }
 
   const selectedTargets = shuffle(verifiedTargets).slice(0, Math.max(verifiedTargets.length, 6));
   if (selectedTargets.length === 0) {
@@ -375,7 +408,7 @@ async function runFleetNetworkTests() {
 
   // Poll health while uploads are in flight to capture peak server load & queue depth
   const healthPoller = setInterval(() => {
-    sampleHealth().catch(() => {});
+    sampleHealth().catch(() => { });
   }, 400);
 
   const waveStart = Date.now();
@@ -612,7 +645,7 @@ async function runFleetNetworkTests() {
               ok = true;
               break;
             }
-          } catch {}
+          } catch { }
           if (attempt < maxRetries) {
             await new Promise((r) => setTimeout(r, 3000));
           }

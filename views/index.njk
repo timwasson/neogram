@@ -1287,38 +1287,44 @@
                               onerror="this.onerror=null;this.src='/icons/default-avatar.svg';"
                             />
                             <div id="avatarStatusBadge" class="text-3xs font-mono text-center text-muted mt-1">
-                              {% if currentUser.avatarPath %}CUSTOM{% else %}DEFAULT{% endif %}
+                              {% if currentUser.hasCustomAvatar %}CUSTOM{% else %}DEFAULT{% endif %}
                             </div>
                           </div>
 
                           <div class="flex-1 flex flex-col gap-2">
-                            <div class="flex items-center flex-wrap gap-2">
-                              <button
-                                type="button"
-                                class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs"
-                                onclick="document.getElementById('avatarFileInput').click()"
-                              >
-                                <span>Change Image...</span>
-                              </button>
-                              <button
-                                type="button"
-                                id="resetAvatarBtn"
-                                class="pixel-btn pixel-btn--sm pixel-btn--crimson text-xs"
-                                onclick="handleResetAvatar()"
-                              >
-                                <span>Reset to Default</span>
-                              </button>
-                            </div>
-                            <input
-                              type="file"
-                              id="avatarFileInput"
-                              accept="image/*"
-                              class="hidden"
-                              onchange="handleAvatarFileChange(event)"
-                            />
-                            <span class="text-xxs text-muted font-mono">
-                              PNG, JPEG, GIF or WebP. Auto-cropped to 128×128 square.
-                            </span>
+                            {% if activeSite and activeSite.hasApiKey and activeSite.deploymentType != 'none' %}
+                              <div class="flex items-center flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs"
+                                  onclick="document.getElementById('avatarFileInput').click()"
+                                >
+                                  <span>Change Image...</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  id="resetAvatarBtn"
+                                  class="pixel-btn pixel-btn--sm pixel-btn--crimson text-xs"
+                                  onclick="handleResetAvatar()"
+                                >
+                                  <span>Reset to Default</span>
+                                </button>
+                              </div>
+                              <input
+                                type="file"
+                                id="avatarFileInput"
+                                accept="image/*"
+                                class="hidden"
+                                onchange="handleAvatarFileChange(event)"
+                              />
+                              <span class="text-xxs text-muted font-mono">
+                                PNG, JPEG, GIF or WebP. Auto-cropped to 128×128 WebP and published directly to your static host.
+                              </span>
+                            {% else %}
+                              <div class="text-xxs text-muted font-mono leading-relaxed">
+                                <strong class="text-amber">Headless / Default Avatar Active:</strong> Custom profile images are hosted on your personal static site (Zero-Retention Policy). Connect a remote static host in <a href="#settings/hosting" onclick="switchDashboardTab('settings/hosting', event)" class="text-mac underline">Hosting &amp; Keys</a> to upload a custom avatar!
+                              </div>
+                            {% endif %}
                           </div>
                         </div>
 
