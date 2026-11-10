@@ -153,9 +153,8 @@ async function resolveTargetContext(siteId?: string, userId?: string) {
     chatWidgetEnabled,
   };
 
-  const resolvedSiteId = siteId || targetSite?.id;
-  const outputDir = resolvedSiteId
-    ? path.join(process.cwd(), 'dist/static-galleries', resolvedSiteId)
+  const outputDir = siteId
+    ? path.join(process.cwd(), 'dist/static-galleries', siteId)
     : (userId
         ? path.join(process.cwd(), 'dist/static-galleries', userId)
         : path.join(process.cwd(), 'dist/static-galleries/default'));

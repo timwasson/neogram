@@ -450,10 +450,9 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
     }
 
     // Multi-tenant isolated output folder per site or user
-    const resolvedSiteId = siteId || targetSite?.id;
     const targetOutputDir = options.outputDir || (
-      resolvedSiteId
-        ? path.join(process.cwd(), 'dist/static-galleries', resolvedSiteId)
+      siteId
+        ? path.join(process.cwd(), 'dist/static-galleries', siteId)
         : (userId 
             ? path.join(process.cwd(), 'dist/static-galleries', userId)
             : path.join(process.cwd(), 'dist/static-galleries/default'))
@@ -463,8 +462,8 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
     const { getPostsForSite, getPostsForUser, getAllPosts } = await import('./postStorage');
     const { getCommentsRelativePath } = await import('./staticStorage');
 
-    const rawPosts = resolvedSiteId
-      ? await getPostsForSite(resolvedSiteId)
+    const rawPosts = siteId
+      ? await getPostsForSite(siteId)
       : (userId ? await getPostsForUser(userId) : await getAllPosts());
 
     // If siteId is the user's default/primary site, adopt any unassigned posts belonging to effectiveUserId
