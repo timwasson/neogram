@@ -504,7 +504,7 @@ async function runFleetNetworkTests() {
 
   for (let i = 0; i < createdPosts.length; i++) {
     const entry = createdPosts[i];
-    const peer = shuffledAgents.find((a) => a.handle !== entry.owner.handle) || agentB;
+    const peer = shuffledAgents.find((a) => a.handle !== entry.owner.handle) || shuffledAgents[0];
 
     const likeRes = await fetch(`${baseUrl}/api/posts/${entry.post.id}/like`, {
       method: 'POST',
