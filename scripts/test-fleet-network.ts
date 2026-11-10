@@ -90,27 +90,25 @@ async function createRetroAvatarSvg(bg: string, fg: string, glyph: string): Prom
  * Checks whether a candidate QA site is a working, filled-out, non-headless static site profile.
  * Excludes headless accounts, sandbox ('none') accounts, sites missing API keys, and unresolvable/404 domains.
  */
-async function isSiteReachableForUploads(siteUrl: string | undefined, isLocal: boolean): Promise<boolean> {
+async function isSiteReachableForUploads(
+  siteUrl: string | undefined,
+  deployPath: string | undefined,
+  isLocal: boolean
+): Promise<boolean> {
   if (!siteUrl || !siteUrl.startsWith('http')) return false;
   if (isLocal) return true;
   try {
     const cleanRoot = siteUrl.replace(/\/+$/, '');
-    const res = await fetch(cleanRoot, {
+    const cleanDeploy = (deployPath !== undefined && deployPath !== null ? String(deployPath) : 'neogram')
+      .trim()
+      .replace(/^\/+|\/+$/g, '');
+    const galleryUrl = cleanDeploy ? `${cleanRoot}/${cleanDeploy}/` : `${cleanRoot}/`;
+    const res = await fetch(galleryUrl, {
       method: 'GET',
       headers: { 'User-Agent': 'Neogram-QA-Probe/1.0' },
       signal: AbortSignal.timeout(5000),
     });
-    if (res.status === 404) {
-      const body = await res.text().catch(() => '');
-      // Nekoweb returns 404 with "404 Not Found" if the subdomain itself does not exist,
-      // whereas an existing GitHub Pages repo without root index.html might return 404 at root
-      if (cleanRoot.includes('nekoweb.org') || cleanRoot.includes('neocities.org')) {
-        if (body.includes('Site not found') || body.includes('Page Not Found') || res.status === 404) {
-          return false;
-        }
-      }
-    }
-    return res.status < 500;
+    return res.status === 200;
   } catch {
     return false;
   }
@@ -295,11 +293,11 @@ async function runFleetNetworkTests() {
 
   const verifiedTargets: Array<{ agent: typeof agents[0]; site: any }> = [];
   for (const cand of allTargets) {
-    const reachable = await isSiteReachableForUploads(cand.site.siteUrl, fleet.isLocal);
+    const reachable = await isSiteReachableForUploads(cand.site.siteUrl, cand.site.deployPath, fleet.isLocal);
     if (reachable) {
       verifiedTargets.push(cand);
     } else {
-      console.log(`  ${YELLOW}[SKIP]${RESET} Excluding @${cand.agent.handle} (${cand.site.siteUrl}) — remote domain unreachable/unconfigured`);
+      console.log(`  ${YELLOW}[SKIP]${RESET} Excluding @${cand.agent.handle} (${cand.site.siteUrl}) — remote gallery unreachable/unconfigured`);
     }
   }
 
@@ -596,18 +594,17 @@ async function runFleetNetworkTests() {
     `Headless posts: ${headlessPostsInFeed.length}`
   );
 
-  if (!fleet.isLocal && createdPosts.length > 0) {
+  if (!fleet.isLocal && wassonPosts.length > 0) {
     let liveImagesOk = 0;
     let liveImagesChecked = 0;
     const failedUrls: string[] = [];
 
-    for (const c of createdPosts) {
-      const imgUrl = c.post?.imageUrl;
+    for (const p of wassonPosts) {
+      const imgUrl = p.imageUrl;
       if (typeof imgUrl === 'string' && imgUrl.startsWith('http')) {
         liveImagesChecked++;
         let ok = false;
-        // GitHub Pages CDN can take a few seconds to serve newly committed files
-        const maxRetries = imgUrl.includes('github.io') ? 10 : 4;
+        const maxRetries = imgUrl.includes('github.io') ? 15 : 5;
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
           try {
             const imgRes = await fetch(`${imgUrl}?t=${Date.now()}`, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
@@ -617,7 +614,7 @@ async function runFleetNetworkTests() {
             }
           } catch {}
           if (attempt < maxRetries) {
-            await new Promise((r) => setTimeout(r, 2000));
+            await new Promise((r) => setTimeout(r, 3000));
           }
         }
         if (ok) liveImagesOk++;
@@ -626,7 +623,7 @@ async function runFleetNetworkTests() {
     }
 
     recordCheck(
-      `All ${liveImagesChecked} newly published static post image URLs return HTTP 200 (zero 404s)`,
+      `All ${liveImagesChecked} friend-feed post image URLs return HTTP 200 (zero 404s)`,
       liveImagesOk === liveImagesChecked,
       failedUrls.length > 0 ? `404/unreachable: ${failedUrls.join(', ')}` : `${liveImagesOk}/${liveImagesChecked} HTTP 200`
     );
