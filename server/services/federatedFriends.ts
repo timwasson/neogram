@@ -266,15 +266,21 @@ function mapFeedPosts(data: UserFeedPayload, friend: FriendTarget): FriendFeedPo
 export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<FriendFeedPost[]> {
   const feedUrl = resolveFeedUrl(friend);
 
-  // Helper to check local static gallery compilation (for test runners & sandbox stations)
+  const isQaFriend = Boolean(
+    (friend.email && friend.email.toLowerCase().endsWith('@qa.neogram.club')) ||
+    (friend.handle && friend.handle.toLowerCase().startsWith('qa_'))
+  );
+
+  // Helper to check local static gallery compilation (for QA fleet & sandbox stations)
   const tryLocalFeed = async (): Promise<FriendFeedPost[] | null> => {
     try {
-      const localDirectPath = path.join(process.cwd(), 'dist/static-galleries', friend.id, 'feed.json');
-      if (existsSync(localDirectPath)) {
-        const content = await fs.readFile(localDirectPath, 'utf-8');
-        const data = JSON.parse(content) as UserFeedPayload;
-        if (data && Array.isArray(data.posts)) {
-          return mapFeedPosts(data, friend);
+      // For QA fleet accounts managed on this node, local postStorage is authoritative
+      // so purges and test uploads take effect immediately without waiting for external CDN cache TTLs.
+      if (isQaFriend && friend.id) {
+        const { getPostsForUser } = await import('./postStorage');
+        const qaPosts = await getPostsForUser(friend.id);
+        if (!qaPosts || qaPosts.length === 0) {
+          return [];
         }
       }
 
@@ -286,6 +292,15 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
           if (data && Array.isArray(data.posts)) {
             return mapFeedPosts(data, friend);
           }
+        }
+      }
+
+      const localDirectPath = path.join(process.cwd(), 'dist/static-galleries', friend.id, 'feed.json');
+      if (existsSync(localDirectPath)) {
+        const content = await fs.readFile(localDirectPath, 'utf-8');
+        const data = JSON.parse(content) as UserFeedPayload;
+        if (data && Array.isArray(data.posts)) {
+          return mapFeedPosts(data, friend);
         }
       }
 
@@ -343,17 +358,16 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
     return null;
   };
 
-  // In local development / test mode, prioritize local static gallery for QA accounts so local test state isn't overridden by production WAN feeds
-  const isQaFriend = (friend.email && friend.email.toLowerCase().endsWith('@qa.neogram.club')) ||
-                     (friend.handle && friend.handle.toLowerCase().startsWith('qa_'));
-
-  if (isQaFriend && process.env.NODE_ENV !== 'production') {
+  // Prioritize local authoritative state for QA fleet accounts so purges and test uploads
+  // never read stale external CDN caches or resurrect deleted test posts.
+  if (isQaFriend) {
     const local = await tryLocalFeed();
     if (local !== null) return local;
   }
 
   try {
-    const res = await safeGet(feedUrl, {
+    const cacheBustedUrl = `${feedUrl}${feedUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
+    const res = await safeGet(cacheBustedUrl, {
       timeoutMs: 3500,
       headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache' },
     });
@@ -361,53 +375,16 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
     if (res.ok) {
       const data = res.json<UserFeedPayload>();
       if (data && Array.isArray(data.posts)) {
-        // Hydrate local post storage for station profile & local feed consistency
-        // In local development / test mode, never resurrect purged QA fleet posts from remote production WAN feeds
-        const allowHydration = !isQaFriend || process.env.NODE_ENV === 'production';
-
-        if (data.posts.length > 0 && friend.id && allowHydration) {
-          import('./postStorage').then(({ savePost }) => {
-            for (const post of data.posts) {
-              const rawPhotos = (post as any).photos || [{
-                imagePath: post.imagePath || post.imageUrl,
-                thumbnailPath: post.thumbnailPath || post.thumbnailUrl || post.imagePath || post.imageUrl,
-              }];
-              // SECURITY: ownership is dictated by the LOCAL friend record, never by the remote feed.
-              // A hostile feed.json must not be able to claim another user's userId/siteId/post id.
-              if (typeof post.id !== 'string' || !/^[0-9a-zA-Z_-]{1,64}$/.test(post.id)) continue;
-              savePost({
-                id: post.id,
-                userId: friend.id,
-                siteId: friend.siteId,
-                siteName: post.siteName,
-                siteSlug: post.siteSlug,
-                imagePath: post.imagePath || post.imageUrl,
-                thumbnailPath: post.thumbnailPath || post.thumbnailUrl || post.imagePath || post.imageUrl,
-                imageUrl: post.imageUrl || post.imagePath,
-                thumbnailUrl: post.thumbnailUrl || post.thumbnailPath,
-                photos: rawPhotos,
-                caption: post.caption || '',
-                filterApplied: (post as any).filterApplied || post.filter || 'none',
-                mood: post.mood ?? null,
-                webring: post.webring ?? null,
-                location: post.location ?? null,
-                likes: post.likes || 0,
-                createdAt: post.createdAt,
-                comments: post.comments || [],
-                commentsCount: post.commentsCount ?? (post.comments || []).length,
-                commentsUrl: post.commentsUrl,
-                actions: post.actions,
-              }).catch(() => {});
-            }
-          }).catch(() => {});
-        }
+        // NOTE: Never write remote feed.json posts back into local postStorage!
+        // Remote feed reading is strictly a pure read operation. Writing remote posts
+        // to local disk causes zombie post resurrection when remote CDNs serve cached feeds.
         return mapFeedPosts(data, friend);
       }
       return [];
     }
 
     // If remote static host returned HTTP 404:
-    // Check local compiled static gallery if available (for QA fleets, sandbox stations, and propagation fallback)
+    // Check local compiled static gallery if available (for sandbox stations and propagation fallback)
     if (res.status === 404) {
       const local = await tryLocalFeed();
       if (local && local.length > 0) return local;

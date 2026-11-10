@@ -108,7 +108,7 @@ async function getFilesRecursively(
 export async function deployToNeocities(
   targetId: string,
   isSiteId: boolean = false,
-  deployOptions: { directBuild?: boolean } = {}
+  deployOptions: { directBuild?: boolean; skipFriendsFeed?: boolean } = {}
 ): Promise<DeployResult> {
   const startTime = Date.now();
 
@@ -170,6 +170,7 @@ export async function deployToNeocities(
     siteId: site.id,
     userId: user.id,
     outputDir: userOutputDir,
+    skipFriendsFeed: deployOptions.skipFriendsFeed,
   };
   const buildResult = deployOptions.directBuild
     ? await executeStaticBuild(buildOptions)

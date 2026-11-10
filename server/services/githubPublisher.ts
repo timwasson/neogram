@@ -242,7 +242,8 @@ async function commitFilesToGitHubRepo(
   branch: string,
   deployPathPrefix: string,
   files: DeltaFile[],
-  commitMessage: string
+  commitMessage: string,
+  options: { pruneStalePhotos?: boolean } = {}
 ): Promise<{ ok: boolean; commitSha?: string; filesCount: number; error?: string }> {
   // 1. Resolve current branch ref and parent commit
   let parentCommitSha: string | null = null;
@@ -343,6 +344,37 @@ async function commitFilesToGitHubRepo(
     }
   }
 
+  // 2.5 Prune stale photo pages and deleted media blobs if performing a full gallery deployment
+  if (options.pruneStalePhotos && baseTreeSha) {
+    try {
+      const existingTreeRes = await githubFetch(
+        `/repos/${owner}/${repo}/git/trees/${baseTreeSha}?recursive=1`,
+        token
+      );
+      if (existingTreeRes.ok && Array.isArray(existingTreeRes.data?.tree)) {
+        const uploadedPaths = new Set(treeEntries.map((e) => e.path));
+        const photosPrefix = cleanPrefix ? `${cleanPrefix}/photos/` : 'photos/';
+        for (const item of existingTreeRes.data.tree) {
+          if (
+            item.type === 'blob' &&
+            typeof item.path === 'string' &&
+            item.path.startsWith(photosPrefix) &&
+            !uploadedPaths.has(item.path)
+          ) {
+            treeEntries.push({
+              path: item.path,
+              mode: '100644',
+              type: 'blob',
+              sha: null as any,
+            });
+          }
+        }
+      }
+    } catch {
+      // Non-critical, continue
+    }
+  }
+
   // 3. Create Git Tree
   const treePayload: any = {
     tree: treeEntries,
@@ -418,7 +450,7 @@ async function commitFilesToGitHubRepo(
 export async function deployToGitHub(
   targetId: string,
   isSiteId: boolean = false,
-  deployOptions: { directBuild?: boolean } = {}
+  deployOptions: { directBuild?: boolean; skipFriendsFeed?: boolean } = {}
 ): Promise<DeployResult> {
   const startTime = Date.now();
 
@@ -488,6 +520,7 @@ export async function deployToGitHub(
     siteId: site.id,
     userId: user.id,
     outputDir: userOutputDir,
+    skipFriendsFeed: deployOptions.skipFriendsFeed,
   };
   const buildResult = deployOptions.directBuild
     ? await executeStaticBuild(buildOptions)
@@ -517,7 +550,8 @@ export async function deployToGitHub(
     branch,
     rawDeployPath,
     deltaFiles,
-    `[:> NEOGRAM] Full Static Gallery Deployment (${deltaFiles.length} files)`
+    `[:> NEOGRAM] Full Static Gallery Deployment (${deltaFiles.length} files)`,
+    { pruneStalePhotos: true }
   );
 
   const durationMs = Date.now() - startTime;
@@ -759,6 +793,114 @@ export async function deleteFromGitHub(targetId: string, filenames: string[]): P
   } catch (err) {
     console.warn('[:> GITHUB DELETE WARNING] Failed to purge files from GitHub:', err);
     return false;
+  }
+}
+
+/**
+ * Purges all remote files inside <deploy_path>/photos/ and <deploy_path>/uploads/ on GitHub Pages
+ * by setting their Git tree entries to sha: null.
+ */
+export async function purgeRemoteGitHubPhotos(targetId: string): Promise<number> {
+  try {
+    let site: any = null;
+    let user: any = null;
+
+    const siteRes = await query(
+      `SELECT s.*, u.id as user_owner_id, u.email, u.handle
+       FROM sites s
+       JOIN users u ON s.user_id = u.id
+       WHERE s.id = $1`,
+      [targetId]
+    );
+
+    if (siteRes.rows.length > 0) {
+      site = siteRes.rows[0];
+      user = { id: site.user_owner_id, email: site.email, handle: site.handle };
+    } else {
+      const userRes = await query(
+        `SELECT id, email, handle, deployment_credentials, deploy_path FROM users WHERE id = $1`,
+        [targetId]
+      );
+      if (userRes.rows.length === 0) return 0;
+      user = userRes.rows[0];
+      const { getDefaultSite } = await import('./siteService');
+      site = await getDefaultSite(user.id);
+    }
+
+    const creds = decryptCredentials<GitHubCredentials>(site.deployment_credentials || user.deployment_credentials);
+    if (!creds || !creds.apiKey || !creds.apiKey.trim()) return 0;
+
+    const token = creds.apiKey.trim();
+    const rawRepoInput = creds.repo || creds.siteName || user.handle || 'site';
+    const { owner, repo } = parseRepoString(rawRepoInput, user.handle);
+    if (!owner || !repo) return 0;
+
+    const branch = creds.branch || 'gh-pages';
+    const cleanPrefix = site.deploy_path !== null && site.deploy_path !== undefined
+      ? String(site.deploy_path).trim().replace(/^\/+|\/+$/g, '')
+      : 'neogram';
+
+    const branchRefRes = await githubFetch(`/repos/${owner}/${repo}/git/ref/heads/${branch}`, token);
+    if (!branchRefRes.ok || !branchRefRes.data?.object?.sha) return 0;
+
+    const parentCommitSha = branchRefRes.data.object.sha;
+    const parentCommitRes = await githubFetch(`/repos/${owner}/${repo}/git/commits/${parentCommitSha}`, token);
+    if (!parentCommitRes.ok || !parentCommitRes.data?.tree?.sha) return 0;
+
+    const baseTreeSha = parentCommitRes.data.tree.sha;
+    const treeListRes = await githubFetch(`/repos/${owner}/${repo}/git/trees/${baseTreeSha}?recursive=1`, token);
+    if (!treeListRes.ok || !Array.isArray(treeListRes.data?.tree)) return 0;
+
+    const photosPrefix = cleanPrefix ? `${cleanPrefix}/photos/` : 'photos/';
+    const uploadsPrefix = cleanPrefix ? `${cleanPrefix}/uploads/` : 'uploads/';
+
+    const toDelete = treeListRes.data.tree.filter((item: any) =>
+      item.type === 'blob' &&
+      typeof item.path === 'string' &&
+      (item.path.startsWith(photosPrefix) || item.path.startsWith(uploadsPrefix))
+    );
+
+    if (toDelete.length === 0) return 0;
+
+    const treeEntries = toDelete.map((item: any) => ({
+      path: item.path,
+      mode: '100644',
+      type: 'blob',
+      sha: null as any,
+    }));
+
+    const treeRes = await githubFetch(`/repos/${owner}/${repo}/git/trees`, token, {
+      method: 'POST',
+      body: JSON.stringify({
+        base_tree: baseTreeSha,
+        tree: treeEntries,
+      }),
+    });
+    if (!treeRes.ok || !treeRes.data?.sha) return 0;
+
+    const commitRes = await githubFetch(`/repos/${owner}/${repo}/git/commits`, token, {
+      method: 'POST',
+      body: JSON.stringify({
+        message: `[:> NEOGRAM] Purged ${toDelete.length} QA test photo/upload assets`,
+        tree: treeRes.data.sha,
+        parents: [parentCommitSha],
+      }),
+    });
+    if (!commitRes.ok || !commitRes.data?.sha) return 0;
+
+    await githubFetch(`/repos/${owner}/${repo}/git/refs/heads/${branch}`, token, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        sha: commitRes.data.sha,
+        force: false,
+      }),
+    });
+
+    console.log(`[:> GITHUB PURGE] Purged ${toDelete.length} remote photo/upload files from ${owner}/${repo}`);
+    return toDelete.length;
+  } catch (err) {
+    console.warn('[:> GITHUB PURGE WARNING] Failed to purge photos from GitHub:', err);
+    return 0;
   }
 }
 

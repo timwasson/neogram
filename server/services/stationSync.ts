@@ -37,7 +37,10 @@ export async function checkAndSyncStationFeed(userId: string): Promise<StationSy
   const user = userRes.rows[0];
 
   // QA accounts are strictly immune to automated station wiping
-  if (user.email && user.email.toLowerCase().endsWith('@qa.neogram.club')) {
+  if (
+    (user.email && user.email.toLowerCase().endsWith('@qa.neogram.club')) ||
+    (user.handle && user.handle.toLowerCase().startsWith('qa_'))
+  ) {
     return { checked: false, wiped: false, reason: 'QA accounts are immune to automated wipe' };
   }
 
@@ -46,14 +49,15 @@ export async function checkAndSyncStationFeed(userId: string): Promise<StationSy
     return { checked: false, wiped: false, reason: 'No active deployment on external host' };
   }
 
-  const feedUrl = resolveFeedUrl(user);
+  const rawFeedUrl = resolveFeedUrl(user);
+  const feedUrl = `${rawFeedUrl}${rawFeedUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
 
   try {
     const res = await safeGet(feedUrl, { timeoutMs: 3500, headers: { 'Cache-Control': 'no-cache' } });
 
     // If HTTP 404: Station was wiped remotely via FTP!
     if (res.status === 404) {
-      console.log(`[:> STATION SYNC] Remote feed.json missing (HTTP 404) at ${feedUrl}. Station wiped via FTP; purging local post cache...`);
+      console.log(`[:> STATION SYNC] Remote feed.json missing (HTTP 404) at ${rawFeedUrl}. Station wiped via FTP; purging local post cache...`);
       await wipeStationData(userId);
       return {
         checked: true,
@@ -68,44 +72,9 @@ export async function checkAndSyncStationFeed(userId: string): Promise<StationSy
         if (!data || typeof data !== 'object') {
           throw new Error('Invalid JSON structure');
         }
-        // Hydrate local post storage from remote live feed.json
-        if (Array.isArray(data.posts) && data.posts.length > 0) {
-          const { savePost } = await import('./postStorage');
-          for (const post of data.posts) {
-            const rawPhotos = post.photos || [{
-              imagePath: post.imagePath || post.imageUrl,
-              thumbnailPath: post.thumbnailPath || post.thumbnailUrl || post.imagePath || post.imageUrl,
-            }];
-            // SECURITY: ownership comes from the local station record, never from remote JSON.
-            if (typeof post.id !== 'string' || !/^[0-9a-zA-Z_-]{1,64}$/.test(post.id)) continue;
-            await savePost({
-              id: post.id,
-              userId,
-              siteId: user.siteId,
-              siteName: post.siteName,
-              siteSlug: post.siteSlug,
-              imagePath: post.imagePath || post.imageUrl,
-              thumbnailPath: post.thumbnailPath || post.thumbnailUrl || post.imagePath || post.imageUrl,
-              imageUrl: post.imageUrl || post.imagePath,
-              thumbnailUrl: post.thumbnailUrl || post.thumbnailPath,
-              photos: rawPhotos,
-              caption: post.caption || '',
-              filterApplied: post.filterApplied || post.filter || 'none',
-              mood: post.mood ?? null,
-              webring: post.webring ?? null,
-              location: post.location ?? null,
-              likes: post.likes || 0,
-              createdAt: post.createdAt,
-              comments: post.comments || [],
-              commentsCount: post.commentsCount ?? (post.comments || []).length,
-              commentsUrl: post.commentsUrl,
-              actions: post.actions,
-            });
-          }
-        }
         return { checked: true, wiped: false };
       } catch (_parseErr) {
-        console.warn(`[:> STATION SYNC] Remote feed.json at ${feedUrl} is corrupt/unparseable. Purging local post cache to start clean...`);
+        console.warn(`[:> STATION SYNC] Remote feed.json at ${rawFeedUrl} is corrupt/unparseable. Purging local post cache to start clean...`);
         await wipeStationData(userId);
         return {
           checked: true,

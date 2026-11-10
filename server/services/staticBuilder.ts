@@ -9,6 +9,7 @@ export interface StaticBuildOptions {
   userId?: string;
   siteId?: string;
   outputDir?: string;
+  skipFriendsFeed?: boolean;
 }
 
 export interface StaticBuildResult {
@@ -618,7 +619,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
     // 4. Fetch friends' posts for static /friends/ grid strictly from friends' live feed.json
     let friendsPosts: any[] = [];
     const targetFollowerId = effectiveUserId || userId;
-    if (targetFollowerId) {
+    if (targetFollowerId && !options.skipFriendsFeed) {
       const { aggregateFederatedFriendsFeed } = await import('./federatedFriends');
       const friendsRes = await query(`
         SELECT 
@@ -640,6 +641,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
 
       const friendTargets = friendsRes.rows.map((r: any) => ({
         id: r.id,
+        email: r.email,
         handle: r.handle,
         uin: r.uin,
         avatarPath: r.avatarPath,

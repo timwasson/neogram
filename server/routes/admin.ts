@@ -934,7 +934,7 @@ adminRouter.post(
       const qaUserIds = new Set(qaUsersRes.rows.map((r: any) => r.id));
       const qaHandles = new Set(qaUsersRes.rows.map((r: any) => (r.handle || '').toLowerCase()));
 
-      // Query mounted sites for all QA personas and test targets (e.g. neogramtest, chemicalmachine)
+      // Query mounted sites for all QA personas and test targets (e.g. neogramtest, chemicalmachine, hive210)
       const qaSitesRes = await query(`
         SELECT s.id, s.user_id, s.name, s.slug, s.deployment_type, s.deploy_path, s.deployment_credentials, s.auto_deploy, s.is_default, u.handle, u.email
         FROM sites s
@@ -944,6 +944,8 @@ adminRouter.post(
            OR s.name = 'neogramtest'
            OR s.site_url LIKE '%neogramtest%'
            OR s.site_url LIKE '%chemicalmachine%'
+           OR s.site_url LIKE '%hive210%'
+           OR s.site_url LIKE '%qa-neogram%'
       `);
       const qaSites = qaSitesRes.rows;
       const siteById = new Map<string, any>();
@@ -981,9 +983,9 @@ adminRouter.post(
         const isTestSite = Boolean(
           (post.siteName && post.siteName.toLowerCase().includes('neogramtest')) ||
           (post.siteSlug && post.siteSlug.toLowerCase().includes('neogramtest')) ||
-          (post.siteUrl && (post.siteUrl.includes('neogramtest') || post.siteUrl.includes('chemicalmachine') || post.siteUrl.includes('qa-neogram') || post.siteUrl.includes('qa-neo-test'))) ||
-          (post.imagePath && (post.imagePath.includes('neogramtest') || post.imagePath.includes('chemicalmachine') || post.imagePath.includes('picsum.photos') || post.imagePath.includes('placebear.com'))) ||
-          (post.imageUrl && (post.imageUrl.includes('neogramtest') || post.imageUrl.includes('chemicalmachine') || post.imageUrl.includes('picsum.photos') || post.imageUrl.includes('placebear.com')))
+          (post.siteUrl && (post.siteUrl.includes('neogramtest') || post.siteUrl.includes('chemicalmachine') || post.siteUrl.includes('hive210') || post.siteUrl.includes('qa-neogram') || post.siteUrl.includes('qa-neo-test'))) ||
+          (post.imagePath && (post.imagePath.includes('neogramtest') || post.imagePath.includes('chemicalmachine') || post.imagePath.includes('hive210') || post.imagePath.includes('picsum.photos') || post.imagePath.includes('placebear.com'))) ||
+          (post.imageUrl && (post.imageUrl.includes('neogramtest') || post.imageUrl.includes('chemicalmachine') || post.imageUrl.includes('hive210') || post.imageUrl.includes('picsum.photos') || post.imageUrl.includes('placebear.com')))
         );
         const isOrphanUser = Boolean(post.userId && !nonQaUserIds.has(post.userId) && !qaUserIds.has(post.userId));
 
@@ -1007,8 +1009,9 @@ adminRouter.post(
       }
 
       // 2. Purge remote photos and uploads from external static hosts (Neocities / Nekoweb / GitHub)
-      const { purgeRemoteNeocitiesPhotos } = await import('../services/neocitiesPublisher');
-      const { purgeRemoteNekowebPhotos } = await import('../services/nekowebPublisher');
+      const { purgeRemoteNeocitiesPhotos, deployToNeocities } = await import('../services/neocitiesPublisher');
+      const { purgeRemoteNekowebPhotos, deployToNekoweb } = await import('../services/nekowebPublisher');
+      const { purgeRemoteGitHubPhotos, deployToGitHub } = await import('../services/githubPublisher');
 
       for (const s of qaSites) {
         if (s.deployment_credentials && s.deployment_type !== 'none') {
@@ -1019,6 +1022,9 @@ adminRouter.post(
             } else if (s.deployment_type === 'nekoweb') {
               console.log(`[:> QA PURGE] Purging remote Nekoweb photos for site ${s.name} (${s.id})...`);
               await purgeRemoteNekowebPhotos(s.id);
+            } else if (s.deployment_type === 'github') {
+              console.log(`[:> QA PURGE] Purging remote GitHub photos for site ${s.name} (${s.id})...`);
+              await purgeRemoteGitHubPhotos(s.id);
             }
           } catch (delErr: any) {
             console.warn(`[:> REMOTE PURGE ERROR] Target ${s.handle}/${s.slug}:`, delErr.message || delErr);
@@ -1123,15 +1129,11 @@ adminRouter.post(
       } catch (_cleanupErr) {}
 
       // 6. Rebuild clean baseline empty static galleries for QA personas & queue remote deploys
-      const { deployToNeocities } = await import('../services/neocitiesPublisher');
-      const { deployToNekoweb } = await import('../services/nekowebPublisher');
-      const { deployToGitHub } = await import('../services/githubPublisher');
-
       let remoteSitesEnqueued = 0;
       for (const s of qaSites) {
-        // Rebuild local static gallery files with 0 posts
+        // Rebuild local static gallery files with 0 posts and 0 friendsPosts
         try {
-          await buildStaticGallery({ siteId: s.id, userId: s.user_id });
+          await buildStaticGallery({ siteId: s.id, userId: s.user_id, skipFriendsFeed: true });
         } catch (buildErr: any) {
           console.warn(`[:> QA PURGE REBUILD ERROR] Failed to rebuild local site ${s.id}:`, buildErr.message || buildErr);
         }
@@ -1142,13 +1144,16 @@ adminRouter.post(
           buildQueue.enqueue(
             `QAPurgeDeploy:${s.deployment_type.toUpperCase()}:${s.handle || s.user_id}/${s.slug}`,
             async () => {
-              console.log(`[:> QA PURGE SYNC] Deploying empty static gallery to ${s.deployment_type.toUpperCase()} for @${s.handle}/${s.slug}...`);
+              console.log(`[:> QA PURGE SYNC] Purging & deploying empty static gallery to ${s.deployment_type.toUpperCase()} for @${s.handle}/${s.slug}...`);
               if (s.deployment_type === 'nekoweb') {
-                await deployToNekoweb(s.id, true, { directBuild: true });
+                await purgeRemoteNekowebPhotos(s.id).catch(() => {});
+                await deployToNekoweb(s.id, true, { directBuild: true, skipFriendsFeed: true });
               } else if (s.deployment_type === 'github') {
-                await deployToGitHub(s.id, true, { directBuild: true });
+                await purgeRemoteGitHubPhotos(s.id).catch(() => {});
+                await deployToGitHub(s.id, true, { directBuild: true, skipFriendsFeed: true });
               } else if (s.deployment_type === 'neocities') {
-                await deployToNeocities(s.id, true, { directBuild: true });
+                await purgeRemoteNeocitiesPhotos(s.id).catch(() => {});
+                await deployToNeocities(s.id, true, { directBuild: true, skipFriendsFeed: true });
               }
             },
             {

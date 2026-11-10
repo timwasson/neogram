@@ -122,7 +122,7 @@ async function getFilesRecursively(
 export async function deployToNekoweb(
   targetId: string,
   isSiteId: boolean = false,
-  deployOptions: { directBuild?: boolean } = {}
+  deployOptions: { directBuild?: boolean; skipFriendsFeed?: boolean } = {}
 ): Promise<DeployResult> {
   const startTime = Date.now();
 
@@ -184,6 +184,7 @@ export async function deployToNekoweb(
     siteId: site.id,
     userId: user.id,
     outputDir: userOutputDir,
+    skipFriendsFeed: deployOptions.skipFriendsFeed,
   };
   const buildResult = deployOptions.directBuild
     ? await executeStaticBuild(buildOptions)
