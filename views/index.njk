@@ -1303,6 +1303,23 @@
                               3–30 lowercase letters, numbers, underscores, or hyphens. Your station profile URL is anchored to your immutable UIN (<code>/user/{{ currentUser.uin }}</code>) so it never breaks even if you change your call-sign.
                             </span>
                           </div>
+
+                          <div>
+                            <label for="settingsBioInput" class="block text-xs font-bold mb-1">
+                              Station Bio / Description:
+                            </label>
+                            <textarea
+                              id="settingsBioInput"
+                              name="description"
+                              rows="3"
+                              maxlength="500"
+                              placeholder="Personal 90s retro static photo stream published via Neogram"
+                              class="retro-input text-xs w-full font-mono resize-none"
+                            >{{ currentUser.description or currentUser.statusMessage }}</textarea>
+                            <span class="text-xs text-muted block mt-1.5 leading-relaxed">
+                              Displayed prominently in the Instagram-style header at the top of your static site gallery and Cyberspace directory.
+                            </span>
+                          </div>
                         </div>
 
                         <div class="pt-3 border-t border-main mt-2">
@@ -4636,6 +4653,11 @@
       var formData = new FormData();
       formData.append('handle', rawHandle);
 
+      var bioInput = document.getElementById('settingsBioInput');
+      if (bioInput) {
+        formData.append('description', bioInput.value.trim());
+      }
+
       if (selectedAvatarFile) {
         formData.append('avatarFile', selectedAvatarFile);
       } else if (isAvatarRemoved) {
@@ -4933,6 +4955,9 @@
 
       if (s.handle) {
         document.getElementById('settingsHandleInput').value = s.handle;
+      }
+      if (s.description && document.getElementById('settingsBioInput')) {
+        document.getElementById('settingsBioInput').value = s.description;
       }
       if (s.avatarPath) {
         var avatarPreview = document.getElementById('settingsAvatarPreview');

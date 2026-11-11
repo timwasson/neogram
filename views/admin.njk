@@ -327,8 +327,13 @@
               {% for qa in qaFleet %}
                 <tr>
                   <th scope="row">
-                    <div class="font-bold text-xs font-mono">@{{ qa.handle }} <span class="text-3xs text-muted">[#{{ qa.uin }}]</span></div>
-                    <div class="text-3xs text-muted font-normal">{{ qa.statusMessage }}</div>
+                    <div class="flex items-center gap-2">
+                      <img src="{{ qa.avatarPath or '/icons/default-avatar.svg' }}" alt="@{{ qa.handle }}" class="w-8 h-8 rounded-full border border-main object-cover bg-black shrink-0" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';" />
+                      <div class="min-w-0">
+                        <div class="font-bold text-xs font-mono">@{{ qa.handle }} <span class="text-3xs text-muted">[#{{ qa.uin }}]</span></div>
+                        <div class="text-3xs text-muted font-normal truncate max-w-xs" title="{{ qa.description or qa.statusMessage }}">{{ qa.description or qa.statusMessage }}</div>
+                      </div>
+                    </div>
                   </th>
                   <td>
                     <div class="flex flex-col gap-1.5">
@@ -535,14 +540,22 @@
               >
                 <!-- Row Header (Sticky on Desktop, Stacked Header on Mobile) -->
                 <th scope="row">
-                  <div class="flex items-center gap-1.5">
-                    {% if u.isOnline %}
-                      <span class="pipeline-led" title="Operator online right now" style="width: 8px; height: 8px; margin-right: 0;"></span>
-                    {% endif %}
-                    <a href="/user/{{ u.uin }}" target="_blank" class="font-bold text-mac hover:underline">
-                      @{{ u.handle }}
-                    </a>
-                    <span class="text-3xs text-muted font-normal">[#{{ u.uin }}]</span>
+                  <div class="flex items-center gap-2">
+                    <img src="{{ u.avatarPath or '/icons/default-avatar.svg' }}" alt="@{{ u.handle }}" class="w-7 h-7 rounded-full border border-main object-cover bg-black shrink-0" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';" />
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-1.5">
+                        {% if u.isOnline %}
+                          <span class="pipeline-led" title="Operator online right now" style="width: 8px; height: 8px; margin-right: 0;"></span>
+                        {% endif %}
+                        <a href="/user/{{ u.uin }}" target="_blank" class="font-bold text-mac hover:underline">
+                          @{{ u.handle }}
+                        </a>
+                        <span class="text-3xs text-muted font-normal">[#{{ u.uin }}]</span>
+                      </div>
+                      {% if u.description or u.statusMessage %}
+                        <div class="text-3xs text-muted truncate max-w-xs font-normal" title="{{ u.description or u.statusMessage }}">{{ u.description or u.statusMessage }}</div>
+                      {% endif %}
+                    </div>
                   </div>
                 </th>
                 <td>
@@ -571,27 +584,37 @@
                   {% endif %}
                 </td>
                 <td>
-                  {% if u.isBanned %}
+                  <div class="flex items-center gap-1.5">
                     <button
                       type="button"
-                      class="pixel-btn pixel-btn--green pixel-btn--sm text-3xs font-bold"
-                      onclick="reinstateUser('{{ u.id }}', '{{ u.handle }}');"
+                      class="pixel-btn pixel-btn--sm text-3xs font-bold"
+                      onclick="promptEditUserBio('{{ u.id }}', '{{ u.handle }}', '{{ (u.description or u.statusMessage or '') | escape }}');"
+                      title="Edit station bio/description"
                     >
-                      ✓ Reinstate
+                      Bio
                     </button>
-                  {% else %}
-                    {% if u.id == adminUser.id %}
-                      <span class="text-3xs text-muted italic">Self (SysOp)</span>
-                    {% else %}
+                    {% if u.isBanned %}
                       <button
                         type="button"
-                        class="pixel-btn pixel-btn--danger pixel-btn--sm text-3xs font-bold"
-                        onclick="promptSoftBanUser('{{ u.id }}', '{{ u.handle }}');"
+                        class="pixel-btn pixel-btn--green pixel-btn--sm text-3xs font-bold"
+                        onclick="reinstateUser('{{ u.id }}', '{{ u.handle }}');"
                       >
-                        Soft Ban
+                        ✓ Reinstate
                       </button>
+                    {% else %}
+                      {% if u.id == adminUser.id %}
+                        <span class="text-3xs text-muted italic">Self (SysOp)</span>
+                      {% else %}
+                        <button
+                          type="button"
+                          class="pixel-btn pixel-btn--danger pixel-btn--sm text-3xs font-bold"
+                          onclick="promptSoftBanUser('{{ u.id }}', '{{ u.handle }}');"
+                        >
+                          Soft Ban
+                        </button>
+                      {% endif %}
                     {% endif %}
-                  {% endif %}
+                  </div>
                 </td>
               </tr>
             {% endfor %}
@@ -1087,6 +1110,28 @@
       location.reload();
     } catch (err) {
       window.alert('[:> MODERATION ERROR] ' + err.message);
+    }
+  }
+
+  async function promptEditUserBio(userId, handle, currentBio) {
+    const newBio = window.prompt(`Edit Station Bio / Description for @${handle}:`, currentBio || '');
+    if (newBio === null) return;
+
+    try {
+      if (window.retroAudio) retroAudio.playClick();
+      const res = await fetch(`/api/admin/users/${userId}/profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-neogram-sysop-op': '1',
+        },
+        body: JSON.stringify({ description: newBio }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to update user bio');
+      location.reload();
+    } catch (err) {
+      window.alert('[:> ADMIN ERROR] ' + err.message);
     }
   }
 

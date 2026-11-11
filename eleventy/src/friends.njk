@@ -7,37 +7,26 @@ rootPath: ..
 {% set rel = rootPath or '..' %}
 
 <!-- ==============================================================
-     FRIENDS STATIC STREAM BANNER
+     FRIENDS STATIC STREAM HEADER
      ============================================================== -->
-<section class="neogram-banner">
-  <div class="neogram-banner__header">
-    <div class="neogram-banner__title">
-      <span>[:> @{{ site.author | upper }}'S FRIENDS STATIC STREAM]</span>
-    </div>
-    <div class="neogram-banner__status">
-      <span>● FRIENDS CARRIER NETWORK</span>
-    </div>
-  </div>
-
-  <div class="neogram-banner__body">
-    <div class="neogram-banner__info">
-      <p class="neogram-banner__desc">
-        Transmissions published by friends and followed stations on the Neogram cyberspace network.
-      </p>
-      <p class="neogram-banner__node">
-        Network relay: <a href="{{ site.neocitiesUrl }}/friends/" target="_blank" rel="noopener noreferrer"><code>{{ site.neocitiesUrl }}/friends/ ↗</code></a> · Synchronized via Neogram Build Queue
-      </p>
+<section class="neogram-profile">
+  <div class="neogram-profile__info">
+    <div class="neogram-profile__header">
+      <h1 class="neogram-profile__handle">@{{ site.author }}'s Friends Grid</h1>
+      <div class="neogram-profile__actions">
+        <a href="{{ rel }}/" class="neogram-btn neogram-btn--sm">
+          <span>← Back to My Gallery</span>
+        </a>
+      </div>
     </div>
 
-    <div class="neogram-banner__actions">
-      <span class="neogram-badge neogram-badge--cyan">{{ friendsPosts.length }} TRANSMISSIONS ARCHIVED</span>
-      <a href="{{ rel }}/" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
-        <span>← Back to My Gallery</span>
-      </a>
-      <a href="{{ site.apiUrl or 'http://localhost:4000' }}/friends" target="_blank" class="neogram-btn neogram-btn--green neogram-btn--sm">
-        <span>Manage Friends :&gt;</span>
-      </a>
+    <div class="neogram-profile__stats">
+      <span class="neogram-profile__stat"><strong>{{ friendsPosts.length }}</strong> transmissions</span>
     </div>
+
+    <p class="neogram-profile__description">
+      Transmissions published by friends and followed stations on the Neogram network.
+    </p>
   </div>
 </section>
 
@@ -61,19 +50,6 @@ rootPath: ..
   <div class="neogram-grid">
     {% for post in friendsPosts %}
       <article class="neogram-card">
-        <!-- Card Window Header -->
-        <div class="neogram-card__header">
-          <a
-            href="{{ post.profileUrl or ((site.apiUrl or 'https://neogram.club') + '/user/' + (post.uin or post.authorUin or post.author)) }}"
-            target="_blank"
-            class="neogram-card__author hover:underline"
-            title="View @{{ post.author }} on Neogram"
-          >
-            @{{ post.author }} {% if post.uin %}[#{{ post.uin }}]{% endif %}
-          </a>
-          <span class="neogram-card__shader">{{ post.filterApplied or 'RAW' }}</span>
-        </div>
-
         <!-- Thumbnail Viewport with CRT & Filter Shaders -->
         {% if post.photos and post.photos.length > 1 %}
           <div class="neogram-slider neogram-slider--card">
@@ -84,6 +60,7 @@ rootPath: ..
                   target="_blank"
                   class="neogram-slider__slide"
                   id="fcard-{{ post.id }}-{{ loop.index }}"
+                  title="View @{{ post.author }}'s profile"
                 >
                   <img
                     src="{{ pic.thumbnailUrl or pic.thumbnailPath or pic.imageUrl or pic.imagePath }}"
@@ -103,15 +80,6 @@ rootPath: ..
             <div class="neogram-slider__counter">
               <span class="neogram-badge neogram-badge--cyan">⧉ {{ post.photos.length }}</span>
             </div>
-            <div class="neogram-card__overlay">
-              <a
-                href="{{ post.profileUrl or ((site.apiUrl or 'https://neogram.club') + '/user/' + (post.uin or post.authorUin or post.author)) }}"
-                target="_blank"
-                class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn"
-              >
-                <span>VIEW PROFILE</span>
-              </a>
-            </div>
           </div>
         {% else %}
           <a
@@ -127,11 +95,6 @@ rootPath: ..
               loading="lazy"
               onerror="this.classList.add('neogram-img--broken'); if(this.parentElement) this.parentElement.classList.add('has-broken-image');"
             />
-            <div class="neogram-card__overlay">
-              <span class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn">
-                <span>VIEW PROFILE</span>
-              </span>
-            </div>
           </a>
         {% endif %}
 
@@ -139,38 +102,23 @@ rootPath: ..
         <div class="neogram-card__body">
           <div class="neogram-card__content">
             <div class="neogram-card__meta">
-              <span class="neogram-card__location">{{ post.location or 'Earth // Cyberspace' }}</span>
+              {% if post.location %}
+                <span class="neogram-card__location">{{ post.location }}</span>
+              {% endif %}
               <span class="neogram-card__date">{{ post.createdAt | formatDate }}</span>
             </div>
 
-            <p class="neogram-card__caption">
-              {{ post.caption }}
-            </p>
+            {% if post.caption %}
+              <p class="neogram-card__caption">
+                {{ post.caption }}
+              </p>
+            {% endif %}
           </div>
 
-          <!-- Tags & Actions Footer -->
-          <div>
-            <div class="neogram-card__tags">
-              {% if post.mood %}
-                <span class="neogram-badge neogram-badge--cyan">{{ post.mood }}</span>
-              {% endif %}
-              {% if post.webring %}
-                <span class="neogram-badge neogram-badge--magenta">ring: {{ post.webring }}</span>
-              {% endif %}
-            </div>
-
-            <div class="neogram-card__footer">
-              <span class="neogram-card__likes">
-                <strong>{{ post.likes or 0 }}</strong> likes
-              </span>
-              <a
-                href="{{ post.profileUrl or ((site.apiUrl or 'https://neogram.club') + '/user/' + (post.uin or post.authorUin or post.author)) }}"
-                target="_blank"
-                class="neogram-btn neogram-btn--yellow neogram-btn--sm"
-              >
-                <span>Station Node :&gt;</span>
-              </a>
-            </div>
+          <div class="neogram-card__footer">
+            <span class="neogram-card__likes">
+              <strong>{{ post.likes or 0 }}</strong> likes
+            </span>
           </div>
         </div>
       </article>

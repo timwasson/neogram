@@ -425,7 +425,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
 
     if (siteId) {
       const siteRes = await query(
-        `SELECT s.*, u.id as user_owner_id, u.email, u.handle, u.uin, u.avatar_path, u.status_message
+        `SELECT s.*, u.id as user_owner_id, u.email, u.handle, u.uin, u.avatar_path, u.status_message, u.description
          FROM sites s
          JOIN users u ON s.user_id = u.id
          WHERE s.id = $1`,
@@ -437,7 +437,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
       }
     } else if (userId) {
       const siteRes = await query(
-        `SELECT s.*, u.id as user_owner_id, u.email, u.handle, u.uin, u.avatar_path, u.status_message
+        `SELECT s.*, u.id as user_owner_id, u.email, u.handle, u.uin, u.avatar_path, u.status_message, u.description
          FROM sites s
          JOIN users u ON s.user_id = u.id
          WHERE s.user_id = $1 AND s.is_default = TRUE
@@ -581,7 +581,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
         siteSlug: targetSite.slug,
         author: author,
         avatarUrl: avatarUrl,
-        description: `Personal 90s retro static photo stream published via Neogram`,
+        description: targetSite.description || targetSite.status_message || 'Personal photo stream published via Neogram',
         neocitiesUrl: fullSiteUrl,
         baseSiteUrl: baseSiteUrl,
         authorSiteUrl: baseSiteUrl,
@@ -595,7 +595,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
       await fs.writeFile(siteJsonPath, JSON.stringify(siteData, null, 2), 'utf-8');
     } else if (userId) {
       const userRes = await query(
-        'SELECT id, email, handle, uin, site_url, deploy_path, avatar_path, custom_css_url, build_html, status_message FROM users WHERE id = $1',
+        'SELECT id, email, handle, uin, site_url, deploy_path, avatar_path, custom_css_url, build_html, status_message, description FROM users WHERE id = $1',
         [userId]
       );
       if (userRes.rows.length > 0) {
@@ -635,7 +635,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
           title: `@${author.toUpperCase()}'S STATIC PHOTO STREAM`,
           author: author,
           avatarUrl: avatarUrl,
-          description: `Personal 90s retro static photo stream published via Neogram`,
+          description: u.description || u.status_message || 'Personal photo stream published via Neogram',
           neocitiesUrl: fullSiteUrl,
           baseSiteUrl: baseSiteUrl,
           authorSiteUrl: baseSiteUrl,

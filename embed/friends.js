@@ -106,29 +106,19 @@
 
         html += 
           '<article class="neogram-card">' +
-          '  <div class="neogram-card__header">' +
-          '    <a href="' + escapeHtml(profileUrl) + '" target="_blank" class="neogram-card__author">' +
-          '      @' + escapeHtml(author) + (p.authorUin ? ' [#' + escapeHtml(p.authorUin) + ']' : '') +
-          '    </a>' +
-          '    <span class="neogram-card__shader">' + escapeHtml(filter).toUpperCase() + '</span>' +
-          '  </div>' +
-          '  <a href="' + escapeHtml(profileUrl) + '" target="_blank" class="neogram-card__media">' +
+          '  <a href="' + escapeHtml(profileUrl) + '" target="_blank" class="neogram-card__media" title="View @' + escapeHtml(author) + '\'s profile">' +
           '    <img src="' + escapeHtml(imgUrl) + '" alt="' + escapeHtml(p.caption || '') + '" class="neogram-card__image filter-' + escapeHtml(filter) + '" loading="lazy" />' +
-          '    <div class="neogram-card__overlay">' +
-          '      <span class="neogram-btn neogram-btn--yellow neogram-btn--sm neogram-card__overlay-btn">VIEW PROFILE</span>' +
-          '    </div>' +
           '  </a>' +
           '  <div class="neogram-card__body">' +
           '    <div class="neogram-card__content">' +
           '      <div class="neogram-card__meta">' +
-          '        <span class="neogram-card__location">' + escapeHtml(p.location || 'Cyberspace') + '</span>' +
+          (p.location ? '        <span class="neogram-card__location">' + escapeHtml(p.location) + '</span>' : '') +
           '        <span class="neogram-card__date">' + escapeHtml(formatDate(p.createdAt)) + '</span>' +
           '      </div>' +
-          '      <p class="neogram-card__caption">' + escapeHtml(p.caption || '') + '</p>' +
+          (p.caption ? '      <p class="neogram-card__caption">' + escapeHtml(p.caption) + '</p>' : '') +
           '    </div>' +
           '    <div class="neogram-card__footer">' +
           '      <span class="neogram-card__likes"><strong>' + (p.likes || 0) + '</strong> likes</span>' +
-          '      <a href="' + escapeHtml(profileUrl) + '" target="_blank" class="neogram-btn neogram-btn--yellow neogram-btn--sm">Station Node :&gt;</a>' +
           '    </div>' +
           '  </div>' +
           '</article>';

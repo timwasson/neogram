@@ -48,7 +48,7 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
     const userId = (req as any).user.userId;
 
     const userRes = await query(
-      `SELECT id, email, handle, uin, site_url, deploy_path, deployment_type, deployment_credentials, auto_deploy, last_deployed_at, avatar_path, build_html
+      `SELECT id, email, handle, uin, site_url, deploy_path, deployment_type, deployment_credentials, auto_deploy, last_deployed_at, avatar_path, build_html, description, status_message
        FROM users
        WHERE id = $1`,
       [userId]
@@ -84,6 +84,7 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
         uin: user.uin ? parseInt(user.uin, 10) : undefined,
         handle: user.handle,
         email: user.email,
+        description: user.description || user.status_message || '',
         avatarPath: resolvedAvatar,
         hasCustomAvatar: isRemoteAvatarUrl(resolvedAvatar),
         siteId: activeSite ? activeSite.id : null,
@@ -112,9 +113,9 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
 settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).user.userId;
-    const { handle, removeAvatar } = req.body;
+    const { handle, removeAvatar, description } = req.body;
 
-    const userRes = await query('SELECT id, email, handle, uin, avatar_path FROM users WHERE id = $1', [userId]);
+    const userRes = await query('SELECT id, email, handle, uin, avatar_path, description, status_message FROM users WHERE id = $1', [userId]);
     if (userRes.rows.length === 0) {
       res.status(404).json({ ok: false, error: 'User not found.' });
       return;
@@ -156,7 +157,15 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
       setSessionCookie(res, newToken);
     }
 
-    // 1b. Optional statusMessage update if provided
+    // 1b. Optional description / statusMessage update if provided
+    let newDescription = user.description || '';
+    if (typeof description === 'string') {
+      newDescription = description.trim().slice(0, 500);
+      await query('UPDATE users SET description = $1, updated_at = NOW() WHERE id = $2', [
+        newDescription,
+        userId,
+      ]);
+    }
     if (typeof req.body.statusMessage === 'string' && req.body.statusMessage.trim()) {
       await query('UPDATE users SET status_message = $1, updated_at = NOW() WHERE id = $2', [
         req.body.statusMessage.trim().slice(0, 150),
@@ -254,6 +263,7 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
         id: userId,
         uin: user.uin ? parseInt(user.uin, 10) : undefined,
         handle: newHandle,
+        description: newDescription,
         avatarPath: finalAvatarPath,
         hasCustomAvatar: isRemoteAvatarUrl(finalAvatarPath),
       },

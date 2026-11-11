@@ -31,7 +31,7 @@ async function resolveTargetContext(siteId?: string, userId?: string) {
 
   if (siteId) {
     const siteRes = await query(
-      `SELECT s.*, u.id as user_owner_id, u.email, u.handle, u.uin, u.avatar_path, u.status_message
+      `SELECT s.*, u.id as user_owner_id, u.email, u.handle, u.uin, u.avatar_path, u.status_message, u.description
        FROM sites s
        JOIN users u ON s.user_id = u.id
        WHERE s.id = $1`,
@@ -43,7 +43,7 @@ async function resolveTargetContext(siteId?: string, userId?: string) {
     }
   } else if (userId) {
     const siteRes = await query(
-      `SELECT s.*, u.id as user_owner_id, u.email, u.handle, u.uin, u.avatar_path, u.status_message
+      `SELECT s.*, u.id as user_owner_id, u.email, u.handle, u.uin, u.avatar_path, u.status_message, u.description
        FROM sites s
        JOIN users u ON s.user_id = u.id
        WHERE s.user_id = $1 AND s.is_default = TRUE
@@ -62,6 +62,7 @@ async function resolveTargetContext(siteId?: string, userId?: string) {
   let fullSiteUrl = `${baseSiteUrl}/${rawDeployPath}`;
   let avatarUrl = '/icons/default-avatar.svg';
   let statusMessage = 'Surfing cyberspace';
+  let description = 'Personal photo stream published via Neogram';
   let customCssUrl: string | null = null;
   let shouldBuildHtml = true;
   let chatWidgetEnabled = true;
@@ -85,6 +86,7 @@ async function resolveTargetContext(siteId?: string, userId?: string) {
       handle: author,
     });
     statusMessage = targetSite.status_message || 'Surfing cyberspace';
+    description = targetSite.description || targetSite.status_message || 'Personal photo stream published via Neogram';
     customCssUrl = targetSite.custom_css_url || null;
     shouldBuildHtml = targetSite.build_html !== false;
     chatWidgetEnabled = targetSite.chat_widget_enabled !== false;
@@ -93,7 +95,7 @@ async function resolveTargetContext(siteId?: string, userId?: string) {
     autoDeploy = targetSite.auto_deploy === true;
   } else if (userId) {
     const userRes = await query(
-      'SELECT id, email, handle, uin, site_url, deploy_path, avatar_path, custom_css_url, build_html, status_message, deployment_type, deployment_credentials, auto_deploy FROM users WHERE id = $1',
+      'SELECT id, email, handle, uin, site_url, deploy_path, avatar_path, custom_css_url, build_html, status_message, description, deployment_type, deployment_credentials, auto_deploy FROM users WHERE id = $1',
       [userId]
     );
     if (userRes.rows.length > 0) {
@@ -113,6 +115,7 @@ async function resolveTargetContext(siteId?: string, userId?: string) {
         handle: author,
       });
       statusMessage = u.status_message || 'Surfing cyberspace';
+      description = u.description || u.status_message || 'Personal photo stream published via Neogram';
       customCssUrl = u.custom_css_url || null;
       shouldBuildHtml = u.build_html !== false;
       deploymentType = u.deployment_type || 'none';
@@ -142,7 +145,7 @@ async function resolveTargetContext(siteId?: string, userId?: string) {
     siteSlug: targetSite?.slug || 'default',
     author,
     avatarUrl,
-    description: 'Personal 90s retro static photo stream published via Neogram',
+    description,
     neocitiesUrl: fullSiteUrl,
     baseSiteUrl,
     authorSiteUrl: baseSiteUrl,

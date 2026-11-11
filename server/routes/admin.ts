@@ -22,6 +22,8 @@ export interface QaFleetUser {
   handle: string;
   uin: number;
   statusMessage: string;
+  description: string;
+  avatarPath?: string;
   postCount: number;
   sites: Site[];
 }
@@ -33,7 +35,9 @@ async function getQaFleetUsers(): Promise<QaFleetUser[]> {
       u.email,
       u.handle,
       u.uin,
+      u.avatar_path as "avatarPath",
       u.status_message as "statusMessage",
+      u.description as "description",
       0 as "postCount"
     FROM users u
     WHERE u.email LIKE '%@qa.neogram.club'
@@ -50,6 +54,8 @@ async function getQaFleetUsers(): Promise<QaFleetUser[]> {
       handle: row.handle,
       uin: Number(row.uin),
       statusMessage: row.statusMessage || 'QA Test Persona',
+      description: row.description || row.statusMessage || 'QA Test Persona',
+      avatarPath: row.avatarPath || '/icons/default-avatar.svg',
       postCount,
       sites,
     });
@@ -123,6 +129,9 @@ adminRouter.get('/admin', requireAdmin, async (req: Request, res: Response, next
         u.email,
         u.handle,
         u.uin,
+        u.avatar_path as "avatarPath",
+        u.description as "description",
+        u.status_message as "statusMessage",
         u.site_url as "siteUrl",
         u.deployment_type as "deploymentType",
         u.created_at as "createdAt",
@@ -133,7 +142,7 @@ adminRouter.get('/admin', requireAdmin, async (req: Request, res: Response, next
         COUNT(s.id) as "siteCount"
       FROM users u
       LEFT JOIN sites s ON s.user_id = u.id
-      GROUP BY u.id, u.email, u.handle, u.uin, u.site_url, u.deployment_type, u.created_at, u.is_banned, u.ban_reason, u.banned_at
+      GROUP BY u.id, u.email, u.handle, u.uin, u.avatar_path, u.description, u.status_message, u.site_url, u.deployment_type, u.created_at, u.is_banned, u.ban_reason, u.banned_at
       ORDER BY u.created_at DESC
       LIMIT 100
     `);
@@ -1272,6 +1281,52 @@ adminRouter.get(
       res.setHeader('Content-Disposition', 'attachment; filename="db-snapshot.json"');
       res.send(JSON.stringify(snapshot, null, 2));
     } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * 12. POST /api/admin/users/:id/profile - SysOp User Profile & Description Update
+ */
+adminRouter.post(
+  '/api/admin/users/:id/profile',
+  requireAdminApi,
+  validateAdminMutationHeader,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const { description, statusMessage, handle } = req.body;
+      const updates: string[] = [];
+      const values: any[] = [];
+      let idx = 1;
+
+      if (typeof description === 'string') {
+        updates.push(`description = $${idx++}`);
+        values.push(description.trim().slice(0, 500));
+      }
+      if (typeof statusMessage === 'string') {
+        updates.push(`status_message = $${idx++}`);
+        values.push(statusMessage.trim().slice(0, 150));
+      }
+      if (typeof handle === 'string' && handle.trim()) {
+        const cleanHandle = handle.trim().toLowerCase().replace(/^@+/, '');
+        updates.push(`handle = $${idx++}`);
+        values.push(cleanHandle);
+      }
+
+      if (updates.length > 0) {
+        updates.push(`updated_at = NOW()`);
+        values.push(id);
+        await query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${idx}`, values);
+
+        import('../services/staticBuilder')
+          .then((m) => m.buildStaticGallery({ userId: id }))
+          .catch(() => {});
+      }
+
+      res.json({ ok: true, message: 'User profile updated successfully by SysOp.' });
+    } catch (err: any) {
       next(err);
     }
   }

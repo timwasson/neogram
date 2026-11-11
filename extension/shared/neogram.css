@@ -3533,6 +3533,132 @@ dialog.pixel-dialog[open] {
 /* ==========================================================================
    3. STATIC BANNER (index.njk)
    ========================================================================== */
+.neogram-profile {
+  background-color: var(--surface-window, #dcd8d0);
+  border: 4px solid var(--border-main, #000000);
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.9);
+  margin-bottom: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 24px;
+}
+.dark .neogram-profile {
+  background-color: var(--surface-window, #161b22);
+  border-color: var(--border-main, #384252);
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+@media (max-width: 640px) {
+  .neogram-profile {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 16px;
+    gap: 16px;
+  }
+}
+.neogram-profile__avatar-frame {
+  flex-shrink: 0;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 3px solid var(--border-main, #000000);
+  overflow: hidden;
+  background-color: #000000;
+  box-shadow: 3px 3px 0px 0px rgba(0, 0, 0, 0.5);
+}
+.dark .neogram-profile__avatar-frame {
+  border-color: var(--border-main, #384252);
+}
+@media (max-width: 640px) {
+  .neogram-profile__avatar-frame {
+    width: 80px;
+    height: 80px;
+  }
+}
+.neogram-profile__avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.neogram-profile__info {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.neogram-profile__header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .neogram-profile__header {
+    justify-content: center;
+  }
+}
+.neogram-profile__handle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-main, #000000);
+  letter-spacing: -0.5px;
+}
+.dark .neogram-profile__handle {
+  color: #ffffff;
+}
+.neogram-profile__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.neogram-profile__stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-main, #000000);
+}
+.dark .neogram-profile__stats {
+  color: #e6edf3;
+}
+@media (max-width: 640px) {
+  .neogram-profile__stats {
+    justify-content: center;
+  }
+}
+.neogram-profile__stat strong {
+  font-weight: 700;
+}
+.neogram-profile__description {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-main, #111111);
+  word-break: break-word;
+}
+.dark .neogram-profile__description {
+  color: #c9d1d9;
+}
+.neogram-profile__link {
+  font-size: 12px;
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  color: var(--link-color, #0044cc);
+  text-decoration: underline;
+  word-break: break-all;
+}
+.dark .neogram-profile__link {
+  color: var(--accent-prompt, #00ff66);
+}
+
 .neogram-banner {
   background-color: var(--surface-window, #dcd8d0);
   border: 4px solid var(--border-main, #000000);
@@ -3734,6 +3860,7 @@ dialog.pixel-dialog[open] {
 .neogram-card__media {
   display: block;
   position: relative;
+  cursor: pointer;
   background-color: #080b10;
   background-image: radial-gradient(ellipse at center, rgba(0, 255, 102, 0.05) 0%, rgba(5, 7, 10, 0.95) 75%), repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0px, rgba(0, 0, 0, 0.4) 2px, transparent 2px, transparent 4px);
   padding: 4px;
@@ -3799,6 +3926,7 @@ dialog.pixel-dialog[open] {
   background-color: #000000;
   position: relative;
   z-index: 2;
+  cursor: pointer;
   image-rendering: pixelated;
   transition: transform 0.2s ease;
 }
@@ -3811,24 +3939,10 @@ dialog.pixel-dialog[open] {
   display: none !important;
 }
 .neogram-card__overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  z-index: 10;
-}
-.neogram-card:hover .neogram-card__overlay {
-  opacity: 1;
+  display: none !important;
 }
 .neogram-card__overlay-btn {
-  pointer-events: none;
+  display: none !important;
 }
 .neogram-card {
   /* Card Body & Details */
@@ -4323,6 +4437,7 @@ dialog.pixel-dialog[open] {
   position: relative;
   box-sizing: border-box;
   text-decoration: none;
+  cursor: pointer;
   background-color: #080b10;
   min-height: 220px;
 }

@@ -23,65 +23,11 @@
 <body class="neogram-site">
 
   <!-- ==============================================================
-       TOP RETRO SYSTEM BAR (Mac System 7 / Win95 Styled)
-       ============================================================== -->
-  <header class="neogram-site__taskbar">
-    <div class="neogram-site__branding">
-      <span class="neogram-site__logo">[:&gt;]</span>
-      <span class="neogram-site__title">NEOGRAM STATIC ARCHIVE</span>
-      <span class="neogram-site__tag">[:&gt; ELEVENTY GENERATED]</span>
-    </div>
-
-    <div class="neogram-site__nav">
-      {% if site.baseSiteUrl and site.baseSiteUrl != site.neocitiesUrl %}
-        <a href="{{ site.baseSiteUrl }}" target="_blank" rel="noopener noreferrer" class="neogram-btn neogram-btn--sm" title="Visit {{ site.author }}'s Personal Website">
-          <span>🏠 Personal Website ↗</span>
-        </a>
-      {% endif %}
-      <a href="{{ rel }}/" class="neogram-btn neogram-btn--sm">
-        <span>Gallery Grid</span>
-      </a>
-      <a href="{{ rel }}/friends/" class="neogram-btn neogram-btn--sm">
-        <span>Friends Grid</span>
-      </a>
-      <a href="{{ site.apiUrl or 'http://localhost:4000' }}" target="_blank" rel="noopener noreferrer" class="neogram-btn neogram-btn--yellow neogram-btn--sm">
-        <span>Neogram Studio</span>
-      </a>
-      <button type="button" id="themeToggleBtn" class="neogram-btn neogram-btn--sm" title="Toggle Theme Skin">
-        <span>Theme</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- ==============================================================
        PAGE CONTENT CONTAINER
        ============================================================== -->
   <main class="neogram-site__main">
     {{ content | safe }}
   </main>
-
-  <!-- ==============================================================
-       STATIC SITE RETRO FOOTER
-       ============================================================== -->
-  <footer class="neogram-site__footer">
-    <div class="neogram-site__footer-inner">
-      <div class="neogram-site__footer-info">
-        <div class="neogram-site__footer-host">STATIC HOST: <a href="{{ site.neocitiesUrl }}" target="_blank" rel="noopener noreferrer" class="neogram-site__footer-url underline">{{ site.neocitiesUrl }} ↗</a></div>
-        {% if site.baseSiteUrl and site.baseSiteUrl != site.neocitiesUrl %}
-          <div class="neogram-site__footer-host">PERSONAL WEBSITE: <a href="{{ site.baseSiteUrl }}" target="_blank" rel="noopener noreferrer" class="neogram-site__footer-url underline">{{ site.baseSiteUrl }} ↗</a></div>
-        {% endif %}
-        <div class="neogram-site__footer-sub">Built with 11ty (Eleventy) &amp; Neogram Sharp Publishing Pipeline</div>
-      </div>
-
-      <!-- Retro 88x31 Badges -->
-      <div class="neogram-site__footer-badges">
-        <span class="neogram-badge neogram-badge--cyan">11TY STATIC</span>
-        <span class="neogram-badge neogram-badge--green">NEOCITIES READY</span>
-        <span class="neogram-badge neogram-badge--magenta">800x600 BEST</span>
-        <span class="neogram-badge neogram-badge--amber">NETSCAPE 4.0</span>
-      </div>
-    </div>
-  </footer>
 
   <!-- Retro Audio Engine -->
   <script src="{{ rel }}/js/retroAudio.js"></script>

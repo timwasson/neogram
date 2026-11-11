@@ -24,16 +24,6 @@ eleventyComputed:
 </div>
 
 <article class="neogram-detail">
-  <header class="neogram-detail__header">
-    <div class="neogram-detail__title">
-      <span>[:&gt; {{ post.id }}.bitmap]</span>
-    </div>
-    <div class="neogram-detail__status">
-      <span class="neogram-detail__status-shader">SHADER: {{ post.filterApplied or 'RAW' }}</span>
-      <span class="neogram-detail__status-sub">100% BITMAP</span>
-    </div>
-  </header>
-
   <div class="neogram-detail__body">
     <div class="neogram-detail__layout">
 
@@ -72,19 +62,6 @@ eleventyComputed:
             />
           </div>
         {% endif %}
-
-        <!-- Tag row -->
-        <div class="neogram-detail__tags">
-          {% if post.mood %}
-            <span class="neogram-badge neogram-badge--cyan">{{ post.mood }}</span>
-          {% endif %}
-          {% if post.webring %}
-            <span class="neogram-badge neogram-badge--magenta">ring: {{ post.webring }}</span>
-          {% endif %}
-          {% if post.location %}
-            <span class="neogram-badge neogram-badge--amber">loc: {{ post.location }}</span>
-          {% endif %}
-        </div>
       </div>
 
       <!-- RIGHT: Metadata & Centralized Comment Ledger -->
