@@ -274,13 +274,39 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
   // Helper to check local static gallery compilation (for QA fleet & sandbox stations)
   const tryLocalFeed = async (): Promise<FriendFeedPost[] | null> => {
     try {
-      // For QA fleet accounts managed on this node, local postStorage is authoritative
-      // so purges and test uploads take effect immediately without waiting for external CDN cache TTLs.
+      // For QA fleet accounts managed on this node, check local postStorage first.
+      // If local posts exist on this node, they take precedence over remote CDN caches.
       if (isQaFriend && friend.id) {
         const { getPostsForUser } = await import('./postStorage');
         const qaPosts = await getPostsForUser(friend.id);
-        if (!qaPosts || qaPosts.length === 0) {
-          return [];
+        if (qaPosts && qaPosts.length > 0) {
+          return qaPosts.map((p) => {
+            const author = p.author || friend.handle;
+            const galleryUrl = p.galleryUrl || friend.siteUrl;
+            let livePhotoUrl = p.livePhotoUrl;
+            if (livePhotoUrl && (livePhotoUrl.endsWith('.webp') || livePhotoUrl.endsWith('.jpg') || livePhotoUrl.endsWith('.png') || !livePhotoUrl.includes('/photos/'))) {
+              livePhotoUrl = '';
+            }
+            if (!livePhotoUrl) {
+              livePhotoUrl = resolvePhotoPageUrl(p.id, author, galleryUrl, friend.siteUrl, p.imageUrl || p.imagePath);
+            } else {
+              livePhotoUrl = livePhotoUrl.replace(/\/photos\/photos\//g, '/photos/');
+            }
+            return {
+              ...p,
+              imageUrl: p.imageUrl || p.imagePath,
+              thumbnailUrl: p.thumbnailUrl || p.thumbnailPath || p.imageUrl || p.imagePath,
+              filter: p.filterApplied || 'none',
+              author,
+              authorHandle: friend.handle,
+              authorUin: friend.uin,
+              authorAvatar: friend.avatarPath,
+              authorSiteUrl: friend.siteUrl,
+              galleryUrl,
+              livePhotoUrl,
+              profileUrl: friend.uin ? `/user/${friend.uin}` : `/user/${encodeURIComponent(friend.handle)}`,
+            };
+          });
         }
       }
 
@@ -289,7 +315,7 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
         if (existsSync(sitePath)) {
           const content = await fs.readFile(sitePath, 'utf-8');
           const data = JSON.parse(content) as UserFeedPayload;
-          if (data && Array.isArray(data.posts)) {
+          if (data && Array.isArray(data.posts) && data.posts.length > 0) {
             return mapFeedPosts(data, friend);
           }
         }
@@ -299,7 +325,7 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
       if (existsSync(localDirectPath)) {
         const content = await fs.readFile(localDirectPath, 'utf-8');
         const data = JSON.parse(content) as UserFeedPayload;
-        if (data && Array.isArray(data.posts)) {
+        if (data && Array.isArray(data.posts) && data.posts.length > 0) {
           return mapFeedPosts(data, friend);
         }
       }
@@ -316,7 +342,7 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
         if (existsSync(sitePath)) {
           const content = await fs.readFile(sitePath, 'utf-8');
           const data = JSON.parse(content) as UserFeedPayload;
-          if (data && Array.isArray(data.posts)) {
+          if (data && Array.isArray(data.posts) && data.posts.length > 0) {
             return mapFeedPosts(data, friend);
           }
         }
@@ -358,11 +384,11 @@ export async function fetchRemoteFriendFeed(friend: FriendTarget): Promise<Frien
     return null;
   };
 
-  // Prioritize local authoritative state for QA fleet accounts so purges and test uploads
-  // never read stale external CDN caches or resurrect deleted test posts.
+  // Prioritize local authoritative state for QA fleet accounts if local posts exist on disk;
+  // otherwise fall through to fetching their live feed.json from their external static host over WAN.
   if (isQaFriend) {
     const local = await tryLocalFeed();
-    if (local !== null) return local;
+    if (local && local.length > 0) return local;
   }
 
   try {
