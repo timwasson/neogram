@@ -256,8 +256,18 @@
     min-inline-size: 0;
   }
 
+  > .retro-card {
+    margin: 0;
+  }
+
   @media (min-width: 640px) {
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+
+  &--manage {
+    @media (min-width: 640px) {
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
   }
 }
 
@@ -497,6 +507,9 @@
 .w-full { width: 100%; }
 .w-auto { width: auto; }
 .h-full { height: 100%; }
+.h-36 { height: 144px; }
+.h-48 { height: 192px; }
+.h-56 { height: 224px; }
 .max-w-xs { max-width: 320px; }
 .max-w-sm { max-width: 384px; }
 .max-w-md { max-width: 480px; }

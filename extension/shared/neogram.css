@@ -426,9 +426,17 @@ a {
   min-width: 0;
   min-inline-size: 0;
 }
+.workstation-card-grid > .retro-card {
+  margin: 0;
+}
 @media (min-width: 640px) {
   .workstation-card-grid {
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+}
+@media (min-width: 640px) {
+  .workstation-card-grid--manage {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 }
 
@@ -902,6 +910,18 @@ a {
   height: 100%;
 }
 
+.h-36 {
+  height: 144px;
+}
+
+.h-48 {
+  height: 192px;
+}
+
+.h-56 {
+  height: 224px;
+}
+
 .max-w-xs {
   max-width: 320px;
 }
@@ -1154,6 +1174,74 @@ select.retro-input {
 }
 .blinking-cursor {
   animation: blink 0.8s infinite;
+}
+
+/* Retro Missing Bitmap Fallback & Broken Image Suppression */
+img.neogram-img--broken,
+img.img--broken {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  display: none !important;
+}
+
+.retro-photo-viewport {
+  position: relative;
+  min-height: 180px;
+}
+.retro-photo-viewport > a {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.retro-photo-viewport img {
+  position: relative;
+  z-index: 2;
+  display: block;
+}
+.retro-photo-viewport::before {
+  display: none !important;
+}
+.retro-photo-viewport.has-broken-image {
+  background-color: #080b10 !important;
+  background-image: radial-gradient(ellipse at center, rgba(0, 255, 102, 0.05) 0%, rgba(5, 7, 10, 0.95) 75%), repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0px, rgba(0, 0, 0, 0.4) 2px, transparent 2px, transparent 4px) !important;
+}
+.retro-photo-viewport.has-broken-image::before {
+  content: "[:> NO_SIGNAL // 404_BITMAP_LOST]\a[ASSET MISSING ON HOST]";
+  white-space: pre-line;
+  line-height: 1.4;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 32px);
+  max-width: 260px;
+  padding: 10px 14px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff5555;
+  background-color: rgba(5, 10, 8, 0.92);
+  border: 2px dashed #ff3333;
+  box-shadow: 0 0 10px rgba(255, 68, 68, 0.35);
+  text-shadow: 0 0 6px rgba(255, 68, 68, 0.7);
+  letter-spacing: 0.5px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+.has-broken-image {
+  background-color: #080b10 !important;
+  background-image: radial-gradient(ellipse at center, rgba(0, 255, 102, 0.05) 0%, rgba(5, 7, 10, 0.95) 75%), repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0px, rgba(0, 0, 0, 0.4) 2px, transparent 2px, transparent 4px) !important;
+}
+.has-broken-image::before {
+  display: flex !important;
 }
 
 /**
@@ -2095,6 +2183,7 @@ select.retro-input {
    ------------------------------------------------------------- */
 .retro-mobile-nav {
   display: none;
+  overflow: visible;
 }
 @media (max-width: 767px) {
   .retro-mobile-nav {
@@ -2103,6 +2192,7 @@ select.retro-input {
     bottom: 0;
     left: 0;
     right: 0;
+    overflow: visible;
     height: calc(56px + env(safe-area-inset-bottom, 0px));
     min-height: calc(56px + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
@@ -2156,6 +2246,37 @@ select.retro-input {
 .dark .retro-mobile-nav__item:active, .dark .retro-mobile-nav__item.is-active {
   background-color: var(--accent-amber) !important;
   color: #000000 !important;
+}
+.retro-mobile-nav__item--cta {
+  position: relative;
+  margin-top: -10px;
+  min-height: 58px;
+  background-color: var(--accent-prompt);
+  color: #000000;
+  border: 3px solid #000000;
+  box-shadow: 0 -3px 0px 0px var(--border-main), 0 -4px 10px rgba(0, 0, 0, 0.75);
+  z-index: 2;
+  font-size: 10.5px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.dark .retro-mobile-nav__item--cta {
+  background-color: var(--accent-prompt);
+  color: #000000;
+  border-color: #ffffff;
+}
+.retro-mobile-nav__item--cta:hover {
+  background-color: var(--accent-yellow);
+  color: #000000;
+}
+.retro-mobile-nav__item--cta:active, .retro-mobile-nav__item--cta.is-active {
+  background-color: var(--accent-amber) !important;
+  color: #000000 !important;
+  border-color: #ffffff !important;
+}
+.retro-mobile-nav__item--cta .retro-mobile-nav__icon .retro-svg-icon {
+  width: 18px;
+  height: 18px;
 }
 .retro-mobile-nav__item span {
   pointer-events: none;
@@ -3608,12 +3729,13 @@ dialog.pixel-dialog[open] {
   text-transform: uppercase;
 }
 .neogram-card {
-  /* Media / Viewport with Scanline Shader */
+  /* Media / Viewport with Scanline Shader & Retro Missing Bitmap Fallback */
 }
 .neogram-card__media {
   display: block;
   position: relative;
-  background-color: #000000;
+  background-color: #080b10;
+  background-image: radial-gradient(ellipse at center, rgba(0, 255, 102, 0.05) 0%, rgba(5, 7, 10, 0.95) 75%), repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0px, rgba(0, 0, 0, 0.4) 2px, transparent 2px, transparent 4px);
   padding: 4px;
   height: 224px;
   display: flex;
@@ -3621,6 +3743,40 @@ dialog.pixel-dialog[open] {
   justify-content: center;
   overflow: hidden;
   text-decoration: none;
+  /* Underlying Retro 404 Fallback Badge (visible ONLY when photo asset is missing/broken) */
+}
+.neogram-card__media::before {
+  content: "[:> NO_SIGNAL // 404_BITMAP_LOST]\a[ASSET MISSING ON HOST]";
+  white-space: pre-line;
+  line-height: 1.4;
+  display: none !important;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 32px);
+  max-width: 250px;
+  padding: 10px 12px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff5555;
+  background-color: rgba(5, 10, 8, 0.95);
+  border: 2px dashed #ff3333;
+  box-shadow: 0 0 10px rgba(255, 68, 68, 0.4);
+  text-shadow: 0 0 6px rgba(255, 68, 68, 0.7);
+  letter-spacing: 0.5px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 1;
+  box-sizing: border-box;
+}
+.neogram-card__media.has-broken-image::before {
+  display: flex !important;
+}
+.neogram-card__media {
   /* CRT scanlines */
 }
 .neogram-card__media::after {
@@ -3640,11 +3796,19 @@ dialog.pixel-dialog[open] {
   max-height: 100%;
   max-width: 100%;
   object-fit: contain;
+  background-color: #000000;
+  position: relative;
+  z-index: 2;
   image-rendering: pixelated;
   transition: transform 0.2s ease;
 }
 .neogram-card:hover .neogram-card__image {
   transform: scale(1.05);
+}
+.neogram-card__image.neogram-img--broken, .neogram-card__image.img--broken {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  display: none !important;
 }
 .neogram-card__overlay {
   position: absolute;
@@ -3804,7 +3968,8 @@ dialog.pixel-dialog[open] {
   gap: 12px;
 }
 .neogram-detail__viewport {
-  background-color: #000000;
+  background-color: #080b10;
+  background-image: radial-gradient(ellipse at center, rgba(0, 255, 102, 0.06) 0%, rgba(5, 7, 10, 0.95) 75%), repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0px, rgba(0, 0, 0, 0.4) 2px, transparent 2px, transparent 4px);
   border: 2px solid var(--border-main, #000000);
   padding: 4px;
   min-height: 360px;
@@ -3813,6 +3978,38 @@ dialog.pixel-dialog[open] {
   justify-content: center;
   position: relative;
   overflow: hidden;
+  /* Underlying Retro 404 Fallback Badge (visible ONLY when photo asset is missing/broken) */
+}
+.neogram-detail__viewport::before {
+  content: "[:> 404 // NO_CARRIER_DETECTED]\a[REMOTE ASSET MISSING FROM STATIC HOST]\aV.90 28.8K SIGNAL LOSS";
+  white-space: pre-line;
+  line-height: 1.5;
+  display: none !important;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 48px);
+  max-width: 320px;
+  padding: 16px 20px;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  color: #ff5555;
+  background-color: rgba(5, 10, 8, 0.95);
+  border: 2px dashed #ff3333;
+  box-shadow: 0 0 14px rgba(255, 68, 68, 0.4);
+  text-shadow: 0 0 6px rgba(255, 68, 68, 0.7);
+  letter-spacing: 0.5px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 1;
+  box-sizing: border-box;
+}
+.neogram-detail__viewport.has-broken-image::before {
+  display: flex !important;
 }
 .dark .neogram-detail__viewport {
   border-color: var(--border-main, #384252);
@@ -3834,7 +4031,15 @@ dialog.pixel-dialog[open] {
   max-height: 520px;
   max-width: 100%;
   object-fit: contain;
+  background-color: #000000;
+  position: relative;
+  z-index: 2;
   image-rendering: pixelated;
+}
+.neogram-detail__image.neogram-img--broken, .neogram-detail__image.img--broken {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  display: none !important;
 }
 .neogram-detail__tags {
   display: flex;
@@ -4118,6 +4323,36 @@ dialog.pixel-dialog[open] {
   position: relative;
   box-sizing: border-box;
   text-decoration: none;
+  background-color: #080b10;
+  min-height: 220px;
+}
+.neogram-slider__slide.has-broken-image::before {
+  content: "[:> NO_SIGNAL // 404_BITMAP_LOST]\a[ASSET MISSING ON HOST]";
+  white-space: pre-line;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 32px);
+  max-width: 250px;
+  padding: 10px 12px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff5555;
+  background-color: rgba(5, 10, 8, 0.9);
+  border: 2px dashed #ff3333;
+  box-shadow: 0 0 10px rgba(255, 68, 68, 0.35);
+  text-shadow: 0 0 6px rgba(255, 68, 68, 0.7);
+  letter-spacing: 0.5px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 1;
+  box-sizing: border-box;
 }
 @supports (container-type: scroll-state) {
   .neogram-slider__slide {
@@ -4132,6 +4367,13 @@ dialog.pixel-dialog[open] {
   display: block;
   user-select: none;
   -webkit-user-drag: none;
+  position: relative;
+  z-index: 2;
+}
+.neogram-slider__image.neogram-img--broken, .neogram-slider__image.img--broken {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  display: none !important;
 }
 .neogram-slider {
   /* Centered Instagram-style indicator dots */

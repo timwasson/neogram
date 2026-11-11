@@ -426,9 +426,17 @@ a {
   min-width: 0;
   min-inline-size: 0;
 }
+.workstation-card-grid > .retro-card {
+  margin: 0;
+}
 @media (min-width: 640px) {
   .workstation-card-grid {
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+}
+@media (min-width: 640px) {
+  .workstation-card-grid--manage {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 }
 
@@ -900,6 +908,18 @@ a {
 
 .h-full {
   height: 100%;
+}
+
+.h-36 {
+  height: 144px;
+}
+
+.h-48 {
+  height: 192px;
+}
+
+.h-56 {
+  height: 224px;
 }
 
 .max-w-xs {

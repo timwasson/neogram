@@ -900,104 +900,99 @@
               </button>
             </div>
           {% else %}
-            <div class="flex flex-col gap-4" id="managePostsList">
+            <div class="workstation-card-grid workstation-card-grid--manage gap-4" id="managePostsList">
               {% for post in posts %}
-                <div class="pixel-box p-3 bg-window border-2 border-main" id="manage-post-{{ post.id }}" data-site-id="{{ post.siteId or '' }}">
-                  <div class="flex flex-col sm:flex-row gap-4 items-start">
-                    
-                    <!-- Thumbnail Viewport with Active Filter Shader & Retro 404 Fallback -->
-                    <div class="w-full sm:w-36 h-36 bg-black flex items-center justify-center p-1 crt-scanlines border-2 border-main shrink-0 overflow-hidden retro-photo-viewport">
-                      <img
-                        src="{{ post.thumbnailPath or post.imagePath }}"
-                        alt="{{ post.caption }}"
-                        class="max-h-full max-w-full object-contain filter-{{ post.filterApplied or 'none' }}"
-                        id="manage-img-{{ post.id }}"
-                        loading="lazy"
-                        onerror="this.classList.add('neogram-img--broken'); var vp=this.closest('.retro-photo-viewport'); if(vp) vp.classList.add('has-broken-image');"
-                      />
+                <article class="retro-card p-0 flex flex-col justify-between m-0" id="manage-post-{{ post.id }}" data-site-id="{{ post.siteId or '' }}">
+                  <!-- Card Header -->
+                  <div class="window-header flex items-center justify-between p-2 text-xs">
+                    <span class="font-bold text-prompt truncate text-xxs">ID: <code>{{ post.id | truncate(14) }}</code></span>
+                    <span class="text-muted text-3xs shrink-0">{{ post.createdAt | formatDate }}</span>
+                  </div>
+
+                  <!-- Photo Viewport with Active Filter Shader & Retro 404 Fallback -->
+                  <div class="relative bg-black border-b border-main overflow-hidden flex items-center justify-center crt-scanlines retro-photo-viewport">
+                    <img
+                      src="{{ post.thumbnailPath or post.imagePath }}"
+                      alt="{{ post.caption }}"
+                      class="w-full h-48 object-cover filter-{{ post.filterApplied or 'none' }}"
+                      id="manage-img-{{ post.id }}"
+                      loading="lazy"
+                      onerror="this.classList.add('neogram-img--broken'); var vp=this.closest('.retro-photo-viewport'); if(vp) vp.classList.add('has-broken-image');"
+                    />
+                  </div>
+
+                  <!-- Metadata & Details -->
+                  <div class="p-3 flex flex-col gap-2 flex-1 justify-between text-xs">
+                    <div>
+                      <p class="text-xs text-main leading-relaxed mb-2 break-words" id="manage-caption-{{ post.id }}">
+                        {{ post.caption }}
+                      </p>
+
+                      <div class="flex flex-wrap gap-1 mb-2 text-xs">
+                        {% if post.siteName %}
+                        <span class="pixel-badge pixel-badge--yellow font-bold text-3xs" id="manage-site-{{ post.id }}" title="Target: {{ post.siteName }}">
+                          {{ post.siteName }}
+                        </span>
+                        {% endif %}
+                        <span class="pixel-badge pixel-badge--amber font-bold text-3xs" id="manage-filter-{{ post.id }}">
+                          shader: {{ post.filterApplied or 'none' }}
+                        </span>
+                      </div>
                     </div>
 
-                    <!-- Metadata & Details -->
-                    <div class="flex-1 flex flex-col justify-between w-full h-full">
-                      <div>
-                        <div class="flex items-center justify-between text-xs mb-1">
-                          <span class="font-bold text-prompt">ID: <code>{{ post.id | truncate(16) }}</code></span>
-                          <span class="text-muted text-xs">{{ post.createdAt | formatDate }}</span>
-                        </div>
-
-                        <p class="text-xs text-main leading-relaxed mb-2" id="manage-caption-{{ post.id }}">
-                          {{ post.caption }}
-                        </p>
-
-                        <div class="flex flex-wrap gap-1 mb-2 text-xs">
-                          {% if post.siteName %}
-                          <span class="pixel-badge pixel-badge--yellow font-bold" id="manage-site-{{ post.id }}" title="Target: {{ post.siteName }}">
-                            {{ post.siteName }}
-                          </span>
-                          {% endif %}
-                          <span class="pixel-badge pixel-badge--amber font-bold" id="manage-filter-{{ post.id }}">
-                            shader: {{ post.filterApplied or 'none' }}
-                          </span>
-                        </div>
+                    <!-- Metrics & Action Buttons -->
+                    <div class="pt-2 border-t border-main mt-auto">
+                      <div class="text-xxs text-muted flex items-center justify-between mb-2">
+                        <span><strong class="text-main">{{ post.likes or 0 }}</strong> likes</span>
+                        <span><strong class="text-main">{{ post.commentCount or 0 }}</strong> comments</span>
                       </div>
 
-                      <!-- Metrics & Action Buttons -->
-                      <div class="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-main mt-auto">
-                        <div class="text-xs text-muted flex items-center gap-3">
-                          <span><strong class="text-main">{{ post.likes or 0 }}</strong> likes</span>
-                          <span><strong class="text-main">{{ post.commentCount or 0 }}</strong> comments</span>
-                        </div>
-
-                        <div class="flex items-center gap-2 flex-wrap">
-                          <a
-                            href="{% if post.livePhotoUrl %}{{ post.livePhotoUrl }}{% elif activeSite and activeSite.siteUrl %}{{ activeSite.siteUrl }}/{{ activeSite.deployPath or 'neogram' }}/photos/{{ post.id }}/{% else %}/user/{{ currentUser.uin }}{% endif %}"
-                            target="_blank"
-                            rel="noopener"
-                            class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs"
-                            title="Open live photo on static host"
-                          >
-                            <span>View Live ↗</span>
-                          </a>
-                          <button
-                            type="button"
-                            class="pixel-btn pixel-btn--sm font-bold text-xs"
-                            data-url="{% if post.livePhotoUrl %}{{ post.livePhotoUrl }}{% elif activeSite and activeSite.siteUrl %}{{ activeSite.siteUrl }}/{{ activeSite.deployPath or 'neogram' }}/photos/{{ post.id }}/{% else %}/user/{{ currentUser.uin }}{% endif %}"
-                            onclick="copyPostWebUrl(this.getAttribute('data-url'), this)"
-                            title="Copy live URL to clipboard"
-                          >
-                            <span>Copy Link</span>
-                          </button>
-                          <button
-                            type="button"
-                            class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs"
-                            onclick="openEditModalById('{{ post.id }}')"
-                          >
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            type="button"
-                            class="pixel-btn pixel-btn--sm pixel-btn--blue font-bold text-xs"
-                            onclick="openCommentsModalById('{{ post.id }}')"
-                            title="Moderate comments stored on your static site"
-                          >
-                            <span>Comments (<span id="post-comment-count-{{ post.id }}">{{ post.commentCount or 0 }}</span>)</span>
-                          </button>
-                          <button
-                            type="button"
-                            class="pixel-btn pixel-btn--sm pixel-btn--red font-bold text-xs"
-                            onclick="confirmDeletePost('{{ post.id }}', this)"
-                          >
-                            <span>Delete</span>
-                          </button>
-                            <span>Delete</span>
-                          </button>
-                        </div>
+                      <div class="flex items-center gap-1.5 flex-wrap">
+                        <a
+                          href="{% if post.livePhotoUrl %}{{ post.livePhotoUrl }}{% elif activeSite and activeSite.siteUrl %}{{ activeSite.siteUrl }}/{{ activeSite.deployPath or 'neogram' }}/photos/{{ post.id }}/{% else %}/user/{{ currentUser.uin }}{% endif %}"
+                          target="_blank"
+                          rel="noopener"
+                          class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-3xs py-1 px-2"
+                          title="Open live photo on static host"
+                        >
+                          <span>View Live ↗</span>
+                        </a>
+                        <button
+                          type="button"
+                          class="pixel-btn pixel-btn--sm font-bold text-3xs py-1 px-2"
+                          data-url="{% if post.livePhotoUrl %}{{ post.livePhotoUrl }}{% elif activeSite and activeSite.siteUrl %}{{ activeSite.siteUrl }}/{{ activeSite.deployPath or 'neogram' }}/photos/{{ post.id }}/{% else %}/user/{{ currentUser.uin }}{% endif %}"
+                          onclick="copyPostWebUrl(this.getAttribute('data-url'), this)"
+                          title="Copy live URL to clipboard"
+                        >
+                          <span>Copy</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-3xs py-1 px-2"
+                          onclick="openEditModalById('{{ post.id }}')"
+                        >
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="pixel-btn pixel-btn--sm pixel-btn--blue font-bold text-3xs py-1 px-2"
+                          onclick="openCommentsModalById('{{ post.id }}')"
+                          title="Moderate comments stored on your static site"
+                        >
+                          <span>Comments (<span id="post-comment-count-{{ post.id }}">{{ post.commentCount or 0 }}</span>)</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="pixel-btn pixel-btn--sm pixel-btn--red font-bold text-3xs py-1 px-2"
+                          onclick="confirmDeletePost('{{ post.id }}', this)"
+                        >
+                          <span>Delete</span>
+                        </button>
                       </div>
-
                     </div>
 
                   </div>
-                </div>
+                </article>
               {% endfor %}
             </div>
           {% endif %}
@@ -5532,7 +5527,7 @@
 
       var imgEl = document.getElementById('manage-img-' + id);
       if (imgEl) {
-        imgEl.className = 'max-h-full max-w-full object-contain filter-' + filterApplied;
+        imgEl.className = 'w-full h-48 object-cover filter-' + filterApplied;
       }
 
       try {
