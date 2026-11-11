@@ -52,12 +52,11 @@ export interface ProcessedImageResult {
  */
 export async function processImageBuffer(
   inputBuffer: Buffer,
-  filterName: string = 'none',
   targetUploadsDir?: string
 ): Promise<ProcessedImageResult> {
   await acquireImageSlot();
   try {
-    return await processImageBufferInner(inputBuffer, filterName, targetUploadsDir);
+    return await processImageBufferInner(inputBuffer, targetUploadsDir);
   } finally {
     releaseImageSlot();
   }
@@ -65,7 +64,6 @@ export async function processImageBuffer(
 
 async function processImageBufferInner(
   inputBuffer: Buffer,
-  filterName: string,
   targetUploadsDir?: string
 ): Promise<ProcessedImageResult> {
   const fileId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -90,17 +88,10 @@ async function processImageBufferInner(
   const thumbDiskPath = path.join(thumbsDir, thumbFileName);
 
   // Initialize Sharp pipeline with auto-rotation based on EXIF orientation tags
-  let pipeline = sharp(inputBuffer, { limitInputPixels: MAX_INPUT_PIXELS }).rotate();
+  const pipeline = sharp(inputBuffer, { limitInputPixels: MAX_INPUT_PIXELS }).rotate();
 
   // Get image metadata
   const metadata = await pipeline.metadata();
-
-  // If specific Sharp backend filter effects are desired:
-  if (filterName === 'sepia') {
-    pipeline = pipeline.modulate({ saturation: 0.6, brightness: 1.05 }).tint({ r: 240, g: 200, b: 160 });
-  } else if (filterName === 'gameboy') {
-    pipeline = pipeline.grayscale().threshold(128).tint({ r: 155, g: 188, b: 15 });
-  }
 
   // 1. Full-size optimized web image (max 1200px)
   const mainImageBuffer = await pipeline
@@ -134,7 +125,6 @@ async function processImageBufferInner(
  */
 export async function processBase64Image(
   source: string,
-  filterName: string = 'none',
   targetUploadsDir?: string
 ): Promise<ProcessedImageResult> {
   let buffer: Buffer;
@@ -149,7 +139,7 @@ export async function processBase64Image(
     // Verify resolved path strictly resides within the public/uploads boundary
     if (diskPath.startsWith(safeUploadsRoot) && fs.existsSync(diskPath)) {
       buffer = await fs.promises.readFile(diskPath);
-      return processImageBuffer(buffer, filterName, targetUploadsDir);
+      return processImageBuffer(buffer, targetUploadsDir);
     }
   }
 
@@ -164,7 +154,7 @@ export async function processBase64Image(
     buffer = Buffer.from(source, 'base64');
   }
 
-  return processImageBuffer(buffer, filterName, targetUploadsDir);
+  return processImageBuffer(buffer, targetUploadsDir);
 }
 
 /**

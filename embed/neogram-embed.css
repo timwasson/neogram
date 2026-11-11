@@ -64,6 +64,31 @@
   image-rendering: pixelated;
 }
 
+/* Retro CSS Filter Helper Classes */
+.filter-none {
+  filter: none;
+}
+
+.filter-crt {
+  filter: contrast(1.2) brightness(1.05) saturate(1.25) drop-shadow(0 0 2px rgba(0, 255, 102, 0.35));
+}
+
+.filter-vga {
+  filter: contrast(1.5) saturate(1.4) brightness(1.1);
+}
+
+.filter-gameboy {
+  filter: grayscale(1) sepia(1) hue-rotate(60deg) saturate(3.5) contrast(1.4);
+}
+
+.filter-cyberpunk {
+  filter: hue-rotate(280deg) saturate(2) contrast(1.25);
+}
+
+.filter-sepia {
+  filter: sepia(0.85) contrast(1.15) brightness(0.95);
+}
+
 .neogram-post__caption {
   font-size: 12px;
   line-height: 1.5;

@@ -127,7 +127,7 @@ async function runLoadBenchmark() {
   console.log(`  Live API Key Sites : ${YELLOW}${keyedAgents.length} Agent(s) with Encrypted Neocities/Nekoweb Keys${RESET}\n`);
 
   const { dataUri: sampleBase64 } = await fetchPicsumTestImage(800, 800);
-  const shaders = ['none', 'crt', 'vga', 'gameboy', 'cyberpunk', 'sepia', 'lofi'];
+  const shaders = ['none', 'crt', 'vga', 'gameboy', 'cyberpunk', 'sepia'];
 
   // ===========================================================================
   // SCENARIO 1: SIMULTANEOUS MULTI-AGENT PHOTO UPLOAD BURST

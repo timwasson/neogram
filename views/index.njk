@@ -710,12 +710,12 @@
                   ondrop="handleFileDrop(event)"
                 >
                   <!-- Live Preview Viewport (Exact 320px frame) -->
-                  <div class="preview-viewport crt-scanlines">
+                  <div class="preview-viewport">
                     <img
                       id="previewImg"
                       src=""
                       alt="Neogram Snapshot Preview"
-                      class="preview-viewport__img filter-crt"
+                      class="preview-viewport__img filter-none"
                     />
                   </div>
 
@@ -752,7 +752,11 @@
                   <div id="filterGridSection">
                     <span class="text-xs text-muted block mb-1 font-bold">Applied Retro Filter Shader:</span>
                     <div class="filter-grid" id="filterGrid">
-                      <button type="button" class="filter-btn is-active" data-filter="crt" onclick="setFilter('crt')">
+                      <button type="button" class="filter-btn is-active" data-filter="none" onclick="setFilter('none')">
+                        <div class="filter-swatch filter-none"><span style="color:#ffffff;">24b</span></div>
+                        <span>Raw 24-Bit</span>
+                      </button>
+                      <button type="button" class="filter-btn" data-filter="crt" onclick="setFilter('crt')">
                         <div class="filter-swatch filter-crt"><span>░▒▓</span></div>
                         <span>CRT Phosphor</span>
                       </button>
@@ -771,10 +775,6 @@
                       <button type="button" class="filter-btn" data-filter="sepia" onclick="setFilter('sepia')">
                         <div class="filter-swatch filter-sepia"><span style="color:#d2b48c;">▲▲</span></div>
                         <span>1996 Polaroid</span>
-                      </button>
-                      <button type="button" class="filter-btn" data-filter="none" onclick="setFilter('none')">
-                        <div class="filter-swatch filter-none"><span style="color:#ffffff;">24b</span></div>
-                        <span>Raw 24-Bit</span>
                       </button>
                     </div>
                   </div>
@@ -910,7 +910,7 @@
                   </div>
 
                   <!-- Photo Viewport with Active Filter Shader & Retro 404 Fallback -->
-                  <div class="relative bg-black border-b border-main overflow-hidden flex items-center justify-center crt-scanlines retro-photo-viewport">
+                  <div class="relative bg-black border-b border-main overflow-hidden flex items-center justify-center retro-photo-viewport">
                     <img
                       src="{{ post.thumbnailPath or post.imagePath }}"
                       alt="{{ post.caption }}"
@@ -1039,12 +1039,12 @@
                   Retro Filter Shader:
                 </label>
                 <select id="editFilterSelect" name="filterApplied" class="retro-input text-xs">
+                  <option value="none">Raw 24-Bit (None)</option>
                   <option value="crt">CRT Phosphor</option>
                   <option value="vga">16-Color VGA</option>
                   <option value="gameboy">GameBoy 1-Bit</option>
                   <option value="cyberpunk">Neon Cyber</option>
                   <option value="sepia">1996 Polaroid</option>
-                  <option value="none">Raw 24-Bit</option>
                 </select>
               </div>
 
@@ -3146,7 +3146,7 @@
 {% block scripts %}
 {% if currentUser %}
 <script>
-  var currentFilter = 'crt';
+  var currentFilter = 'none';
   var selectedFiles = [];
   var selectedFile = null;
 
@@ -3321,6 +3321,8 @@
       stripEl.innerHTML = '';
       stripEl.classList.add('hidden');
     }
+
+    setFilter('none');
 
     // In-place swap: Hide live preview, restore upload dropzone
     if (previewContainer) previewContainer.classList.add('hidden');

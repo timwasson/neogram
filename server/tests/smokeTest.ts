@@ -262,7 +262,7 @@ async function runSmokeTests() {
     const blob = new Blob([new Uint8Array(testImageBuffer)], { type: testMimeType });
     formData.append('imageFile', blob, 'qa_sample.jpg');
     formData.append('caption', '[:> Automated QA Test Photograph — Netscape 4.0 compliant]');
-    formData.append('filterApplied', 'scanlines');
+    formData.append('filterApplied', 'crt');
     formData.append('mood', 'Radical');
     formData.append('webring', 'RetroStatic');
 
@@ -1157,7 +1157,7 @@ async function runSmokeTests() {
     const secFormData = new FormData();
     secFormData.append('imageFile', new Blob([new Uint8Array(secImageBuffer)], { type: secMimeType }), 'shrine_photo.jpg');
     secFormData.append('caption', '[:> Shrine Exclusive Cyber Photograph]');
-    secFormData.append('filterApplied', 'amber');
+    secFormData.append('filterApplied', 'cyberpunk');
     secFormData.append('siteId', secondarySiteId);
 
     const secPostRes = await fetch(`${API_BASE}/api/posts`, {

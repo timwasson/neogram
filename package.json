@@ -7,6 +7,7 @@
     "dev": "concurrently -n \"SERVER,SASS\" -c \"blue,magenta\" \"npm run dev:server\" \"npm run sass:watch\"",
     "dev:server": "tsx watch --watch server --watch eleventy --watch .env server/index.ts",
     "sass:build": "sass src/styles/main.scss public/css/neogram.css --no-source-map",
+    "build:css": "npm run sass:build",
     "sass:watch": "sass src/styles/main.scss public/css/neogram.css --watch --no-source-map",
     "build:static": "tsx -e \"import { buildStaticGallery } from './server/services/staticBuilder'; buildStaticGallery().then(() => process.exit(0)).catch(err => { console.error(err); process.exit(1); });\"",
     "build:11ty": "npx @11ty/eleventy --config=eleventy/eleventy.config.js",

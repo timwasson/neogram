@@ -92,7 +92,7 @@
           Unlike centralized social networks, Neogram maintains a strict <strong>Zero Local Media Retention</strong> invariant:
         </p>
         <p class="text-muted">
-          When you snap or upload a photo, image processing (resizing, WebP compression, and retro CRT scanline shader generation) is performed ephemerally in server memory and isolated build staging. The instant the generated files are uploaded to your personal static hosting provider (e.g. Neocities), <strong>the local media files are permanently deleted from our server disk</strong>. Our local server disk retention returns to 0 bytes.
+          When you snap or upload a photo, image processing (resizing and WebP compression) is performed ephemerally in server memory and isolated build staging, while retro filters are applied non-destructively in the client via CSS. The instant the generated files are uploaded to your personal static hosting provider (e.g. Neocities), <strong>the local media files are permanently deleted from our server disk</strong>. Our local server disk retention returns to 0 bytes.
         </p>
       </section>
 

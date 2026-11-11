@@ -36,7 +36,7 @@
 
             <div class="neogram-post__media">
               <a href="{{ post.imagePath }}" target="_blank">
-                <img src="{{ post.imagePath }}" alt="{{ post.caption or 'Neogram photo' }}" loading="lazy" />
+                <img src="{{ post.imagePath }}" alt="{{ post.caption or 'Neogram photo' }}" loading="lazy" class="filter-{{ post.filterApplied or 'none' }}" />
               </a>
             </div>
 

@@ -203,7 +203,7 @@
                     <!-- Thumbnail Viewport with Filter Tag & Retro 404 Fallback -->
                     <div class="relative bg-black border border-main overflow-hidden group retro-photo-viewport">
                       <a href="{{ post.livePhotoUrl or (profileUser.galleryUrl + 'photos/' + post.id + '/') if (post.livePhotoUrl or profileUser.galleryUrl) else ('/user/' + profileUser.uin + '#photo-' + post.id) }}" target="_blank" rel="noopener noreferrer" class="block w-full h-full relative z-10" onclick="return openInNativeBrowser(event, this.href);">
-                        <img src="{{ post.thumbnailPath or post.imagePath }}" alt="{{ post.caption or 'Photo' }}" loading="lazy" class="w-full h-48 object-cover relative z-10 transition-transform group-hover:scale-105 pointer-events-none" onerror="this.classList.add('neogram-img--broken'); var vp=this.closest('.retro-photo-viewport'); if(vp) vp.classList.add('has-broken-image');"/>
+                        <img src="{{ post.thumbnailPath or post.imagePath }}" alt="{{ post.caption or 'Photo' }}" loading="lazy" class="w-full h-48 object-cover relative z-10 transition-transform group-hover:scale-105 pointer-events-none filter-{{ post.filterApplied or 'none' }}" onerror="this.classList.add('neogram-img--broken'); var vp=this.closest('.retro-photo-viewport'); if(vp) vp.classList.add('has-broken-image');"/>
                       </a>
                       {% if post.filterApplied and post.filterApplied != 'none' %}
                         <div class="absolute top-1.5 left-1.5 z-10">

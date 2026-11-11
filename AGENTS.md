@@ -284,7 +284,7 @@ CREATE TABLE post_likes (
 
 ### 4.3 Static Publishing Pipeline (Dual-Tier: Eleventy Full Builds + High-Speed Delta Engine)
 1. User uploads photo payload (1 to 5 photos per gallery) and post metadata in Neogram Creator Studio (`POST /api/posts`).
-2. Server validates session, enforces the strict 5-photo limit per gallery, and processes all images via `sharp` (scale to max 1200px, create 400px thumbnail, optimize to WebP, applying the chosen retro shader filter across all frames).
+2. Server validates session, enforces the strict 5-photo limit per gallery, and processes all images via `sharp` (scale to max 1200px, create 400px square thumbnail, optimize to WebP; zero server-side filter manipulation, retro shaders are applied exclusively via client-side CSS helper classes across all frames).
 3. Server commits record to PostgreSQL `posts` table with full `photos` JSONB array while anchoring the primary frame to `image_path` and `thumbnail_path`.
 4. **Dual-Tier Static Site Engine:**
    - **Tier 1 — Eleventy Full Multi-Tenant Builds (`server/services/staticBuilder.ts`):** Used for initial site provisioning, full manual re-syncs (`POST /api/build-static`), or structural template modifications. Serialized through `buildQueue.enqueue` with template caching disabled.

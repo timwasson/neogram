@@ -1218,7 +1218,7 @@
               <span class="text-mac font-bold uppercase tracking-wider text-xxs">ISOLATED FIFO PIPELINE EXECUTION</span>
               <pre class="text-prompt text-xxs leading-normal overflow-x-auto m-0 select-all">
 POST /api/posts (Multer 25MB Buffer, 1-5 Photos Per Gallery)
-  └─► sharp(buffer).rotate() [Uniform Filter Shader Applied Across All Frames]
+  └─► sharp(buffer).rotate() [Non-destructive: Zero Pixel Filters Baked on Server]
         ├─► resize(1200, 1200).webp(85)  ──► uploads/images/*.webp
         └─► resize(400, 400).webp(80)    ──► uploads/thumbs/*.webp
               └─► buildQueue.enqueue('User:<userId>')

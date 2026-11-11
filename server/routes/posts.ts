@@ -149,7 +149,7 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
     const hasApiKey = targetSite.hasApiKey;
 
     const { caption, filterApplied, mood, webring, location, imageBase64 } = req.body;
-    const allowedFilters = ['none', 'crt', 'sepia', 'vga', 'gameboy', 'cyberpunk', 'lofi'];
+    const allowedFilters = ['none', 'crt', 'sepia', 'vga', 'gameboy', 'cyberpunk'];
     const safeFilter = typeof filterApplied === 'string' && allowedFilters.includes(filterApplied.toLowerCase())
       ? filterApplied.toLowerCase()
       : 'none';
@@ -188,9 +188,9 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
     const processedList = [];
 
     if (uploadedFiles.length > 0) {
-      // Process up to 5 photos with Sharp using the selected filter
+      // Process up to 5 photos with Sharp (zero server-side filter manipulation)
       for (const file of uploadedFiles) {
-        const proc = await processImageBuffer(file.buffer, safeFilter, targetUploadsDir);
+        const proc = await processImageBuffer(file.buffer, targetUploadsDir);
         processedList.push(proc);
       }
     } else if (imageBase64) {
@@ -199,7 +199,7 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
         res.status(400).json({ ok: false, error: 'Base64 image payload exceeds size limits.' });
         return;
       }
-      const proc = await processBase64Image(imageBase64, safeFilter, targetUploadsDir);
+      const proc = await processBase64Image(imageBase64, targetUploadsDir);
       processedList.push(proc);
     } else {
       res.status(400).json({ ok: false, error: 'No image provided. Please select an image or photo.' });
@@ -776,13 +776,19 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
     }
 
     const { caption, mood, webring, location, filterApplied } = req.body;
+    const allowedFilters = ['none', 'crt', 'sepia', 'vga', 'gameboy', 'cyberpunk'];
+    const safeFilterApplied = filterApplied !== undefined
+      ? (typeof filterApplied === 'string' && allowedFilters.includes(filterApplied.toLowerCase())
+          ? filterApplied.toLowerCase()
+          : 'none')
+      : undefined;
     const updated = await updatePost(id, (p) => ({
       ...p,
       caption: caption !== undefined ? caption : p.caption,
       mood: mood !== undefined ? mood : p.mood,
       webring: webring !== undefined ? webring : p.webring,
       location: location !== undefined ? location : p.location,
-      filterApplied: filterApplied !== undefined ? filterApplied : p.filterApplied,
+      filterApplied: safeFilterApplied !== undefined ? safeFilterApplied : p.filterApplied,
     }));
 
     if (!updated) {
