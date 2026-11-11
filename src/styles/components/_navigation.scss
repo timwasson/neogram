@@ -351,6 +351,7 @@ body.mobile-notify-open {
    ------------------------------------------------------------- */
 .retro-mobile-nav {
   display: none;
+  overflow: visible;
 
   @media (max-width: 767px) {
     display: flex;
@@ -358,6 +359,7 @@ body.mobile-notify-open {
     bottom: 0;
     left: 0;
     right: 0;
+    overflow: visible;
     height: calc(56px + env(safe-area-inset-bottom, 0px));
     min-height: calc(56px + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
@@ -414,6 +416,43 @@ body.mobile-notify-open {
       .dark & {
         background-color: var(--accent-amber) !important;
         color: #000000 !important;
+      }
+    }
+
+    &--cta {
+      position: relative;
+      margin-top: -10px;
+      min-height: 58px;
+      background-color: var(--accent-prompt);
+      color: #000000;
+      border: 3px solid #000000;
+      box-shadow: 0 -3px 0px 0px var(--border-main), 0 -4px 10px rgba(0, 0, 0, 0.75);
+      z-index: 2;
+      font-size: 10.5px;
+      padding-top: 8px;
+      padding-bottom: 8px;
+
+      .dark & {
+        background-color: var(--accent-prompt);
+        color: #000000;
+        border-color: #ffffff;
+      }
+
+      &:hover {
+        background-color: var(--accent-yellow);
+        color: #000000;
+      }
+
+      &:active,
+      &.is-active {
+        background-color: var(--accent-amber) !important;
+        color: #000000 !important;
+        border-color: #ffffff !important;
+      }
+
+      .retro-mobile-nav__icon .retro-svg-icon {
+        width: 18px;
+        height: 18px;
       }
     }
 

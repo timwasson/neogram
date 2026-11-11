@@ -345,8 +345,6 @@ async function runFleetNetworkTests() {
   const baseFramePattern = [1, 3, 1, 2, 4, 2, 1, 3, 1, 2];
   const frameCounts = shuffle(baseFramePattern.slice(0, selectedTargets.length));
   const shaders = ['crt', 'sepia', 'vga', 'gameboy', 'cyberpunk', 'lofi'];
-  const moods = ['Radical', 'Cyber', 'Chill', 'Nostalgic', '90s Kid', 'Dial-Up'];
-  const webrings = ['RetroWeb', 'CyberRing', 'PixelArt', 'SynthWave', 'IndieWeb'];
   const captions = [
     'Late night CRT glow in the cyberspace sector',
     'Dialing into the 56k BBS matrix at midnight',
@@ -384,8 +382,6 @@ async function runFleetNetworkTests() {
     selectedTargets.map(async (target, idx) => {
       const numFrames = frameCounts[idx] || 1;
       const shader = shaders[idx % shaders.length];
-      const mood = moods[idx % moods.length];
-      const webring = webrings[idx % webrings.length];
       const baseCaption = captions[idx % captions.length];
       const isMulti = numFrames > 1;
       const frames: Array<{ buffer: Buffer; mimeType: string }> = [];
@@ -398,8 +394,6 @@ async function runFleetNetworkTests() {
         numFrames,
         isMulti,
         shader,
-        mood,
-        webring,
         caption: `${baseCaption} // @${target.agent.handle} [${isMulti ? `${numFrames}-Frame Gallery` : 'Single Snap'} // ${shader.toUpperCase()}]`,
         frames,
       };
@@ -418,8 +412,6 @@ async function runFleetNetworkTests() {
       const fd = new FormData();
       fd.append('caption', item.caption);
       fd.append('filterApplied', item.shader);
-      fd.append('mood', item.mood);
-      fd.append('webring', item.webring);
       if (item.target.site?.id) fd.append('siteId', item.target.site.id);
 
       if (item.isMulti) {

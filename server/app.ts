@@ -351,7 +351,7 @@ export function createApp(): Express {
 
   app.get('/login', (_req: Request, res: Response) => {
     if (res.locals.currentUser) {
-      res.redirect('/');
+      res.redirect('/#feed');
       return;
     }
     res.render('login', {

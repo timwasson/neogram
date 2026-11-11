@@ -200,9 +200,6 @@
                 <span>@{{ post.author }}</span>
                 {% if post.uin or post.authorUin %}<span class="text-muted font-normal text-xxs">[#{{ post.uin or post.authorUin }}]</span>{% endif %}
               </a>
-              <span class="pixel-badge pixel-badge--cyan text-xxs font-bold uppercase shrink-0">
-                {{ post.filterApplied or 'RAW' }}
-              </span>
             </div>
 
             <!-- Photo Viewport -->
@@ -227,8 +224,7 @@
             <!-- Body Details -->
             <div class="p-3 flex flex-col gap-2 flex-1 justify-between">
               <div>
-                <div class="flex items-center justify-between text-xxs text-muted mb-1.5 flex-wrap gap-1">
-                  <span>{{ post.location or 'Cyberspace' }}</span>
+                <div class="flex items-center justify-end text-xxs text-muted mb-1.5">
                   <span>{{ post.createdAt | formatDateTime }}</span>
                 </div>
 
@@ -237,31 +233,14 @@
                 </p>
               </div>
 
-              <!-- Tags & Meta -->
+              <!-- Meta Footer -->
               <div class="pt-2 border-t border-main mt-2">
-                <div class="flex items-center gap-1 flex-wrap mb-2">
-                  {% if post.mood %}
-                    <span class="pixel-badge pixel-badge--cyan text-xxs">{{ post.mood }}</span>
-                  {% endif %}
-                  {% if post.webring %}
-                    <span class="pixel-badge pixel-badge--magenta text-xxs">ring: {{ post.webring }}</span>
-                  {% endif %}
-                </div>
-
                 <div class="flex items-center justify-between text-xs pt-1">
                   <div class="flex items-center gap-2 text-muted text-xxs">
                     <span>{{ post.likes or 0 }} likes</span>
                     <span>•</span>
                     <span>{{ post.commentCount or 0 }} comments</span>
                   </div>
-
-                  <a
-                    href="{{ post.profileUrl or ('/user/' + (post.uin or post.authorUin or post.author)) }}"
-                    class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xxs font-bold py-0.5 px-2"
-                    onclick="if(window.retroAudio) retroAudio.playClick();"
-                  >
-                    <span>View Station :&gt;</span>
-                  </a>
                 </div>
               </div>
             </div>

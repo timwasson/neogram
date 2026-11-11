@@ -377,7 +377,7 @@ export function initChatWebSocketServer(server: http.Server) {
   // Auto-prune expired offline messages every 15 minutes
   const pruneInterval = setInterval(async () => {
     try {
-      const res = await query('DELETE FROM ephemeral_chat_queue WHERE expires_at < CURRENT_TIMESTAMP');
+      const res = await query('DELETE FROM ephemeral_chat_queue WHERE expires_at < NOW()');
       if (res.rowCount && res.rowCount > 0) {
         console.log(`[:> CHAT QUEUE] Auto-purged ${res.rowCount} expired offline messages.`);
       }
@@ -476,7 +476,7 @@ async function flushOfflineQueue(ws: WebSocket, userId: string) {
               u.id as "fromId"
        FROM ephemeral_chat_queue q
        LEFT JOIN users u ON q.sender_id = u.id
-       WHERE q.receiver_id = $1 AND q.expires_at > CURRENT_TIMESTAMP
+       WHERE q.receiver_id = $1 AND q.expires_at > NOW()
        ORDER BY q.created_at ASC`,
       [userId]
     );
@@ -527,7 +527,7 @@ async function flushOfflineQueueForAnon(ws: WebSocket, anonHandle: string) {
               u.id as "fromId"
        FROM ephemeral_chat_queue q
        LEFT JOIN users u ON q.sender_id = u.id
-       WHERE q.receiver_handle = $1 AND q.expires_at > CURRENT_TIMESTAMP
+       WHERE q.receiver_handle = $1 AND q.expires_at > NOW()
        ORDER BY q.created_at ASC`,
       [anonHandle]
     );

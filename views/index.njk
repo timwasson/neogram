@@ -185,27 +185,6 @@
                   </div>
                 {% endif %}
 
-                <!-- Master Feed Overview Box -->
-                <div class="p-2.5 bg-black border-2 border-main mb-4 flex items-center justify-between flex-wrap gap-2 text-xs font-mono">
-                  <div class="flex items-center gap-2">
-                    <div>
-                      <span class="text-muted text-3xs block uppercase tracking-wider">CYBERSPACE BROADCAST STREAM:</span>
-                      <span class="text-prompt font-bold text-xs">
-                        {{ followerFeedPosts.length or 0 }} TRANSMISSION{% if followerFeedPosts.length != 1 %}S{% endif %}
-                        <span class="text-muted text-xxs font-normal">({{ followedCount or 0 }} station{% if followedCount != 1 %}s{% endif %} followed)</span>
-                      </span>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <button type="button" onclick="switchNetworkSubTab('directory')" class="pixel-btn pixel-btn--sm pixel-btn--yellow text-3xs font-bold py-1 px-2.5">
-                      <span>+ FIND CREATORS</span>
-                    </button>
-                    <button type="button" onclick="switchNetworkSubTab('friends')" class="pixel-btn pixel-btn--sm text-3xs font-bold py-1 px-2.5">
-                      <span>BUDDY ROSTER</span>
-                    </button>
-                  </div>
-                </div>
-
                 <!-- Feed Transmissions Grid -->
                 {% if not followerFeedPosts or followerFeedPosts.length == 0 %}
                   <div class="retro-card p-6 text-center flex flex-col items-center gap-3">
@@ -237,9 +216,6 @@
                             <span>@{{ post.author }}</span>
                             {% if post.uin or post.authorUin %}<span class="text-muted font-normal text-xxs">[#{{ post.uin or post.authorUin }}]</span>{% endif %}
                           </a>
-                          <span class="pixel-badge pixel-badge--cyan text-xxs font-bold uppercase shrink-0">
-                            {{ post.filterApplied or 'RAW' }}
-                          </span>
                         </div>
 
                         <!-- Photo Viewport with Retro 404 Fallback -->
@@ -265,8 +241,7 @@
                         <!-- Body Details -->
                         <div class="p-3 flex flex-col gap-2 flex-1 justify-between text-xs">
                           <div>
-                            <div class="flex items-center justify-between text-xxs text-muted mb-1 flex-wrap gap-1">
-                              <span>{{ post.location or 'Cyberspace' }}</span>
+                            <div class="flex items-center justify-end text-xxs text-muted mb-1">
                               <span>{{ post.createdAt | formatDateTime }}</span>
                             </div>
 
@@ -275,43 +250,12 @@
                             </p>
                           </div>
 
-                          <!-- Tags & Meta -->
+                          <!-- Meta Footer -->
                           <div class="pt-2 border-t border-main mt-2">
-                            <div class="flex items-center gap-1 flex-wrap mb-2">
-                              {% if post.mood %}
-                                <span class="pixel-badge pixel-badge--cyan text-xxs">{{ post.mood }}</span>
-                              {% endif %}
-                              {% if post.webring %}
-                                <span class="pixel-badge pixel-badge--magenta text-xxs">ring: {{ post.webring }}</span>
-                              {% endif %}
-                            </div>
-
                             <div class="flex items-center justify-between text-xs pt-1">
                               <div class="flex items-center gap-2 text-muted text-xxs">
                                 <span>{{ post.likes or 0 }} likes</span>
                                 <span>{{ post.commentCount or 0 }} comments</span>
-                              </div>
-
-                              <div class="flex items-center gap-1.5">
-                                {% if post.galleryUrl or post.siteUrl %}
-                                  <a
-                                    href="{{ post.galleryUrl or post.siteUrl }}"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="pixel-btn pixel-btn--sm pixel-btn--green text-xxs font-bold py-0.5 px-2"
-                                    onclick="if(window.retroAudio) retroAudio.playClick();"
-                                    title="Open author's live static gallery"
-                                  >
-                                    <span>Gallery ↗</span>
-                                  </a>
-                                {% endif %}
-                                <a
-                                  href="{{ post.profileUrl or ('/user/' + (post.uin or post.authorUin or post.author)) }}"
-                                  class="pixel-btn pixel-btn--sm pixel-btn--yellow text-xxs font-bold py-0.5 px-2"
-                                  onclick="if(window.retroAudio) retroAudio.playClick();"
-                                >
-                                  <span>Station :&gt;</span>
-                                </a>
                               </div>
                             </div>
                           </div>
@@ -989,16 +933,6 @@
                           {% if post.siteName %}
                           <span class="pixel-badge pixel-badge--yellow font-bold" id="manage-site-{{ post.id }}" title="Target: {{ post.siteName }}">
                             {{ post.siteName }}
-                          </span>
-                          {% endif %}
-                          {% if post.mood %}
-                          <span class="pixel-badge pixel-badge--cyan font-bold" id="manage-mood-{{ post.id }}">
-                            {{ post.mood }}
-                          </span>
-                          {% endif %}
-                          {% if post.webring %}
-                          <span class="pixel-badge pixel-badge--magenta font-bold" id="manage-webring-{{ post.id }}">
-                            ring: {{ post.webring }}
                           </span>
                           {% endif %}
                           <span class="pixel-badge pixel-badge--amber font-bold" id="manage-filter-{{ post.id }}">
@@ -3862,7 +3796,7 @@
   window.clearWorkstationDirectorySearch = clearWorkstationDirectorySearch;
 
   function executeDashboardTabSwitch(tab) {
-    var rawTab = String(tab || 'upload');
+    var rawTab = String(tab || 'feed');
     var parts = rawTab.split('/');
     var mainTab = parts[0];
     var subTab = parts[1] || null;
@@ -3957,8 +3891,7 @@
   function syncDashboardTabFromHash() {
     var hash = window.location.hash ? window.location.hash.replace('#', '') : '';
     if (!hash) {
-      var defaultTab = {{ ('feed' if (not userSites or userSites.length == 0) else 'upload') | dump | safe }};
-      executeDashboardTabSwitch(defaultTab);
+      executeDashboardTabSwitch('feed');
       return;
     }
     if (
@@ -3978,12 +3911,15 @@
     ) {
       executeDashboardTabSwitch(hash);
     } else {
-      var fallbackTab = {{ ('feed' if (not userSites or userSites.length == 0) else 'upload') | dump | safe }};
-      executeDashboardTabSwitch(fallbackTab);
+      executeDashboardTabSwitch('feed');
     }
   }
 
-  window.addEventListener('DOMContentLoaded', syncDashboardTabFromHash);
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', syncDashboardTabFromHash);
+  } else {
+    syncDashboardTabFromHash();
+  }
   window.addEventListener('hashchange', syncDashboardTabFromHash);
   window.executeDashboardTabSwitch = executeDashboardTabSwitch;
 
