@@ -39,648 +39,990 @@
     </div>
   </div>
 
-  <!-- 2. Registration & Station Telemetry Matrix -->
-  <div class="sysop-grid">
-    <div class="sysop-metric">
-      <div class="sysop-metric__title">Total Station Nodes</div>
-      <div class="sysop-metric__val">{{ telemetry.totalUsers }}</div>
-      <div class="sysop-metric__sub">Registered Cyberspace Creators</div>
-    </div>
-    <div class="sysop-metric">
-      <div class="sysop-metric__title">New Registrations</div>
-      <div class="sysop-metric__val text-mac">{{ telemetry.reg24h }}</div>
-      <div class="sysop-metric__sub">Past 24h (7d: {{ telemetry.reg7d }} // 30d: {{ telemetry.reg30d }})</div>
-    </div>
-    <div class="sysop-metric">
-      <div class="sysop-metric__title">Live Operator Nodes</div>
-      <div class="sysop-metric__val text-prompt">{{ telemetry.activeSocketsCount }}</div>
-      <div class="sysop-metric__sub">WebSocket Carriers Connected</div>
-    </div>
-    <div class="sysop-metric">
-      <div class="sysop-metric__title">Moderation Status</div>
-      <div class="sysop-metric__val {% if telemetry.totalBanned > 0 %}text-danger{% endif %}">{{ telemetry.totalBanned }}</div>
-      <div class="sysop-metric__sub">Soft-Banned Nodes (Frozen)</div>
-    </div>
-  </div>
+  <!-- SysOp Multi-Page Sub-Navigation & Focused Sub-Panes -->
+  <div class="workstation-sublayout">
 
-  <!-- Telemetry Sub-Row: Deployment Distribution & Aggregate Counters -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-    <div class="pixel-box">
-      <div class="window-header">
-        <span class="font-bold text-xs">[:&gt; STATIC_HOSTING_DISTRIBUTION.SYS]</span>
+    <!-- LEFT-HAND SUB-NAV (Horizontal on mobile < 820px, sticky 210px sidebar on desktop) -->
+    <aside class="workstation-subnav" aria-label="SysOp console navigation">
+      <div class="workstation-subnav__header">
+        <span>SYSOP CONSOLE</span>
+        <span class="text-prompt">6 MODULES</span>
       </div>
-      <div class="p-3 font-mono text-xs">
-        <div class="flex justify-between py-1 border-b border-dashed">
-          <span>Neocities API Nodes:</span>
-          <span class="font-bold">{{ telemetry.deployBreakdown.neocities | default(0) }}</span>
-        </div>
-        <div class="flex justify-between py-1 border-b border-dashed">
-          <span>Nekoweb Rest API Nodes:</span>
-          <span class="font-bold">{{ telemetry.deployBreakdown.nekoweb | default(0) }}</span>
-        </div>
-        <div class="flex justify-between py-1 border-b border-dashed">
-          <span>GitHub Pages Commits:</span>
-          <span class="font-bold">{{ telemetry.deployBreakdown.github | default(0) }}</span>
-        </div>
-        <div class="flex justify-between py-1 border-b border-dashed">
-          <span>SFTP Personal Servers:</span>
-          <span class="font-bold">{{ telemetry.deployBreakdown.sftp | default(0) }}</span>
-        </div>
-        <div class="flex justify-between py-1">
-          <span>Cold-Start Sandbox Nodes:</span>
-          <span class="font-bold">{{ telemetry.deployBreakdown['none'] | default(0) }}</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="pixel-box">
-      <div class="window-header">
-        <span class="font-bold text-xs">[:&gt; NETWORK_ACTIVITY_TOTALS.SYS]</span>
-      </div>
-      <div class="p-3 font-mono text-xs">
-        <div class="flex justify-between py-1 border-b border-dashed">
-          <span>Total Snap Transmissions (Posts):</span>
-          <span class="font-bold">{{ telemetry.totalPosts }}</span>
-        </div>
-        <div class="flex justify-between py-1 border-b border-dashed">
-          <span>Dynamic Web Counter Increments:</span>
-          <span class="font-bold">{{ telemetry.totalHits }}</span>
-        </div>
-        <div class="flex justify-between py-1">
-          <span>Guestbook Ledger Signatures:</span>
-          <span class="font-bold">{{ telemetry.totalGuestbook }}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 3. Live Build & Publish Pipeline Monitor -->
-  <div class="pixel-box mb-4">
-    <div class="window-header flex justify-between items-center">
-      <div class="flex items-center gap-2">
-        <span class="font-bold text-xs">[:&gt; PIPELINE_MONITOR.SYS // 11TY_FIFO_QUEUE]</span>
-      </div>
-      <button type="button" class="pixel-btn pixel-btn--sm" id="btnRefreshPipeline" onclick="pollPipelineTelemetry();">
-        ↻ Refresh Pipeline
-      </button>
-    </div>
-    <div class="p-3">
-      <!-- Live Status Strip -->
-      <div id="pipelineStatusStrip" class="pipeline-status-strip {% if pipelineTelemetry.isBusy %}pipeline-status-strip--busy{% endif %}">
-        <div class="flex items-center">
-          <span id="pipelineLed" class="pipeline-led {% if pipelineTelemetry.isBusy %}pipeline-led--busy{% endif %}"></span>
-          <span id="pipelineStatusText">
-            {% if pipelineTelemetry.isBusy %}
-              BUSY // PROCESSING JOB: {{ pipelineTelemetry.currentJob.taskName }} (Queue Depth: {{ pipelineTelemetry.activeCount }})
-            {% else %}
-              PIPELINE IDLE // WAITING FOR TRANSMISSIONS (Queue Depth: 0)
-            {% endif %}
+      <div class="workstation-subnav__list">
+        <button
+          type="button"
+          id="adminSubBtn-telemetry"
+          class="workstation-subnav__btn is-active"
+          onclick="switchAdminSubTab('telemetry')"
+        >
+          <span class="workstation-subnav__btn-label">
+            <svg class="retro-svg-icon retro-svg-icon--sm" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="4" width="13" height="8"/><path d="M5 6v4M8 6v4M11 6v4"/></svg>
+            <span>Telemetry &amp; Stats</span>
           </span>
-        </div>
-        <div class="text-xs" id="pipelineTimer">
-          {% if pipelineTelemetry.currentJob %}
-            Started: {{ pipelineTelemetry.currentJob.startedAt | formatDate }}
-          {% else %}
-            Baud: 28.8K V.34 OK
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- Fleet Cyberspace Propagation Terminal -->
-      <div class="fleet-sweep-box" id="fleetSweepBox">
-        <div class="fleet-sweep-header">
-          <div class="flex items-center gap-2">
-            <span class="font-mono text-xs font-bold text-cyan">[:&gt; FLEET_PROPAGATION_TERMINAL.SYS // EMERGENCY_SWEEP]</span>
-            <span class="sysop-badge sysop-badge--online" id="sweepPacingBadge">2,500ms Baud Delay Active</span>
-          </div>
-          <div id="sweepStateTag" class="text-xs font-mono {% if pipelineTelemetry.sweep.isActive %}text-amber font-bold{% else %}text-muted{% endif %}">
-            {% if pipelineTelemetry.sweep.isActive %}SWEEP ACTIVE{% else %}IDLE{% endif %}
-          </div>
-        </div>
-
-        <p class="text-xs text-muted mb-3">
-          Propagate global template or stylesheet updates across all remote mounted stations (Neocities / Nekoweb).
-          Dispatched as <strong>LOW priority</strong> jobs with rate-limit pacing so live creator activity (photos, comments) takes immediate precedence.
-        </p>
-
-        <div class="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between mb-3">
-          <div class="flex flex-wrap items-center gap-6 text-xs font-mono">
-            <div class="flex items-center gap-3">
-              <span class="text-muted font-bold text-xxs uppercase">Target:</span>
-              <label class="flex items-center gap-1 cursor-pointer">
-                <input type="radio" name="fleetSweepTarget" value="qa" id="sweepTargetQa" checked>
-                <span><strong>QA Fleet Only</strong> (@qa.neogram.club)</span>
-              </label>
-              <label class="flex items-center gap-1 cursor-pointer">
-                <input type="radio" name="fleetSweepTarget" value="all" id="sweepTargetAll">
-                <span>All Stations</span>
-              </label>
-            </div>
-            <div class="flex items-center gap-3">
-              <span class="text-muted font-bold text-xxs uppercase">Mode:</span>
-              <label class="flex items-center gap-1 cursor-pointer">
-                <input type="radio" name="fleetSweepMode" value="full" id="sweepModeFull" checked>
-                <span><strong>Full 11ty Rebuild</strong> (~3s/site)</span>
-              </label>
-              <label class="flex items-center gap-1 cursor-pointer">
-                <input type="radio" name="fleetSweepMode" value="assets" id="sweepModeAssets">
-                <span>Asset Delta Sweep (CSS/JS)</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <button type="button" class="pixel-btn pixel-btn--danger pixel-btn--sm {% if not pipelineTelemetry.sweep.isActive %}hidden{% endif %}" id="btnCancelSweep" onclick="cancelFleetSweep();">
-              Abort Sweep
-            </button>
-            <button type="button" class="pixel-btn pixel-btn--primary pixel-btn--sm {% if pipelineTelemetry.sweep.isActive %}hidden{% endif %}" id="btnInitiateSweep" onclick="promptInitiateSweep();">
-              Initiate Fleet Sweep
-            </button>
-          </div>
-        </div>
-
-        <!-- Sweep Live Telemetry Strip -->
-        <div id="sweepTelemetryStrip" class="{% if not pipelineTelemetry.sweep.isActive and (pipelineTelemetry.sweep.total | default(0)) == 0 %}hidden{% endif %}">
-          <div class="flex justify-between items-center text-xs font-mono mb-1">
-            <span id="sweepCurrentTarget">Target: {{ pipelineTelemetry.sweep.currentSite or 'Waiting...' }}</span>
-            <span id="sweepProgressText">
-              {{ pipelineTelemetry.sweep.processed | default(0) }} / {{ pipelineTelemetry.sweep.total | default(0) }} Stations
-            </span>
-          </div>
-          <div class="fleet-sweep-bar">
-            <div id="fleetSweepFill" class="fleet-sweep-fill {% if pipelineTelemetry.sweep.isActive %}fleet-sweep-fill--active{% endif %}"
-                 style="width: {% if (pipelineTelemetry.sweep.total | default(0)) > 0 %}{{ ((pipelineTelemetry.sweep.processed / pipelineTelemetry.sweep.total) * 100) | round }}{% else %}0{% endif %}%;"></div>
-          </div>
-          <div class="flex justify-between text-xs font-mono text-muted">
-            <span>Succeeded: <strong id="sweepSuccessCount" class="text-green">{{ pipelineTelemetry.sweep.succeeded | default(0) }}</strong> | Failed: <strong id="sweepFailCount" class="text-danger">{{ pipelineTelemetry.sweep.failed | default(0) }}</strong></span>
-            <span id="sweepQueueBreakdown">Priority Queue: High: <strong id="highQueueCount">{{ pipelineTelemetry.highPendingCount | default(0) }}</strong> | Low: <strong id="lowQueueCount">{{ pipelineTelemetry.lowPendingCount | default(0) }}</strong></span>
-          </div>
-          <div id="sweepErrorsBox" class="fleet-sweep-errors {% if (pipelineTelemetry.sweep.errors.length | default(0)) == 0 %}hidden{% endif %}">
-            <div class="font-bold mb-1">Host Deployment Errors:</div>
-            <ul id="sweepErrorsList" class="m-0 p-0 list-none">
-              {% for err in pipelineTelemetry.sweep.errors %}
-                <li>[!] [{{ err.handle }} - {{ err.siteName }}]: {{ err.error }}</li>
-              {% endfor %}
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent Completed Builds Log -->
-      <div class="font-mono text-xs mb-1 font-bold">Recent Pipeline Build Executions:</div>
-      <div class="sysop-table-wrapper" tabindex="0" role="region" aria-label="Recent Pipeline Builds" style="max-block-size: 200px;">
-        <table class="sysop-table" id="pipelineHistoryTable">
-          <thead>
-            <tr>
-              <th scope="col">Job ID</th>
-              <th scope="col">Task Description</th>
-              <th scope="col">Queue Wait</th>
-              <th scope="col">Exec Time</th>
-              <th scope="col">Status</th>
-              <th scope="col">Timestamp</th>
-            </tr>
-          </thead>
-          <tbody id="pipelineHistoryBody">
-            {% if pipelineTelemetry.history.length == 0 %}
-              <tr>
-                <td colspan="6" class="text-center p-3 text-muted">No pipeline jobs executed yet in this server session.</td>
-              </tr>
-            {% else %}
-              {% for job in pipelineTelemetry.history %}
-                <tr>
-                  <th scope="row">{{ job.id }}</th>
-                  <td>{{ job.taskName }}</td>
-                  <td>{{ job.queueWaitMs | default(0) }}ms</td>
-                  <td>{{ job.durationMs }}ms</td>
-                  <td>
-                    {% if job.status == 'SUCCESS' %}
-                      <span class="sysop-badge sysop-badge--active">SUCCESS</span>
-                    {% else %}
-                      <span class="sysop-badge sysop-badge--banned" title="{{ job.error }}">ERROR</span>
-                    {% endif %}
-                  </td>
-                  <td>{{ job.startedAt | formatDate }}</td>
-                </tr>
-              {% endfor %}
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- 3B. QA Test Fleet & Automated Session Manager -->
-  <div class="pixel-box mb-4" id="qaFleetSection">
-    <div class="window-header flex justify-between items-center">
-      <div class="flex items-center gap-2">
-        <span class="font-bold text-xs">[:&gt; QA_FLEET_MANAGER.SYS // AUTOMATED_TEST_AGENTS]</span>
-      </div>
-      <span class="sysop-badge sysop-badge--online">{{ qaFleet.length | default(0) }} QA Agents Provisioned</span>
-    </div>
-    <div class="p-3">
-      <p class="text-xs font-mono mb-3 text-muted">
-        Provision dedicated <strong>@qa_*</strong> test personas (`@qa.neogram.club`), attach real <strong>Neocities</strong> or <strong>Nekoweb</strong> API keys directly to their mounted sites (encrypted at rest in PostgreSQL), and export a pre-authenticated <code>qa-sessions.json</code> bundle so automated browser and load-testing agents can log into <strong>neogram.club</strong> without OTP emails.
-      </p>
-
-      <!-- Action Toolbar -->
-      <div class="flex flex-wrap items-center gap-2 mb-3">
-        <button type="button" class="pixel-btn pixel-btn--yellow font-bold text-xs" onclick="provisionQaFleet('fleet12');">
-          <span>⚡ Provision 12 QA Personas &amp; Intertwine @wasson</span>
+          <span class="workstation-subnav__btn-arrow">›</span>
         </button>
-        <button type="button" class="pixel-btn font-bold text-xs" onclick="provisionQaFleet('load20');">
-          <span>Provision 20-Agent Load Fleet</span>
+        <button
+          type="button"
+          id="adminSubBtn-pipeline"
+          class="workstation-subnav__btn"
+          onclick="switchAdminSubTab('pipeline')"
+        >
+          <span class="workstation-subnav__btn-label">
+            <svg class="retro-svg-icon retro-svg-icon--sm" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
+            <span>Pipeline &amp; Sweep</span>
+          </span>
+          <span class="workstation-subnav__btn-arrow">›</span>
         </button>
-        {% if qaFleet and qaFleet.length > 0 %}
-          <a href="/api/admin/qa-fleet/export-sessions" class="pixel-btn pixel-btn--green font-bold text-xs">
-            <span>⬇️ Export qa-sessions.json ({{ qaFleet.length }} Agents)</span>
-          </a>
-        {% endif %}
-        <a href="/api/admin/db/snapshot" class="pixel-btn pixel-btn--cyan font-bold text-xs" title="Download production database snapshot to sync locally">
-          <span>💾 Download DB Snapshot (db-snapshot.json)</span>
-        </a>
-        {% if qaFleet and qaFleet.length > 0 %}
-          <button type="button" id="btnPurgeQaPosts" class="pixel-btn text-xs" onclick="purgeQaPosts(this);">
-            <span>Purge QA Test Posts</span>
-          </button>
-        {% endif %}
+        <button
+          type="button"
+          id="adminSubBtn-moderation"
+          class="workstation-subnav__btn"
+          onclick="switchAdminSubTab('moderation')"
+        >
+          <span class="workstation-subnav__btn-label">
+            <svg class="retro-svg-icon retro-svg-icon--sm" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13.5c0-2.5 2.2-4 5-4s5 1.5 5 4"/></svg>
+            <span>Node Moderation ({{ users.length }})</span>
+          </span>
+          <span class="workstation-subnav__btn-arrow">›</span>
+        </button>
+        <button
+          type="button"
+          id="adminSubBtn-qa-fleet"
+          class="workstation-subnav__btn"
+          onclick="switchAdminSubTab('qa-fleet')"
+        >
+          <span class="workstation-subnav__btn-label">
+            <svg class="retro-svg-icon retro-svg-icon--sm" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6" cy="5.5" r="2"/><path d="M2 13c0-2 1.8-3.2 4-3.2s4 1.2 4 3.2"/><path d="M12 5v4M10 7h4"/></svg>
+            <span>QA Fleet &amp; Sync ({{ qaFleet.length | default(0) }})</span>
+          </span>
+          <span class="workstation-subnav__btn-arrow">›</span>
+        </button>
+        <button
+          type="button"
+          id="adminSubBtn-marquee"
+          class="workstation-subnav__btn"
+          onclick="switchAdminSubTab('marquee')"
+        >
+          <span class="workstation-subnav__btn-label">
+            <svg class="retro-svg-icon retro-svg-icon--sm" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12v7H2z"/><path d="M5 14h6M8 11v3"/></svg>
+            <span>Marquee Ticker</span>
+          </span>
+          <span class="workstation-subnav__btn-arrow">›</span>
+        </button>
+        <button
+          type="button"
+          id="adminSubBtn-audit"
+          class="workstation-subnav__btn"
+          onclick="switchAdminSubTab('audit')"
+        >
+          <span class="workstation-subnav__btn-label">
+            <svg class="retro-svg-icon retro-svg-icon--sm" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2h10v12H3V2z"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>
+            <span>Security Audit ({{ auditLogs.length }})</span>
+          </span>
+          <span class="workstation-subnav__btn-arrow">›</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- RIGHT-HAND CONTENT PANE (Strictly 1 Admin Sub-Pane Visible at a Time) -->
+    <div class="workstation-subpane">
+
+      <!-- ============================================================
+           SUB-PAGE 1: TELEMETRY & NETWORK OVERVIEW
+           ============================================================ -->
+      <div id="adminSubPane-telemetry">
+        <!-- Top Helper Guide -->
+        <div class="sysop-guide">
+          <div class="sysop-guide__title">
+            <span>[:&gt; MODULE_01 // NETWORK_TELEMETRY_GUIDE.HLP]</span>
+            <span class="text-prompt font-mono text-3xs">SYSTEM_CENSUS</span>
+          </div>
+          <p class="sysop-guide__desc">
+            Real-time census of registered cyberspace stations, live WebSocket carrier sessions, hosting provider distribution, and cumulative social interactions across the network.
+          </p>
+          <div class="sysop-guide__grid">
+            <div class="sysop-guide__item">
+              <strong>Total Station Nodes</strong>
+              Cumulative creator accounts in PostgreSQL (includes external static sites and sandbox profiles).
+            </div>
+            <div class="sysop-guide__item">
+              <strong>New Registrations</strong>
+              Rolling signup velocity over the past 24 hours, 7 days, and 30 days.
+            </div>
+            <div class="sysop-guide__item">
+              <strong>Live Operator Nodes</strong>
+              Active browser/extension WebSocket connections (<code>/ws/chat</code>) currently online.
+            </div>
+            <div class="sysop-guide__item">
+              <strong>Moderation Status</strong>
+              Accounts currently under a Soft-Ban freeze (<code>is_banned = TRUE</code>).
+            </div>
+          </div>
+        </div>
+
+        <!-- 4-Card Metric Grid -->
+        <div class="sysop-grid">
+          <div class="sysop-metric">
+            <div class="sysop-metric__title">Total Station Nodes</div>
+            <div class="sysop-metric__val">{{ telemetry.totalUsers }}</div>
+            <div class="sysop-metric__sub">Registered Cyberspace Creators</div>
+          </div>
+          <div class="sysop-metric">
+            <div class="sysop-metric__title">New Registrations</div>
+            <div class="sysop-metric__val text-mac">{{ telemetry.reg24h }}</div>
+            <div class="sysop-metric__sub">Past 24h (7d: {{ telemetry.reg7d }} // 30d: {{ telemetry.reg30d }})</div>
+          </div>
+          <div class="sysop-metric">
+            <div class="sysop-metric__title">Live Operator Nodes</div>
+            <div class="sysop-metric__val text-prompt">{{ telemetry.activeSocketsCount }}</div>
+            <div class="sysop-metric__sub">WebSocket Carriers Connected</div>
+          </div>
+          <div class="sysop-metric cursor-pointer" onclick="switchAdminSubTab('moderation');" title="Jump to Node Moderation Ledger">
+            <div class="sysop-metric__title flex justify-between items-center">
+              <span>Moderation Status</span>
+              <span class="text-3xs text-muted">View Roster ›</span>
+            </div>
+            <div class="sysop-metric__val {% if telemetry.totalBanned > 0 %}text-danger{% endif %}">{{ telemetry.totalBanned }}</div>
+            <div class="sysop-metric__sub">Soft-Banned Nodes (Frozen)</div>
+          </div>
+        </div>
+
+        <!-- Telemetry Breakdown Windows -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <!-- Window 1: Static Hosting Distribution -->
+          <div class="pixel-box">
+            <div class="window-header">
+              <span class="font-bold text-xs">[:&gt; STATIC_HOSTING_DISTRIBUTION.SYS]</span>
+            </div>
+            <div class="p-3 font-mono text-xs">
+              <div class="text-3xs text-muted mb-3">
+                Shows how creators deploy their galleries. Percentage bars reflect share of total registered stations ({{ telemetry.totalUsers }}).
+              </div>
+
+              {% set totalU = telemetry.totalUsers | default(0) %}
+              {% set neoCount = telemetry.deployBreakdown.neocities | default(0) %}
+              {% set nekoCount = telemetry.deployBreakdown.nekoweb | default(0) %}
+              {% set ghCount = telemetry.deployBreakdown.github | default(0) %}
+              {% set sftpCount = telemetry.deployBreakdown.sftp | default(0) %}
+              {% set noneCount = telemetry.deployBreakdown['none'] | default(0) %}
+
+              {% set neoPct = ((neoCount / totalU) * 100) | round if totalU > 0 else 0 %}
+              {% set nekoPct = ((nekoCount / totalU) * 100) | round if totalU > 0 else 0 %}
+              {% set ghPct = ((ghCount / totalU) * 100) | round if totalU > 0 else 0 %}
+              {% set sftpPct = ((sftpCount / totalU) * 100) | round if totalU > 0 else 0 %}
+              {% set nonePct = ((noneCount / totalU) * 100) | round if totalU > 0 else 0 %}
+
+              <div class="sysop-dist-row">
+                <div class="flex justify-between items-center text-xs">
+                  <span>Neocities API Nodes:</span>
+                  <span class="font-bold">{{ neoCount }} <span class="text-muted text-3xs">({{ neoPct }}%)</span></span>
+                </div>
+                <div class="sysop-dist-bar">
+                  <div class="sysop-dist-bar__fill" style="width: {{ neoPct }}%;"></div>
+                </div>
+                <div class="text-3xs text-muted mt-1">Pushes compiled 11ty HTML &amp; WebP media via Neocities REST API</div>
+              </div>
+
+              <div class="sysop-dist-row">
+                <div class="flex justify-between items-center text-xs">
+                  <span>Nekoweb Rest API Nodes:</span>
+                  <span class="font-bold">{{ nekoCount }} <span class="text-muted text-3xs">({{ nekoPct }}%)</span></span>
+                </div>
+                <div class="sysop-dist-bar">
+                  <div class="sysop-dist-bar__fill sysop-dist-bar__fill--cyan" style="width: {{ nekoPct }}%;"></div>
+                </div>
+                <div class="text-3xs text-muted mt-1">Pushes compiled 11ty HTML &amp; WebP media via Nekoweb API</div>
+              </div>
+
+              <div class="sysop-dist-row">
+                <div class="flex justify-between items-center text-xs">
+                  <span>GitHub Pages Commits:</span>
+                  <span class="font-bold">{{ ghCount }} <span class="text-muted text-3xs">({{ ghPct }}%)</span></span>
+                </div>
+                <div class="sysop-dist-bar">
+                  <div class="sysop-dist-bar__fill sysop-dist-bar__fill--amber" style="width: {{ ghPct }}%;"></div>
+                </div>
+                <div class="text-3xs text-muted mt-1">Deploys gallery via GitHub Pages Git Commits</div>
+              </div>
+
+              <div class="sysop-dist-row">
+                <div class="flex justify-between items-center text-xs">
+                  <span>SFTP Personal Servers:</span>
+                  <span class="font-bold">{{ sftpCount }} <span class="text-muted text-3xs">({{ sftpPct }}%)</span></span>
+                </div>
+                <div class="sysop-dist-bar">
+                  <div class="sysop-dist-bar__fill" style="width: {{ sftpPct }}%;"></div>
+                </div>
+                <div class="text-3xs text-muted mt-1">Direct upload via SSH File Transfer Protocol</div>
+              </div>
+
+              <div class="sysop-dist-row">
+                <div class="flex justify-between items-center text-xs">
+                  <span>Cold-Start Sandbox Nodes:</span>
+                  <span class="font-bold">{{ noneCount }} <span class="text-muted text-3xs">({{ nonePct }}%)</span></span>
+                </div>
+                <div class="sysop-dist-bar">
+                  <div class="sysop-dist-bar__fill sysop-dist-bar__fill--cyan" style="width: {{ nonePct }}%;"></div>
+                </div>
+                <div class="text-3xs text-muted mt-1">Internal profile-only mode before linking an external static host</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Window 2: Network Activity Totals -->
+          <div class="pixel-box">
+            <div class="window-header">
+              <span class="font-bold text-xs">[:&gt; NETWORK_ACTIVITY_TOTALS.SYS]</span>
+            </div>
+            <div class="p-3 font-mono text-xs">
+              <div class="text-3xs text-muted mb-3">Aggregate content and widget engagement across all mounted stations.</div>
+              <div class="sysop-dist-row">
+                <div class="flex justify-between items-center">
+                  <span>Total Snap Transmissions (Posts):</span>
+                  <span class="font-bold text-sm text-prompt">{{ telemetry.totalPosts }}</span>
+                </div>
+                <div class="text-3xs text-muted mt-1">Counted directly from static <code>posts.json</code> ledgers on disk (zero-DB post storage).</div>
+              </div>
+              <div class="sysop-dist-row">
+                <div class="flex justify-between items-center">
+                  <span>Dynamic Web Counter Increments:</span>
+                  <span class="font-bold text-sm text-mac">{{ telemetry.totalHits }}</span>
+                </div>
+                <div class="text-3xs text-muted mt-1">Total SVG hit counter views (<code>SUM(hits)</code> in <code>web_counters</code>).</div>
+              </div>
+              <div class="sysop-dist-row">
+                <div class="flex justify-between items-center">
+                  <span>Guestbook Ledger Signatures:</span>
+                  <span class="font-bold text-sm text-yellow">{{ telemetry.totalGuestbook }}</span>
+                </div>
+                <div class="text-3xs text-muted mt-1">Total visitor entries recorded in <code>guestbook_entries</code>.</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- QA Fleet Table -->
-      <div class="sysop-table-wrapper" tabindex="0" role="region" aria-label="QA Test Fleet Accounts">
-        <table class="sysop-table">
-          <thead>
-            <tr>
-              <th scope="col">QA Persona</th>
-              <th scope="col">Mounted Static Sites &amp; API Keys</th>
-              <th scope="col">QA Posts</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% if not qaFleet or qaFleet.length == 0 %}
-              <tr>
-                <td colspan="4" class="text-center p-3 text-muted font-mono text-xs">
-                  No QA test accounts provisioned yet. Click <strong>[Provision 5 Core QA Personas]</strong> above to create <code>@qa_alice</code> (Multi-Site Neocities), <code>@qa_bob</code> (Nekoweb), <code>@qa_headless</code> (JSON API), <code>@qa_friend</code>, and <code>@qa_surfer</code>.
-                </td>
-              </tr>
-            {% else %}
-              {% for qa in qaFleet %}
-                <tr>
-                  <th scope="row">
-                    <div class="flex items-center gap-2">
-                      <img src="{{ qa.avatarPath or '/icons/default-avatar.svg' }}" alt="@{{ qa.handle }}" class="w-8 h-8 rounded-full border border-main object-cover bg-black shrink-0" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';" />
-                      <div class="min-w-0">
-                        <div class="font-bold text-xs font-mono">@{{ qa.handle }} <span class="text-3xs text-muted">[#{{ qa.uin }}]</span></div>
-                        <div class="text-3xs text-muted font-normal truncate max-w-xs" title="{{ qa.description or qa.statusMessage }}">{{ qa.description or qa.statusMessage }}</div>
-                      </div>
-                    </div>
-                  </th>
-                  <td>
-                    <div class="flex flex-col gap-1.5">
-                      {% for s in qa.sites %}
-                        <div class="flex flex-wrap items-center justify-between gap-2 p-1.5 border border-dashed">
-                          <div class="font-mono text-3xs">
-                            <span class="font-bold uppercase">[{{ s.deploymentType }}]</span>
-                            <span class="font-bold">{{ s.name }}</span>
-                            <span class="text-muted">(/{{ s.slug }})</span>
-                            — <a href="{{ s.siteUrl }}" target="_blank" class="underline">{{ s.siteUrl }}</a>
-                            <span class="text-muted">(path: /{{ s.deployPath }})</span>
-                            {% if not s.buildHtml %}
-                              <span class="sysop-badge sysop-badge--online">HEADLESS JSON</span>
-                            {% endif %}
-                            {% if s.hasApiKey %}
-                              <span class="sysop-badge sysop-badge--active">KEY SAVED ({{ s.maskedApiKey }})</span>
-                            {% elif s.deploymentType != 'none' %}
-                              <span class="sysop-badge sysop-badge--banned">[!] NO API KEY</span>
-                            {% else %}
-                              <span class="sysop-badge">SANDBOX</span>
+      <!-- ============================================================
+           SUB-PAGE 2: BUILD PIPELINE & FLEET PROPAGATION
+           ============================================================ -->
+      <div id="adminSubPane-pipeline" class="hidden">
+        <!-- Top Helper Guide -->
+        <div class="sysop-guide">
+          <div class="sysop-guide__title">
+            <span>[:&gt; MODULE_02 // BUILD_PIPELINE_&amp;_SWEEP.HLP]</span>
+            <span class="text-prompt font-mono text-3xs">FIFO_DISPATCHER</span>
+          </div>
+          <p class="sysop-guide__desc">
+            Monitors the single-server 11ty v3 FIFO build queue (auto-polls every 8s) and dispatches throttled network-wide template/asset updates.
+          </p>
+          <div class="sysop-guide__grid">
+            <div class="sysop-guide__item">
+              <strong>Priority Queueing</strong>
+              Live creator actions (photo uploads, comments) run at <strong>HIGH</strong> priority and automatically jump ahead of <strong>LOW</strong> priority fleet sweeps.
+            </div>
+            <div class="sysop-guide__item">
+              <strong>Full 11ty Rebuild vs. Asset Delta</strong>
+              <em>Full Rebuild</em> recompiles all HTML pages (~3s/site). <em>Asset Delta</em> pushes only updated CSS/JS bundles without running 11ty.
+            </div>
+            <div class="sysop-guide__item">
+              <strong>Queue Wait vs. Exec Time</strong>
+              <em>Queue Wait</em> is time spent waiting in line; <em>Exec Time</em> is actual 11ty compilation + remote API upload duration.
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Build & Publish Pipeline Monitor -->
+        <div class="pixel-box mb-4">
+          <div class="window-header flex justify-between items-center">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs">[:&gt; PIPELINE_MONITOR.SYS // 11TY_FIFO_QUEUE]</span>
+            </div>
+            <button type="button" class="pixel-btn pixel-btn--sm" id="btnRefreshPipeline" onclick="pollPipelineTelemetry();">
+              ↻ Refresh Pipeline
+            </button>
+          </div>
+          <div class="p-3">
+            <!-- Live Status Strip -->
+            <div id="pipelineStatusStrip" class="pipeline-status-strip {% if pipelineTelemetry.isBusy %}pipeline-status-strip--busy{% endif %}">
+              <div class="flex items-center">
+                <span id="pipelineLed" class="pipeline-led {% if pipelineTelemetry.isBusy %}pipeline-led--busy{% endif %}"></span>
+                <span id="pipelineStatusText">
+                  {% if pipelineTelemetry.isBusy %}
+                    BUSY // PROCESSING JOB: {{ pipelineTelemetry.currentJob.taskName }} (Queue Depth: {{ pipelineTelemetry.activeCount }})
+                  {% else %}
+                    PIPELINE IDLE // WAITING FOR TRANSMISSIONS (Queue Depth: 0)
+                  {% endif %}
+                </span>
+              </div>
+              <div class="text-xs" id="pipelineTimer">
+                {% if pipelineTelemetry.currentJob %}
+                  Started: {{ pipelineTelemetry.currentJob.startedAt | formatDate }}
+                {% else %}
+                  Baud: 28.8K V.34 OK
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Fleet Cyberspace Propagation Terminal -->
+            <div class="fleet-sweep-box" id="fleetSweepBox">
+              <div class="fleet-sweep-header">
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-xs font-bold text-cyan">[:&gt; FLEET_PROPAGATION_TERMINAL.SYS // EMERGENCY_SWEEP]</span>
+                  <span class="sysop-badge sysop-badge--online" id="sweepPacingBadge">2,500ms Baud Delay Active</span>
+                </div>
+                <div id="sweepStateTag" class="text-xs font-mono {% if pipelineTelemetry.sweep.isActive %}text-amber font-bold{% else %}text-muted{% endif %}">
+                  {% if pipelineTelemetry.sweep.isActive %}SWEEP ACTIVE{% else %}IDLE{% endif %}
+                </div>
+              </div>
+
+              <p class="text-xs text-muted mb-3">
+                Propagate global template or stylesheet updates across all remote mounted stations (Neocities / Nekoweb).
+                Dispatched as <strong>LOW priority</strong> jobs with rate-limit pacing so live creator activity (photos, comments) takes immediate precedence.
+              </p>
+
+              <div class="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between mb-3">
+                <div class="flex flex-wrap items-center gap-6 text-xs font-mono">
+                  <div class="flex items-center gap-3">
+                    <span class="text-muted font-bold text-xxs uppercase">Target:</span>
+                    <label class="flex items-center gap-1 cursor-pointer">
+                      <input type="radio" name="fleetSweepTarget" value="qa" id="sweepTargetQa" checked>
+                      <span><strong>QA Fleet Only</strong> (@qa.neogram.club)</span>
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer">
+                      <input type="radio" name="fleetSweepTarget" value="all" id="sweepTargetAll">
+                      <span>All Stations</span>
+                    </label>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span class="text-muted font-bold text-xxs uppercase">Mode:</span>
+                    <label class="flex items-center gap-1 cursor-pointer">
+                      <input type="radio" name="fleetSweepMode" value="full" id="sweepModeFull" checked>
+                      <span><strong>Full 11ty Rebuild</strong> (~3s/site)</span>
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer">
+                      <input type="radio" name="fleetSweepMode" value="assets" id="sweepModeAssets">
+                      <span>Asset Delta Sweep (CSS/JS)</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <button type="button" class="pixel-btn pixel-btn--danger pixel-btn--sm {% if not pipelineTelemetry.sweep.isActive %}hidden{% endif %}" id="btnCancelSweep" onclick="cancelFleetSweep();">
+                    Abort Sweep
+                  </button>
+                  <button type="button" class="pixel-btn pixel-btn--primary pixel-btn--sm {% if pipelineTelemetry.sweep.isActive %}hidden{% endif %}" id="btnInitiateSweep" onclick="promptInitiateSweep();">
+                    Initiate Fleet Sweep
+                  </button>
+                </div>
+              </div>
+
+              <!-- Sweep Live Telemetry Strip -->
+              <div id="sweepTelemetryStrip" class="{% if not pipelineTelemetry.sweep.isActive and (pipelineTelemetry.sweep.total | default(0)) == 0 %}hidden{% endif %}">
+                <div class="flex justify-between items-center text-xs font-mono mb-1">
+                  <span id="sweepCurrentTarget">Target: {{ pipelineTelemetry.sweep.currentSite or 'Waiting...' }}</span>
+                  <span id="sweepProgressText">
+                    {{ pipelineTelemetry.sweep.processed | default(0) }} / {{ pipelineTelemetry.sweep.total | default(0) }} Stations
+                  </span>
+                </div>
+                <div class="fleet-sweep-bar">
+                  <div id="fleetSweepFill" class="fleet-sweep-fill {% if pipelineTelemetry.sweep.isActive %}fleet-sweep-fill--active{% endif %}"
+                       style="width: {% if (pipelineTelemetry.sweep.total | default(0)) > 0 %}{{ ((pipelineTelemetry.sweep.processed / pipelineTelemetry.sweep.total) * 100) | round }}{% else %}0{% endif %}%;"></div>
+                </div>
+                <div class="flex justify-between text-xs font-mono text-muted">
+                  <span>Succeeded: <strong id="sweepSuccessCount" class="text-green">{{ pipelineTelemetry.sweep.succeeded | default(0) }}</strong> | Failed: <strong id="sweepFailCount" class="text-danger">{{ pipelineTelemetry.sweep.failed | default(0) }}</strong></span>
+                  <span id="sweepQueueBreakdown">Priority Queue: High: <strong id="highQueueCount">{{ pipelineTelemetry.highPendingCount | default(0) }}</strong> | Low: <strong id="lowQueueCount">{{ pipelineTelemetry.lowPendingCount | default(0) }}</strong></span>
+                </div>
+                <div id="sweepErrorsBox" class="fleet-sweep-errors {% if (pipelineTelemetry.sweep.errors.length | default(0)) == 0 %}hidden{% endif %}">
+                  <div class="font-bold mb-1">Host Deployment Errors:</div>
+                  <ul id="sweepErrorsList" class="m-0 p-0 list-none">
+                    {% for err in pipelineTelemetry.sweep.errors %}
+                      <li>[!] [{{ err.handle }} - {{ err.siteName }}]: {{ err.error }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Completed Builds Log -->
+            <div class="font-mono text-xs mb-1 font-bold">Recent Pipeline Build Executions:</div>
+            <div class="text-3xs text-muted mb-2 font-mono">Shows the most recent build jobs in this server process. Hover over any red ERROR badge to inspect the remote host failure message.</div>
+            <div class="sysop-table-wrapper" tabindex="0" role="region" aria-label="Recent Pipeline Builds" style="max-block-size: 260px;">
+              <table class="sysop-table" id="pipelineHistoryTable">
+                <thead>
+                  <tr>
+                    <th scope="col">Job ID</th>
+                    <th scope="col">Task Description</th>
+                    <th scope="col">Queue Wait</th>
+                    <th scope="col">Exec Time</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody id="pipelineHistoryBody">
+                  {% if pipelineTelemetry.history.length == 0 %}
+                    <tr>
+                      <td colspan="6" class="text-center p-3 text-muted">No pipeline jobs executed yet in this server session.</td>
+                    </tr>
+                  {% else %}
+                    {% for job in pipelineTelemetry.history %}
+                      <tr>
+                        <th scope="row">{{ job.id }}</th>
+                        <td>{{ job.taskName }}</td>
+                        <td>{{ job.queueWaitMs | default(0) }}ms</td>
+                        <td>{{ job.durationMs }}ms</td>
+                        <td>
+                          {% if job.status == 'SUCCESS' %}
+                            <span class="sysop-badge sysop-badge--active">SUCCESS</span>
+                          {% else %}
+                            <span class="sysop-badge sysop-badge--banned" title="{{ job.error }}">ERROR</span>
+                          {% endif %}
+                        </td>
+                        <td>{{ job.startedAt | formatDate }}</td>
+                      </tr>
+                    {% endfor %}
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           SUB-PAGE 3: STATION NODE MODERATION ROSTER
+           ============================================================ -->
+      <div id="adminSubPane-moderation" class="hidden">
+        <!-- Top Helper Guide -->
+        <div class="sysop-guide">
+          <div class="sysop-guide__title">
+            <span>[:&gt; MODULE_03 // STATION_MODERATION_POLICY.HLP]</span>
+            <span class="text-prompt font-mono text-3xs">SOVEREIGNTY_ENFORCEMENT</span>
+          </div>
+          <p class="sysop-guide__desc">
+            Inspect registered creator nodes, filter by account status, update station bios, or freeze abusive accounts.
+          </p>
+          <div class="sysop-guide__grid">
+            <div class="sysop-guide__item">
+              <strong>Data Sovereignty Soft-Ban</strong>
+              Clicking <strong>Soft Ban</strong> blocks login, WebSocket chat, and social feeds, but <strong>never deletes or modifies</strong> files on the user's Neocities/Nekoweb/GitHub host.
+            </div>
+            <div class="sysop-guide__item">
+              <strong>Reinstatement</strong>
+              Clicking <strong>✓ Reinstate</strong> immediately restores login and social privileges and logs the unban to the Security Audit Trail.
+            </div>
+            <div class="sysop-guide__item">
+              <strong>Presence &amp; Bio</strong>
+              Green pulsing dot beside a handle indicates the operator has an open WebSocket carrier right now. <strong>Bio</strong> edits their public directory description.
+            </div>
+          </div>
+        </div>
+
+        <!-- Station Node Moderation Ledger -->
+        <div class="pixel-box mb-4">
+          <div class="window-header flex justify-between items-center">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs">[:&gt; STATION_NODES_MODERATION.LEDGER]</span>
+            </div>
+            <span class="sysop-badge sysop-badge--online">{{ users.length }} Nodes Loaded</span>
+          </div>
+          <div class="p-3">
+            <!-- Search & Status Filter Controls -->
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-2 mb-3">
+              <div class="w-full sm:w-80">
+                <input
+                  type="search"
+                  id="nodeSearchInput"
+                  placeholder="Search handle, email, or UIN..."
+                  class="retro-input text-xs"
+                  oninput="filterNodesTable();"
+                />
+              </div>
+              <div class="flex gap-1 w-full sm:w-auto">
+                <button
+                  type="button"
+                  class="pixel-btn pixel-btn--sm pixel-btn--active font-mono text-xs filter-btn"
+                  data-filter="all"
+                  onclick="setNodeFilter('all', this);"
+                >
+                  All ({{ users.length }})
+                </button>
+                <button
+                  type="button"
+                  class="pixel-btn pixel-btn--sm font-mono text-xs filter-btn"
+                  data-filter="active"
+                  onclick="setNodeFilter('active', this);"
+                >
+                  Active ({{ users.length - telemetry.totalBanned }})
+                </button>
+                <button
+                  type="button"
+                  class="pixel-btn pixel-btn--sm font-mono text-xs filter-btn"
+                  data-filter="banned"
+                  onclick="setNodeFilter('banned', this);"
+                >
+                  Soft-Banned ({{ telemetry.totalBanned }})
+                </button>
+              </div>
+            </div>
+
+            <!-- Moderation Table (Container Query Stacked on Mobile) -->
+            <div
+              class="sysop-table-wrapper"
+              tabindex="0"
+              role="region"
+              aria-label="Station Nodes Moderation Roster"
+            >
+              <table class="sysop-table" id="nodesTable">
+                <thead>
+                  <tr>
+                    <th scope="col">Station Node</th>
+                    <th scope="col">Contact Identity</th>
+                    <th scope="col">Target Host</th>
+                    <th scope="col">Posts</th>
+                    <th scope="col">Registered</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="nodesTableBody">
+                  {% for u in users %}
+                    <tr
+                      class="node-row {% if u.isBanned %}sysop-table__row--banned{% endif %}"
+                      data-handle="{{ u.handle | lower }}"
+                      data-email="{{ u.email | lower }}"
+                      data-uin="{{ u.uin }}"
+                      data-banned="{{ 'true' if u.isBanned else 'false' }}"
+                      id="userRow_{{ u.id }}"
+                    >
+                      <!-- Row Header (Sticky on Desktop, Stacked Header on Mobile) -->
+                      <th scope="row">
+                        <div class="flex items-center gap-2">
+                          <img src="{{ u.avatarPath or '/icons/default-avatar.svg' }}" alt="@{{ u.handle }}" class="w-7 h-7 rounded-full border border-main object-cover bg-black shrink-0" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';" />
+                          <div class="min-w-0">
+                            <div class="flex items-center gap-1.5">
+                              {% if u.isOnline %}
+                                <span class="pipeline-led" title="Operator online right now" style="width: 8px; height: 8px; margin-right: 0;"></span>
+                              {% endif %}
+                              <a href="/user/{{ u.uin }}" target="_blank" class="font-bold text-mac hover:underline">
+                                @{{ u.handle }}
+                              </a>
+                              <span class="text-3xs text-muted font-normal">[#{{ u.uin }}]</span>
+                            </div>
+                            {% if u.description or u.statusMessage %}
+                              <div class="text-3xs text-muted truncate max-w-xs font-normal" title="{{ u.description or u.statusMessage }}">{{ u.description or u.statusMessage }}</div>
                             {% endif %}
                           </div>
+                        </div>
+                      </th>
+                      <td>
+                        <span class="font-mono text-xs">{{ u.email }}</span>
+                      </td>
+                      <td>
+                        <span class="uppercase font-bold text-3xs">{{ u.deploymentType | default('none') }}</span>
+                        <span class="text-3xs text-muted">({{ u.siteCount }} site{% if u.siteCount != 1 %}s{% endif %})</span>
+                      </td>
+                      <td>
+                        <span class="font-bold">{{ u.postCount }}</span>
+                      </td>
+                      <td>
+                        <span class="text-3xs">{{ u.createdAt | formatDate }}</span>
+                      </td>
+                      <td>
+                        {% if u.isBanned %}
+                          <span class="sysop-badge sysop-badge--banned" title="Banned on {{ u.bannedAt | formatDate }}: {{ u.banReason }}">
+                            BANNED
+                          </span>
+                          {% if u.banReason %}
+                            <div class="text-3xs text-danger italic truncate max-w-xs">{{ u.banReason }}</div>
+                          {% endif %}
+                        {% else %}
+                          <span class="sysop-badge sysop-badge--active"><span class="status-led status-led--online"></span> ACTIVE</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <div class="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            class="pixel-btn pixel-btn--sm text-3xs font-bold"
+                            onclick="promptEditUserBio('{{ u.id }}', '{{ u.handle }}', '{{ (u.description or u.statusMessage or '') | escape }}');"
+                            title="Edit station bio/description"
+                          >
+                            Bio
+                          </button>
+                          {% if u.isBanned %}
+                            <button
+                              type="button"
+                              class="pixel-btn pixel-btn--green pixel-btn--sm text-3xs font-bold"
+                              onclick="reinstateUser('{{ u.id }}', '{{ u.handle }}');"
+                            >
+                              ✓ Reinstate
+                            </button>
+                          {% else %}
+                            {% if u.id == adminUser.id %}
+                              <span class="text-3xs text-muted italic">Self (SysOp)</span>
+                            {% else %}
+                              <button
+                                type="button"
+                                class="pixel-btn pixel-btn--danger pixel-btn--sm text-3xs font-bold"
+                                onclick="promptSoftBanUser('{{ u.id }}', '{{ u.handle }}');"
+                              >
+                                Soft Ban
+                              </button>
+                            {% endif %}
+                          {% endif %}
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           SUB-PAGE 4: QA TEST FLEET & DATABASE SYNC
+           ============================================================ -->
+      <div id="adminSubPane-qa-fleet" class="hidden">
+        <!-- Top Helper Guide -->
+        <div class="sysop-guide">
+          <div class="sysop-guide__title">
+            <span>[:&gt; MODULE_04 // QA_FLEET_&amp;_DB_SYNC_GUIDE.HLP]</span>
+            <span class="text-prompt font-mono text-3xs">AGENT_ISOLATION</span>
+          </div>
+          <p class="sysop-guide__desc">
+            Manage isolated <code>@qa.neogram.club</code> test accounts for automated multi-agent testing against <code>https://neogram.club</code> without triggering OTP emails or polluting public directories.
+          </p>
+          <div class="sysop-guide__grid">
+            <div class="sysop-guide__item">
+              <strong>Provision 12 / 20 Fleet</strong>
+              Creates canonical QA personas (<code>@qa_alice</code>, <code>@qa_bob</code>, etc.), wires mutual friend graphs with <code>@wasson</code>, and mounts default site targets.
+            </div>
+            <div class="sysop-guide__item">
+              <strong>Export qa-sessions.json</strong>
+              Downloads 30-day pre-signed JWT session tokens so headless browser/load tests can authenticate without OTP challenges.
+            </div>
+            <div class="sysop-guide__item">
+              <strong>Download DB Snapshot</strong>
+              Exports <code>db-snapshot.json</code> (users, sites, follows, counters) to sync production state into a local dev database via <code>npm run db:sync</code>.
+            </div>
+            <div class="sysop-guide__item">
+              <strong>Purge QA Test Posts</strong>
+              Deletes test photos and comments created by <code>@qa_*</code> accounts while strictly preserving QA user accounts, friendships, and encrypted API keys.
+            </div>
+          </div>
+        </div>
+
+        <!-- QA Test Fleet & Automated Session Manager -->
+        <div class="pixel-box mb-4" id="qaFleetSection">
+          <div class="window-header flex justify-between items-center">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs">[:&gt; QA_FLEET_MANAGER.SYS // AUTOMATED_TEST_AGENTS]</span>
+            </div>
+            <span class="sysop-badge sysop-badge--online">{{ qaFleet.length | default(0) }} QA Agents Provisioned</span>
+          </div>
+          <div class="p-3">
+            <p class="text-xs font-mono mb-3 text-muted">
+              Provision dedicated <strong>@qa_*</strong> test personas (`@qa.neogram.club`), attach real <strong>Neocities</strong> or <strong>Nekoweb</strong> API keys directly to their mounted sites (encrypted at rest in PostgreSQL), and export a pre-authenticated <code>qa-sessions.json</code> bundle so automated browser and load-testing agents can log into <strong>neogram.club</strong> without OTP emails.
+            </p>
+
+            <!-- Action Toolbar -->
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+              <button type="button" class="pixel-btn pixel-btn--yellow font-bold text-xs" onclick="provisionQaFleet('fleet12');">
+                <span>⚡ Provision 12 QA Personas &amp; Intertwine @wasson</span>
+              </button>
+              <button type="button" class="pixel-btn font-bold text-xs" onclick="provisionQaFleet('load20');">
+                <span>Provision 20-Agent Load Fleet</span>
+              </button>
+              {% if qaFleet and qaFleet.length > 0 %}
+                <a href="/api/admin/qa-fleet/export-sessions" class="pixel-btn pixel-btn--green font-bold text-xs">
+                  <span>⬇️ Export qa-sessions.json ({{ qaFleet.length }} Agents)</span>
+                </a>
+              {% endif %}
+              <a href="/api/admin/db/snapshot" class="pixel-btn pixel-btn--cyan font-bold text-xs" title="Download production database snapshot to sync locally">
+                <span>💾 Download DB Snapshot (db-snapshot.json)</span>
+              </a>
+              {% if qaFleet and qaFleet.length > 0 %}
+                <button type="button" id="btnPurgeQaPosts" class="pixel-btn text-xs" onclick="purgeQaPosts(this);">
+                  <span>Purge QA Test Posts</span>
+                </button>
+              {% endif %}
+            </div>
+
+            <!-- QA Fleet Table -->
+            <div class="sysop-table-wrapper" tabindex="0" role="region" aria-label="QA Test Fleet Accounts">
+              <table class="sysop-table">
+                <thead>
+                  <tr>
+                    <th scope="col">QA Persona</th>
+                    <th scope="col">Mounted Static Sites &amp; API Keys</th>
+                    <th scope="col">QA Posts</th>
+                    <th scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if not qaFleet or qaFleet.length == 0 %}
+                    <tr>
+                      <td colspan="4" class="text-center p-3 text-muted font-mono text-xs">
+                        No QA test accounts provisioned yet. Click <strong>[Provision 12 QA Personas]</strong> above to create <code>@qa_alice</code> (Multi-Site Neocities), <code>@qa_bob</code> (Nekoweb), <code>@qa_headless</code> (JSON API), <code>@qa_friend</code>, and <code>@qa_surfer</code>.
+                      </td>
+                    </tr>
+                  {% else %}
+                    {% for qa in qaFleet %}
+                      <tr>
+                        <th scope="row">
+                          <div class="flex items-center gap-2">
+                            <img src="{{ qa.avatarPath or '/icons/default-avatar.svg' }}" alt="@{{ qa.handle }}" class="w-8 h-8 rounded-full border border-main object-cover bg-black shrink-0" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';" />
+                            <div class="min-w-0">
+                              <div class="font-bold text-xs font-mono">@{{ qa.handle }} <span class="text-3xs text-muted">[#{{ qa.uin }}]</span></div>
+                              <div class="text-3xs text-muted font-normal truncate max-w-xs" title="{{ qa.description or qa.statusMessage }}">{{ qa.description or qa.statusMessage }}</div>
+                            </div>
+                          </div>
+                        </th>
+                        <td>
+                          <div class="flex flex-col gap-1.5">
+                            {% for s in qa.sites %}
+                              <div class="flex flex-wrap items-center justify-between gap-2 p-1.5 border border-dashed">
+                                <div class="font-mono text-3xs">
+                                  <span class="font-bold uppercase">[{{ s.deploymentType }}]</span>
+                                  <span class="font-bold">{{ s.name }}</span>
+                                  <span class="text-muted">(/{{ s.slug }})</span>
+                                  — <a href="{{ s.siteUrl }}" target="_blank" class="underline">{{ s.siteUrl }}</a>
+                                  <span class="text-muted">(path: /{{ s.deployPath }})</span>
+                                  {% if not s.buildHtml %}
+                                    <span class="sysop-badge sysop-badge--online">HEADLESS JSON</span>
+                                  {% endif %}
+                                  {% if s.hasApiKey %}
+                                    <span class="sysop-badge sysop-badge--active">KEY SAVED ({{ s.maskedApiKey }})</span>
+                                  {% elif s.deploymentType != 'none' %}
+                                    <span class="sysop-badge sysop-badge--banned">[!] NO API KEY</span>
+                                  {% else %}
+                                    <span class="sysop-badge">SANDBOX</span>
+                                  {% endif %}
+                                </div>
+                                <button
+                                  type="button"
+                                  class="pixel-btn pixel-btn--sm text-3xs font-bold"
+                                  data-user-id="{{ qa.id }}"
+                                  data-handle="{{ qa.handle }}"
+                                  data-site-id="{{ s.id }}"
+                                  data-site-name="{{ s.name }}"
+                                  data-site-slug="{{ s.slug }}"
+                                  data-deploy-type="{{ s.deploymentType }}"
+                                  data-site-url="{{ s.siteUrl }}"
+                                  data-deploy-path="{{ s.deployPath }}"
+                                  data-build-html="{{ 'true' if s.buildHtml else 'false' }}"
+                                  data-auto-deploy="{{ 'true' if s.autoDeploy else 'false' }}"
+                                  onclick="openQaSiteModalFromDataset(this);"
+                                >
+                                  Edit Site / Key
+                                </button>
+                              </div>
+                            {% endfor %}
+                          </div>
+                        </td>
+                        <td>
+                          <span class="font-bold font-mono text-xs">{{ qa.postCount }}</span>
+                        </td>
+                        <td>
                           <button
                             type="button"
                             class="pixel-btn pixel-btn--sm text-3xs font-bold"
                             data-user-id="{{ qa.id }}"
                             data-handle="{{ qa.handle }}"
-                            data-site-id="{{ s.id }}"
-                            data-site-name="{{ s.name }}"
-                            data-site-slug="{{ s.slug }}"
-                            data-deploy-type="{{ s.deploymentType }}"
-                            data-site-url="{{ s.siteUrl }}"
-                            data-deploy-path="{{ s.deployPath }}"
-                            data-build-html="{{ 'true' if s.buildHtml else 'false' }}"
-                            data-auto-deploy="{{ 'true' if s.autoDeploy else 'false' }}"
+                            data-site-id=""
+                            data-site-name=""
+                            data-site-slug="site-{{ qa.sites.length + 1 }}"
+                            data-deploy-type="neocities"
+                            data-site-url="https://{{ qa.handle }}-2.neocities.org"
+                            data-deploy-path="neogram"
+                            data-build-html="true"
+                            data-auto-deploy="true"
                             onclick="openQaSiteModalFromDataset(this);"
                           >
-                            Edit Site / Key
+                            + Add Site
                           </button>
-                        </div>
-                      {% endfor %}
-                    </div>
-                  </td>
-                  <td>
-                    <span class="font-bold font-mono text-xs">{{ qa.postCount }}</span>
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      class="pixel-btn pixel-btn--sm text-3xs font-bold"
-                      data-user-id="{{ qa.id }}"
-                      data-handle="{{ qa.handle }}"
-                      data-site-id=""
-                      data-site-name=""
-                      data-site-slug="site-{{ qa.sites.length + 1 }}"
-                      data-deploy-type="neocities"
-                      data-site-url="https://{{ qa.handle }}-2.neocities.org"
-                      data-deploy-path="neogram"
-                      data-build-html="true"
-                      data-auto-deploy="true"
-                      onclick="openQaSiteModalFromDataset(this);"
-                    >
-                      + Add Site
-                    </button>
-                  </td>
-                </tr>
-              {% endfor %}
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- 4. Terminal Marquee Announcement Controller -->
-  <div class="pixel-box mb-4">
-    <div class="window-header flex justify-between items-center">
-      <span class="font-bold text-xs">[:&gt; MARQUEE_BROADCAST_CONTROLLER.CFG]</span>
-      <span class="text-3xs text-muted">Top Workstation Ticker</span>
-    </div>
-    <div class="p-3">
-      <p class="text-xs font-mono mb-2 text-muted">
-        Modify the top scrolling announcement ticker in real-time. Broadcasts across the workstation header without redeploying the server.
-      </p>
-
-      <form id="marqueeForm" onsubmit="updateMarqueeTicker(event);">
-        <div class="mb-2">
-          <label for="marqueeTextInput" class="block font-mono text-xs font-bold mb-1">
-            Announcement Ticker Text:
-          </label>
-          <textarea
-            id="marqueeTextInput"
-            name="text"
-            rows="2"
-            maxlength="500"
-            class="retro-input text-xs"
-            oninput="handleMarqueeInput(this);"
-          >{{ currentTicker }}</textarea>
-          <div class="flex justify-between items-center mt-1 text-3xs font-mono text-muted">
-            <span>Supports ASCII uppercase characters, retro symbols, and system prompts (:&gt;).</span>
-            <span id="marqueeCharCount">{{ (currentTicker | default('')).length }} / 500 characters</span>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+      </div>
 
-        <!-- Live Simulation Preview -->
-        <div class="mb-3">
-          <div class="font-bold font-mono text-3xs text-muted uppercase mb-1">Live Preview Simulation:</div>
-          <div class="terminal-marquee-bar border">
-            <div class="animate-marquee font-mono text-xs" id="marqueePreview">
-              {{ currentTicker }}
+      <!-- ============================================================
+           SUB-PAGE 5: MARQUEE BROADCAST CONTROLLER
+           ============================================================ -->
+      <div id="adminSubPane-marquee" class="hidden">
+        <!-- Top Helper Guide -->
+        <div class="sysop-guide">
+          <div class="sysop-guide__title">
+            <span>[:&gt; MODULE_05 // MARQUEE_TICKER_BROADCAST.HLP]</span>
+            <span class="text-prompt font-mono text-3xs">HEADER_BROADCAST</span>
+          </div>
+          <p class="sysop-guide__desc">
+            Controls the scrolling green phosphor banner at the very top of the Neogram workstation across all authenticated and public views.
+          </p>
+          <div class="sysop-guide__grid">
+            <div class="sysop-guide__item">
+              <strong>Zero-Downtime Broadcast</strong>
+              Saving updates the <code>system_settings</code> table in PostgreSQL and immediately updates the live header ticker without restarting Node.js or rebuilding static sites.
+            </div>
+            <div class="sysop-guide__item">
+              <strong>Formatting &amp; Reset</strong>
+              Up to 500 ASCII characters. Use <code>//</code> or <code>[:&gt;]</code> to separate announcements, or click <strong>Reset Default</strong> to restore the standard workstation banner.
             </div>
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
-          <button type="submit" id="btnSaveMarquee" class="pixel-btn pixel-btn--yellow font-bold text-xs">
-            <span>Broadcast to Cyberspace</span>
-          </button>
-          <button type="button" class="pixel-btn text-xs" onclick="resetMarqueeDefault();">
-            <span>↺</span> <span>Reset Default</span>
-          </button>
-          <span id="marqueeStatusAlert" class="font-mono text-xs text-prompt hidden font-bold"></span>
-        </div>
-      </form>
-    </div>
-  </div>
+        <!-- Terminal Marquee Announcement Controller -->
+        <div class="pixel-box mb-4">
+          <div class="window-header flex justify-between items-center">
+            <span class="font-bold text-xs">[:&gt; MARQUEE_BROADCAST_CONTROLLER.CFG]</span>
+            <span class="text-3xs text-muted">Top Workstation Ticker</span>
+          </div>
+          <div class="p-3">
+            <p class="text-xs font-mono mb-2 text-muted">
+              Modify the top scrolling announcement ticker in real-time. Broadcasts across the workstation header without redeploying the server.
+            </p>
 
-  <!-- 5. Station Node Moderation Ledger -->
-  <div class="pixel-box mb-4">
-    <div class="window-header flex justify-between items-center">
-      <div class="flex items-center gap-2">
-        <span class="font-bold text-xs">[:&gt; STATION_NODES_MODERATION.LEDGER]</span>
-      </div>
-      <span class="sysop-badge sysop-badge--online">{{ users.length }} Nodes Loaded</span>
-    </div>
-    <div class="p-3">
-      <!-- Search & Status Filter Controls -->
-      <div class="flex flex-col sm:flex-row justify-between items-center gap-2 mb-3">
-        <div class="w-full sm:w-80">
-          <input
-            type="search"
-            id="nodeSearchInput"
-            placeholder="Search handle, email, or UIN..."
-            class="retro-input text-xs"
-            oninput="filterNodesTable();"
-          />
-        </div>
-        <div class="flex gap-1 w-full sm:w-auto">
-          <button
-            type="button"
-            class="pixel-btn pixel-btn--sm pixel-btn--active font-mono text-xs filter-btn"
-            data-filter="all"
-            onclick="setNodeFilter('all', this);"
-          >
-            All ({{ users.length }})
-          </button>
-          <button
-            type="button"
-            class="pixel-btn pixel-btn--sm font-mono text-xs filter-btn"
-            data-filter="active"
-            onclick="setNodeFilter('active', this);"
-          >
-            Active ({{ users.length - telemetry.totalBanned }})
-          </button>
-          <button
-            type="button"
-            class="pixel-btn pixel-btn--sm font-mono text-xs filter-btn"
-            data-filter="banned"
-            onclick="setNodeFilter('banned', this);"
-          >
-            Soft-Banned ({{ telemetry.totalBanned }})
-          </button>
-        </div>
-      </div>
+            <form id="marqueeForm" onsubmit="updateMarqueeTicker(event);">
+              <div class="mb-2">
+                <label for="marqueeTextInput" class="block font-mono text-xs font-bold mb-1">
+                  Announcement Ticker Text:
+                </label>
+                <textarea
+                  id="marqueeTextInput"
+                  name="text"
+                  rows="2"
+                  maxlength="500"
+                  class="retro-input text-xs"
+                  oninput="handleMarqueeInput(this);"
+                >{{ currentTicker }}</textarea>
+                <div class="flex justify-between items-center mt-1 text-3xs font-mono text-muted">
+                  <span>Supports ASCII uppercase characters, retro symbols, and system prompts (:&gt;).</span>
+                  <span id="marqueeCharCount">{{ (currentTicker | default('')).length }} / 500 characters</span>
+                </div>
+              </div>
 
-      <!-- Moderation Table (Container Query Stacked on Mobile) -->
-      <div
-        class="sysop-table-wrapper"
-        tabindex="0"
-        role="region"
-        aria-label="Station Nodes Moderation Roster"
-      >
-        <table class="sysop-table" id="nodesTable">
-          <thead>
-            <tr>
-              <th scope="col">Station Node</th>
-              <th scope="col">Contact Identity</th>
-              <th scope="col">Target Host</th>
-              <th scope="col">Posts</th>
-              <th scope="col">Registered</th>
-              <th scope="col">Status</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="nodesTableBody">
-            {% for u in users %}
-              <tr
-                class="node-row {% if u.isBanned %}sysop-table__row--banned{% endif %}"
-                data-handle="{{ u.handle | lower }}"
-                data-email="{{ u.email | lower }}"
-                data-uin="{{ u.uin }}"
-                data-banned="{{ 'true' if u.isBanned else 'false' }}"
-                id="userRow_{{ u.id }}"
-              >
-                <!-- Row Header (Sticky on Desktop, Stacked Header on Mobile) -->
-                <th scope="row">
-                  <div class="flex items-center gap-2">
-                    <img src="{{ u.avatarPath or '/icons/default-avatar.svg' }}" alt="@{{ u.handle }}" class="w-7 h-7 rounded-full border border-main object-cover bg-black shrink-0" onerror="this.onerror=null;this.src='/icons/default-avatar.svg';" />
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-1.5">
-                        {% if u.isOnline %}
-                          <span class="pipeline-led" title="Operator online right now" style="width: 8px; height: 8px; margin-right: 0;"></span>
-                        {% endif %}
-                        <a href="/user/{{ u.uin }}" target="_blank" class="font-bold text-mac hover:underline">
-                          @{{ u.handle }}
-                        </a>
-                        <span class="text-3xs text-muted font-normal">[#{{ u.uin }}]</span>
-                      </div>
-                      {% if u.description or u.statusMessage %}
-                        <div class="text-3xs text-muted truncate max-w-xs font-normal" title="{{ u.description or u.statusMessage }}">{{ u.description or u.statusMessage }}</div>
-                      {% endif %}
-                    </div>
+              <!-- Live Simulation Preview -->
+              <div class="mb-3">
+                <div class="font-bold font-mono text-3xs text-muted uppercase mb-1">Live Preview Simulation:</div>
+                <div class="terminal-marquee-bar border">
+                  <div class="animate-marquee font-mono text-xs" id="marqueePreview">
+                    {{ currentTicker }}
                   </div>
-                </th>
-                <td>
-                  <span class="font-mono text-xs">{{ u.email }}</span>
-                </td>
-                <td>
-                  <span class="uppercase font-bold text-3xs">{{ u.deploymentType | default('none') }}</span>
-                  <span class="text-3xs text-muted">({{ u.siteCount }} site{% if u.siteCount != 1 %}s{% endif %})</span>
-                </td>
-                <td>
-                  <span class="font-bold">{{ u.postCount }}</span>
-                </td>
-                <td>
-                  <span class="text-3xs">{{ u.createdAt | formatDate }}</span>
-                </td>
-                <td>
-                  {% if u.isBanned %}
-                    <span class="sysop-badge sysop-badge--banned" title="Banned on {{ u.bannedAt | formatDate }}: {{ u.banReason }}">
-                      BANNED
-                    </span>
-                    {% if u.banReason %}
-                      <div class="text-3xs text-danger italic truncate max-w-xs">{{ u.banReason }}</div>
-                    {% endif %}
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button type="submit" id="btnSaveMarquee" class="pixel-btn pixel-btn--yellow font-bold text-xs">
+                  <span>Broadcast to Cyberspace</span>
+                </button>
+                <button type="button" class="pixel-btn text-xs" onclick="resetMarqueeDefault();">
+                  <span>↺</span> <span>Reset Default</span>
+                </button>
+                <span id="marqueeStatusAlert" class="font-mono text-xs text-prompt hidden font-bold"></span>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           SUB-PAGE 6: SYSOP SECURITY AUDIT LEDGER
+           ============================================================ -->
+      <div id="adminSubPane-audit" class="hidden">
+        <!-- Top Helper Guide -->
+        <div class="sysop-guide">
+          <div class="sysop-guide__title">
+            <span>[:&gt; MODULE_06 // IMMUTABLE_AUDIT_LEDGER.HLP]</span>
+            <span class="text-prompt font-mono text-3xs">SYSOP_MUTATION_TRAIL</span>
+          </div>
+          <p class="sysop-guide__desc">
+            Append-only security log (<code>admin_audit_logs</code>) recording the most recent 25 administrative mutations performed by whitelisted SysOp operators.
+          </p>
+          <div class="sysop-guide__grid">
+            <div class="sysop-guide__item">
+              <strong>Tracked Mutations</strong>
+              Logs <code>BAN_USER</code>, <code>UNBAN_USER</code>, <code>UPDATE_MARQUEE</code>, <code>FLEET_SWEEP_START</code>, <code>FLEET_SWEEP_CANCEL</code>, <code>PROVISION_QA_FLEET</code>, <code>PURGE_QA_POSTS</code>, and <code>UPDATE_QA_SITE</code>.
+            </div>
+            <div class="sysop-guide__item">
+              <strong>Action Badges</strong>
+              Red badges highlight account suspensions (<code>BAN_USER</code>); green badges indicate standard configuration, sweep, or reinstatement operations.
+            </div>
+            <div class="sysop-guide__item">
+              <strong>Details Payload</strong>
+              Displays the JSON metadata snapshot (target handle/UIN, ban reason, sweep mode, or modified site slug) alongside the operator's IP.
+            </div>
+          </div>
+        </div>
+
+        <!-- SysOp Security Audit Ledger -->
+        <div class="pixel-box">
+          <div class="window-header flex justify-between items-center">
+            <span class="font-bold text-xs">[:&gt; SYSOP_AUDIT_LOG.LEDGER]</span>
+            <span class="text-3xs text-muted">Immutable Security Audit Trail</span>
+          </div>
+          <div class="p-3">
+            <div
+              class="sysop-table-wrapper"
+              tabindex="0"
+              role="region"
+              aria-label="SysOp Security Audit Ledger"
+              style="max-block-size: 480px;"
+            >
+              <table class="sysop-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Timestamp</th>
+                    <th scope="col">Operator</th>
+                    <th scope="col">Action</th>
+                    <th scope="col">Target ID</th>
+                    <th scope="col">Details</th>
+                    <th scope="col">IP Address</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if auditLogs.length == 0 %}
+                    <tr>
+                      <td colspan="6" class="text-center p-3 text-muted">No SysOp administrative actions recorded yet.</td>
+                    </tr>
                   {% else %}
-                    <span class="sysop-badge sysop-badge--active"><span class="status-led status-led--online"></span> ACTIVE</span>
+                    {% for log in auditLogs %}
+                      <tr>
+                        <th scope="row">{{ log.createdAt | formatDate }}</th>
+                        <td>{{ log.adminEmail }}</td>
+                        <td>
+                          <span class="sysop-badge {% if 'BAN' in log.action %}sysop-badge--banned{% else %}sysop-badge--active{% endif %}">
+                            {{ log.action }}
+                          </span>
+                        </td>
+                        <td>{{ log.targetId | default('-') }}</td>
+                        <td class="text-3xs font-mono max-w-xs truncate">
+                          {% if log.details %}
+                            {{ log.details | dump }}
+                          {% else %}
+                            -
+                          {% endif %}
+                        </td>
+                        <td>{{ log.ipAddress | default('127.0.0.1') }}</td>
+                      </tr>
+                    {% endfor %}
                   {% endif %}
-                </td>
-                <td>
-                  <div class="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      class="pixel-btn pixel-btn--sm text-3xs font-bold"
-                      onclick="promptEditUserBio('{{ u.id }}', '{{ u.handle }}', '{{ (u.description or u.statusMessage or '') | escape }}');"
-                      title="Edit station bio/description"
-                    >
-                      Bio
-                    </button>
-                    {% if u.isBanned %}
-                      <button
-                        type="button"
-                        class="pixel-btn pixel-btn--green pixel-btn--sm text-3xs font-bold"
-                        onclick="reinstateUser('{{ u.id }}', '{{ u.handle }}');"
-                      >
-                        ✓ Reinstate
-                      </button>
-                    {% else %}
-                      {% if u.id == adminUser.id %}
-                        <span class="text-3xs text-muted italic">Self (SysOp)</span>
-                      {% else %}
-                        <button
-                          type="button"
-                          class="pixel-btn pixel-btn--danger pixel-btn--sm text-3xs font-bold"
-                          onclick="promptSoftBanUser('{{ u.id }}', '{{ u.handle }}');"
-                        >
-                          Soft Ban
-                        </button>
-                      {% endif %}
-                    {% endif %}
-                  </div>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- 6. SysOp Security Audit Ledger -->
-  <div class="pixel-box">
-    <div class="window-header flex justify-between items-center">
-      <span class="font-bold text-xs">[:&gt; SYSOP_AUDIT_LOG.LEDGER]</span>
-      <span class="text-3xs text-muted">Immutable Security Audit Trail</span>
-    </div>
-    <div class="p-3">
-      <div
-        class="sysop-table-wrapper"
-        tabindex="0"
-        role="region"
-        aria-label="SysOp Security Audit Ledger"
-        style="max-block-size: 260px;"
-      >
-        <table class="sysop-table">
-          <thead>
-            <tr>
-              <th scope="col">Timestamp</th>
-              <th scope="col">Operator</th>
-              <th scope="col">Action</th>
-              <th scope="col">Target ID</th>
-              <th scope="col">Details</th>
-              <th scope="col">IP Address</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% if auditLogs.length == 0 %}
-              <tr>
-                <td colspan="6" class="text-center p-3 text-muted">No SysOp administrative actions recorded yet.</td>
-              </tr>
-            {% else %}
-              {% for log in auditLogs %}
-                <tr>
-                  <th scope="row">{{ log.createdAt | formatDate }}</th>
-                  <td>{{ log.adminEmail }}</td>
-                  <td>
-                    <span class="sysop-badge {% if 'BAN' in log.action %}sysop-badge--banned{% else %}sysop-badge--active{% endif %}">
-                      {{ log.action }}
-                    </span>
-                  </td>
-                  <td>{{ log.targetId | default('-') }}</td>
-                  <td class="text-3xs font-mono max-w-xs truncate">
-                    {% if log.details %}
-                      {{ log.details | dump }}
-                    {% else %}
-                      -
-                    {% endif %}
-                  </td>
-                  <td>{{ log.ipAddress | default('127.0.0.1') }}</td>
-                </tr>
-              {% endfor %}
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+    </div><!-- /.workstation-subpane -->
+  </div><!-- /.workstation-sublayout -->
 
 </main>
 
@@ -806,6 +1148,51 @@
 <script>
   let currentActiveFilter = 'all';
 
+  // --- SysOp Sub-Page Tab Controller ---
+  var currentAdminSubTab = 'telemetry';
+
+  function switchAdminSubTab(subTab, skipHash) {
+    var valid = ['telemetry', 'pipeline', 'moderation', 'qa-fleet', 'marquee', 'audit'];
+    if (valid.indexOf(subTab) === -1) subTab = 'telemetry';
+    currentAdminSubTab = subTab;
+
+    valid.forEach(function(key) {
+      var btn = document.getElementById('adminSubBtn-' + key);
+      var pane = document.getElementById('adminSubPane-' + key);
+      if (btn) {
+        if (key === subTab) {
+          btn.classList.add('is-active');
+          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+        } else {
+          btn.classList.remove('is-active');
+        }
+      }
+      if (pane) {
+        if (key === subTab) pane.classList.remove('hidden');
+        else pane.classList.add('hidden');
+      }
+    });
+
+    if (!skipHash) {
+      var hashStr = '#' + subTab;
+      if (window.location.hash !== hashStr) {
+        if (history.pushState) history.pushState(null, '', hashStr);
+        else window.location.hash = hashStr;
+      }
+    }
+  }
+  window.switchAdminSubTab = switchAdminSubTab;
+
+  function syncAdminTabFromHash() {
+    var rawHash = (window.location.hash || '').replace(/^#\/?/, '').replace(/^admin\//, '');
+    if (rawHash) {
+      switchAdminSubTab(rawHash, true);
+    }
+  }
+  window.addEventListener('DOMContentLoaded', syncAdminTabFromHash);
+  window.addEventListener('hashchange', syncAdminTabFromHash);
+
+  // --- Marquee Controller Handlers ---
   function handleMarqueeInput(textarea) {
     const val = textarea.value;
     document.getElementById('marqueeCharCount').textContent = val.length + ' / 500 characters';
@@ -860,6 +1247,7 @@
     }
   }
 
+  // --- Pipeline Telemetry & Fleet Sweep Handlers ---
   async function pollPipelineTelemetry() {
     const btn = document.getElementById('btnRefreshPipeline');
     if (btn) btn.textContent = '↻ Polling...';
@@ -1041,6 +1429,7 @@
     }
   }
 
+  // --- Moderation Handlers ---
   function promptSoftBanUser(userId, handle) {
     if (window.retroAudio) retroAudio.playClick();
     document.getElementById('banTargetUserId').value = userId;
@@ -1169,6 +1558,7 @@
     });
   }
 
+  // --- QA Fleet Handlers ---
   async function provisionQaFleet(mode) {
     try {
       if (window.retroAudio) retroAudio.playClick();

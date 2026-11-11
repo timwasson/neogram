@@ -477,3 +477,82 @@
     gap: 10px;
   }
 }
+
+/* SysOp Sub-Page Helper Guide Box */
+.sysop-guide {
+  background: #000000;
+  border: 2px solid var(--border-main, #000);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+  color: var(--text-main, #e6edf3);
+}
+
+.sysop-guide__title {
+  color: var(--accent-prompt, #39ff14);
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sysop-guide__desc {
+  color: var(--text-muted, #9ca3af);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sysop-guide__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px dashed var(--border-main, #384252);
+}
+
+.sysop-guide__item {
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--text-muted, #9ca3af);
+
+  strong {
+    color: #ffffff;
+    display: block;
+    margin-bottom: 0.1rem;
+  }
+}
+
+/* Telemetry Distribution Bar Meter */
+.sysop-dist-row {
+  padding: 0.45rem 0;
+  border-bottom: 1px dashed var(--border-muted, #21262d);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.sysop-dist-bar {
+  width: 100%;
+  height: 8px;
+  background: #000000;
+  border: 1px solid var(--border-main, #384252);
+  margin-top: 0.25rem;
+  overflow: hidden;
+}
+
+.sysop-dist-bar__fill {
+  height: 100%;
+  background: var(--accent-prompt, #39ff14);
+  transition: width 0.3s ease;
+
+  &--cyan { background: var(--accent-mac, #58a6ff); }
+  &--amber { background: #ffaa00; }
+}
+
