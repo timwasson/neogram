@@ -257,17 +257,41 @@ function mapFeedPosts(data: UserFeedPayload, friend: FriendTarget): FriendFeedPo
       livePhotoUrl = safeHttpUrl(livePhotoUrl.replace(/\/photos\/photos\//g, '/photos/'));
     }
 
-    // Drop identity claims and coerce types of remote fields that are rendered client-side
-    const { userId: _remoteUserId, siteId: _remoteSiteId, ...rest } = p as any;
+    // Remote feed.json is attacker-controlled: copy an explicit allowlist of fields, each coerced to
+    // the type and size consumers expect (no identity claims, no arbitrary keys, no nested blobs).
+    const raw = p as any;
+    const str = (v: unknown, max: number): string => (typeof v === 'string' ? v.slice(0, max) : '');
+    const optStr = (v: unknown, max: number): string | null => (typeof v === 'string' && v.trim() ? v.slice(0, max) : null);
+    const count = (v: unknown): number => (Number.isFinite(Number(v)) ? Math.max(0, Math.trunc(Number(v))) : 0);
+    const commentsCount = count(raw.commentsCount ?? raw.commentCount ?? (Array.isArray(raw.comments) ? raw.comments.length : 0));
+    const photos = Array.isArray(raw.photos)
+      ? raw.photos.slice(0, 10).map((ph: any) => ({
+          imageUrl: safeHttpUrl(ph?.imageUrl) || safeHttpUrl(ph?.imagePath),
+          thumbnailUrl: safeHttpUrl(ph?.thumbnailUrl) || safeHttpUrl(ph?.thumbnailPath),
+        })).filter((ph: any) => ph.imageUrl)
+      : undefined;
+    const createdAtMs = Date.parse(String(raw.createdAt || ''));
     return {
-      ...rest,
-      id: String(p.id ?? ''),
-      likes: Number.isFinite(Number(p.likes)) ? Math.max(0, Math.trunc(Number(p.likes))) : 0,
+      id: str(raw.id, 64),
+      caption: str(raw.caption, 1000),
+      mood: optStr(raw.mood, 50),
+      webring: optStr(raw.webring, 50),
+      location: optStr(raw.location, 100),
+      siteName: optStr(raw.siteName, 100) ?? undefined,
+      siteSlug: optStr(raw.siteSlug, 60) ?? undefined,
+      createdAt: Number.isFinite(createdAtMs) ? new Date(createdAtMs).toISOString() : new Date(0).toISOString(),
+      commentsCount,
+      commentCount: commentsCount,
+      ...(photos ? { photos } : {}),
+      likes: count(raw.likes),
       imageUrl,
       thumbnailUrl,
       imagePath: imageUrl,
       thumbnailPath: thumbnailUrl,
-      filter: p.filter || (p as any).filterApplied || 'none',
+      // Rendered as a CSS class name: only the known shader names are accepted
+      filter: ['none', 'crt', 'sepia', 'vga', 'gameboy', 'cyberpunk'].includes(String(p.filter || raw.filterApplied || '').toLowerCase())
+        ? String(p.filter || raw.filterApplied).toLowerCase()
+        : 'none',
       author,
       authorHandle: author,
       authorUin,

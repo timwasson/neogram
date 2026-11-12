@@ -807,9 +807,9 @@ async function handleClientMessage(sender: ActiveSession, msg: any) {
 
       // Find recipient user in DB
       const recipientRes = await query(
-        `SELECT id, COALESCE(handle, split_part(email, '@', 1)) as handle
+        `SELECT id, handle
          FROM users
-         WHERE handle = $1 OR split_part(email, '@', 1) = $1 OR id::text = $1`,
+         WHERE handle = $1 OR id::text = $1`,
         [to]
       );
 
@@ -970,7 +970,7 @@ async function handleClientMessage(sender: ActiveSession, msg: any) {
       const { to } = msg;
       if (!to) return;
       const recipientRes = await query(
-        `SELECT id FROM users WHERE handle = $1 OR split_part(email, '@', 1) = $1 OR id::text = $1`,
+        `SELECT id FROM users WHERE handle = $1 OR id::text = $1`,
         [to]
       );
       if (recipientRes.rows.length > 0) {

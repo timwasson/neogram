@@ -772,7 +772,7 @@
 
       if (msgs.length === 0) {
         this.imTranscript.innerHTML = '<div class="aim-window__msg-line aim-window__msg-line--sys">' +
-          '[:> AIM SYSTEM] Conversation opened with @' + buddy.handle + '. Local-first zero liability chat.' +
+          '[:> AIM SYSTEM] Conversation opened with @' + this.escapeHtml(buddy.handle) + '. Local-first zero liability chat.' +
         '</div>';
       } else {
         var self = this;
@@ -827,10 +827,15 @@
       this.imTranscript.scrollTop = this.imTranscript.scrollHeight;
     },
 
+    // Full escaper: also used inside quoted attributes (data-handle="..."), so quotes must be escaped
+    // too (the old textContent->innerHTML trick only escapes & < >).
     escapeHtml: function (str) {
-      var div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     },
 
     setBaud: function (idx, label) {

@@ -372,7 +372,7 @@
         this.pendingSender = fromHandle;
         if (this.dockBtn) {
           this.dockBtn.classList.add('aim-dock-btn--alert');
-          this.dockBtn.innerHTML = '<span>[!] New IM from @' + fromHandle + '</span>';
+          this.dockBtn.innerHTML = '<span>[!] New IM from @' + this.escapeHtml(fromHandle) + '</span>';
         }
       }
 
@@ -789,7 +789,7 @@
 
       if (history.length === 0) {
         this.imTranscriptEl.innerHTML = '<div class="aim-window__msg-line aim-window__msg-line--sys">' +
-          '[:> NIM SYSTEM] Conversation opened with @' + buddy.handle + '. Messages are stored locally on your device.' +
+          '[:> NIM SYSTEM] Conversation opened with @' + this.escapeHtml(buddy.handle) + '. Messages are stored locally on your device.' +
         '</div>';
       } else {
         var self = this;
@@ -835,10 +835,15 @@
       }
     },
 
+    // Full escaper: also used inside quoted attributes (data-handle="..."), so quotes must be escaped
+    // too (the old textContent->innerHTML trick only escapes & < >).
     escapeHtml: function (str) {
-      var div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     },
 
     _savedScrollY: 0,

@@ -45,9 +45,10 @@ export async function findUserByHandleOrId(identifier: string) {
     if (byUin.rows.length > 0) return byUin.rows[0];
   }
 
-  // 3. Lookup by handle or email prefix
+  // 3. Lookup by handle. (Never by email local-part: public routes resolve identifiers, so that
+  //    turned every profile / counter / pager URL into an oracle for "is john.smith@... a member?")
   const cleanHandle = cleanId.replace(/^@/, '').toLowerCase();
-  const byHandle = await query('SELECT * FROM users WHERE LOWER(handle) = $1 OR LOWER(split_part(email, \'@\', 1)) = $1', [cleanHandle]);
+  const byHandle = await query('SELECT * FROM users WHERE LOWER(handle) = $1', [cleanHandle]);
   if (byHandle.rows.length > 0) return byHandle.rows[0];
 
   return null;

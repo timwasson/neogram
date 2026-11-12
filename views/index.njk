@@ -3543,10 +3543,10 @@
         actions += '<a href="' + stationUrl + '" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">View Station Profile ↗</a>';
         actions += '<button type="button" onclick="switchDashboardTab(\'settings/hosting\', event)" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs">Connect Neocities</button>';
       } else if (photoUrl) {
-        actions += '<a href="' + photoUrl + '" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">View Photo on Site ↗</a>';
-        actions += '<button type="button" onclick="navigator.clipboard?.writeText(\'' + photoUrl + '\'); this.innerHTML=\'<span>✓ Copied Link!</span>\';" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs">Copy Photo Link</button>';
+        actions += '<a href="' + escapeHtml(sanitizeUrl(photoUrl)) + '" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">View Photo on Site ↗</a>';
+        actions += '<button type="button" data-copy-url="' + escapeHtml(sanitizeUrl(photoUrl)) + '" onclick="navigator.clipboard?.writeText(this.dataset.copyUrl); this.innerHTML=\'<span>✓ Copied Link!</span>\';" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs">Copy Photo Link</button>';
       } else if (galleryUrl) {
-        actions += '<a href="' + galleryUrl + '" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">View Gallery on Site ↗</a>';
+        actions += '<a href="' + escapeHtml(sanitizeUrl(galleryUrl)) + '" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">View Gallery on Site ↗</a>';
       }
       actions += '<a href="/#edit" onclick="window.location.href=\'/#edit\'; window.location.reload();" class="pixel-btn pixel-btn--sm text-xs font-bold">Open Archive →</a>';
       actions += '</div>';
@@ -4270,6 +4270,12 @@
       .replace(/'/g, '&#039;');
   }
 
+  // Numeric ids (UIN, visitor number) from remote JSON ledgers: digits only, never raw markup
+  function ngDigits(v) {
+    var s = String(v == null ? '' : v);
+    return /^\d{1,12}$/.test(s) ? s : '';
+  }
+
   function sanitizeUrl(url) {
     if (!url) return '';
     var clean = String(url).trim();
@@ -4310,12 +4316,14 @@
         if (entry.isAnonymous) {
           authorHtml = '<span class="font-bold">' + escapeHtml(entry.visitorName) + '</span> <span class="text-muted text-3xs">[Guest]</span>';
         } else {
-          var uinBadge = entry.uin ? ' <span class="text-muted font-normal text-3xs">[#' + entry.uin + ']</span>' : '';
-          var profileTarget = entry.uin ? entry.uin : encodeURIComponent(entry.visitorName);
-          authorHtml = '<a href="/user/' + profileTarget + '" target="_blank" class="font-bold text-mac hover:underline">@' + escapeHtml(entry.visitorName) + '</a>' + uinBadge;
+          var entryUin = ngDigits(entry.uin);
+          var uinBadge = entryUin ? ' <span class="text-muted font-normal text-3xs">[#' + entryUin + ']</span>' : '';
+          var profileTarget = entryUin ? entryUin : encodeURIComponent(entry.visitorName || '');
+          authorHtml = '<a href="/user/' + escapeHtml(profileTarget) + '" target="_blank" class="font-bold text-mac hover:underline">@' + escapeHtml(entry.visitorName) + '</a>' + uinBadge;
         }
 
-        var visitorBadge = entry.visitorNumber ? ' <span class="text-prompt font-bold text-3xs">[Visitor #' + entry.visitorNumber + ']</span>' : '';
+        var visitorNum = ngDigits(entry.visitorNumber);
+        var visitorBadge = visitorNum && visitorNum !== '0' ? ' <span class="text-prompt font-bold text-3xs">[Visitor #' + visitorNum + ']</span>' : '';
 
         var metaParts = [];
         if (entry.visitorLocation && entry.visitorLocation !== 'Cyberspace') metaParts.push(escapeHtml(entry.visitorLocation));
@@ -4328,7 +4336,7 @@
               visitorBadge +
               metaStr +
             '</div>' +
-            '<button type="button" onclick="deleteGuestbookEntry(\'' + escapeHtml(entry.id) + '\', this)" class="text-crimson font-bold text-xs hover:underline" title="Delete signature">[Delete]</button>' +
+            '<button type="button" data-entry-id="' + escapeHtml(entry.id) + '" onclick="deleteGuestbookEntry(this.dataset.entryId, this)" class="text-crimson font-bold text-xs hover:underline" title="Delete signature">[Delete]</button>' +
           '</div>' + site +
           '<div class="whitespace-pre-wrap p-1 text-xs font-mono bg-window">"' + escapeHtml(entry.message) + '"</div>' +
         '</div>';
@@ -4414,9 +4422,9 @@
         if (u.isSelf) {
           actionBtn = '<span class="text-xs text-muted font-bold">[YOU]</span>';
         } else if (u.isFollowing) {
-          actionBtn = '<button type="button" onclick="toggleFollowUser(\'' + escapeHtml(u.handle) + '\', true)" class="pixel-btn pixel-btn--yellow text-xs py-0.5 px-2">✓ Friends</button>';
+          actionBtn = '<button type="button" data-handle="' + escapeHtml(u.handle) + '" onclick="toggleFollowUser(this.dataset.handle, true)" class="pixel-btn pixel-btn--yellow text-xs py-0.5 px-2">✓ Friends</button>';
         } else {
-          actionBtn = '<button type="button" onclick="toggleFollowUser(\'' + escapeHtml(u.handle) + '\', false)" class="pixel-btn text-xs py-0.5 px-2">+ Add Friend</button>';
+          actionBtn = '<button type="button" data-handle="' + escapeHtml(u.handle) + '" onclick="toggleFollowUser(this.dataset.handle, false)" class="pixel-btn text-xs py-0.5 px-2">+ Add Friend</button>';
         }
 
         var safeSite = sanitizeUrl(u.siteUrl);
@@ -5671,8 +5679,9 @@
         var card = document.createElement('div');
         card.className = 'retro-card p-2 text-xs flex flex-col gap-1 border border-main bg-window';
         card.id = 'comment-card-' + c.id;
-        var uinBadge = c.uin ? ' <span class="text-muted font-normal">[#' + c.uin + ']</span>' : '';
-        var profileUrl = '/user/' + (c.uin || c.userId || encodeURIComponent(c.author));
+        var commentUin = ngDigits(c.uin);
+        var uinBadge = commentUin ? ' <span class="text-muted font-normal">[#' + commentUin + ']</span>' : '';
+        var profileUrl = '/user/' + encodeURIComponent(commentUin || c.userId || c.author || '');
         var cleanSite = sanitizeUrl(c.siteUrl);
         var siteLink = cleanSite ? ' <a href="' + escapeHtml(cleanSite) + '" target="_blank" rel="noopener noreferrer" class="text-xs underline" title="Visit personal website">[Site ↗]</a>' : '';
         var timeStr = '';
@@ -5688,7 +5697,7 @@
           '  <div class="flex items-center gap-1 font-bold flex-wrap">' +
           '    <a href="' + escapeHtml(profileUrl) + '" target="_blank" class="text-mac underline" title="View profile on Neogram">@' + escapeHtml(c.author) + '</a>' + uinBadge + siteLink + timeStr +
           '  </div>' +
-          '  <button type="button" onclick="purgeComment(\'' + escapeHtml(c.id) + '\', this)" class="pixel-btn pixel-btn--sm pixel-btn--red font-bold text-xs py-0.5 px-2" title="Purge from static host">' +
+          '  <button type="button" data-comment-id="' + escapeHtml(c.id) + '" onclick="purgeComment(this.dataset.commentId, this)" class="pixel-btn pixel-btn--sm pixel-btn--red font-bold text-xs py-0.5 px-2" title="Purge from static host">' +
           '    <span>Purge</span>' +
           '  </button>' +
           '</div>' +

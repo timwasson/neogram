@@ -492,7 +492,8 @@ eleventyComputed:
         item.setAttribute('data-comment-id', c.id);
         var safeAuthor = escapeHtml(c.author);
         var safeText = escapeHtml(c.text);
-        var uinBadge = c.uin ? ' <span class="text-muted font-normal">[#' + c.uin + ']</span>' : '';
+        var commentUin = /^\d{1,12}$/.test(String(c.uin == null ? '' : c.uin)) ? String(c.uin) : '';
+        var uinBadge = commentUin ? ' <span class="text-muted font-normal">[#' + commentUin + ']</span>' : '';
         var isSafeUrl = c.siteUrl && /^https?:\/\//i.test(String(c.siteUrl).trim());
         var siteLinkHtml = isSafeUrl
           ? ' <a href="' + escapeHtml(String(c.siteUrl).trim()) + '" target="_blank" rel="noopener noreferrer" class="neogram-comments__site-link" title="Visit personal website">[Site ↗]</a>'

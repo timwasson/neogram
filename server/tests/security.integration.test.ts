@@ -1027,3 +1027,90 @@ describe('Admin & QA tooling guardrails', () => {
     assert.ok(foreign.status >= 400, "another user cannot edit alice's post");
   });
 });
+
+describe('Email local-part is never an identifier', () => {
+  test('profiles / chat status do not resolve by email prefix, and handles cannot be NULL', async () => {
+    const frank = await login(sb.base, 'frank.secret@test.local');
+    const rename = await fetch(`${sb.base}/api/settings/profile`, { method: 'POST', headers: bearer(frank.token), body: JSON.stringify({ handle: 'frank-public' }) });
+    assert.equal(rename.status, 200, await rename.clone().text());
+
+    assert.equal((await fetch(`${sb.base}/user/frank.secret`)).status, 404, 'email local-part must not resolve a profile');
+    assert.equal((await fetch(`${sb.base}/api/chat/status/frank.secret`, { headers: JSON_H })).status, 404);
+    assert.equal((await fetch(`${sb.base}/user/frank-public`)).status, 200, 'the public handle still resolves');
+
+    await assert.rejects(
+      q(`INSERT INTO users (email, handle) VALUES ('nohandle@test.local', NULL)`),
+      'users.handle is NOT NULL'
+    );
+  });
+});
+
+describe('Federated feed field allowlist', () => {
+  test('only known, type-coerced fields from a remote feed.json reach Neogram responses', async () => {
+    const { aggregateFederatedFriendsFeed } = await import('../services/federatedFriends');
+    const hostileFeed = {
+      version: '1',
+      user: { handle: 'impostor', uin: 1, avatarUrl: 'javascript:alert(1)' },
+      posts: [{
+        id: 'p-hostile',
+        userId: alice.userId,
+        siteId: 'victim-site',
+        caption: 'hi',
+        likes: '<img src=x onerror=alert(1)>',
+        filter: 'crt" onmouseover="alert(1)',
+        createdAt: 'not a date',
+        imageUrl: 'https://friend.example.test/uploads/images/a.webp',
+        photos: [{ imageUrl: 'javascript:alert(1)' }, { imageUrl: 'https://friend.example.test/uploads/images/b.webp' }],
+        comments: [{ author: 'x', text: '<script>alert(1)</script>' }],
+        __proto__evil: { polluted: true },
+        adminNote: 'should not be echoed',
+      }],
+    };
+    const mock = http.createServer((_req, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(hostileFeed));
+    });
+    await new Promise<void>((r) => mock.listen(0, '127.0.0.1', () => r()));
+    const port = (mock.address() as AddressInfo).port;
+    try {
+      const posts: any[] = await aggregateFederatedFriendsFeed(
+        [{ id: bob.userId, handle: bob.handle, uin: 4242, avatarPath: '', siteUrl: `http://127.0.0.1:${port}`, deployPath: '' } as any],
+        10
+      );
+      const post = posts.find((p) => p.id === 'p-hostile');
+      assert.ok(post, 'hostile post still listed (content is fine, fields are not)');
+      assert.equal(post.likes, 0);
+      assert.equal(post.filter, 'none');
+      assert.equal(post.author, bob.handle, 'identity comes from the local friend record');
+      assert.equal(post.authorUin, 4242);
+      for (const key of ['userId', 'siteId', 'comments', 'adminNote', '__proto__evil']) {
+        assert.equal(Object.prototype.hasOwnProperty.call(post, key), false, `${key} must not be copied`);
+      }
+      assert.deepEqual(post.photos.map((ph: any) => ph.imageUrl), ['https://friend.example.test/uploads/images/b.webp']);
+      assert.ok(!Number.isNaN(Date.parse(post.createdAt)));
+    } finally {
+      mock.close();
+    }
+  });
+});
+
+describe('Client-side sinks for handles and numeric ids', () => {
+  test('NIM clients escape quotes; workstation & photo pages never splice raw uin / ids into markup or inline JS', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const { REPO_ROOT } = await import('./helpers/sandbox');
+    const read = (rel: string) => fs.readFileSync(path.join(REPO_ROOT, rel), 'utf8');
+
+    for (const rel of ['public/js/aimMessenger.js', 'extension/popup/popup.js']) {
+      const src = read(rel);
+      assert.ok(!/div\.textContent = str;\s*return div\.innerHTML;/.test(src), `${rel}: escapeHtml must escape quotes`);
+      assert.ok(!/Conversation opened with @' \+ buddy\.handle/.test(src), `${rel}: buddy handle must be escaped`);
+    }
+    assert.ok(!/New IM from @' \+ fromHandle/.test(read('public/js/aimMessenger.js')));
+
+    const index = read('views/index.njk');
+    assert.ok(!/\[#' \+ (entry|c)\.uin/.test(index), 'index.njk: uin must be digit-checked');
+    assert.ok(!/onclick="(deleteGuestbookEntry|purgeComment|toggleFollowUser)\(\\'' \+/.test(index), 'index.njk: no ids spliced into inline JS');
+    assert.ok(!/\[#' \+ c\.uin/.test(read('eleventy/src/photo.njk')), 'photo.njk: uin must be digit-checked');
+  });
+});
