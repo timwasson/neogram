@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { createRequireSession } from '../auth/requireSession';
 import { extractToken, verifySessionToken } from '../auth/jwt';
 import {
   getUserSites,
@@ -16,20 +17,10 @@ export const sitesRouter = Router();
 /**
  * Authentication middleware for sites routes
  */
-function requireSession(req: Request, res: Response, next: NextFunction) {
-  const token = extractToken(req);
-  if (!token) {
-    res.status(401).json({ ok: false, error: 'Authentication required. Please log in.' });
-    return;
-  }
-  const payload = verifySessionToken(token);
-  if (!payload) {
-    res.status(401).json({ ok: false, error: 'Session expired. Please log in again.' });
-    return;
-  }
-  (req as any).user = payload;
-  next();
-}
+const requireSession = createRequireSession({
+  missing: 'Authentication required. Please log in.',
+  expired: 'Session expired. Please log in again.',
+});
 
 sitesRouter.use('/sites', requireSession);
 

@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { createRequireSession } from '../auth/requireSession';
 import { extractToken, verifySessionToken } from '../auth/jwt';
 import {
   getNotificationPreferences,
@@ -20,20 +21,10 @@ export const notificationsRouter = Router();
 /**
  * Authentication middleware for notification endpoints
  */
-function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const token = extractToken(req);
-  if (!token) {
-    res.status(401).json({ ok: false, error: 'Authentication required. Please connect your Cyber-Pass.' });
-    return;
-  }
-  const payload = verifySessionToken(token);
-  if (!payload) {
-    res.status(401).json({ ok: false, error: 'Session expired. Please log in again.' });
-    return;
-  }
-  (req as any).user = payload;
-  next();
-}
+const requireAuth = createRequireSession({
+  missing: 'Authentication required. Please connect your Cyber-Pass.',
+  expired: 'Session expired. Please log in again.',
+});
 
 /**
  * Public VAPID public key endpoint for PushManager subscription (no auth required)
@@ -177,11 +168,16 @@ notificationsRouter.post('/notifications/push-subscription', async (req: Request
       return;
     }
 
-    await savePushSubscription(userId, {
-      endpoint,
-      keys,
-      userAgent: userAgent || req.headers['user-agent'] || undefined,
-    });
+    try {
+      await savePushSubscription(userId, {
+        endpoint,
+        keys,
+        userAgent: String(userAgent || req.headers['user-agent'] || '').slice(0, 300) || undefined,
+      });
+    } catch (err: any) {
+      res.status(400).json({ ok: false, error: err.message || 'Invalid push subscription.' });
+      return;
+    }
 
     res.json({
       ok: true,

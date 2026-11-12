@@ -1,45 +1,50 @@
 /**
  * Neogram WebExtension - Content Script Auth Bridge
- * Automatically broadcasts the user's active Cyber-Pass session to Neogram-enabled static sites
- * (Neocities, Nekoweb, localhost) so the user is authenticated with 0 clicks!
+ *
+ * Hands a Neogram-enabled static site a SCOPED Cyber-Pass so the visitor is signed in with 0 clicks.
+ *
+ * Security model:
+ *  - The full workstation session JWT never leaves the extension. The background worker exchanges it
+ *    for a short-lived (1h) `pass` token (social actions only: likes, comments, guestbook, pager),
+ *    minted by the server for this page's exact origin.
+ *  - The pass is posted to this page's own origin only (never '*'), so cross-origin frames and
+ *    openers cannot read it.
+ *  - Only top-level documents are served (no iframes injected by third parties).
  */
 (function () {
   'use strict';
 
-  function broadcastSession() {
-    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
-      return;
-    }
+  if (window.top !== window) return;
+  if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) return;
 
-    chrome.storage.local.get(
-      ['neogram_token', 'neogram_handle', 'neogram_uin', 'neogram_avatar'],
-      (data) => {
-        if (chrome.runtime.lastError) return;
-        if (data && data.neogram_token && data.neogram_handle) {
-          window.postMessage(
-            {
-              type: 'NEOGRAM_EXTENSION_PASS',
-              token: data.neogram_token,
-              handle: data.neogram_handle,
-              uin: data.neogram_uin || null,
-              avatar: data.neogram_avatar || '💬',
-            },
-            '*'
-          );
-        }
-      }
-    );
+  var origin = window.location.origin;
+  if (!/^https?:\/\//.test(origin)) return;
+
+  function broadcastSession() {
+    chrome.runtime.sendMessage({ type: 'NEOGRAM_MINT_PASS' }, function (resp) {
+      if (chrome.runtime.lastError || !resp || !resp.ok || !resp.token) return;
+      window.postMessage(
+        {
+          type: 'NEOGRAM_EXTENSION_PASS',
+          token: resp.token,
+          handle: resp.handle,
+          uin: resp.uin || null,
+          avatar: resp.avatar || '',
+        },
+        origin
+      );
+    });
   }
 
-  // Broadcast when DOM is interactive and when page loads
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', broadcastSession);
   } else {
     broadcastSession();
   }
 
-  // Also listen for explicit page inquiry
-  window.addEventListener('message', (event) => {
+  // Explicit inquiry from the page itself (same window, same origin only)
+  window.addEventListener('message', function (event) {
+    if (event.source !== window || event.origin !== origin) return;
     if (event.data && event.data.type === 'QUERY_NEOGRAM_EXTENSION') {
       broadcastSession();
     }

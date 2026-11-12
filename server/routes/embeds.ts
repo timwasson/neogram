@@ -18,7 +18,10 @@ async function getAuthUser(req: Request, allowPass: boolean = false) {
   // Scoped Cyber-Pass tokens (third-party static sites) are only honoured when the route opts in.
   const payload = verifySessionToken(token, allowPass);
   if (!payload) return null;
-  return getUserById(payload.userId);
+  const user = await getUserById(payload.userId);
+  // Banned stations lose every authenticated capability immediately (JWTs are not revoked)
+  if (!user || user.isBanned) return null;
+  return user;
 }
 
 /**
@@ -301,8 +304,11 @@ embedsRouter.get(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:slu
       ? ((await getSiteBySlug(hostUser.id, rawSlug)) || (await ensureDefaultSite(hostUser.id)))
       : (await ensureDefaultSite(hostUser.id));
 
-    const { readRemoteJson, getGuestbookRelativePath } = await import('../services/staticStorage');
-    const gbData = await readRemoteJson<any>(targetSite, getGuestbookRelativePath(), { entries: [] });
+    const { readRemoteJson, getGuestbookRelativePath, getSiteStorageTarget } = await import('../services/staticStorage');
+    const gbStorage = (targetSite && (await getSiteStorageTarget(targetSite.userId, targetSite.id))) || null;
+    const gbData = gbStorage
+      ? await readRemoteJson<any>(gbStorage, getGuestbookRelativePath(), { entries: [] })
+      : { entries: [] };
     let entries = Array.isArray(gbData.entries) ? gbData.entries : [];
 
     // Fallback to SQL records if self-hosted file not populated yet
@@ -350,11 +356,9 @@ const anonPagerLastSend = new Map<string, number>();
 const anonPagerDedupe = new Map<string, number>();
 
 function extractClientIp(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.length > 0) {
-    return forwarded.split(',')[0].trim();
-  }
-  return req.socket?.remoteAddress || 'unknown';
+  // req.ip honours `trust proxy` (1 hop = Caddy). The LEFTMOST X-Forwarded-For entry is whatever
+  // the client sent and must never be used for rate limiting or dedupe.
+  return req.ip || req.socket?.remoteAddress || 'unknown';
 }
 
 function cleanExpiredLimits(map: Map<string, number[]>, windowMs: number) {
@@ -519,13 +523,18 @@ embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:sl
       }
     }
 
-    const { appendGuestbookEntry, getCounterSnapshot, getCounterRelativePath, writeRemoteJson } = await import('../services/staticStorage');
+    const { appendGuestbookEntry, getCounterSnapshot, getCounterRelativePath, writeRemoteJson, getSiteStorageTarget } = await import('../services/staticStorage');
+    const gbStorage = await getSiteStorageTarget(hostUser.id, targetSite.id);
+    if (!gbStorage) {
+      res.status(404).json({ ok: false, error: 'Guestbook station not found' });
+      return;
+    }
     
     // Check if host site has a counter configured; capture visitor milestone hit
     const counterSnapshot = await getCounterSnapshot(targetSite.id, hostUser.id);
     const visitorNumber = counterSnapshot ? counterSnapshot.hits : undefined;
 
-    const entry = await appendGuestbookEntry(targetSite, {
+    const entry = await appendGuestbookEntry(gbStorage, {
       visitorName: finalVisitorName,
       uin: finalUin,
       isAnonymous,
@@ -538,7 +547,7 @@ embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:sl
 
     // If counter is configured, also trigger an updated data/counter.json snapshot on their static host
     if (counterSnapshot) {
-      writeRemoteJson(targetSite, getCounterRelativePath(), counterSnapshot).catch((err) => {
+      writeRemoteJson(gbStorage, getCounterRelativePath(), counterSnapshot).catch((err) => {
         console.warn('[:> GUESTBOOK] Could not push counter.json snapshot:', err);
       });
     }
@@ -606,8 +615,25 @@ embedsRouter.delete('/api/guestbook/:id', async (req: Request, res: Response) =>
 
     const entryId = req.params.id;
 
-    const { deleteGuestbookEntry } = await import('../services/staticStorage');
-    const deleted = await deleteGuestbookEntry(user, entryId);
+    if (typeof entryId !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(entryId)) {
+      res.status(400).json({ ok: false, error: 'Invalid guestbook entry id' });
+      return;
+    }
+
+    // Entries live in each site's own data/guestbook.json: try every site the CALLER owns
+    // (never another station's ledger).
+    const { deleteGuestbookEntry, getSiteStorageTarget } = await import('../services/staticStorage');
+    const ownSites = await query('SELECT id FROM sites WHERE user_id = $1', [user.id]);
+    let deleted = false;
+    for (const row of ownSites.rows) {
+      const target = await getSiteStorageTarget(user.id, row.id);
+      if (target && (await deleteGuestbookEntry(target, entryId))) deleted = true;
+    }
+    if (!deleted) {
+      // Legacy single-site ledgers stored under the user id
+      const legacy = await getSiteStorageTarget(user.id);
+      if (legacy && (await deleteGuestbookEntry(legacy, entryId))) deleted = true;
+    }
 
     // Also remove from legacy database table
     await query('DELETE FROM guestbook_entries WHERE id::text = $1 AND user_id = $2', [entryId, user.id]).catch(() => {});
@@ -719,7 +745,6 @@ embedsRouter.get('/api/network/users', async (req: Request, res: Response) => {
     const usersRes = await query(`
       SELECT 
         u.id,
-        u.email,
         COALESCE(u.handle, split_part(u.email, '@', 1)) as handle,
         u.site_url as "siteUrl",
         u.created_at as "createdAt",
@@ -738,7 +763,6 @@ embedsRouter.get('/api/network/users', async (req: Request, res: Response) => {
     const users = await Promise.all(usersRes.rows.map(async (u) => ({
       id: u.id,
       handle: u.handle,
-      email: u.email,
       siteUrl: u.siteUrl,
       postCount: await getPostCountForUser(u.id),
       followersCount: parseInt(u.followersCount, 10),
@@ -824,7 +848,7 @@ embedsRouter.get('/api/users/:identifier/friend-status', async (req: Request, re
  */
 embedsRouter.get('/api/friends', async (req: Request, res: Response) => {
   try {
-    const currentUser = await getAuthUser(req, true);
+    const currentUser = await getAuthUser(req); // full session only: Cyber-Pass tokens are limited to likes, comments, guestbook & pager
     if (!currentUser) {
       res.status(401).json({ ok: false, error: 'Authentication required' });
       return;
@@ -833,7 +857,6 @@ embedsRouter.get('/api/friends', async (req: Request, res: Response) => {
     const friendsRes = await query(`
       SELECT 
         u.id, 
-        u.email, 
         COALESCE(u.handle, split_part(u.email, '@', 1)) as handle,
         u.uin,
         u.avatar_path as "avatarPath",
@@ -945,7 +968,7 @@ embedsRouter.get('/api/user/:identifier/friends-feed', async (req: Request, res:
  */
 embedsRouter.post('/api/users/:identifier/follow', async (req: Request, res: Response) => {
   try {
-    const currentUser = await getAuthUser(req, true);
+    const currentUser = await getAuthUser(req); // full session only: Cyber-Pass tokens are limited to likes, comments, guestbook & pager
     if (!currentUser) {
       res.status(401).json({ ok: false, error: 'Authentication required' });
       return;
@@ -1009,7 +1032,7 @@ embedsRouter.post('/api/users/:identifier/follow', async (req: Request, res: Res
  */
 embedsRouter.delete('/api/users/:identifier/follow', async (req: Request, res: Response) => {
   try {
-    const currentUser = await getAuthUser(req, true);
+    const currentUser = await getAuthUser(req); // full session only: Cyber-Pass tokens are limited to likes, comments, guestbook & pager
     if (!currentUser) {
       res.status(401).json({ ok: false, error: 'Authentication required' });
       return;
@@ -1089,8 +1112,11 @@ embedsRouter.get(['/embed/guestbook/:identifier', '/embed/guestbook/:identifier/
       customCssUrl = targetSite.customCssUrl;
     }
 
-    const { readRemoteJson, getGuestbookRelativePath } = await import('../services/staticStorage');
-    const gbData = await readRemoteJson<any>(targetSite, getGuestbookRelativePath(), { entries: [] });
+    const { readRemoteJson, getGuestbookRelativePath, getSiteStorageTarget } = await import('../services/staticStorage');
+    const gbStorage = (targetSite && (await getSiteStorageTarget(targetSite.userId, targetSite.id))) || null;
+    const gbData = gbStorage
+      ? await readRemoteJson<any>(gbStorage, getGuestbookRelativePath(), { entries: [] })
+      : { entries: [] };
     let entries = Array.isArray(gbData.entries) ? gbData.entries : [];
 
     if (entries.length === 0) {
@@ -1242,7 +1268,8 @@ const pagerRateLimiter = rateLimit({
  */
 embedsRouter.post(['/api/chat/pager/send', '/api/chat/pager/send/:identifier'], pagerRateLimiter, async (req: Request, res: Response) => {
   try {
-    const { to, text, senderHandle, website, bot_trap, fax_number, website_hp, siteSlug } = req.body;
+    const { to, text, senderHandle, senderKey, website, bot_trap, fax_number, website_hp, siteSlug } = req.body;
+    let issuedAnonKey = '';
     const targetIdentifier = req.params.identifier || to;
 
     if (!targetIdentifier) {
@@ -1308,8 +1335,11 @@ embedsRouter.post(['/api/chat/pager/send', '/api/chat/pager/send/:identifier'], 
         return;
       }
       isAnonymous = true;
-      const rawHandle = typeof senderHandle === 'string' ? senderHandle.trim().replace(/[^a-zA-Z0-9_]/g, '') : '';
-      finalSenderHandle = rawHandle || `guest_${Math.floor(1000 + Math.random() * 9000)}`;
+      // Server-issued guest identity (handle + HMAC key): guessed / member handles are never honoured
+      const { resolveAnonIdentity } = await import('../auth/anonIdentity');
+      const anon = resolveAnonIdentity(senderHandle, senderKey);
+      finalSenderHandle = anon.handle;
+      issuedAnonKey = anon.key;
     }
 
     if (!text || !text.trim()) {
@@ -1425,6 +1455,7 @@ embedsRouter.post(['/api/chat/pager/send', '/api/chat/pager/send/:identifier'], 
       status,
       id: msgId,
       from: finalSenderHandle,
+      ...(isAnonymous ? { anonHandle: finalSenderHandle, anonKey: issuedAnonKey } : {}),
       timestamp,
       message: status === 'delivered'
         ? 'Transmitted directly to station operator!'

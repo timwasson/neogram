@@ -1,6 +1,7 @@
 import fs from 'fs';
+import { createRequireSession } from '../auth/requireSession';
 import path from 'path';
-import { isSafePublicUrl } from '../utils/safeFetch';
+import { isSafePublicUrl, normalizePublicSiteUrl } from '../utils/safeFetch';
 import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import { query } from '../db';
@@ -23,20 +24,10 @@ export const settingsRouter = Router();
 /**
  * Authentication middleware for settings routes
  */
-function requireSession(req: Request, res: Response, next: NextFunction) {
-  const token = extractToken(req);
-  if (!token) {
-    res.status(401).json({ ok: false, error: 'Authentication required. Please log in.' });
-    return;
-  }
-  const payload = verifySessionToken(token);
-  if (!payload) {
-    res.status(401).json({ ok: false, error: 'Session expired. Please log in again.' });
-    return;
-  }
-  (req as any).user = payload;
-  next();
-}
+const requireSession = createRequireSession({
+  missing: 'Authentication required. Please log in.',
+  expired: 'Session expired. Please log in again.',
+});
 
 settingsRouter.use(['/settings', '/deploy'], requireSession);
 
@@ -131,6 +122,12 @@ settingsRouter.post('/settings/profile', upload.single('avatarFile'), async (req
           ok: false,
           error: 'Handle must be between 3 and 30 characters and only contain lowercase letters, numbers, underscores, and hyphens.',
         });
+        return;
+      }
+
+      const { isReservedHandleFor } = await import('../auth/service');
+      if (isReservedHandleFor(cleanHandle, user.email)) {
+        res.status(400).json({ ok: false, error: 'Handles starting with "qa_" are reserved for Neogram QA test stations.' });
         return;
       }
 
@@ -334,7 +331,7 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
           });
           return;
         }
-        finalSiteUrl = trimmed.slice(0, 500);
+        finalSiteUrl = normalizePublicSiteUrl(trimmed).slice(0, 500);
       }
     }
 
@@ -351,6 +348,15 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
       } else {
         const hostDomain = finalDeployType === 'nekoweb' ? 'nekoweb.org' : 'neocities.org';
         finalSiteUrl = `https://${creds.siteName}.${hostDomain}`;
+      }
+    }
+    // URLs derived from a free-text siteName / repo must pass the same canonicalisation as typed URLs
+    if (finalSiteUrl && finalSiteUrl !== existingUser.site_url) {
+      try {
+        finalSiteUrl = normalizePublicSiteUrl(finalSiteUrl).slice(0, 500);
+      } catch {
+        res.status(400).json({ ok: false, error: 'Site name produces an invalid site address. Use letters, numbers and hyphens only.' });
+        return;
       }
     }
     const finalAutoDeploy = typeof autoDeploy === 'boolean' ? autoDeploy : !!existingUser.auto_deploy;
@@ -714,14 +720,31 @@ settingsRouter.post('/settings/test-connection', async (req: Request, res: Respo
 });
 
 /**
+ * Resolves a deploy target strictly within the caller's own stations. A foreign siteId (or a raw
+ * userId) is never passed to the publishers, which load and use that target's stored credentials.
+ */
+async function resolveOwnedDeployTarget(userId: string, rawSiteId: unknown): Promise<{ targetId: string; isSiteId: boolean } | null> {
+  const { getSiteById } = await import('../services/siteService');
+  if (rawSiteId !== undefined && rawSiteId !== null && rawSiteId !== '') {
+    if (typeof rawSiteId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawSiteId)) return null;
+    const site = await getSiteById(rawSiteId, userId);
+    return site ? { targetId: site.id, isSiteId: true } : null;
+  }
+  return { targetId: userId, isSiteId: false };
+}
+
+/**
  * 4. POST /api/deploy/neocities - Trigger immediate live deployment of user's 11ty static gallery
  */
 settingsRouter.post('/deploy/neocities', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).user.userId;
-    const reqSiteId = req.body?.siteId || (req.query?.siteId as string);
-    const targetId = reqSiteId || userId;
-    const isSiteId = Boolean(reqSiteId);
+    const target = await resolveOwnedDeployTarget(userId, req.body?.siteId || req.query?.siteId);
+    if (!target) {
+      res.status(404).json({ ok: false, error: 'Site target not found or access denied.' });
+      return;
+    }
+    const { targetId, isSiteId } = target;
     const deployResult = await deployToNeocities(targetId, isSiteId);
     res.json({
       ok: true,
@@ -744,9 +767,12 @@ settingsRouter.post('/deploy/neocities', async (req: Request, res: Response, nex
 settingsRouter.post('/deploy/nekoweb', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).user.userId;
-    const reqSiteId = req.body?.siteId || (req.query?.siteId as string);
-    const targetId = reqSiteId || userId;
-    const isSiteId = Boolean(reqSiteId);
+    const target = await resolveOwnedDeployTarget(userId, req.body?.siteId || req.query?.siteId);
+    if (!target) {
+      res.status(404).json({ ok: false, error: 'Site target not found or access denied.' });
+      return;
+    }
+    const { targetId, isSiteId } = target;
     const deployResult = await deployToNekoweb(targetId, isSiteId);
     res.json({
       ok: true,
@@ -769,9 +795,12 @@ settingsRouter.post('/deploy/nekoweb', async (req: Request, res: Response, next:
 settingsRouter.post('/deploy/github', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).user.userId;
-    const reqSiteId = req.body?.siteId || (req.query?.siteId as string);
-    const targetId = reqSiteId || userId;
-    const isSiteId = Boolean(reqSiteId);
+    const target = await resolveOwnedDeployTarget(userId, req.body?.siteId || req.query?.siteId);
+    if (!target) {
+      res.status(404).json({ ok: false, error: 'Site target not found or access denied.' });
+      return;
+    }
+    const { targetId, isSiteId } = target;
     const deployResult = await deployToGitHub(targetId, isSiteId);
     res.json({
       ok: true,

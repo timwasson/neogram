@@ -1,4 +1,4 @@
-import { isSafePublicUrl } from '../utils/safeFetch';
+import { isSafePublicUrl, normalizePublicSiteUrl, normalizeHttpsResourceUrl } from '../utils/safeFetch';
 import path from 'path';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
@@ -298,11 +298,15 @@ export async function createSite(userId: string, input: CreateSiteInput): Promis
   if (!isSafePublicUrl(siteUrl)) {
     throw new Error('Site URL must be a public https:// address (private/internal hosts are not allowed).');
   }
+  siteUrl = normalizePublicSiteUrl(siteUrl).slice(0, 500);
 
   const deployPath = input.deployPath !== undefined ? sanitizeSlug(input.deployPath, '') : 'neogram';
   const autoDeploy = !!input.autoDeploy;
   const buildHtml = input.buildHtml !== false;
-  const customCssUrl = input.customCssUrl ? input.customCssUrl.trim() : null;
+  const customCssUrl = input.customCssUrl ? normalizeHttpsResourceUrl(input.customCssUrl) : null;
+  if (input.customCssUrl && !customCssUrl) {
+    throw new Error('Custom CSS URL must be a valid https:// address.');
+  }
 
   // Check if user has any existing sites to determine isDefault
   const countRes = await query('SELECT COUNT(*) as count FROM sites WHERE user_id = $1', [userId]);
@@ -411,13 +415,17 @@ export async function updateSite(siteId: string, userId: string, input: UpdateSi
     if (!isSafePublicUrl(siteUrl)) {
       throw new Error('Site URL must be a public https:// address (private/internal hosts are not allowed).');
     }
+    siteUrl = normalizePublicSiteUrl(siteUrl).slice(0, 500);
   }
 
   const deploymentType = input.deploymentType !== undefined ? input.deploymentType : existing.deployment_type;
   const deployPath = input.deployPath !== undefined ? sanitizeSlug(input.deployPath, '') : existing.deploy_path;
   const autoDeploy = input.autoDeploy !== undefined ? !!input.autoDeploy : !!existing.auto_deploy;
   const buildHtml = input.buildHtml !== undefined ? !!input.buildHtml : (existing.build_html !== false);
-  const customCssUrl = input.customCssUrl !== undefined ? (input.customCssUrl ? input.customCssUrl.trim() : null) : existing.custom_css_url;
+  const customCssUrl = input.customCssUrl !== undefined ? (input.customCssUrl ? normalizeHttpsResourceUrl(input.customCssUrl) : null) : existing.custom_css_url;
+  if (input.customCssUrl && !customCssUrl) {
+    throw new Error('Custom CSS URL must be a valid https:// address.');
+  }
 
   // Handle credentials
   let encryptedCreds = existing.deployment_credentials;

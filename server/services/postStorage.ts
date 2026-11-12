@@ -50,12 +50,24 @@ export interface PostRecord {
 
 const GALLERIES_ROOT = path.join(process.cwd(), 'dist', 'static-galleries');
 
+/**
+ * Tenant directory names are server-generated UUIDs. Anything else (`..`, slashes, encoded
+ * separators) is refused so request-supplied ids can never address files outside the tenant root.
+ */
+export function tenantDir(siteIdOrUserId: string): string {
+  const id = String(siteIdOrUserId || '');
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) {
+    throw new Error('Invalid station identifier.');
+  }
+  return path.join(GALLERIES_ROOT, id);
+}
+
 function getSitePostsJsonPath(siteIdOrUserId: string): string {
-  return path.join(GALLERIES_ROOT, siteIdOrUserId, 'posts.json');
+  return path.join(tenantDir(siteIdOrUserId), 'posts.json');
 }
 
 function getSiteFeedJsonPath(siteIdOrUserId: string): string {
-  return path.join(GALLERIES_ROOT, siteIdOrUserId, 'feed.json');
+  return path.join(tenantDir(siteIdOrUserId), 'feed.json');
 }
 
 /**
@@ -100,7 +112,8 @@ function normalizePost(raw: any): PostRecord {
     location: raw.location ?? null,
     likes: typeof raw.likes === 'number' ? raw.likes : (raw.likes_count ? parseInt(raw.likes_count, 10) : 0),
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
-    email: raw.email,
+    // NOTE: the author's email is intentionally NOT carried into post records (legacy values are
+    // dropped here on read/write): posts are served by public CORS-* APIs.
     handle: raw.handle,
     author: raw.author || raw.handle || (raw.email ? raw.email.split('@')[0] : 'surfer'),
     commentsCount: typeof raw.commentsCount === 'number' ? raw.commentsCount : comments.length,
@@ -114,7 +127,12 @@ function normalizePost(raw: any): PostRecord {
  * Reads and parses posts.json for a specific site or user folder.
  */
 export async function getPostsForSite(siteId: string): Promise<PostRecord[]> {
-  const filePath = getSitePostsJsonPath(siteId);
+  let filePath: string;
+  try {
+    filePath = getSitePostsJsonPath(siteId);
+  } catch {
+    return [];
+  }
   if (!existsSync(filePath)) {
     return [];
   }
@@ -352,7 +370,7 @@ async function savePostUnlocked(post: PostRecord): Promise<void> {
   if (targetIds.size === 0) return;
 
   for (const targetId of targetIds) {
-    const targetDir = path.join(GALLERIES_ROOT, targetId);
+    const targetDir = tenantDir(targetId);
     await fs.mkdir(targetDir, { recursive: true });
 
     const posts = await getPostsForSite(targetId);
@@ -489,7 +507,7 @@ export async function deletePostsForSite(siteId: string): Promise<void> {
 async function deletePostsForSiteUnlocked(siteId: string): Promise<void> {
   if (!existsSync(GALLERIES_ROOT)) return;
   try {
-    const siteDir = path.join(GALLERIES_ROOT, siteId);
+    const siteDir = tenantDir(siteId);
     if (existsSync(siteDir)) {
       await fs.rm(siteDir, { recursive: true, force: true });
     }

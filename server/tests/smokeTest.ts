@@ -696,6 +696,12 @@ async function runSmokeTests() {
 
     // 5. Verify static friends page was compiled by Eleventy
     const friendsHtmlPath = path.join(userGalleryDir, 'friends', 'index.html');
+    // The follow enqueues an async rebuild: wait (bounded) for it instead of racing an older build's file
+    const hasBanner = (html: string) => html.includes('FRIENDS STATIC STREAM') || html.includes('FRIENDS CARRIER NETWORK');
+    for (let waited = 0; waited < 10000; waited += 100) {
+      if (existsSync(friendsHtmlPath) && hasBanner(await fs.readFile(friendsHtmlPath, 'utf-8').catch(() => ''))) break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
     assertTest('Static friends gallery (friends/index.html) created in isolated tenant folder', existsSync(friendsHtmlPath));
     if (existsSync(friendsHtmlPath)) {
       const friendsStaticHtml = await fs.readFile(friendsHtmlPath, 'utf-8');
@@ -1573,14 +1579,18 @@ async function runSmokeTests() {
     assertTest('POST /api/chat/pager/send with anonymous handle returns HTTP 200', anonMsgRes.status === 200);
     const anonMsgJson = await anonMsgRes.json();
     assertTest('Anonymous transmission confirms ok: true', anonMsgJson.ok === true);
-    assertTest('Anonymous transmission attributes to guest_4242', anonMsgJson.from === 'guest_4242');
+    // Client-chosen guest handles are never honoured: the server issues guest_<10 hex> + an HMAC key
+    const issuedGuest = String(anonMsgJson.from || '');
+    assertTest('Client-chosen guest handle (guest_4242) is NOT honoured', issuedGuest !== 'guest_4242');
+    assertTest('Anonymous transmission attributes to a server-issued guest identity',
+      /^guest_[0-9a-f]{10}$/.test(issuedGuest) && anonMsgJson.anonHandle === issuedGuest && typeof anonMsgJson.anonKey === 'string' && anonMsgJson.anonKey.length >= 16);
     assertTest('Offline queue delivery status returned', anonMsgJson.status === 'queued_offline');
 
     // 4. Verify message persisted in ephemeral holding queue with 24-hour retention
     const queueCheck = await query(
       `SELECT * FROM ephemeral_chat_queue 
-       WHERE receiver_id = $1 AND sender_handle = 'guest_4242' AND is_anonymous = true`,
-      [testUser.id]
+       WHERE receiver_id = $1 AND sender_handle = $2 AND is_anonymous = true`,
+      [testUser.id, issuedGuest]
     );
     assertTest('Anonymous pager message staged in ephemeral_chat_queue', queueCheck.rows.length > 0);
     assertTest('Anonymous message has null sender_id', queueCheck.rows[0].sender_id === null);
@@ -1594,7 +1604,8 @@ async function runSmokeTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         text: 'Radical retro station! Transmitting from cyberspace.',
-        senderHandle: 'guest_4242',
+        senderHandle: issuedGuest,
+        senderKey: anonMsgJson.anonKey,
       }),
     });
     assertTest('Duplicate anonymous pager message throttled with HTTP 429', duplicatePagerRes.status === 429);

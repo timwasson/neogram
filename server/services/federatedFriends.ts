@@ -119,7 +119,13 @@ export function resolveFeedUrl(friend: FriendTarget): string {
 export function isValidStaticSiteUrl(urlStr?: string): boolean {
   if (!urlStr || typeof urlStr !== 'string' || !urlStr.trim()) return false;
   try {
-    const u = new URL(urlStr.startsWith('http') ? urlStr.trim() : `https://${urlStr.trim()}`);
+    const raw = urlStr.trim();
+    // A value that already names a scheme must be http(s): never "fix up" javascript:/data: URLs
+    // by prefixing https:// (that turned `javascript://x.neocities.org/...` into a "valid" URL).
+    const hasScheme = /^[a-z][a-z0-9+.-]*:/i.test(raw);
+    if (hasScheme && !/^https?:\/\//i.test(raw)) return false;
+    const u = new URL(hasScheme ? raw : `https://${raw}`);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
     const h = u.hostname.toLowerCase();
     if (h === 'neogram.club' || h === 'localhost' || h === '127.0.0.1' || h.includes('app.github.dev')) return false;
     // Exclude generic placeholder / image hosting / dummy domains / known redirects
@@ -208,13 +214,25 @@ export function resolvePhotoPageUrl(
  * Normalizes post objects from a user's feed.json so both imageUrl and imagePath
  * are fully-qualified and available for any template or consumer.
  */
-function mapFeedPosts(data: UserFeedPayload, friend: FriendTarget): FriendFeedPost[] {
-  const author = data.user?.handle || friend.handle;
-  const authorUin = data.user?.uin || friend.uin;
-  const authorAvatar = data.user?.avatarUrl || friend.avatarPath;
-  const authorSiteUrl = data.user?.fullSiteUrl || friend.siteUrl;
+/** Remote feed values are attacker-controlled: only absolute http(s) URLs (re-serialised) survive. */
+function safeHttpUrl(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim()) return '';
+  try {
+    const u = new URL(value.trim());
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.href.replace(/'/g, '%27') : '';
+  } catch {
+    return '';
+  }
+}
 
-  const rawBase = (data.user?.fullSiteUrl || friend.siteUrl || '').trim().replace(/\/+$/, '');
+function mapFeedPosts(data: UserFeedPayload, friend: FriendTarget): FriendFeedPost[] {
+  // Federated ownership invariant: identity comes from the LOCAL friend record, never the remote feed.
+  const author = friend.handle || data.user?.handle || 'surfer';
+  const authorUin = friend.uin || data.user?.uin;
+  const authorAvatar = friend.avatarPath || safeHttpUrl(data.user?.avatarUrl);
+  const authorSiteUrl = friend.siteUrl || safeHttpUrl(data.user?.fullSiteUrl);
+
+  const rawBase = (friend.siteUrl || safeHttpUrl(data.user?.fullSiteUrl) || '').trim().replace(/\/+$/, '');
   const deploy = (friend.deployPath || data.user?.deployPath || '').trim().replace(/^\/+|\/+$/g, '');
   let defaultGalleryUrl = '';
   if (rawBase) {
@@ -226,21 +244,25 @@ function mapFeedPosts(data: UserFeedPayload, friend: FriendTarget): FriendFeedPo
   }
 
   return (data.posts || []).map((p) => {
-    const imageUrl = p.imageUrl || p.imagePath || '';
-    const thumbnailUrl = p.thumbnailUrl || p.thumbnailPath || imageUrl;
-    const galleryUrl = (p as any).galleryUrl || defaultGalleryUrl || friend.siteUrl;
-    let livePhotoUrl = (p as any).livePhotoUrl;
+    const imageUrl = safeHttpUrl(p.imageUrl) || safeHttpUrl(p.imagePath) || '';
+    const thumbnailUrl = safeHttpUrl(p.thumbnailUrl) || safeHttpUrl(p.thumbnailPath) || imageUrl;
+    const galleryUrl = safeHttpUrl((p as any).galleryUrl) || defaultGalleryUrl || friend.siteUrl;
+    let livePhotoUrl = typeof (p as any).livePhotoUrl === 'string' ? (p as any).livePhotoUrl.trim() : '';
     if (livePhotoUrl && (livePhotoUrl.endsWith('.webp') || livePhotoUrl.endsWith('.jpg') || livePhotoUrl.endsWith('.png') || !livePhotoUrl.includes('/photos/') || !isValidStaticSiteUrl(livePhotoUrl))) {
       livePhotoUrl = '';
     }
     if (!livePhotoUrl) {
       livePhotoUrl = resolvePhotoPageUrl(p.id, author, galleryUrl, authorSiteUrl, imageUrl, authorUin);
     } else {
-      livePhotoUrl = livePhotoUrl.replace(/\/photos\/photos\//g, '/photos/');
+      livePhotoUrl = safeHttpUrl(livePhotoUrl.replace(/\/photos\/photos\//g, '/photos/'));
     }
 
+    // Drop identity claims and coerce types of remote fields that are rendered client-side
+    const { userId: _remoteUserId, siteId: _remoteSiteId, ...rest } = p as any;
     return {
-      ...p,
+      ...rest,
+      id: String(p.id ?? ''),
+      likes: Number.isFinite(Number(p.likes)) ? Math.max(0, Math.trunc(Number(p.likes))) : 0,
       imageUrl,
       thumbnailUrl,
       imagePath: imageUrl,

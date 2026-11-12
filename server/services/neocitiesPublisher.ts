@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { query } from '../db';
 import { decryptCredentials, NeocitiesCredentials } from '../utils/crypto';
+import { isSafeRemoteDeletePath } from '../utils/remotePaths';
 import { buildStaticGallery, executeStaticBuild } from './staticBuilder';
 
 export interface DeltaFile {
@@ -330,7 +331,7 @@ export async function deleteFromNeocities(targetId: string, filenames: string[])
 
       // STRICT NON-DESTRUCTIVE SAFETY INVARIANT:
       // Neogram must NEVER delete non-Neogram user files!
-      if (!remoteDeletePath.includes('uploads/') && !remoteDeletePath.includes('photos/') && !remoteDeletePath.endsWith('avatar.webp')) {
+      if (!isSafeRemoteDeletePath(remoteDeletePath, cleanDeployPath)) {
         console.warn(`[:> NEOCITIES DELETE REFUSED] Unsafe deletion path rejected: ${remoteDeletePath}`);
         continue;
       }

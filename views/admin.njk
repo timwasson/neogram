@@ -644,7 +644,10 @@
                           <button
                             type="button"
                             class="pixel-btn pixel-btn--sm text-3xs font-bold"
-                            onclick="promptEditUserBio('{{ u.id }}', '{{ u.handle }}', '{{ (u.description or u.statusMessage or '') | escape }}');"
+                            data-user-id="{{ u.id }}"
+                            data-handle="{{ u.handle }}"
+                            data-bio="{{ u.description or u.statusMessage or '' }}"
+                            onclick="promptEditUserBio(this.dataset.userId, this.dataset.handle, this.dataset.bio);"
                             title="Edit station bio/description"
                           >
                             Bio
@@ -1323,7 +1326,12 @@
           if (errorsBox && errorsList) {
             if (s.errors && s.errors.length > 0) {
               errorsBox.classList.remove('hidden');
-              errorsList.innerHTML = s.errors.map(e => `<li>[!] [${e.handle} - ${e.siteName}]: ${e.error}</li>`).join('');
+              // User-controlled site names / remote API errors: build nodes, never HTML strings
+              errorsList.replaceChildren(...s.errors.map((e) => {
+                const li = document.createElement('li');
+                li.textContent = `[!] [${e.handle} - ${e.siteName}]: ${e.error}`;
+                return li;
+              }));
             } else {
               errorsBox.classList.add('hidden');
             }

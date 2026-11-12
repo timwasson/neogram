@@ -127,7 +127,7 @@
           '      <p class="neogram-card__caption">' + escapeHtml(p.caption || '') + '</p>' +
           '    </div>' +
           '    <div class="neogram-card__footer">' +
-          '      <span class="neogram-card__likes"><strong>' + (p.likes || 0) + '</strong> likes</span>' +
+          '      <span class="neogram-card__likes"><strong>' + (parseInt(p.likes, 10) || 0) + '</strong> likes</span>' +
           '      <a href="' + escapeHtml(profileUrl) + '" target="_blank" class="neogram-btn neogram-btn--yellow neogram-btn--sm">Station Node :&gt;</a>' +
           '    </div>' +
           '  </div>' +

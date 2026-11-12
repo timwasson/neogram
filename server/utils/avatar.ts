@@ -75,6 +75,21 @@ export function isRemoteAvatarUrl(avatarPath?: string | null): boolean {
   return true;
 }
 
+const AVATAR_HOSTNAME = /^[a-z0-9.-]+$/;
+
+/** http(s) URL with an ASCII hostname, re-serialised by the URL parser, `'` percent-encoded; else null. */
+export function canonicalAvatarUrl(raw: string): string | null {
+  try {
+    const url = new URL(raw.trim());
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+    if (url.username || url.password) return null;
+    if (!AVATAR_HOSTNAME.test(url.hostname) && !/^\[[0-9a-f:.]+\]$/i.test(url.hostname)) return null;
+    return url.href.replace(/'/g, '%27');
+  } catch {
+    return null;
+  }
+}
+
 export interface AvatarResolutionInput {
   avatarPath?: string | null;
   deploymentType?: string | null;
@@ -106,7 +121,9 @@ export function resolveAvatarPath(input: AvatarResolutionInput): string {
   }
 
   if (isRemoteAvatarUrl(input.avatarPath)) {
-    return input.avatarPath!.trim();
+    // Stored avatar URLs were historically built from raw site URLs: re-canonicalise on the way
+    // out so a legacy value can never break out of an HTML attribute or carry a foreign scheme.
+    return canonicalAvatarUrl(input.avatarPath!) || defaultAvatar;
   }
 
   return defaultAvatar;

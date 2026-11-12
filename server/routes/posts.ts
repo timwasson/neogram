@@ -71,6 +71,8 @@ async function getSessionUser(req: Request, allowPass: boolean = false) {
   return getUserById(payload.userId);
 }
 
+const BANNED_ERROR = 'This station node has been suspended by the network administrator.';
+
 /**
  * 1. GET /api/posts - Fetch all posts with user metadata & comments from static JSON
  */
@@ -78,6 +80,12 @@ postsRouter.get('/posts', async (req: Request, res: Response, next) => {
   try {
     const siteIdFilter = (req.query.siteId as string) || '';
     const userIdFilter = (req.query.userId as string) || '';
+    const ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if ((siteIdFilter && (typeof siteIdFilter !== 'string' || !ID_RE.test(siteIdFilter))) ||
+        (userIdFilter && (typeof userIdFilter !== 'string' || !ID_RE.test(userIdFilter)))) {
+      res.status(400).json({ ok: false, error: 'siteId / userId must be a valid identifier.' });
+      return;
+    }
 
     let posts: PostRecord[] = [];
     if (siteIdFilter) {
@@ -257,7 +265,6 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
       location: safeLocation,
       likes: 0,
       createdAt: new Date().toISOString(),
-      email: user.email,
       handle: user.handle,
       author: user.handle || user.email.split('@')[0],
       comments: [],
@@ -434,6 +441,10 @@ postsRouter.post('/posts/:id/like', likeRateLimiter, async (req: Request, res: R
     }
 
     const liker = await getSessionUser(req, true);
+    if (liker?.isBanned) {
+      res.status(403).json({ ok: false, error: BANNED_ERROR });
+      return;
+    }
     const voterKey = likeVoterKey(req, liker?.id);
 
     const inserted = await query(
@@ -535,7 +546,7 @@ postsRouter.post('/posts/:id/comments', commentRateLimiter, async (req: Request,
     const ownerUser = ownerRes.rows[0];
     let storageTarget = ownerUser;
     if (post.siteId) {
-      const siteRes = await query('SELECT * FROM sites WHERE id = $1', [post.siteId]);
+      const siteRes = await query('SELECT * FROM sites WHERE id = $1 AND user_id = $2', [post.siteId, post.userId]); // the post's site must belong to the post's owner
       if (siteRes.rows.length > 0) {
         storageTarget = { ...ownerUser, ...siteRes.rows[0], handle: ownerUser.handle };
       }
@@ -665,7 +676,7 @@ postsRouter.get('/posts/:id/comments', async (req: Request, res: Response, next)
     const ownerUser = ownerRes.rows[0];
     let storageTarget = ownerUser;
     if (post.siteId) {
-      const siteRes = await query('SELECT * FROM sites WHERE id = $1', [post.siteId]);
+      const siteRes = await query('SELECT * FROM sites WHERE id = $1 AND user_id = $2', [post.siteId, post.userId]); // the post's site must belong to the post's owner
       if (siteRes.rows.length > 0) {
         storageTarget = { ...ownerUser, ...siteRes.rows[0], handle: ownerUser?.handle };
       }
@@ -698,6 +709,10 @@ postsRouter.delete('/posts/:postId/comments/:commentId', async (req: Request, re
       res.status(401).json({ ok: false, error: 'Authentication required to moderate comments.' });
       return;
     }
+    if (user.isBanned) {
+      res.status(403).json({ ok: false, error: BANNED_ERROR });
+      return;
+    }
 
     const { postId, commentId } = req.params;
     const post = await getPostById(postId);
@@ -713,7 +728,7 @@ postsRouter.delete('/posts/:postId/comments/:commentId', async (req: Request, re
 
     let storageTarget: any = user;
     if (post.siteId) {
-      const siteRes = await query('SELECT * FROM sites WHERE id = $1', [post.siteId]);
+      const siteRes = await query('SELECT * FROM sites WHERE id = $1 AND user_id = $2', [post.siteId, post.userId]); // the post's site must belong to the post's owner
       if (siteRes.rows.length > 0) {
         storageTarget = { ...user, ...siteRes.rows[0], handle: user.handle };
       }
@@ -762,6 +777,10 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
       res.status(401).json({ ok: false, error: 'Authentication required to modify records.' });
       return;
     }
+    if (user.isBanned) {
+      res.status(403).json({ ok: false, error: BANNED_ERROR });
+      return;
+    }
 
     const { id } = req.params;
     const post = await getPostById(id);
@@ -782,12 +801,26 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
           ? filterApplied.toLowerCase()
           : 'none')
       : undefined;
+    // Same type/length rules as POST /posts (these fields are rendered on every static page and feed)
+    const textField = (value: unknown, max: number): string | null | undefined => {
+      if (value === undefined) return undefined;
+      if (value === null) return null;
+      if (typeof value !== 'string') return undefined;
+      return value.trim() ? value.trim().slice(0, max) : null;
+    };
+    const fields = { caption: textField(caption, 1000), mood: textField(mood, 50), webring: textField(webring, 50), location: textField(location, 100) };
+    for (const [name, raw] of Object.entries({ caption, mood, webring, location })) {
+      if (raw !== undefined && raw !== null && typeof raw !== 'string') {
+        res.status(400).json({ ok: false, error: `${name} must be a string.` });
+        return;
+      }
+    }
     const updated = await updatePost(id, (p) => ({
       ...p,
-      caption: caption !== undefined ? caption : p.caption,
-      mood: mood !== undefined ? mood : p.mood,
-      webring: webring !== undefined ? webring : p.webring,
-      location: location !== undefined ? location : p.location,
+      caption: fields.caption !== undefined ? (fields.caption ?? ':> Snapshot transmitted via Neogram workstation.') : p.caption,
+      mood: fields.mood !== undefined ? fields.mood : p.mood,
+      webring: fields.webring !== undefined ? fields.webring : p.webring,
+      location: fields.location !== undefined ? fields.location : p.location,
       filterApplied: safeFilterApplied !== undefined ? safeFilterApplied : p.filterApplied,
     }));
 
@@ -830,6 +863,10 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
     const user = await getSessionUser(req);
     if (!user) {
       res.status(401).json({ ok: false, error: 'Authentication required to purge records.' });
+      return;
+    }
+    if (user.isBanned) {
+      res.status(403).json({ ok: false, error: BANNED_ERROR });
       return;
     }
 

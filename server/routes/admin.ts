@@ -476,12 +476,17 @@ adminRouter.post(
       ) => {
         const cleanHandle = handle.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 40);
         const email = `${cleanHandle}@qa.neogram.club`;
-        const existing = await query('SELECT id FROM users WHERE email = $1 OR handle = $2', [email, cleanHandle]);
+        // Identity is the QA mailbox only: never adopt a real member who happens to hold the handle
+        const existing = await query('SELECT id FROM users WHERE email = $1', [email]);
         let userId: string;
 
         if (existing.rows.length > 0) {
           userId = existing.rows[0].id;
         } else {
+          const squatter = await query('SELECT id FROM users WHERE handle = $1', [cleanHandle]);
+          if (squatter.rows.length > 0) {
+            throw new Error(`Handle @${cleanHandle} is held by a non-QA account; rename it before provisioning the QA fleet.`);
+          }
           await query(`SELECT setval('user_uin_seq', (SELECT GREATEST(COALESCE(MAX(uin), 100100), 100100) FROM users) + 1, false)`).catch(() => {});
           const primary = defaultSites[0] || {
             deploymentType: 'none',
@@ -804,8 +809,12 @@ adminRouter.post(
       const { siteId, name, slug, siteUrl, deploymentType, deployPath, apiKey, buildHtml, autoDeploy, isDefault } = req.body;
 
       // Ensure target user is a QA fleet account
-      const userCheck = await query('SELECT id, email, handle FROM users WHERE id = $1', [userId]);
+      const userCheck = await query(
+        `SELECT id, email, handle FROM users WHERE id = $1 AND LOWER(email) LIKE '%@qa.neogram.club'`,
+        [userId]
+      );
       if (userCheck.rows.length === 0) {
+        // Real members' hosting credentials / site URLs are never editable through the QA tooling
         res.status(404).json({ ok: false, error: 'QA user account not found.' });
         return;
       }
@@ -939,7 +948,9 @@ adminRouter.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const adminUser = (req as AdminRequest).adminUser!;
-      const qaUsersRes = await query(`SELECT id, email, handle FROM users WHERE email LIKE '%@qa.neogram.club' OR handle LIKE 'qa_%'`);
+      // QA identity is defined SOLELY by the provisioned @qa.neogram.club mailbox domain. Handles are
+      // user-chosen (and `_` is a LIKE wildcard), captions/hosts are not ownership: never use them.
+      const qaUsersRes = await query(`SELECT id, email, handle FROM users WHERE email LIKE '%@qa.neogram.club'`);
       const qaUserIds = new Set(qaUsersRes.rows.map((r: any) => r.id));
       const qaHandles = new Set(qaUsersRes.rows.map((r: any) => (r.handle || '').toLowerCase()));
 
@@ -949,12 +960,6 @@ adminRouter.post(
         FROM sites s
         JOIN users u ON s.user_id = u.id
         WHERE u.email LIKE '%@qa.neogram.club'
-           OR u.handle LIKE 'qa_%'
-           OR s.name = 'neogramtest'
-           OR s.site_url LIKE '%neogramtest%'
-           OR s.site_url LIKE '%chemicalmachine%'
-           OR s.site_url LIKE '%hive210%'
-           OR s.site_url LIKE '%qa-neogram%'
       `);
       const qaSites = qaSitesRes.rows;
       const siteById = new Map<string, any>();
@@ -999,7 +1004,10 @@ adminRouter.post(
         const isOrphanUser = Boolean(post.userId && !nonQaUserIds.has(post.userId) && !qaUserIds.has(post.userId));
 
         // Purge if it belongs to a QA persona, is a test probe / mock caption, is on a test static host, or belongs to an orphan test user
-        const shouldPurge = isQaUserId || isQaAuthor || isKnownMockCaption || isTestSite || isOrphanUser;
+        // Only posts owned by a QA account are purged. The heuristics above are kept for reporting
+        // only: they matched real members (default ':>' captions, handles like "qatar", real hosts).
+        void isQaAuthor; void isKnownMockCaption; void isTestSite; void isOrphanUser;
+        const shouldPurge = isQaUserId;
 
         if (shouldPurge) {
           deletedPostIds.push(post.id);
@@ -1242,16 +1250,24 @@ adminRouter.get(
         return null;
       };
 
+      // Real members' hosting keys never leave production (not even encrypted): only the QA fleet's
+      // credentials are exported so local QA sync keeps working.
+      const qaUserIds = new Set(
+        usersRes.rows.filter((u: any) => String(u.email || '').toLowerCase().endsWith('@qa.neogram.club')).map((u: any) => u.id)
+      );
+      console.warn(`[:> SYSOP AUDIT] DB snapshot exported by @${(req as AdminRequest).adminUser?.handle} (QA credentials only)`);
+
       const users = usersRes.rows.map((u) => ({
         ...u,
-        deployment_credentials: formatBytea(u.deployment_credentials),
+        deployment_credentials: qaUserIds.has(u.id) ? formatBytea(u.deployment_credentials) : null,
       }));
 
       const sites = sitesRes.rows.map((s) => {
-        const decrypted = decryptCredentials<any>(s.deployment_credentials);
+        const isQaSite = qaUserIds.has(s.user_id);
+        const decrypted = isQaSite ? decryptCredentials<any>(s.deployment_credentials) : null;
         return {
           ...s,
-          deployment_credentials: formatBytea(s.deployment_credentials),
+          deployment_credentials: isQaSite ? formatBytea(s.deployment_credentials) : null,
           credentials: decrypted
             ? {
                 apiKey: decrypted.apiKey || '',
@@ -1311,6 +1327,26 @@ adminRouter.post(
       }
       if (typeof handle === 'string' && handle.trim()) {
         const cleanHandle = handle.trim().toLowerCase().replace(/^@+/, '');
+        // Same rules as self-service profile edits: handles appear in HTML, JS and URLs everywhere
+        if (!/^[a-z0-9_-]{3,30}$/.test(cleanHandle)) {
+          res.status(400).json({ ok: false, error: 'Handle must be 3-30 lowercase letters, numbers, underscores or hyphens.' });
+          return;
+        }
+        const target = await query('SELECT email FROM users WHERE id = $1', [id]);
+        if (target.rows.length === 0) {
+          res.status(404).json({ ok: false, error: 'User not found.' });
+          return;
+        }
+        const { isReservedHandleFor } = await import('../auth/service');
+        if (isReservedHandleFor(cleanHandle, target.rows[0].email)) {
+          res.status(400).json({ ok: false, error: 'Handles starting with "qa_" are reserved for QA test stations.' });
+          return;
+        }
+        const dup = await query('SELECT id FROM users WHERE handle = $1 AND id != $2', [cleanHandle, id]);
+        if (dup.rows.length > 0) {
+          res.status(409).json({ ok: false, error: `Call-sign "@${cleanHandle}" is already registered by another station.` });
+          return;
+        }
         updates.push(`handle = $${idx++}`);
         values.push(cleanHandle);
       }

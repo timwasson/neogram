@@ -208,6 +208,30 @@ export interface PushSubscriptionPayload {
   userAgent?: string;
 }
 
+const MAX_PUSH_SUBSCRIPTIONS_PER_USER = 20;
+
+// The server POSTs to subscription endpoints (test-push, every notification). Restricting them to the
+// real browser push services keeps that from becoming an SSRF / internal port-scanning primitive.
+const PUSH_SERVICE_HOST_SUFFIXES = [
+  'fcm.googleapis.com',
+  'android.googleapis.com',
+  'push.services.mozilla.com',
+  'push.apple.com',
+  'notify.windows.com',
+];
+
+export function isAllowedPushEndpoint(endpoint: unknown): boolean {
+  if (typeof endpoint !== 'string' || endpoint.length > 2048) return false;
+  try {
+    const u = new URL(endpoint);
+    if (u.protocol !== 'https:' || u.username || u.password || u.port) return false;
+    const host = u.hostname.toLowerCase();
+    return PUSH_SERVICE_HOST_SUFFIXES.some((suffix) => host === suffix || host.endsWith(`.${suffix}`));
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Saves or updates a user's push subscription in PostgreSQL.
  */
@@ -217,6 +241,16 @@ export async function savePushSubscription(
 ): Promise<boolean> {
   if (!sub || !sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
     throw new Error('Invalid push subscription payload: missing endpoint, p256dh, or auth key.');
+  }
+  if (!isAllowedPushEndpoint(sub.endpoint)) {
+    throw new Error('Invalid push subscription endpoint: must be an https URL on a known browser push service.');
+  }
+  if (typeof sub.keys.p256dh !== 'string' || sub.keys.p256dh.length > 256 || typeof sub.keys.auth !== 'string' || sub.keys.auth.length > 128) {
+    throw new Error('Invalid push subscription keys.');
+  }
+  const countRes = await query('SELECT COUNT(*) as count FROM push_subscriptions WHERE user_id = $1 AND endpoint <> $2', [userId, sub.endpoint]);
+  if (parseInt(countRes.rows[0]?.count || '0', 10) >= MAX_PUSH_SUBSCRIPTIONS_PER_USER) {
+    throw new Error('Too many registered push devices. Remove an old device first.');
   }
 
   // Ensure VAPID is initialized

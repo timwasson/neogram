@@ -44,8 +44,11 @@ export function signSessionToken(payload: UserSessionPayload, expiresIn: string 
 export function verifySessionToken(token: string, allowPass: boolean = false): UserSessionPayload | null {
   try {
     const payload = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] }) as UserSessionPayload;
-    if (payload.scope === 'pass' && !allowPass) return null;
-    return payload;
+    // Allow-list scopes: full sessions always; 'pass' only where the caller opts in.
+    // Anything else (e.g. single-use 'handoff' tickets, which travel in URLs) is never a session.
+    if (payload.scope === undefined || payload.scope === 'session') return payload;
+    if (payload.scope === 'pass' && allowPass) return payload;
+    return null;
   } catch {
     return null;
   }
@@ -53,7 +56,10 @@ export function verifySessionToken(token: string, allowPass: boolean = false): U
 
 /** Issues a scoped, short-lived (1h) Cyber-Pass token for third-party static sites. */
 export function signPassToken(payload: Omit<UserSessionPayload, 'scope'>): string {
-  return jwt.sign({ ...payload, scope: 'pass' }, config.jwtSecret, { expiresIn: '1h', algorithm: 'HS256' });
+  // Pass tokens are handed to third-party static sites and JWT payloads are readable by anyone
+  // holding them: never embed the member's email (consumers look the user up by userId).
+  const { userId, handle, uin } = payload;
+  return jwt.sign({ userId, email: '', handle, uin, scope: 'pass' }, config.jwtSecret, { expiresIn: '1h', algorithm: 'HS256' });
 }
 
 /**
@@ -71,7 +77,7 @@ export function signHandoffToken(payload: {
   return jwt.sign(
     {
       userId: payload.userId,
-      email: payload.email,
+      email: '', // tickets travel in URLs (history, logs): identity is re-loaded from the DB on redeem
       handle: payload.handle,
       uin: payload.uin,
       target: payload.target,

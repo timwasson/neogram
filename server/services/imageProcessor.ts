@@ -258,7 +258,9 @@ export async function processAvatarBuffer(
         ? (siteBase.toLowerCase().endsWith(`/${rawDeployPath.toLowerCase()}`) ? '' : `/${rawDeployPath}`)
         : '';
       const timestamp = Date.now();
-      const remoteAvatarUrl = `${siteBase}${deployPrefix}/avatar.webp?v=${timestamp}`;
+      // Canonicalise the (user-supplied) site URL before it becomes an <img src> everywhere
+      const { normalizePublicSiteUrl } = await import('../utils/safeFetch');
+      const remoteAvatarUrl = `${normalizePublicSiteUrl(siteBase)}${deployPrefix}/avatar.webp?v=${timestamp}`;
 
       const targetDeployId = targetSiteRow?.id || userId;
       const isSiteId = Boolean(targetSiteRow?.id);

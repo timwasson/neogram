@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { query } from '../db';
 import { decryptCredentials, GitHubCredentials } from '../utils/crypto';
+import { isSafeRemoteDeletePath } from '../utils/remotePaths';
 import { buildStaticGallery, executeStaticBuild } from './staticBuilder';
 import { DeltaFile, DeployResult } from './neocitiesPublisher';
 
@@ -748,16 +749,25 @@ export async function deleteFromGitHub(targetId: string, filenames: string[]): P
     const baseTreeSha = parentCommitRes.data.tree.sha;
 
     // Build tree entries that delete paths (sha: null)
-    const treeEntries = filenames.map((file) => {
-      const normalizedRel = path.posix.normalize(file).replace(/^(\.\.(\/|\\|$))+/, '');
-      const remotePath = rawDeployPath ? path.posix.join(rawDeployPath, normalizedRel) : normalizedRel;
-      return {
-        path: remotePath,
-        mode: '100644',
-        type: 'blob',
-        sha: null as any,
-      };
-    });
+    // Only Neogram's own generated assets under the deploy path may be deleted (checked BEFORE any
+    // normalisation, so `uploads/../../index.html` is refused instead of being "cleaned" into a target)
+    const treeEntries = filenames
+      .map((file) => {
+        const rel = String(file || '').replace(/^https?:\/\/[^/]+\//, '').replace(/^\/+/, '');
+        const remotePath = rawDeployPath && !rel.startsWith(rawDeployPath + '/') ? `${rawDeployPath}/${rel}` : rel;
+        if (!isSafeRemoteDeletePath(remotePath, rawDeployPath)) {
+          console.warn(`[:> GITHUB DELETE REFUSED] Unsafe deletion path rejected: ${remotePath}`);
+          return null;
+        }
+        return {
+          path: remotePath,
+          mode: '100644',
+          type: 'blob',
+          sha: null as any,
+        };
+      })
+      .filter((entry): entry is { path: string; mode: string; type: string; sha: any } => entry !== null);
+    if (treeEntries.length === 0) return true;
 
     const treeRes = await githubFetch(`/repos/${owner}/${repo}/git/trees`, token, {
       method: 'POST',

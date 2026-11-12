@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
 import { config } from '../config';
-import { requestOtp, verifyOtp, getUserById } from '../auth/service';
-import { signSessionToken, setSessionCookie, clearSessionCookie, verifySessionToken, extractToken, signHandoffToken, COOKIE_NAME } from '../auth/jwt';
+import { requestOtp, verifyOtp, getUserById, normalizeIdentifier } from '../auth/service';
+import { signSessionToken, setSessionCookie, clearSessionCookie, verifySessionToken, extractToken, signHandoffToken, signPassToken, COOKIE_NAME } from '../auth/jwt';
 
 export const authRouter = Router();
 
@@ -68,7 +68,9 @@ authRouter.post('/request-otp', otpRequestLimiter, async (req: Request, res: Res
     const isTestBypass = (req.headers['x-test-suite'] === 'true' && !cleanId.startsWith('spam_test_') && req.headers['x-test-rate-limit'] !== 'true' && process.env.NODE_ENV !== 'production');
 
     // Check rate limit on target identifier (max 4 per 15 minutes)
-    if (!isTestBypass && !checkIdentifierRateLimit(`req:${cleanId}`, 4, 15 * 60 * 1000)) {
+    // Key the per-destination limit on the NORMALISED identifier so "555-123-4567", "(555) 1234567"
+    // and "5551234567" share one budget.
+    if (!isTestBypass && !checkIdentifierRateLimit(`req:${normalizeIdentifier(cleanId)}`, 4, 15 * 60 * 1000)) {
       res.status(429).json({
         ok: false,
         error: 'Carrier busy: Too many OTP dispatch requests for this destination. Please wait 15 minutes.',
@@ -101,7 +103,7 @@ authRouter.post('/verify-otp', otpVerifyLimiter, async (req: Request, res: Respo
     const cleanId = String(identifier).trim().toLowerCase();
     const isTestSuite = (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test';
 
-    if (!isTestSuite && !checkIdentifierRateLimit(`verify:${cleanId}`, 10, 5 * 60 * 1000)) {
+    if (!isTestSuite && !checkIdentifierRateLimit(`verify:${normalizeIdentifier(cleanId)}`, 10, 5 * 60 * 1000)) {
       res.status(429).json({ ok: false, error: 'Too many verification attempts for this account. Please wait 5 minutes.' });
       return;
     }
@@ -194,7 +196,7 @@ authRouter.post('/handoff-ticket', async (req: Request, res: Response) => {
   }
 
   const user = await getUserById(payload.userId);
-  if (!user) {
+  if (!user || user.isBanned) {
     res.status(401).json({ ok: false, error: 'User node not found' });
     return;
   }
@@ -217,3 +219,73 @@ authRouter.post('/handoff-ticket', async (req: Request, res: Response) => {
     handoffUrl,
   });
 });
+
+// 6. Exchange a full session (Bearer only, e.g. the browser extension) for a scoped 1h Cyber-Pass
+//    destined for one static-site origin. Cookies are deliberately NOT accepted here.
+authRouter.post('/pass-token', async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : '';
+  const payload = token ? verifySessionToken(token) : null;
+  if (!payload) {
+    res.status(401).json({ ok: false, error: 'Authentication required' });
+    return;
+  }
+
+  const rawOrigin = req.body?.origin;
+  let origin = '';
+  try {
+    const u = new URL(String(rawOrigin || ''));
+    if ((u.protocol === 'http:' || u.protocol === 'https:') && !u.username && !u.password) origin = u.origin;
+  } catch {
+    origin = '';
+  }
+  if (!origin || origin !== String(rawOrigin)) {
+    res.status(400).json({ ok: false, error: 'A plain http(s) origin is required.' });
+    return;
+  }
+
+  const user = await getUserById(payload.userId);
+  if (!user || user.isBanned) {
+    res.status(401).json({ ok: false, error: 'Authentication required' });
+    return;
+  }
+
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    ok: true,
+    token: signPassToken({ userId: user.id, email: user.email, handle: user.handle, uin: user.uin }),
+    handle: user.handle,
+    uin: user.uin || null,
+    avatar: user.avatarPath || '',
+  });
+});
+
+/**
+ * Verifies a Cyber-Pass presented by a static site (from a #neogram_pass link, a popup or the extension)
+ * and returns the identity the SERVER vouches for. Static pages must store and display only this, never
+ * fields decoded client-side or copied from the URL. Bearer header only; read-only; CORS-public (no cookies).
+ */
+export async function passVerifyHandler(req: Request, res: Response): Promise<void> {
+  res.setHeader('Cache-Control', 'no-store');
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : '';
+  const payload = token ? verifySessionToken(token, true) : null;
+  // Only scoped passes: a full session token must never be pasted into third-party pages/URLs
+  if (!payload || payload.scope !== 'pass') {
+    res.status(401).json({ ok: false, error: 'Invalid or expired Cyber-Pass' });
+    return;
+  }
+  const user = await getUserById(payload.userId);
+  if (!user || user.isBanned) {
+    res.status(401).json({ ok: false, error: 'Invalid or expired Cyber-Pass' });
+    return;
+  }
+  const exp = (payload as any).exp;
+  res.json({
+    ok: true,
+    handle: user.handle,
+    uin: user.uin || null,
+    avatar: user.avatarPath || '',
+    expiresAt: typeof exp === 'number' ? new Date(exp * 1000).toISOString() : null,
+  });
+}

@@ -188,12 +188,13 @@
       for (var i = 0; i < this.items.length; i++) {
         var n = this.items[i];
         var unreadClass = !n.isRead ? 'retro-notify-item--unread' : '';
-        var actorAvatar = n.actorAvatar
-          ? '<img src="' + n.actorAvatar + '" class="w-4 h-4 border border-main object-cover inline-block mr-1 align-middle" alt="" />'
+        var avatarSrc = safeImageUrl(n.actorAvatar);
+        var actorAvatar = avatarSrc
+          ? '<img src="' + escapeHtml(avatarSrc) + '" class="w-4 h-4 border border-main object-cover inline-block mr-1 align-middle" alt="" />'
           : '';
 
         html +=
-          '<div class="retro-notify-item ' + unreadClass + '" data-id="' + n.id + '" onclick="NeogramNotifications.handleClickItem(\'' + n.id + '\', \'' + (n.linkUrl || '') + '\')">' +
+          '<div class="retro-notify-item ' + unreadClass + '" data-id="' + escapeHtml(n.id) + '" data-link="' + escapeHtml(n.linkUrl || '') + '">' +
           '  <div class="retro-notify-item__icon"><span class="status-led ' + (!n.isRead ? 'status-led--online' : 'status-led--offline') + '"></span></div>' +
           '  <div class="retro-notify-item__content">' +
           '    <span class="retro-notify-item__title">' + actorAvatar + escapeHtml(n.title) + '</span>' +
@@ -207,6 +208,17 @@
       }
 
       container.innerHTML = html;
+
+      // Delegated click handling (no user data is ever spliced into inline JS)
+      if (!container.__ngNotifyBound) {
+        container.__ngNotifyBound = true;
+        var self = this;
+        container.addEventListener('click', function (ev) {
+          var item = ev.target && ev.target.closest ? ev.target.closest('.retro-notify-item') : null;
+          if (!item || !container.contains(item)) return;
+          self.handleClickItem(item.getAttribute('data-id'), item.getAttribute('data-link') || '');
+        });
+      }
     },
 
     handleClickItem: function (id, linkUrl) {
@@ -219,6 +231,10 @@
 
       // Navigate to target
       this.toggleDropdown(false);
+      // Only same-origin relative links: never javascript:, data:, or protocol-relative //host URLs
+      if (linkUrl && (linkUrl.charAt(0) !== '/' || linkUrl.charAt(1) === '/' || linkUrl.charAt(1) === '\\')) {
+        linkUrl = '';
+      }
       if (linkUrl) {
         // Special case for NIM popout
         if (linkUrl.startsWith('/#nim?user=')) {
@@ -292,6 +308,10 @@
       }
 
       console.log('[:> DESKTOP NOTIFY] Triggering alert banner:', title);
+
+      if (linkUrl && (linkUrl.charAt(0) !== '/' || linkUrl.charAt(1) === '/' || linkUrl.charAt(1) === '\\')) {
+        linkUrl = '';
+      }
 
       var clientOpener = function () {
         window.focus();
@@ -559,7 +579,16 @@
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /** Allows only http(s) or same-origin relative image URLs. */
+  function safeImageUrl(raw) {
+    if (!raw || typeof raw !== 'string') return '';
+    var v = raw.trim();
+    if (v.charAt(0) === '/' && v.charAt(1) !== '/') return v;
+    return /^https?:\/\//i.test(v) ? v : '';
   }
 
   window.NeogramNotifications = NeogramNotifications;

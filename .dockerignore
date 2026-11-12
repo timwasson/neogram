@@ -1,0 +1,31 @@
+# Never send secrets, local state or VCS history into the image build context.
+.env
+.env.*
+!.env.example
+qa-sessions.json
+db-snapshot.json
+.vapid-keys.json
+*.pem
+*.key
+*.cert
+*.local.*
+*.local.md
+
+.git
+.github
+.agents
+.antigravity
+.vscode
+.DS_Store
+**/.DS_Store
+
+node_modules
+dist
+coverage
+_site
+neogram-aim-extension.zip
+
+# Runtime uploads live in a volume, not in the image
+public/uploads/images/*
+public/uploads/thumbs/*
+public/uploads/avatars/*

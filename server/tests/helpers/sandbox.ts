@@ -13,6 +13,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import http from 'http';
+import dns from 'dns';
 import { AddressInfo } from 'net';
 
 export const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
@@ -25,7 +26,51 @@ export interface Sandbox {
 
 export const ADMIN_EMAIL = 'sysop@test.local';
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+let networkGuardInstalled = false;
+
+/**
+ * Blocks every outbound network call that is not loopback, so the hermetic suites can never reach
+ * neogram.club, Neocities, Nekoweb, picsum.photos or any other real host (DNS included).
+ * Opt out with NEOGRAM_TEST_ALLOW_NETWORK=true for the explicitly-live suites.
+ */
+function installNetworkGuard(): void {
+  if (networkGuardInstalled || process.env.NEOGRAM_TEST_ALLOW_NETWORK === 'true') return;
+  networkGuardInstalled = true;
+
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: any, init?: any) => {
+    const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input?.url;
+    const host = new URL(String(raw)).hostname;
+    if (!LOOPBACK_HOSTS.has(host)) {
+      throw new TypeError(`fetch failed: [hermetic sandbox] outbound request to ${host} blocked`);
+    }
+    return realFetch(input, init);
+  }) as typeof fetch;
+
+  const blocked = (hostname: string) => {
+    const err: NodeJS.ErrnoException = new Error(`[hermetic sandbox] DNS lookup for ${hostname} blocked`);
+    err.code = 'ENOTFOUND';
+    return err;
+  };
+  const realLookup = dns.lookup;
+  (dns as any).lookup = (hostname: string, options: any, callback?: any) => {
+    const cb = typeof options === 'function' ? options : callback;
+    if (!LOOPBACK_HOSTS.has(hostname)) {
+      process.nextTick(() => cb(blocked(hostname)));
+      return;
+    }
+    return (realLookup as any)(hostname, options, callback);
+  };
+  const realPromiseLookup = dns.promises.lookup;
+  (dns.promises as any).lookup = async (hostname: string, options?: any) => {
+    if (!LOOPBACK_HOSTS.has(hostname)) throw blocked(hostname);
+    return (realPromiseLookup as any)(hostname, options);
+  };
+}
+
 export async function bootSandbox(extraEnv: Record<string, string> = {}): Promise<Sandbox> {
+  installNetworkGuard();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neogram-test-'));
   for (const name of ['views', 'eleventy', 'embed', 'extension']) {
     fs.symlinkSync(path.join(REPO_ROOT, name), path.join(dir, name));

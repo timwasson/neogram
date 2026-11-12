@@ -126,18 +126,25 @@ export function createApp(): Express {
     '/api/guestbook',
     '/api/users',
     '/api/network',
+    '/api/pass',
   ];
 
   const isPublicEmbed = (reqPath: string) =>
     publicEmbedPaths.some((prefix) => reqPath.startsWith(prefix));
 
+  // Credentialed (cookie) CORS is first-party only. Loopback dev servers and arbitrary browser
+  // extensions are trusted outside production only: in production any page served from a visitor's
+  // localhost, or any installed extension, would otherwise get to read their workstation APIs.
+  // (The Neogram extension authenticates with Bearer tokens + host_permissions, so it needs neither.)
+  const isProduction = config.env === 'production';
   const isTrustedOrigin = (origin: string | undefined) =>
     !origin ||
     origin === config.appUrl ||
-    origin.startsWith('http://localhost:') ||
-    origin.startsWith('http://127.0.0.1:') ||
-    origin.startsWith('chrome-extension://') ||
-    origin.startsWith('moz-extension://');
+    (!isProduction &&
+      (origin.startsWith('http://localhost:') ||
+        origin.startsWith('http://127.0.0.1:') ||
+        origin.startsWith('chrome-extension://') ||
+        origin.startsWith('moz-extension://')));
 
   app.use(
     cors((req, callback) => {
@@ -447,24 +454,27 @@ export function createApp(): Express {
     const cleanTarget = parsedTarget.toString();
     res.setHeader('Cache-Control', 'no-store');
 
-    // 1. Check if a valid single-use handoff ticket was provided
+    // 1. A valid single-use handoff ticket, minted for exactly this target, is REQUIRED.
+    //    There is deliberately no session-cookie fallback: otherwise any site could bounce a logged-in
+    //    visitor through /auth/handoff?target=<attacker> and receive a Cyber-Pass without consent.
     let userPayload: UserSessionPayload | null = null;
     if (rawTicket && typeof rawTicket === 'string') {
-      userPayload = verifyHandoffToken(rawTicket);
+      const ticket = verifyHandoffToken(rawTicket);
+      let ticketTarget = '';
+      try {
+        ticketTarget = ticket ? new URL(ticket.target.trim()).toString() : '';
+      } catch {
+        ticketTarget = '';
+      }
+      if (ticket && ticketTarget === cleanTarget) {
+        const dbUser = await getUserById(ticket.userId);
+        if (dbUser && !dbUser.isBanned) {
+          userPayload = { userId: dbUser.id, email: dbUser.email, handle: dbUser.handle, uin: dbUser.uin };
+        }
+      }
     }
 
-    // 2. Fallback: Check if the browser already has an active session cookie on neogram.club
-    if (!userPayload && res.locals.currentUser) {
-      const u = res.locals.currentUser;
-      userPayload = {
-        userId: u.id,
-        email: u.email,
-        handle: u.handle,
-        uin: u.uin,
-      };
-    }
-
-    // 3. If no ticket and no existing session, redirect to the standard Cyber-Pass connect/login screen
+    // 2. No (valid) ticket: send the visitor to the consent-gated Cyber-Pass connect screen
     if (!userPayload) {
       res.redirect(`/auth/connect?origin=${encodeURIComponent(parsedTarget.origin)}&return_url=${encodeURIComponent(cleanTarget)}`);
       return;
@@ -582,11 +592,9 @@ export function createApp(): Express {
 
       const { query } = await import('./db');
 
-      // If station has been deployed to an external static host, check if remote feed.json was wiped
-      if (user.deployment_type && user.deployment_type !== 'none' && user.last_deployed_at) {
-        const { checkAndSyncStationFeed } = await import('./services/stationSync');
-        await checkAndSyncStationFeed(user.id);
-      }
+      // NOTE: the remote-wipe check (checkAndSyncStationFeed) is deliberately NOT run on public
+      // profile views: it can delete local data and makes outbound requests, so only the station owner
+      // triggers it (POST /api/build-static).
 
       // Fetch public sites for this station node
       const sitesRes = await query(
@@ -672,7 +680,6 @@ export function createApp(): Express {
           id: user.id,
           handle: stationHandle,
           uin: user.uin,
-          email: user.email,
           siteUrl: targetSiteUrl || user.site_url,
           cleanRootSiteUrl,
           galleryUrl,

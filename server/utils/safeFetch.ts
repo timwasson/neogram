@@ -22,6 +22,23 @@ export class SsrfBlockedError extends Error {
   }
 }
 
+// IPv6 ranges that are non-public or that embed/translate an IPv4 address (which could be private):
+// IPv4-compatible ::/96, NAT64 64:ff9b::/96 + 64:ff9b:1::/48, discard 100::/64, Teredo 2001::/32,
+// documentation 2001:db8::/32, 6to4 2002::/16, deprecated site-local fec0::/10.
+const BLOCKED_V6 = new net.BlockList();
+for (const [prefix, bits] of [
+  ['::', 96],
+  ['64:ff9b::', 96],
+  ['64:ff9b:1::', 48],
+  ['100::', 64],
+  ['2001::', 32],
+  ['2001:db8::', 32],
+  ['2002::', 16],
+  ['fec0::', 10],
+] as const) {
+  BLOCKED_V6.addSubnet(prefix, bits, 'ipv6');
+}
+
 export function isPrivateAddress(address: string): boolean {
   if (net.isIPv4(address)) {
     const [a, b] = address.split('.').map(Number);
@@ -45,6 +62,7 @@ export function isPrivateAddress(address: string): boolean {
       const mapped = lower.slice(7);
       return net.isIPv4(mapped) ? isPrivateAddress(mapped) : true;
     }
+    if (BLOCKED_V6.check(lower, 'ipv6')) return true;
     return (
       lower.startsWith('fc') ||
       lower.startsWith('fd') || // ULA
@@ -84,6 +102,40 @@ export function validatePublicUrl(raw: string): URL {
     throw new SsrfBlockedError('Private addresses are not allowed');
   }
   return url;
+}
+
+const SAFE_HOSTNAME = /^[a-z0-9.-]+$/;
+
+/**
+ * Canonical form of a user-supplied site URL, safe to store and to splice into HTML attributes:
+ * validated public http(s) URL, plain ASCII hostname, percent-encoded path (including `'`),
+ * no query/fragment, no trailing slash. Throws SsrfBlockedError otherwise.
+ */
+export function normalizePublicSiteUrl(raw: string): string {
+  const url = validatePublicUrl(String(raw || '').trim());
+  const host = url.hostname.replace(/^\[|\]$/g, '');
+  if (!SAFE_HOSTNAME.test(host) && !net.isIP(host)) {
+    throw new SsrfBlockedError('Invalid characters in hostname');
+  }
+  const pathname = url.pathname.replace(/'/g, '%27').replace(/\/+$/, '');
+  return `${url.protocol}//${url.host}${pathname}`;
+}
+
+/**
+ * Canonical https URL for browser-loaded resources (custom stylesheet, avatar): https only,
+ * ASCII hostname, `'` percent-encoded. Returns null when the input is not acceptable.
+ */
+export function normalizeHttpsResourceUrl(raw: unknown): string | null {
+  if (typeof raw !== 'string' || !raw.trim() || raw.length > 500) return null;
+  try {
+    const url = new URL(raw.trim());
+    if (url.protocol !== 'https:' && !(config.env !== 'production' && url.protocol === 'http:')) return null;
+    if (url.username || url.password) return null;
+    if (!SAFE_HOSTNAME.test(url.hostname.replace(/^\[|\]$/g, '')) && !net.isIP(url.hostname.replace(/^\[|\]$/g, ''))) return null;
+    return url.href.replace(/'/g, '%27');
+  } catch {
+    return null;
+  }
 }
 
 /** Same as validatePublicUrl but returns a boolean (for input validation). */
@@ -135,15 +187,22 @@ export async function safeGet(rawUrl: string, opts: SafeGetOptions = {}): Promis
   const maxRedirects = opts.maxRedirects ?? 3;
 
   let current = validatePublicUrl(rawUrl);
+  const originalOrigin = current.origin;
+  // Hard wall-clock budget for the whole exchange (all hops). `timeout` below is only an idle-socket
+  // timeout, so a server dripping one byte every few seconds could otherwise hold the request open.
+  const deadline = Date.now() + timeoutMs * (maxRedirects + 1);
 
   for (let hop = 0; hop <= maxRedirects; hop++) {
     const result = await new Promise<{ status: number; headers: http.IncomingHttpHeaders; body: Buffer }>((resolve, reject) => {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) return reject(new SsrfBlockedError('Request timed out'));
       const lib = current.protocol === 'https:' ? https : http;
       const req = lib.request(
         current,
         {
           method: 'GET',
-          headers: { 'User-Agent': 'NeogramFeedFetcher/1.0', Accept: 'application/json', ...(opts.headers || {}) },
+          // Caller headers are only sent to the origin that was originally requested, never to a redirect target
+          headers: { 'User-Agent': 'NeogramFeedFetcher/1.0', Accept: 'application/json', ...(current.origin === originalOrigin ? opts.headers || {} : {}) },
           lookup: guardedLookup as any,
           timeout: timeoutMs,
         },
@@ -169,6 +228,8 @@ export async function safeGet(rawUrl: string, opts: SafeGetOptions = {}): Promis
         }
       );
       req.on('timeout', () => req.destroy(new Error('Request timed out')));
+      const wallClock = setTimeout(() => req.destroy(new SsrfBlockedError('Request timed out')), remaining);
+      req.on('close', () => clearTimeout(wallClock));
       req.on('error', reject);
       req.end();
     });

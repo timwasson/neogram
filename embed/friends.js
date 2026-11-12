@@ -118,7 +118,7 @@
           (p.caption ? '      <p class="neogram-card__caption">' + escapeHtml(p.caption) + '</p>' : '') +
           '    </div>' +
           '    <div class="neogram-card__footer">' +
-          '      <span class="neogram-card__likes"><strong>' + (p.likes || 0) + '</strong> likes</span>' +
+          '      <span class="neogram-card__likes"><strong>' + (parseInt(p.likes, 10) || 0) + '</strong> likes</span>' +
           '    </div>' +
           '  </div>' +
           '</article>';

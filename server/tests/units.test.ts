@@ -25,6 +25,14 @@ describe('safeFetch: isPrivateAddress', () => {
     'fc00::1',
     'fe80::1',
     '::ffff:10.0.0.1',
+    '::ffff:7f00:1', // IPv4-mapped loopback, hex form (what the URL parser emits)
+    '::7f00:1', // IPv4-compatible loopback
+    '::127.0.0.1',
+    '64:ff9b::a9fe:a9fe', // NAT64 -> 169.254.169.254
+    '2002:7f00:1::', // 6to4 embedding 127.0.0.1
+    '2001:0:4136:e378::1', // Teredo
+    'fec0::1', // site-local
+    '0.0.0.0',
   ];
 
   for (const ip of privateIps) {

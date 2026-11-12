@@ -2,6 +2,15 @@ import { query } from '../db';
 import { activeSockets } from './chatSocket';
 import { WebSocket } from 'ws';
 import { sendPushNotificationToUser } from './webPushService';
+import { canonicalAvatarUrl } from '../utils/avatar';
+
+/** Raw avatar_path may predate URL canonicalisation: only pass through clean http(s) URLs or local icon paths. */
+function safeActorAvatar(raw: unknown): string | null {
+  if (typeof raw !== 'string' || !raw.trim()) return null;
+  const v = raw.trim();
+  if (/^\/[A-Za-z0-9/_.-]*$/.test(v)) return v;
+  return canonicalAvatarUrl(v);
+}
 
 export type NotificationType =
   | 'nim'
@@ -272,7 +281,7 @@ export async function dispatchNotification(params: {
       );
       if (actorRes.rows.length > 0) {
         actorHandle = actorRes.rows[0].handle;
-        actorAvatar = actorRes.rows[0].avatarPath;
+        actorAvatar = safeActorAvatar(actorRes.rows[0].avatarPath);
       }
     }
 
@@ -400,7 +409,7 @@ export async function getNotifications(
     userId: row.userId,
     actorId: row.actorId,
     actorHandle: row.actorHandle,
-    actorAvatar: row.actorAvatar,
+    actorAvatar: safeActorAvatar(row.actorAvatar),
     type: row.type,
     title: row.title,
     body: row.body,

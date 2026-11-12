@@ -15,6 +15,8 @@ export interface ActiveSession {
   awayMessage: string;
   connectedAt: Date;
   isAnonymous?: boolean;
+  /** Verified Cyber-Pass visitor using the embedded pager: may ONLY message targetStation. */
+  pagerOnly?: boolean;
   targetStationId?: string;
   targetStationHandle?: string;
   clientIp?: string;
@@ -24,6 +26,10 @@ export interface ActiveSession {
 export const activeSockets = new Map<string, ActiveSession>();
 // In-memory active anonymous pager sockets map keyed by anonHandle
 export const activeAnonSockets = new Map<string, ActiveSession>();
+// Verified (Cyber-Pass) pager widget sockets. Kept apart from activeSockets so a scoped pass token
+// never becomes a full NIM session (no buddy list, no offline-queue flush, no DMs to other users).
+export const activePassPagerSockets = new Set<ActiveSession>();
+
 
 /**
  * Broadcasts a presence or network event to all connected sockets
@@ -52,8 +58,10 @@ export function initChatWebSocketServer(server: http.Server) {
 
   wss.on('connection', async (ws: WebSocket, req: http.IncomingMessage) => {
     let authenticatedUser: any = null;
+    let passPagerUser: any = null;
     let isAnonymousPager = false;
     let anonHandle = '';
+    let anonKey = '';
     let targetStation: any = null;
 
     try {
@@ -63,17 +71,19 @@ export function initChatWebSocketServer(server: http.Server) {
 
       // 0. Verify Origin to prevent Cross-Site WebSocket Hijacking (CSWSH)
       const origin = req.headers.origin;
+      const { config } = await import('../config');
+      const isFirstPartyOrigin =
+        !origin ||
+        origin === config.appUrl ||
+        origin.startsWith('http://localhost:') ||
+        origin.startsWith('http://127.0.0.1:') ||
+        origin.startsWith('https://localhost:') ||
+        origin.startsWith('https://127.0.0.1:') ||
+        origin.startsWith('chrome-extension://') ||
+        origin.startsWith('moz-extension://');
       if (origin) {
-        const { config } = await import('../config');
-        const isAllowedOrigin =
-          isPagerParam ||
-          origin === config.appUrl ||
-          origin.startsWith('http://localhost:') ||
-          origin.startsWith('http://127.0.0.1:') ||
-          origin.startsWith('https://localhost:') ||
-          origin.startsWith('https://127.0.0.1:') ||
-          origin.startsWith('chrome-extension://') ||
-          origin.startsWith('moz-extension://');
+        // The embeddable pager is allowed from any static site; everything else must be first-party.
+        const isAllowedOrigin = isPagerParam || isFirstPartyOrigin;
 
         if (!isAllowedOrigin) {
           console.warn(`[:> WEBSOCKET CSWSH BLOCKED] Rejected connection from unauthorized origin: ${origin}`);
@@ -99,26 +109,46 @@ export function initChatWebSocketServer(server: http.Server) {
       const parsedCookies = cookie.parse(cookieHeader);
       const sessionToken = parsedCookies[COOKIE_NAME];
 
-      if (sessionToken) {
-        const payload = verifySessionToken(sessionToken, true);
+      // Ambient cookies are only honoured for first-party origins (pager sockets from third-party
+      // static sites must authenticate explicitly with a scoped Cyber-Pass token).
+      if (sessionToken && isFirstPartyOrigin) {
+        const payload = verifySessionToken(sessionToken);
         if (payload) {
           authenticatedUser = await getUserById(payload.userId);
         }
       }
 
-      // Fallback: Check url query params (e.g. ?token=... or ?handle=...)
+      // Fallback: ?token= query param. Full session tokens (browser extension) get a full NIM session;
+      // scoped Cyber-Pass tokens are ONLY accepted for a pager socket bound to a single station.
       if (!authenticatedUser && urlObj) {
         const tokenQuery = urlObj.searchParams.get('token');
         if (tokenQuery) {
           const payload = verifySessionToken(tokenQuery, true);
-          if (payload) {
+          if (payload && payload.scope === 'pass') {
+            if (!(isPagerParam && targetStation)) {
+              ws.send(JSON.stringify({ type: 'error', code: 'UNAUTHORIZED', message: 'Cyber-Pass tokens are only valid for the station pager.' }));
+              ws.close(4001, 'Unauthorized');
+              return;
+            }
+            passPagerUser = await getUserById(payload.userId);
+          } else if (payload) {
             authenticatedUser = await getUserById(payload.userId);
           }
         }
       }
 
+      if (passPagerUser && targetStation) {
+        const { getNotificationPreferences } = await import('./notificationService');
+        const prefs = await getNotificationPreferences(targetStation.id);
+        if (prefs.chatWidgetEnabled === false) {
+          ws.send(JSON.stringify({ type: 'error', code: 'WIDGET_DISABLED', message: 'Chat widget is disabled on this station.' }));
+          ws.close(4003, 'Widget disabled');
+          return;
+        }
+      }
+
       // If unauthenticated and pager connection requested, check anonymous permissions
-      if (!authenticatedUser && isPagerParam && targetStation) {
+      if (!authenticatedUser && !passPagerUser && isPagerParam && targetStation) {
         const { getNotificationPreferences } = await import('./notificationService');
         const prefs = await getNotificationPreferences(targetStation.id);
 
@@ -134,22 +164,25 @@ export function initChatWebSocketServer(server: http.Server) {
           return;
         }
 
-        const rawAnon = urlObj.searchParams.get('anonHandle') || '';
-        const cleanAnon = rawAnon.trim().replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20);
-        anonHandle = cleanAnon || `guest_${Math.floor(1000 + Math.random() * 9000)}`;
+        // Guest identities are server-issued (guest_<10 hex> + HMAC key). A presented handle is honoured
+        // only with its key; anything else (guessed guest ids, real member handles) gets a fresh one.
+        const { resolveAnonIdentity } = await import('../auth/anonIdentity');
+        const anon = resolveAnonIdentity(urlObj.searchParams.get('anonHandle'), urlObj.searchParams.get('anonKey'));
+        anonHandle = anon.handle;
+        anonKey = anon.key;
         isAnonymousPager = true;
       }
     } catch (err) {
       console.warn('[:> WEBSOCKET AUTH ERROR]', err);
     }
 
-    if (authenticatedUser && authenticatedUser.isBanned) {
+    if ((authenticatedUser && authenticatedUser.isBanned) || (passPagerUser && passPagerUser.isBanned)) {
       ws.send(JSON.stringify({ type: 'error', code: 'NODE_BANNED', message: 'Station node suspended by network administrator.' }));
       ws.close(4003, 'Node banned');
       return;
     }
 
-    if (!authenticatedUser && !isAnonymousPager) {
+    if (!authenticatedUser && !passPagerUser && !isAnonymousPager) {
       // Send error packet and terminate
       ws.send(JSON.stringify({ type: 'error', code: 'UNAUTHORIZED', message: 'Authentication required' }));
       ws.close(4001, 'Unauthorized');
@@ -157,9 +190,12 @@ export function initChatWebSocketServer(server: http.Server) {
     }
 
     // Extract client IP address for presence & flood protection
+    // Behind exactly one reverse proxy (Caddy), the RIGHTMOST X-Forwarded-For entry is the one the
+    // proxy appended; earlier entries are client-supplied and trivially spoofed.
     const forwardedHeader = req.headers['x-forwarded-for'];
-    const clientIp = typeof forwardedHeader === 'string' && forwardedHeader.length > 0
-      ? forwardedHeader.split(',')[0].trim()
+    const forwardedList = typeof forwardedHeader === 'string' ? forwardedHeader.split(',').map((v) => v.trim()).filter(Boolean) : [];
+    const clientIp = forwardedList.length > 0
+      ? forwardedList[forwardedList.length - 1]
       : (req.socket?.remoteAddress || 'unknown');
 
     // A: Anonymous Pager Session
@@ -227,6 +263,7 @@ export function initChatWebSocketServer(server: http.Server) {
         status: targetStatus,
         awayMessage: targetAwayMsg,
         anonHandle,
+        anonKey,
       }));
 
       // Flush any queued offline messages sent to this anonymous visitor
@@ -261,6 +298,55 @@ export function initChatWebSocketServer(server: http.Server) {
         console.error(`[:> PAGER ERROR @${anonHandle}]`, err);
       });
 
+      return;
+    }
+
+    // A2: Verified Cyber-Pass pager session (scoped: may only talk to the target station)
+    if (passPagerUser && targetStation) {
+      const session: ActiveSession = {
+        userId: passPagerUser.id,
+        handle: passPagerUser.handle,
+        email: '',
+        ws,
+        isAlive: true,
+        status: 'online',
+        awayMessage: 'Browsing static site',
+        connectedAt: new Date(),
+        pagerOnly: true,
+        targetStationId: targetStation.id,
+        targetStationHandle: targetStation.handle || targetStation.email.split('@')[0],
+        clientIp,
+      };
+      activePassPagerSockets.add(session);
+
+      ws.on('pong', () => {
+        session.isAlive = true;
+      });
+
+      const targetActive = activeSockets.get(targetStation.id);
+      ws.send(JSON.stringify({
+        type: 'pager_init',
+        station: session.targetStationHandle,
+        uin: targetStation.uin,
+        status: targetActive ? targetActive.status : 'offline',
+        awayMessage: targetActive ? targetActive.awayMessage : (targetStation.status_message || 'Offline'),
+        verifiedHandle: session.handle,
+      }));
+
+      ws.on('message', async (data: Buffer | string) => {
+        try {
+          await handleClientMessage(session, JSON.parse(data.toString()));
+        } catch (err: any) {
+          console.error('[:> WEBSOCKET PAGER PARSE ERROR]', err);
+          ws.send(JSON.stringify({ type: 'error', message: 'Invalid JSON payload' }));
+        }
+      });
+      ws.on('close', () => {
+        activePassPagerSockets.delete(session);
+      });
+      ws.on('error', (err) => {
+        console.error(`[:> PAGER ERROR @${session.handle}]`, err);
+      });
       return;
     }
 
@@ -372,6 +458,17 @@ export function initChatWebSocketServer(server: http.Server) {
       session.isAlive = false;
       session.ws.ping();
     }
+
+    // Ping verified Cyber-Pass pager sockets
+    for (const session of activePassPagerSockets) {
+      if (!session.isAlive) {
+        session.ws.terminate();
+        activePassPagerSockets.delete(session);
+        continue;
+      }
+      session.isAlive = false;
+      session.ws.ping();
+    }
   }, 30000);
 
   // Auto-prune expired offline messages every 15 minutes
@@ -422,7 +519,6 @@ async function sendInitialState(ws: WebSocket, currentUserId: string) {
       return {
         id: u.id,
         handle: u.handle,
-        email: u.email,
         isOnline: !!active,
         status: active ? active.status : 'offline',
         awayMessage: active ? active.awayMessage : (u.statusMessage || ''),
@@ -594,6 +690,10 @@ function checkChatRateLimit(userId: string): boolean {
  * Handles incoming messages from WebSocket clients
  */
 async function handleClientMessage(sender: ActiveSession, msg: any) {
+  // Pager sockets (anonymous or Cyber-Pass) may only send direct messages to their target station:
+  // no buddy-list dumps, no presence/status writes, no typing probes against other members.
+  if ((sender.isAnonymous || sender.pagerOnly) && msg?.type !== 'direct_message') return;
+
   switch (msg.type) {
     case 'direct_message': {
       const { to, text, id } = msg;
@@ -665,8 +765,8 @@ async function handleClientMessage(sender: ActiveSession, msg: any) {
         }
       }
 
-      // Restrict anonymous pager sender to only transmitting to their target station
-      if (sender.isAnonymous && sender.targetStationHandle && to !== sender.targetStationHandle) {
+      // Restrict pager senders (anonymous or Cyber-Pass) to only transmitting to their target station
+      if ((sender.isAnonymous || sender.pagerOnly) && (!sender.targetStationHandle || to !== sender.targetStationHandle)) {
         sender.ws.send(JSON.stringify({
           type: 'message_error',
           id,
@@ -752,6 +852,27 @@ async function handleClientMessage(sender: ActiveSession, msg: any) {
       const recipient = recipientRes.rows[0];
       const recipientSession = activeSockets.get(recipient.id);
 
+      // Station owner replying to a verified Cyber-Pass visitor: also deliver to that visitor's pager widget(s)
+      for (const pagerSession of activePassPagerSockets) {
+        if (
+          pagerSession.userId === recipient.id &&
+          pagerSession.targetStationId === sender.userId &&
+          pagerSession.ws.readyState === WebSocket.OPEN
+        ) {
+          pagerSession.ws.send(JSON.stringify({
+            type: 'direct_message',
+            id: msgId,
+            from: sender.handle,
+            fromId: sender.userId,
+            to: recipient.handle,
+            text: trimmedText,
+            timestamp,
+            wasQueued: false,
+            isPager: true,
+          }));
+        }
+      }
+
       if (recipientSession && recipientSession.ws.readyState === WebSocket.OPEN) {
         // Recipient is online! Deliver directly in memory over WebSocket (NEVER TOUCHES DB!)
         recipientSession.ws.send(JSON.stringify({
@@ -764,7 +885,7 @@ async function handleClientMessage(sender: ActiveSession, msg: any) {
           timestamp,
           wasQueued: false,
           isAnonymous: !!sender.isAnonymous,
-          isPager: !!sender.isAnonymous,
+          isPager: !!sender.isAnonymous || !!sender.pagerOnly,
         }));
 
         // Send delivery confirmation back to sender

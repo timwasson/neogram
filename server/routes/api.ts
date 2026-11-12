@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { healthRouter } from './health';
-import { authRouter } from './auth';
+import { authRouter, passVerifyHandler } from './auth';
 import { postsRouter } from './posts';
 import { settingsRouter } from './settings';
 import { directoryRouter } from './directory';
@@ -13,6 +13,10 @@ export const apiRouter = Router();
 
 apiRouter.use(healthRouter);
 apiRouter.use('/auth', authRouter);
+// Cross-origin (CORS-public, never credentialed) Cyber-Pass verification for static sites
+apiRouter.get('/pass/verify', (req: Request, res: Response, next) => {
+  passVerifyHandler(req, res).catch(next);
+});
 apiRouter.use(postsRouter);
 apiRouter.use(settingsRouter);
 apiRouter.use(sitesRouter);
@@ -46,7 +50,9 @@ apiRouter.post('/build-static', async (req: Request, res: Response, next) => {
     const { extractToken, verifySessionToken } = await import('../auth/jwt');
     const token = extractToken(req);
     const payload = token ? verifySessionToken(token) : null;
-    if (!payload) {
+    const { getUserById } = await import('../auth/service');
+    const sessionUser = payload ? await getUserById(payload.userId) : null;
+    if (!payload || !sessionUser || sessionUser.isBanned) {
       res.status(401).json({ ok: false, error: 'Authentication required to trigger static builds.' });
       return;
     }

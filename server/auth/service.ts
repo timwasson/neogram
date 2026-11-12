@@ -35,6 +35,11 @@ export function normalizeIdentifier(input: string): string {
   return trimmed.toLowerCase();
 }
 
+/** `qa_` handles are reserved for provisioned @qa.neogram.club test accounts. */
+export function isReservedHandleFor(handle: string, email: string | null | undefined): boolean {
+  return /^qa_/i.test(handle) && !String(email || '').toLowerCase().endsWith('@qa.neogram.club');
+}
+
 export function extractDisplayHandle(email: string): string {
   const parts = email.split('@');
   return parts[0] || 'surfer';
@@ -52,6 +57,10 @@ export async function generateUniqueHandle(rawPrefix: string): Promise<string> {
 
   if (!candidate || candidate.length < 3) {
     candidate = 'surfer';
+  }
+  // Never auto-assign the reserved QA prefix to a self-registered account (e.g. qa_bob@gmail.com)
+  if (candidate.startsWith('qa_')) {
+    candidate = `qa-${candidate.slice(3)}`;
   }
 
   // 1. Try base candidate

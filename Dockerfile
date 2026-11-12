@@ -21,8 +21,10 @@ RUN npm run sass:build
 # Ensure persistent runtime directories exist
 RUN mkdir -p /app/dist/static-galleries /app/public/uploads /app/public/uploads/avatars /app/public/uploads/images /app/public/uploads/thumbs
 
-# Set ownership to non-root node user and switch
-RUN chown -R node:node /app
+# Only the runtime-writable directories belong to the non-root user. Application code and
+# node_modules stay root-owned (read-only for `node`), so a compromised process cannot rewrite them.
+# eleventy/src/_data is rewritten per build by the static generator.
+RUN chown -R node:node /app/dist /app/public/uploads /app/eleventy/src/_data
 
 USER node
 

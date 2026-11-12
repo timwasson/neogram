@@ -46,6 +46,72 @@
     apiHost = window.location.origin;
   }
 
+  // ---- Cyber-Pass verification: the Neogram server is the ONLY authority for who is signed in ----
+  var NG_PASS_API = (function () { try { return new URL(apiHost, window.location.href).origin; } catch (_e) { return window.location.origin; } })();
+  function ngIsTrustedPassOrigin(o) { return o === window.location.origin || o === NG_PASS_API; }
+  function ngVerifyPass(token, cb) {
+    if (typeof token !== 'string' || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token) || !window.fetch) { cb(null); return; }
+    fetch(NG_PASS_API + '/api/pass/verify', { headers: { Authorization: 'Bearer ' + token } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { cb(d && d.ok && d.handle ? { token: token, handle: String(d.handle), uin: d.uin || null, avatar: d.avatar || '', verified: true } : null); })
+      .catch(function () { cb(null); });
+  }
+  function ngStoredPass() {
+    try { var raw = localStorage.getItem('neogram_pass'); return raw && raw.charAt(0) === '{' ? JSON.parse(raw) : null; } catch (_e) { return null; }
+  }
+  function ngSavePass(v) { try { localStorage.setItem('neogram_pass', JSON.stringify(v)); } catch (_e) {} }
+  function ngTakeHashPassToken() {
+    if (!window.location.hash || window.location.hash.indexOf('neogram_pass=') === -1) return '';
+    var token = '';
+    try {
+      var parsed = JSON.parse(decodeURIComponent(window.location.hash.split('neogram_pass=')[1].split('&')[0]));
+      token = parsed && typeof parsed.token === 'string' ? parsed.token : '';
+    } catch (_e) {}
+    try {
+      if (window.history && window.history.replaceState) {
+        var cleanHash = window.location.hash.replace(/#?neogram_pass=[^&]*&?/, '').replace(/^&/, '');
+        window.history.replaceState(null, '', window.location.pathname + window.location.search + (cleanHash ? '#' + cleanHash : ''));
+      }
+    } catch (_e) {}
+    return token;
+  }
+  // A #neogram_pass link can be crafted by anyone (login CSRF): verify it server-side, and ask before it
+  // signs this browser in as a different identity than the one already stored.
+  function ngAdoptHashPass(onAdopted) {
+    var token = ngTakeHashPassToken();
+    if (!token) return;
+    ngVerifyPass(token, function (v) {
+      if (!v) return;
+      var cur = ngStoredPass();
+      var same = cur && cur.verified && cur.handle === v.handle;
+      if (!same && !window.confirm('Sign in to this site as @' + v.handle + ' with your Neogram Cyber-Pass?' + (cur && cur.handle ? '\n\nThis replaces @' + cur.handle + '.' : ''))) return;
+      ngSavePass(v);
+      if (onAdopted) onAdopted(v);
+    });
+  }
+  // Passes delivered by the Neogram popup / extension: still stored only as the server vouches for them
+  function ngAdoptMessagePass(token, onAdopted) {
+    ngVerifyPass(token, function (v) {
+      if (!v) return;
+      ngSavePass(v);
+      if (onAdopted) onAdopted(v);
+    });
+  }
+  // Passes stored before verification existed (or planted by an old link) are re-checked once
+  function ngRevalidateStoredPass(onChange) {
+    var raw = null;
+    try { raw = localStorage.getItem('neogram_pass'); } catch (_e) {}
+    if (!raw) return;
+    var cur = ngStoredPass();
+    if (cur && cur.verified) return;
+    var token = cur ? cur.token : raw;
+    ngVerifyPass(token, function (v) {
+      if (v) ngSavePass(v); else { try { localStorage.removeItem('neogram_pass'); } catch (_e) {} }
+      if (onChange) onChange(v);
+    });
+  }
+  // ---- end Cyber-Pass verification ----
+
   if (!station) {
     console.warn('[:> NEOGRAM PAGER] Missing required data-station attribute on script or container.');
     return;
@@ -118,31 +184,28 @@
   }
 
   // 4. Identity & Session State
-  if (typeof window !== 'undefined' && window.location && window.location.hash && window.location.hash.indexOf('neogram_pass=') !== -1) {
-    try {
-      var rawHashPass = decodeURIComponent(window.location.hash.split('neogram_pass=')[1].split('&')[0]);
-      var parsedHash = JSON.parse(rawHashPass);
-      if (parsedHash && parsedHash.token) {
-        localStorage.setItem('neogram_pass', JSON.stringify(parsedHash));
-      }
-    } catch (_e) {}
-  }
-
-  var rawStoredPass = localStorage.getItem('neogram_pass') || '';
-  var currentToken = '';
-  if (rawStoredPass) {
-    if (rawStoredPass.indexOf('{') === 0) {
-      try {
-        var parsedPass = JSON.parse(rawStoredPass);
-        currentToken = parsedPass.token || '';
-      } catch (_e) {}
-    } else {
-      currentToken = rawStoredPass;
-    }
-  }
+  // Identity comes only from a server-verified pass (never from decoding the JWT client-side)
+  var storedPagerPass = ngStoredPass();
+  var currentToken = storedPagerPass && storedPagerPass.verified ? storedPagerPass.token : '';
+  var verifiedHandleFromServer = storedPagerPass && storedPagerPass.verified ? storedPagerPass.handle : '';
 
   var verifiedHandle = '';
   var anonHandle = '';
+  var anonKey = '';
+  // Guest identities are issued by the server (handle + key); the browser only remembers them.
+  function ngLoadGuest() {
+    try {
+      var g = JSON.parse(sessionStorage.getItem('neogram_pager_guest') || 'null');
+      if (g && /^guest_[0-9a-f]{10}$/.test(g.handle) && typeof g.key === 'string') return g;
+    } catch (_e) {}
+    return null;
+  }
+  function ngSaveGuest(handle, key) {
+    if (!/^guest_[0-9a-f]{10}$/.test(String(handle || '')) || typeof key !== 'string') return false;
+    try { sessionStorage.setItem('neogram_pager_guest', JSON.stringify({ handle: handle, key: key })); } catch (_e) {}
+    return true;
+  }
+
   var isExpanded = false;
   var stationStatus = 'offline';
   var stationStatusMsg = 'Surfing cyberspace';
@@ -152,28 +215,34 @@
   var unreadCount = 0;
 
   function initCallerIdentity() {
-    if (currentToken) {
-      try {
-        var payload = JSON.parse(atob(currentToken.split('.')[1]));
-        verifiedHandle = payload.handle || ('node_' + (payload.uin || 'user'));
-        return;
-      } catch(e) {
-        localStorage.removeItem('neogram_pass');
-        currentToken = '';
-        verifiedHandle = '';
-      }
+    if (currentToken && verifiedHandleFromServer) {
+      verifiedHandle = verifiedHandleFromServer;
+      return;
     }
+    verifiedHandle = '';
 
-    var savedAnon = sessionStorage.getItem('neogram_pager_anon');
-    if (!savedAnon) {
-      var prefixes = ['guest', 'surfer', 'cyber', 'dialup', 'node', 'netizen'];
-      var num = Math.floor(1000 + Math.random() * 9000);
-      savedAnon = prefixes[Math.floor(Math.random() * prefixes.length)] + '_' + num;
-      sessionStorage.setItem('neogram_pager_anon', savedAnon);
-    }
-    anonHandle = savedAnon;
+    var guest = ngLoadGuest();
+    // Until the server assigns an identity (first connect / first message) show a neutral label
+    anonHandle = guest ? guest.handle : 'guest';
+    anonKey = guest ? guest.key : '';
   }
   initCallerIdentity();
+
+  function ngApplyVerifiedPass(v) {
+    currentToken = v ? v.token : '';
+    verifiedHandleFromServer = v ? v.handle : '';
+    initCallerIdentity();
+    try {
+      updateCallerLabel();
+      updateStatusUI();
+    } catch (_e) {}
+    if (ws) {
+      ws.close();
+      connectWebSocket();
+    }
+  }
+  ngAdoptHashPass(ngApplyVerifiedPass);
+  ngRevalidateStoredPass(ngApplyVerifiedPass);
 
   // 5. Build Widget DOM Components
   var dockContainer = document.createElement('div');
@@ -220,7 +289,7 @@
     '<div class="neogram-pager-window__auth-bar">' +
     '  <div style="display:flex;align-items:center;gap:4px;">' +
     '    <span style="color:#666;">TRANSMITTING:</span>' +
-    '    <span style="font-weight:bold;color:#000080;" id="ngCallerLabel">@' + (verifiedHandle || anonHandle) + '</span>' +
+    '    <span style="font-weight:bold;color:#000080;" id="ngCallerLabel">@' + escapeHtml(verifiedHandle || anonHandle) + '</span>' +
     '  </div>' +
     '  <div>' +
     '    <button type="button" id="ngAuthBtn" style="background:none;border:none;color:#000080;font-family:inherit;font-size:10px;cursor:pointer;font-weight:bold;padding:0;">' +
@@ -305,7 +374,7 @@
 
     el.innerHTML =
       '<div class="neogram-pager-window__msg-header">' +
-      '  <span class="neogram-pager-window__msg-author' + (m.isMe ? ' neogram-pager-window__msg-author--me' : '') + '">@' + m.from + '</span>' +
+      '  <span class="neogram-pager-window__msg-author' + (m.isMe ? ' neogram-pager-window__msg-author--me' : '') + '">@' + escapeHtml(m.from) + '</span>' +
       '  <span>' + timeStr + '</span>' +
       '</div>' +
       '<div style="word-break:break-word;">' + escapeHtml(m.text) + '</div>';
@@ -315,9 +384,12 @@
   }
 
   function escapeHtml(str) {
-    var div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function loadTranscript() {
@@ -409,7 +481,9 @@
     if (currentToken) {
       wsUrl += '&token=' + encodeURIComponent(currentToken);
     } else {
-      wsUrl += '&anonHandle=' + encodeURIComponent(anonHandle);
+      if (anonKey) {
+        wsUrl += '&anonHandle=' + encodeURIComponent(anonHandle) + '&anonKey=' + encodeURIComponent(anonKey);
+      }
     }
 
     try {
@@ -432,6 +506,11 @@
 
   function handleWebSocketPacket(packet) {
     if (packet.type === 'pager_init') {
+      if (!verifiedHandle && packet.anonHandle && packet.anonKey && ngSaveGuest(packet.anonHandle, packet.anonKey)) {
+        anonHandle = packet.anonHandle;
+        anonKey = packet.anonKey;
+        try { updateCallerLabel(); } catch (_e) {}
+      }
       stationStatus = packet.status || 'offline';
       stationStatusMsg = packet.awayMessage || 'Online';
       updateStatusUI();
@@ -471,6 +550,7 @@
       localStorage.removeItem('neogram_pass');
       currentToken = '';
       verifiedHandle = '';
+      verifiedHandleFromServer = '';
       initCallerIdentity();
       updateCallerLabel();
       updateStatusUI();
@@ -490,21 +570,14 @@
       'width=' + width + ',height=' + height + ',top=' + top + ',left=' + left + ',scrollbars=yes'
     );
 
-    function isTrustedPassOrigin(o){return o===window.location.origin||o==='https://neogram.club'||/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o);}
     function onPassMessage(e) {
-      if (!isTrustedPassOrigin(e.origin)) return;
+      if (!ngIsTrustedPassOrigin(e.origin)) return;
       if (e.data && e.data.type === 'NEOGRAM_PASS_APPROVED' && e.data.token) {
-        currentToken = e.data.token;
-        localStorage.setItem('neogram_pass', currentToken);
-        initCallerIdentity();
-        updateCallerLabel();
-        updateStatusUI();
-        playSound('beep');
         window.removeEventListener('message', onPassMessage);
-        if (ws) {
-          ws.close();
-          connectWebSocket();
-        }
+        ngAdoptMessagePass(e.data.token, function (v) {
+          ngApplyVerifiedPass(v);
+          playSound('beep');
+        });
       }
     }
     window.addEventListener('message', onPassMessage);
@@ -580,7 +653,8 @@
         body: JSON.stringify({
           to: station,
           text: text,
-          senderHandle: fromHandle,
+          senderHandle: verifiedHandle ? undefined : anonHandle,
+          senderKey: verifiedHandle ? undefined : anonKey,
           siteSlug: siteSlug,
         }),
       });
@@ -588,6 +662,12 @@
       var data = await res.json();
       if (!res.ok || !data.ok) {
         throw new Error(data.error || 'Transmission failed.');
+      }
+      if (!verifiedHandle && data.anonHandle && data.anonKey && ngSaveGuest(data.anonHandle, data.anonKey)) {
+        anonHandle = data.anonHandle;
+        anonKey = data.anonKey;
+        fromHandle = anonHandle;
+        try { updateCallerLabel(); } catch (_e) {}
       }
 
       var msgObjRest = {

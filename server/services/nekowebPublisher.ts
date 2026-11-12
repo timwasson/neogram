@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import { ZipArchive } from 'archiver';
 import { query } from '../db';
 import { decryptCredentials, NekowebCredentials } from '../utils/crypto';
+import { isSafeRemoteDeletePath } from '../utils/remotePaths';
 import { buildStaticGallery, executeStaticBuild } from './staticBuilder';
 import { DeltaFile } from './neocitiesPublisher';
 export type { DeltaFile };
@@ -437,7 +438,7 @@ export async function deleteFromNekoweb(targetId: string, filenames: string[]): 
 
       // STRICT NON-DESTRUCTIVE SAFETY INVARIANT:
       // Neogram must NEVER delete non-Neogram user files!
-      if (!remoteDeletePath.includes('uploads/') && !remoteDeletePath.includes('photos/') && !remoteDeletePath.endsWith('avatar.webp')) {
+      if (!isSafeRemoteDeletePath(remoteDeletePath, cleanDeployPath)) {
         console.warn(`[:> NEKOWEB DELETE REFUSED] Unsafe deletion path rejected: ${remoteDeletePath}`);
         continue;
       }

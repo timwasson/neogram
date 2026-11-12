@@ -1098,21 +1098,31 @@
 
 &lt;script&gt;
   (async function() {
+    // Feed fields are user-written text: build DOM nodes with textContent, never innerHTML.
+    const safeUrl = (u) =&gt; (typeof u === 'string' &amp;&amp; /^https?:\/\//i.test(u) ? u : '');
+    const el = document.getElementById('neogram-feed');
     try {
       const res = await fetch('{{ appUrl }}/api/users/{{ stationHandle }}/feed.json');
       const data = await res.json();
-      const el = document.getElementById('neogram-feed');
+      el.textContent = '';
       if (!data.items || data.items.length === 0) {
-        el.innerHTML = '&lt;p&gt;No transmissions yet.&lt;/p&gt;';
+        el.textContent = 'No transmissions yet.';
         return;
       }
-      el.innerHTML = data.items.map(post =&gt; `
-        &lt;div style="border: 2px solid #000; margin-bottom: 12px; padding: 8px; background: #fff;"&gt;
-          &lt;img src="${post.thumbnailUrl}" alt="${post.caption}" style="max-width: 100%; display: block;" /&gt;
-          &lt;p style="font-family: monospace; font-size: 11px; margin-top: 6px;"&gt;${post.caption}&lt;/p&gt;
-        &lt;/div&gt;
-      `).join('');
-    } catch(err) {
+      for (const post of data.items) {
+        const card = document.createElement('div');
+        card.style.cssText = 'border: 2px solid #000; margin-bottom: 12px; padding: 8px; background: #fff;';
+        const img = document.createElement('img');
+        img.src = safeUrl(post.thumbnailUrl || post.image);
+        img.alt = post.caption || 'Photo';
+        img.style.cssText = 'max-width: 100%; display: block;';
+        const caption = document.createElement('p');
+        caption.style.cssText = 'font-family: monospace; font-size: 11px; margin-top: 6px;';
+        caption.textContent = post.caption || '';
+        card.append(img, caption);
+        el.appendChild(card);
+      }
+    } catch (err) {
       console.error(err);
     }
   })();
@@ -1607,6 +1617,23 @@ body.neogram-site {
 &lt;script&gt;
 // Replace with your self-hosted feed URL or relative path if hosted on the same site:
 const FEED_URL = 'https://{{ stationHandle }}.neocities.org/{{ deployPath }}/feed.json';
+const NEOGRAM = '{{ appUrl }}';
+
+// SECURITY: every field in feed.json is user-written text (captions, handles, comments).
+// Build elements with textContent and only allow http(s) URLs. Never use innerHTML or inline
+// onclick="...${value}..." strings with feed data, or a caption can run script on your site.
+function h(tag, props, ...children) {
+  const node = document.createElement(tag);
+  Object.assign(node, props || {});
+  for (const child of children) node.append(child == null ? '' : child);
+  return node;
+}
+const safeUrl = (u) =&gt; (typeof u === 'string' &amp;&amp; /^https?:\/\//i.test(u) ? u : '');
+
+// Cyber-Pass saved by Neogram on this site (needed to comment); null for anonymous visitors
+function getPass() {
+  try { const p = JSON.parse(localStorage.getItem('neogram_pass') || 'null'); return p &amp;&amp; p.verified ? p : null; } catch (e) { return null; }
+}
 
 async function initNeogramApp() {
   const profileEl = document.getElementById('profile-container');
@@ -1616,123 +1643,107 @@ async function initNeogramApp() {
     const res = await fetch(FEED_URL);
     if (!res.ok) throw new Error('HTTP ' + res.status + ' loading feed');
     const data = await res.json();
+    const user = data.user || {};
 
     // 1. Render User Profile Header
-    profileEl.innerHTML = `
-      &lt;div class="profile-header"&gt;
-        &lt;img src="${data.user.avatarUrl}" alt="${data.user.handle}" class="profile-avatar" /&gt;
-        &lt;div&gt;
-          &lt;h2 style="margin: 0;"&gt;@${data.user.handle} &lt;span style="font-size: 12px; color: #666;"&gt;[#${data.user.uin || 'NODE'}]&lt;/span&gt;&lt;/h2&gt;
-          &lt;p style="margin: 4px 0; color: #444;"&gt;${data.user.statusMessage || ''}&lt;/p&gt;
-          &lt;button class="action-btn" onclick="followStation('${data.endpoints.followUrl}')"&gt;Add Friend&lt;/button&gt;
-        &lt;/div&gt;
-      &lt;/div&gt;
-    `;
+    const profileLink = h('a', { href: NEOGRAM + '/user/' + encodeURIComponent(user.uin || user.handle || ''), target: '_blank', rel: 'noopener', className: 'action-btn' }, 'Add Friend on Neogram');
+    profileEl.replaceChildren(
+      h('div', { className: 'profile-header' },
+        h('img', { src: safeUrl(user.avatarUrl), alt: user.handle || '', className: 'profile-avatar' }),
+        h('div', {},
+          h('h2', { style: 'margin: 0;' }, '@' + (user.handle || 'station') + ' ', h('span', { style: 'font-size: 12px; color: #666;' }, '[#' + (user.uin || 'NODE') + ']')),
+          h('p', { style: 'margin: 4px 0; color: #444;' }, user.statusMessage || ''),
+          profileLink
+        )
+      )
+    );
 
     // 2. Render Photos Grid
     if (!data.posts || data.posts.length === 0) {
-      galleryEl.innerHTML = '&lt;p&gt;No transmissions found in self-hosted feed.&lt;/p&gt;';
+      galleryEl.textContent = 'No transmissions found in self-hosted feed.';
       return;
     }
 
-    galleryEl.innerHTML = `
-      &lt;div class="photo-grid"&gt;
-        ${data.posts.map(post =&gt; `
-          &lt;div class="photo-card" id="card-${post.id}"&gt;
-            &lt;img src="${post.thumbnailUrl}" alt="${post.caption || 'Photo'}" class="photo-img" loading="lazy" /&gt;
-            &lt;div class="photo-body"&gt;
-              &lt;p style="margin: 0 0 8px 0; font-weight: bold;"&gt;${post.caption || ':&gt; Snapshot'}&lt;/p&gt;
-              &lt;div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 8px;"&gt;
-                &lt;span&gt;${new Date(post.createdAt).toLocaleDateString()}&lt;/span&gt;
-                &lt;button class="action-btn" id="like-btn-${post.id}" onclick="likePhoto('${post.id}', '${post.actions.likeUrl}')"&gt;
-                  &lt;span id="likes-count-${post.id}"&gt;${post.likes}&lt;/span&gt; Likes
-                &lt;/button&gt;
-              &lt;/div&gt;
+    const grid = h('div', { className: 'photo-grid' });
+    for (const post of data.posts) {
+      const likesCount = h('span', {}, String(parseInt(post.likes, 10) || 0));
+      const likeBtn = h('button', { className: 'action-btn', type: 'button' }, likesCount, ' Likes');
+      likeBtn.addEventListener('click', () =&gt; likePhoto(likesCount, safeUrl(post.actions &amp;&amp; post.actions.likeUrl)));
 
-              &lt;!-- Comments Ledger --&gt;
-              &lt;details&gt;
-                &lt;summary style="cursor: pointer; font-size: 11px;"&gt;Comments (${(post.comments || []).length})&lt;/summary&gt;
-                &lt;div class="comments-list" id="comments-${post.id}"&gt;
-                  ${(post.comments || []).map(c =&gt; `&lt;div&gt;&lt;strong&gt;@${c.author}:&lt;/strong&gt; ${c.text}&lt;/div&gt;`).join('')}
-                &lt;/div&gt;
-                &lt;form onsubmit="submitComment(event, '${post.id}', '${post.actions.commentUrl}')" style="margin-top: 6px;"&gt;
-                  &lt;input type="text" placeholder="Your name" class="comment-input" required /&gt;
-                  &lt;input type="text" placeholder="Write a comment..." class="comment-input" required /&gt;
-                  &lt;button type="submit" class="action-btn" style="margin-top: 4px; width: 100%;"&gt;Post Comment&lt;/button&gt;
-                &lt;/form&gt;
-              &lt;/details&gt;
-            &lt;/div&gt;
-          &lt;/div&gt;
-        `).join('')}
-      &lt;/div&gt;
-    `;
+      const commentsList = h('div', { className: 'comments-list' });
+      for (const c of post.comments || []) {
+        commentsList.append(h('div', {}, h('strong', {}, '@' + (c.author || 'visitor') + ': '), c.text || c.body || ''));
+      }
+      const textInput = h('input', { type: 'text', placeholder: 'Write a comment...', className: 'comment-input', required: true });
+      const form = h('form', { style: 'margin-top: 6px;' },
+        textInput,
+        h('button', { type: 'submit', className: 'action-btn', style: 'margin-top: 4px; width: 100%;' }, 'Post Comment')
+      );
+      form.addEventListener('submit', (event) =&gt; submitComment(event, commentsList, textInput, safeUrl(post.actions &amp;&amp; post.actions.commentUrl)));
+
+      grid.append(
+        h('div', { className: 'photo-card' },
+          h('img', { src: safeUrl(post.thumbnailUrl), alt: post.caption || 'Photo', className: 'photo-img', loading: 'lazy' }),
+          h('div', { className: 'photo-body' },
+            h('p', { style: 'margin: 0 0 8px 0; font-weight: bold;' }, post.caption || ':&gt; Snapshot'),
+            h('div', { style: 'display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 8px;' },
+              h('span', {}, new Date(post.createdAt).toLocaleDateString()),
+              likeBtn
+            ),
+            h('details', {},
+              h('summary', { style: 'cursor: pointer; font-size: 11px;' }, 'Comments (' + (post.comments || []).length + ')'),
+              commentsList,
+              form
+            )
+          )
+        )
+      );
+    }
+    galleryEl.replaceChildren(grid);
   } catch (err) {
-    galleryEl.innerHTML = `&lt;p style="color: red;"&gt;Failed to load self-hosted feed: ${err.message}&lt;/p&gt;`;
+    galleryEl.replaceChildren(h('p', { style: 'color: red;' }, 'Failed to load self-hosted feed: ' + err.message));
   }
 }
 
 // 3. Like Photo Action
-async function likePhoto(postId, likeUrl) {
-  const countEl = document.getElementById('likes-count-' + postId);
+async function likePhoto(countEl, likeUrl) {
+  if (!likeUrl) return;
   const current = parseInt(countEl.textContent, 10) || 0;
-  countEl.textContent = current + 1; // Optimistic bump
-
+  countEl.textContent = String(current + 1); // Optimistic bump
   try {
     const res = await fetch(likeUrl, { method: 'POST' });
     const json = await res.json();
-    if (json.likes) countEl.textContent = json.likes;
+    if (json.likes) countEl.textContent = String(parseInt(json.likes, 10) || 0);
   } catch (err) {
     console.warn('Like failed:', err);
   }
 }
 
-// 4. Submit Comment Action
-async function submitComment(event, postId, commentUrl) {
+// 4. Submit Comment Action (requires a Neogram Cyber-Pass on this site)
+async function submitComment(event, commentsList, textInput, commentUrl) {
   event.preventDefault();
-  const form = event.target;
-  const authorInput = form.elements[0];
-  const textInput = form.elements[1];
-
-  const author = authorInput.value.trim();
+  const pass = getPass();
   const body = textInput.value.trim();
-  if (!author || !body) return;
+  if (!body || !commentUrl) return;
+  if (!pass) {
+    alert('Connect your Neogram Cyber-Pass to comment.');
+    return;
+  }
 
-  const commentsList = document.getElementById('comments-' + postId);
-  const tempComment = document.createElement('div');
-  tempComment.innerHTML = `&lt;strong&gt;@${author}:&lt;/strong&gt; ${body} &lt;em style="color: #888;"&gt;(sending...)&lt;/em&gt;`;
+  const status = h('em', { style: 'color: #888;' }, ' (sending...)');
+  const tempComment = h('div', {}, h('strong', {}, '@' + pass.handle + ': '), body, status);
   commentsList.appendChild(tempComment);
 
   try {
     const res = await fetch(commentUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ author: author, body: body })
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + pass.token },
+      body: JSON.stringify({ body: body })
     });
-    if (res.ok) {
-      tempComment.querySelector('em').remove();
-      form.reset();
-    } else {
-      tempComment.style.color = 'red';
-      tempComment.innerHTML += ' (failed)';
-    }
+    status.textContent = res.ok ? '' : ' (failed)';
+    if (res.ok) textInput.value = '';
   } catch (err) {
-    tempComment.style.color = 'red';
-    tempComment.innerHTML += ' (error)';
-  }
-}
-
-// 5. Follow Station Action
-async function followStation(followUrl) {
-  try {
-    const res = await fetch(followUrl, { method: 'POST', credentials: 'include' });
-    const json = await res.json();
-    if (res.ok) {
-      alert('Successfully added to your Cyberspace Friends Network!');
-    } else {
-      alert(json.error || 'Please log in to Neogram to follow this station.');
-    }
-  } catch (err) {
-    alert('Network error connecting to station.');
+    status.textContent = ' (error)';
   }
 }
 

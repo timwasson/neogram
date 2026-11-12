@@ -24,10 +24,74 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   }
 });
 
-// Message listener from popup
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+// Scoped Cyber-Pass cache: origin -> { token, handle, uin, avatar, expiresAt }
+const passCache = new Map();
+
+/**
+ * Exchanges the stored session JWT for a 1h, social-only Cyber-Pass bound to `origin`.
+ * The session JWT itself is never handed to web pages.
+ */
+async function mintPassForOrigin(origin) {
+  const cached = passCache.get(origin);
+  if (cached && cached.expiresAt > Date.now()) return cached;
+
+  const data = await chrome.storage.local.get(['neogram_token', 'neogram_server_url']);
+  if (!data.neogram_token) return null;
+  const serverUrl = (data.neogram_server_url || 'https://neogram.club').replace(/\/+$/, '');
+
+  const res = await fetch(serverUrl + '/api/auth/pass-token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + data.neogram_token },
+    body: JSON.stringify({ origin }),
+  });
+  if (!res.ok) return null;
+  const body = await res.json();
+  if (!body || !body.ok || !body.token) return null;
+  const entry = {
+    token: body.token,
+    handle: body.handle,
+    uin: body.uin || null,
+    avatar: body.avatar || '',
+    expiresAt: Date.now() + 50 * 60 * 1000,
+  };
+  passCache.set(origin, entry);
+  return entry;
+}
+
+// Message listener from popup and content scripts
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
-    if (message.type === 'UPDATE_BADGE') {
+    // Messages from web-page content scripts may only request a scoped pass
+    if (sender && sender.tab && message.type !== 'NEOGRAM_MINT_PASS') {
+      sendResponse({ ok: false, error: 'Not allowed from content scripts' });
+      return;
+    }
+    if (message.type === 'NEOGRAM_MINT_PASS') {
+      // Derive the origin from the browser-attested sender, never from the message body
+      let origin = '';
+      try {
+        origin = sender && sender.url ? new URL(sender.url).origin : '';
+      } catch {
+        origin = '';
+      }
+      if (!sender || !sender.tab || sender.frameId !== 0 || !/^https?:\/\//.test(origin)) {
+        sendResponse({ ok: false });
+        return;
+      }
+      // Zero-click passes would bypass the /auth/connect consent screen for ANY *.neocities.org /
+      // *.nekoweb.org page (anyone can register one). Only origins the user explicitly approved get one.
+      const { neogram_bridge_origins: approved } = await chrome.storage.local.get(['neogram_bridge_origins']);
+      if (!Array.isArray(approved) || !approved.includes(origin)) {
+        sendResponse({ ok: false, error: 'Origin not approved' });
+        return;
+      }
+      try {
+        const pass = await mintPassForOrigin(origin);
+        sendResponse(pass ? { ok: true, ...pass } : { ok: false });
+      } catch {
+        sendResponse({ ok: false });
+      }
+    } else if (message.type === 'UPDATE_BADGE') {
       const count = message.count || 0;
       await chrome.storage.local.set({ neogram_unread_count: count });
       if (count > 0) {

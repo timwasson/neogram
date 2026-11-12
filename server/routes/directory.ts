@@ -10,7 +10,7 @@ export interface DirectoryUser {
   id: string;
   handle: string;
   uin: number;
-  email: string;
+  email?: never; // never exposed: the directory is public (CORS *)
   avatarPath: string;
   status: 'active' | 'away' | 'inactive';
   statusMessage: string;
@@ -145,7 +145,6 @@ export async function fetchCategorizedDirectory(): Promise<CategorizedDirectory>
       id: row.id,
       handle,
       uin,
-      email: row.email,
       avatarPath,
       status,
       statusMessage,

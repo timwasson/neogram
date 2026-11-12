@@ -1,4 +1,5 @@
 import path from 'path';
+import { query } from '../db';
 import { safeGet } from '../utils/safeFetch';
 import { writeFileAtomic } from '../utils/atomicFile';
 import fs from 'fs/promises';
@@ -96,6 +97,25 @@ export async function getCounterSnapshot(
     updatedAt: new Date().toISOString(),
     ...(postId ? { lastPhotoId: postId } : {}),
   };
+}
+
+/**
+ * Builds the raw storage target (snake_case DB columns: site_url, deploy_path, deployment_type,
+ * deployment_credentials) that readRemoteJson / writeRemoteJson / guestbook helpers expect, for one
+ * of `ownerId`'s own sites. The site row wins over the legacy user columns; `id` is the site id (the
+ * local cache dir) and `handle` is the owner's. Passing a formatted camelCase `Site` object instead
+ * leaves every one of those fields undefined, which silently reads from the placeholder host
+ * `https://user.neocities.org` and never pushes to the owner's real host.
+ */
+export async function getSiteStorageTarget(ownerId: string, siteId?: string | null): Promise<any | null> {
+  const ownerRes = await query('SELECT * FROM users WHERE id = $1', [ownerId]);
+  const owner = ownerRes.rows[0];
+  if (!owner) return null;
+  if (!siteId) return owner;
+  const siteRes = await query('SELECT * FROM sites WHERE id = $1 AND user_id = $2', [siteId, ownerId]);
+  const site = siteRes.rows[0];
+  if (!site) return null;
+  return { ...owner, ...site, handle: owner.handle, owner_id: owner.id };
 }
 
 /**
