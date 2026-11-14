@@ -42,7 +42,7 @@
 
       <!-- Terminal Welcome Banner -->
       <div class="p-3 bg-black border border-main text-xs space-y-2">
-        <div class="flex items-center justify-between text-muted text-[10px] uppercase font-bold tracking-wider">
+        <div class="flex items-center justify-between text-muted text-xxs uppercase font-bold tracking-wider">
           <span>STATIC PUBLISHING ENGINE &amp; SOCIAL WIDGET MANUAL</span>
           <span>REVISION: 2.0.4-PROD</span>
         </div>
@@ -1512,9 +1512,9 @@ body.neogram-site {
                 Once published, your JSON feeds are permanently hosted on your own Neocities space. Because Neocities serves static assets with CORS headers, you can fetch them from any origin or domain:
               </p>
               <div class="bg-black p-3 border border-main text-xs font-mono space-y-1">
-                <div><span class="text-prompt font-bold">Master Feed URL:</span> <code class="text-yellow-300 select-all">https://{{ stationHandle }}.neocities.org/{{ deployPath }}/feed.json</code></div>
-                <div><span class="text-prompt font-bold">Posts Array URL:</span> <code class="text-yellow-300 select-all">https://{{ stationHandle }}.neocities.org/{{ deployPath }}/posts.json</code></div>
-                <div><span class="text-prompt font-bold">Relative Fetch (Same Site):</span> <code class="text-cyan-300 select-all">fetch('./{{ deployPath }}/feed.json')</code></div>
+                <div><span class="text-prompt font-bold">Master Feed URL:</span> <code class="text-yellow select-all">https://{{ stationHandle }}.neocities.org/{{ deployPath }}/feed.json</code></div>
+                <div><span class="text-prompt font-bold">Posts Array URL:</span> <code class="text-yellow select-all">https://{{ stationHandle }}.neocities.org/{{ deployPath }}/posts.json</code></div>
+                <div><span class="text-prompt font-bold">Relative Fetch (Same Site):</span> <code class="text-cyan select-all">fetch('./{{ deployPath }}/feed.json')</code></div>
               </div>
             </div>
 

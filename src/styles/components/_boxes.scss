@@ -148,7 +148,8 @@
     color: #ff79c6;
     border-color: #ff79c6;
   }
-  &--amber {
+  &--amber,
+  &--yellow {
     background-color: #2b1f00;
     color: var(--accent-amber);
     border-color: var(--accent-amber);
@@ -157,6 +158,11 @@
     background-color: #002b0f;
     color: var(--accent-prompt);
     border-color: var(--accent-prompt);
+  }
+  &--crimson {
+    background-color: var(--accent-crimson);
+    color: #ffffff;
+    border-color: #000000;
   }
 }
 

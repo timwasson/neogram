@@ -2135,19 +2135,19 @@
                     </div>
 
                     <!-- RIGHT COLUMN: Emergency Station Decommission -->
-                    <div class="flex-1 flex flex-col justify-between gap-3 p-3 border-2 border-red-600 bg-[#120000]">
+                    <div class="flex-1 flex flex-col justify-between gap-3 p-3 danger-zone">
                       <div>
                         <div class="flex items-center justify-between mb-2">
-                          <label class="block text-xs font-bold uppercase tracking-wider text-red-300">
+                          <label class="block text-xs font-bold uppercase tracking-wider danger-zone__label">
                             2. Delete your account
                           </label>
-                          <span class="text-3xs font-mono text-red-400 font-bold">[CAN'T BE UNDONE]</span>
+                          <span class="text-3xs font-mono danger-zone__tag font-bold">[CAN'T BE UNDONE]</span>
                         </div>
-                        <p class="text-xs text-red-200 leading-relaxed font-mono m-0">
+                        <p class="text-xs danger-zone__text leading-relaxed font-mono m-0">
                           Deletes your Neogram account: your profile, connected-site settings and saved keys, hit counters, guestbook copies, friends and notifications. Files already published to your own website are not touched; delete those from your host if you want them gone.
                         </p>
                       </div>
-                      <div class="pt-3 border-t border-red-900">
+                      <div class="pt-3 danger-zone__divider">
                         <button
                           type="button"
                           id="decommissionStationBtn"
@@ -5649,7 +5649,7 @@
         if (c.timestamp) {
           try {
             var d = new Date(c.timestamp);
-            timeStr = ' <span class="text-muted text-[10px] font-normal">(' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ', ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + ')</span>';
+            timeStr = ' <span class="text-muted text-xxs font-normal">(' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ', ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + ')</span>';
           } catch (_e) {}
         }
 

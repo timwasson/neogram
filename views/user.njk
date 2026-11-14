@@ -63,7 +63,7 @@
             </div>
             <!-- Bio / Status Message -->
             <div class="w-full text-left bg-black border border-main p-2.5 text-xs text-prompt space-y-1">
-              <div class="text-[10px] text-muted uppercase font-bold tracking-wider">
+              <div class="text-xxs text-muted uppercase font-bold tracking-wider">
                 CYBER_BROADCAST_STATUS:
               </div>
               <p class="whitespace-pre-wrap leading-relaxed">
@@ -73,15 +73,15 @@
             <!-- Station Telemetry Stats -->
             <div class="w-full grid grid-cols-3 gap-2 border-t border-b border-main py-2 text-xs">
               <div class="flex flex-col">
-                <span class="text-muted text-[10px]">PHOTOS</span>
+                <span class="text-muted text-xxs">PHOTOS</span>
                 <span class="font-bold text-mac text-sm">{{ posts.length }}</span>
               </div>
               <div class="flex flex-col">
-                <span class="text-muted text-[10px]">LIKES</span>
+                <span class="text-muted text-xxs">LIKES</span>
                 <span class="font-bold text-crimson text-sm">{{ profileUser.totalLikes }}</span>
               </div>
               <div class="flex flex-col">
-                <span class="text-muted text-[10px]">VISITS</span>
+                <span class="text-muted text-xxs">VISITS</span>
                 <span class="font-bold text-prompt text-sm">{{ profileUser.hits }}</span>
               </div>
             </div>
@@ -133,7 +133,7 @@
               {% endif %}
             </div>
             <!-- Station Metadata Footer -->
-            <div class="text-[11px] text-muted pt-2 border-t border-main w-full text-left space-y-1">
+            <div class="text-xs text-muted pt-2 border-t border-main w-full text-left space-y-1">
               <div>
                 <strong>Commissioned:</strong>
                 {{ profileUser.createdAt | formatDate }}</div>
@@ -207,7 +207,7 @@
                       </a>
                       {% if post.filterApplied and post.filterApplied != 'none' %}
                         <div class="absolute top-1.5 left-1.5 z-10">
-                          <span class="pixel-badge pixel-badge--green text-[10px] py-0.5 px-1.5 font-bold uppercase tracking-wider">
+                          <span class="pixel-badge pixel-badge--green text-xxs py-0.5 px-1.5 font-bold uppercase tracking-wider">
                             {{ post.filterApplied }}
                           </span>
                         </div>
@@ -225,7 +225,7 @@
                       <p class="text-xs font-mono line-clamp-2 leading-relaxed m-0 text-main">
                         {{ post.caption }}
                       </p>
-                      <div class="flex items-center justify-between text-[11px] text-muted pt-2 mt-auto border-t border-main">
+                      <div class="flex items-center justify-between text-xs text-muted pt-2 mt-auto border-t border-main">
                         <span>{{ post.likes or 0 }} likes</span>
                         <span>{{ post.createdAt | formatDateTime }}</span>
                       </div>

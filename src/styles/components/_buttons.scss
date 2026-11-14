@@ -106,9 +106,26 @@
   /* Crimson Danger Button -> ALWAYS White text */
   &--danger,
   &--red,
+  &--crimson,
   .dark &--danger,
-  .dark &--red {
+  .dark &--red,
+  .dark &--crimson {
     background-color: var(--accent-crimson) !important;
+    color: #ffffff !important;
+    border-color: #000000 !important;
+    text-shadow: none !important;
+
+    &:hover {
+      filter: brightness(1.12);
+    }
+  }
+
+  /* Blue / Primary Mac-accent Button -> ALWAYS White text */
+  &--blue,
+  &--primary,
+  .dark &--blue,
+  .dark &--primary {
+    background-color: var(--accent-mac) !important;
     color: #ffffff !important;
     border-color: #000000 !important;
     text-shadow: none !important;

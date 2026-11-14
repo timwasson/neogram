@@ -1244,6 +1244,529 @@ img.img--broken {
   display: flex !important;
 }
 
+/* ==========================================================================
+   Utility gap-fill: classes the templates already use that previously had no
+   rule (leftovers from the Tailwind-based prototype). Same 4px scale as above.
+   ========================================================================== */
+.gap-0\.5 {
+  gap: 2px;
+}
+
+.gap-1\.5 {
+  gap: 6px;
+}
+
+.gap-2\.5 {
+  gap: 10px;
+}
+
+.gap-5 {
+  gap: 20px;
+}
+
+.gap-8 {
+  gap: 32px;
+}
+
+.p-0\.5 {
+  padding: 2px;
+}
+
+.p-1\.5 {
+  padding: 6px;
+}
+
+.p-2\.5 {
+  padding: 10px;
+}
+
+.p-8 {
+  padding: 32px;
+}
+
+.px-1\.5 {
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.px-2\.5 {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.px-3\.5 {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+.py-0 {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.py-0\.5 {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.py-1\.5 {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.py-2\.5 {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.py-8 {
+  padding-top: 32px;
+  padding-bottom: 32px;
+}
+
+.pt-1 {
+  padding-top: 4px;
+}
+
+.pt-1\.5 {
+  padding-top: 6px;
+}
+
+.pt-2 {
+  padding-top: 8px;
+}
+
+.pt-3 {
+  padding-top: 12px;
+}
+
+.pt-4 {
+  padding-top: 16px;
+}
+
+.pb-1 {
+  padding-bottom: 4px;
+}
+
+.pb-1\.5 {
+  padding-bottom: 6px;
+}
+
+.pb-2 {
+  padding-bottom: 8px;
+}
+
+.pb-12 {
+  padding-bottom: 48px;
+}
+
+.pl-2 {
+  padding-left: 8px;
+}
+
+.pl-4 {
+  padding-left: 16px;
+}
+
+.pl-5 {
+  padding-left: 20px;
+}
+
+.pr-1 {
+  padding-right: 4px;
+}
+
+.mt-0\.5 {
+  margin-top: 2px;
+}
+
+.mt-1\.5 {
+  margin-top: 6px;
+}
+
+.mt-auto {
+  margin-top: auto;
+}
+
+.mb-0 {
+  margin-bottom: 0;
+}
+
+.mb-0\.5 {
+  margin-bottom: 2px;
+}
+
+.mb-1\.5 {
+  margin-bottom: 6px;
+}
+
+.mb-8 {
+  margin-bottom: 32px;
+}
+
+.mb-12 {
+  margin-bottom: 48px;
+}
+
+.ml-1 {
+  margin-left: 4px;
+}
+
+.ml-auto {
+  margin-left: auto;
+}
+
+.mr-1 {
+  margin-right: 4px;
+}
+
+.w-4 {
+  width: 16px;
+}
+
+.h-4 {
+  height: 16px;
+}
+
+.w-6 {
+  width: 24px;
+}
+
+.h-6 {
+  height: 24px;
+}
+
+.w-7 {
+  width: 28px;
+}
+
+.h-7 {
+  height: 28px;
+}
+
+.w-8 {
+  width: 32px;
+}
+
+.h-8 {
+  height: 32px;
+}
+
+.w-12 {
+  width: 48px;
+}
+
+.h-12 {
+  height: 48px;
+}
+
+.w-16 {
+  width: 64px;
+}
+
+.h-16 {
+  height: 64px;
+}
+
+.h-20 {
+  height: 80px;
+}
+
+.h-32 {
+  height: 128px;
+}
+
+.h-64 {
+  height: 256px;
+}
+
+.h-auto {
+  height: auto;
+}
+
+.max-w-full {
+  max-width: 100%;
+}
+
+.max-h-60 {
+  max-height: 240px;
+}
+
+.max-h-64 {
+  max-height: 256px;
+}
+
+.max-h-80 {
+  max-height: 320px;
+}
+
+.min-h-screen {
+  min-height: 100vh;
+}
+
+.border-4 {
+  border: 4px solid var(--border-main);
+}
+
+.border-b-2 {
+  border-bottom: 2px solid var(--border-main);
+}
+
+.border-muted {
+  border-color: var(--border-muted);
+}
+
+.border-prompt {
+  border-color: var(--accent-prompt);
+}
+
+.border-amber {
+  border-color: var(--accent-amber);
+}
+
+.border-cyan {
+  border-color: var(--accent-cyan);
+}
+
+.border-green {
+  border-color: var(--accent-prompt);
+}
+
+.rounded-full {
+  border-radius: 9999px;
+}
+
+.bg-desktop {
+  background-color: var(--bg-desktop);
+}
+
+.bg-card {
+  background-color: var(--surface-card);
+}
+
+.bg-surface-sunken {
+  background-color: var(--surface-sunken);
+}
+
+.bg-cyan {
+  background-color: var(--accent-cyan);
+  color: #000;
+}
+
+.text-cyan {
+  color: var(--accent-cyan);
+}
+
+.text-yellow {
+  color: var(--accent-amber);
+}
+
+.text-code {
+  color: var(--text-code);
+}
+
+.text-accent {
+  color: var(--accent-mac);
+}
+
+.italic {
+  font-style: italic;
+}
+
+.leading-tight {
+  line-height: 1.2;
+}
+
+.tracking-widest {
+  letter-spacing: 2px;
+}
+
+.whitespace-pre-wrap {
+  white-space: pre-wrap;
+}
+
+.align-middle {
+  vertical-align: middle;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.list-none {
+  list-style: none;
+}
+
+.list-disc {
+  list-style: disc;
+}
+
+.list-decimal {
+  list-style: decimal;
+}
+
+.list-inside {
+  list-style-position: inside;
+}
+
+.space-y-2 > * + * {
+  margin-top: 8px;
+}
+
+.space-y-6 > * + * {
+  margin-top: 24px;
+}
+
+.self-start {
+  align-self: flex-start;
+}
+
+.resize-none {
+  resize: none;
+}
+
+.pointer-events-none {
+  pointer-events: none;
+}
+
+.z-10 {
+  z-index: 10;
+}
+
+.top-1\.5 {
+  top: 6px;
+}
+
+.left-1\.5 {
+  left: 6px;
+}
+
+.bottom-2 {
+  bottom: 8px;
+}
+
+.right-2 {
+  right: 8px;
+}
+
+.transition-transform {
+  transition: transform 0.15s ease;
+}
+
+.hover\:underline:hover {
+  text-decoration: underline;
+}
+
+.hover\:text-white:hover {
+  color: #fff;
+}
+
+.hover\:text-crimson:hover {
+  color: var(--accent-crimson);
+}
+
+.hover\:bg-crimson:hover {
+  background-color: var(--accent-crimson);
+  color: #fff;
+}
+
+.hover\:border-cyan:hover {
+  border-color: var(--accent-cyan);
+}
+
+.group:hover .group-hover\:scale-105 {
+  transform: scale(1.05);
+}
+
+@media (min-width: 640px) {
+  .sm\:p-4 {
+    padding: 16px;
+  }
+  .sm\:p-5 {
+    padding: 20px;
+  }
+  .sm\:p-6 {
+    padding: 24px;
+  }
+  .sm\:text-xs {
+    font-size: 11px;
+  }
+  .sm\:text-sm {
+    font-size: 12px;
+  }
+  .sm\:text-xl {
+    font-size: 20px;
+  }
+  .sm\:text-3xl {
+    font-size: 30px;
+  }
+  .sm\:w-80 {
+    width: 320px;
+  }
+  .sm\:w-auto {
+    width: auto;
+  }
+}
+@media (min-width: 768px) {
+  .md\:p-6 {
+    padding: 24px;
+  }
+  .md\:flex-row {
+    flex-direction: row;
+  }
+  .md\:items-center {
+    align-items: center;
+  }
+  .md\:text-sm {
+    font-size: 12px;
+  }
+  .md\:text-lg {
+    font-size: 18px;
+  }
+  .md\:text-xl {
+    font-size: 20px;
+  }
+}
+@media (min-width: 1024px) {
+  .lg\:text-4xl {
+    font-size: 36px;
+  }
+}
+/* Account deletion card (replaces arbitrary-value red classes) */
+.danger-zone {
+  border: 2px solid var(--accent-crimson);
+  background: #120000;
+}
+
+.danger-zone__label {
+  color: #fca5a5;
+}
+
+.danger-zone__tag {
+  color: #f87171;
+}
+
+.danger-zone__text {
+  color: #fecaca;
+}
+
+.danger-zone__divider {
+  border-top: 1px solid #7f1d1d;
+}
+
+/* A <button> that looks like an inline text link */
+.link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
 /**
  * _buttons.scss: Chunky Retro Pixel Push Buttons
  * Provides uncompromising contrast across both light and dark themes.
@@ -1341,13 +1864,25 @@ img.img--broken {
 .pixel-btn {
   /* Crimson Danger Button -> ALWAYS White text */
 }
-.pixel-btn--danger, .pixel-btn--red, .dark .pixel-btn--danger, .dark .pixel-btn--red {
+.pixel-btn--danger, .pixel-btn--red, .pixel-btn--crimson, .dark .pixel-btn--danger, .dark .pixel-btn--red, .dark .pixel-btn--crimson {
   background-color: var(--accent-crimson) !important;
   color: #ffffff !important;
   border-color: #000000 !important;
   text-shadow: none !important;
 }
-.pixel-btn--danger:hover, .pixel-btn--red:hover, .dark .pixel-btn--danger:hover, .dark .pixel-btn--red:hover {
+.pixel-btn--danger:hover, .pixel-btn--red:hover, .pixel-btn--crimson:hover, .dark .pixel-btn--danger:hover, .dark .pixel-btn--red:hover, .dark .pixel-btn--crimson:hover {
+  filter: brightness(1.12);
+}
+.pixel-btn {
+  /* Blue / Primary Mac-accent Button -> ALWAYS White text */
+}
+.pixel-btn--blue, .pixel-btn--primary, .dark .pixel-btn--blue, .dark .pixel-btn--primary {
+  background-color: var(--accent-mac) !important;
+  color: #ffffff !important;
+  border-color: #000000 !important;
+  text-shadow: none !important;
+}
+.pixel-btn--blue:hover, .pixel-btn--primary:hover, .dark .pixel-btn--blue:hover, .dark .pixel-btn--primary:hover {
   filter: brightness(1.12);
 }
 .pixel-btn {
@@ -1501,7 +2036,7 @@ img.img--broken {
   color: #ff79c6;
   border-color: #ff79c6;
 }
-.pixel-badge--amber {
+.pixel-badge--amber, .pixel-badge--yellow {
   background-color: #2b1f00;
   color: var(--accent-amber);
   border-color: var(--accent-amber);
@@ -1510,6 +2045,11 @@ img.img--broken {
   background-color: #002b0f;
   color: var(--accent-prompt);
   border-color: var(--accent-prompt);
+}
+.pixel-badge--crimson {
+  background-color: var(--accent-crimson);
+  color: #ffffff;
+  border-color: #000000;
 }
 
 /**
