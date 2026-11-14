@@ -3404,6 +3404,7 @@
       }
     }
   }
+  window.showAlert = showAlert;
 
   function hideAlert() {
     var box = document.getElementById('publishAlert');
@@ -3452,13 +3453,22 @@
       });
     }
 
-    // Check if device is offline (PWA offline buffering)
-    if (!navigator.onLine && window.NeogramPWA) {
-      window.NeogramPWA.bufferOfflinePost({
+    // Offline queue keeps the original files (IndexedDB stores Blobs) plus the target site.
+    function buildOfflinePayload() {
+      var siteInput = document.getElementById('uploadSiteId');
+      var files = selectedFiles.length > 0 ? selectedFiles.slice(0, 5) : (selectedFile ? [selectedFile] : []);
+      return {
         caption: caption,
         filterApplied: currentFilter,
-        imageBase64: previewImg.src
-      }, function(err, id) {
+        siteId: siteInput ? siteInput.value : '',
+        files: files,
+        imageBase64: files.length === 0 && previewImg ? previewImg.src : ''
+      };
+    }
+
+    // Check if device is offline (PWA offline buffering)
+    if (!navigator.onLine && window.NeogramPWA) {
+      window.NeogramPWA.bufferOfflinePost(buildOfflinePayload(), function(err, id) {
         publishBtn.disabled = false;
         publishBtn.style.opacity = '1';
         logBox.classList.add('hidden');
@@ -3467,8 +3477,8 @@
         } else {
           showAlert(
             'success',
-            '[✓] OFFLINE SNAPSHOT BUFFERED:',
-            'Carrier offline. Photo saved to device IndexedDB ledger. Will auto-sync when carrier re-connects!'
+            "You're offline",
+            "Your post is saved on this device and will upload automatically when you're back online. Keep Neogram open (or reopen it) to finish." 
           );
           try {
             if (window.retroAudio && typeof window.retroAudio.playSuccess === 'function') {
@@ -3562,12 +3572,8 @@
 
     } catch (err) {
       if (!navigator.onLine && window.NeogramPWA) {
-        window.NeogramPWA.bufferOfflinePost({
-          caption: caption,
-          filterApplied: currentFilter,
-          imageBase64: previewImg.src
-        });
-        showAlert('info', '[:> CARRIER DROPPED]:', 'Connection dropped during upload. Post saved to offline ledger.');
+        window.NeogramPWA.bufferOfflinePost(buildOfflinePayload());
+        showAlert('info', 'Connection dropped', "Your post is saved on this device and will upload automatically when you're back online.");
       } else {
         try {
           if (window.retroAudio && typeof window.retroAudio.playError === 'function') {

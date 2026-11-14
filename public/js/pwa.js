@@ -82,6 +82,7 @@
       var self = this;
       window.addEventListener('online', function () {
         self.updateCarrierTelemetry(true);
+        self.flushOfflineBuffer();
       });
 
       window.addEventListener('offline', function () {
@@ -127,6 +128,7 @@
       };
       req.onsuccess = function (e) {
         self.db = e.target.result;
+        if (navigator.onLine) self.flushOfflineBuffer();
       };
     },
 
@@ -151,20 +153,87 @@
       };
     },
 
+    // Sends queued posts one at a time. An item is deleted only after the server accepts it (2xx)
+    // or definitively rejects it (4xx other than 401/408/429). Network errors stop the run and
+    // leave the rest queued for the next reconnect.
+    _flushing: false,
     flushOfflineBuffer: function () {
-      if (!this.db) return;
-      var tx = this.db.transaction('offline_posts', 'readonly');
-      var store = tx.objectStore('offline_posts');
-      var getAll = store.getAll();
+      var self = this;
+      if (!this.db || this._flushing || !navigator.onLine || !window.fetch) return;
+      this._flushing = true;
 
+      var readTx = this.db.transaction('offline_posts', 'readonly');
+      var getAll = readTx.objectStore('offline_posts').getAll();
+      getAll.onerror = function () { self._flushing = false; };
       getAll.onsuccess = function () {
-        var items = getAll.result || [];
-        if (items.length === 0) return;
+        var items = (getAll.result || []).sort(function (a, b) { return String(a.createdAt).localeCompare(String(b.createdAt)); });
+        if (items.length === 0) { self._flushing = false; return; }
+        self.notify('info', 'Back online', 'Uploading ' + items.length + ' photo post' + (items.length > 1 ? 's' : '') + ' saved while you were offline...');
 
-        console.log('[:> PWA] Found ' + items.length + ' offline buffered posts to synchronize.');
-        // Notify user via alert
-        alert('[:> CARRIER RESTORED] Synchronizing ' + items.length + ' offline photo posts...');
+        var sent = 0;
+        var failed = [];
+        var next = function (idx) {
+          if (idx >= items.length) {
+            self._flushing = false;
+            if (sent > 0) self.notify('success', 'Offline posts published', sent + ' post' + (sent > 1 ? 's' : '') + ' uploaded to your site.');
+            if (failed.length > 0) self.notify('error', "Some offline posts couldn't be published", failed.join(' '));
+            return;
+          }
+          var item = items[idx];
+          var form = new FormData();
+          form.append('caption', item.caption || '');
+          form.append('filterApplied', item.filterApplied || 'none');
+          if (item.siteId) form.append('siteId', item.siteId);
+          var files = Array.isArray(item.files) ? item.files : [];
+          if (files.length > 0) {
+            files.forEach(function (f, n) { form.append('imageFiles', f, (f && f.name) || ('offline-' + n + '.jpg')); });
+          } else if (item.imageBase64) {
+            form.append('imageBase64', item.imageBase64);
+          } else {
+            self.deleteBuffered(item.id);
+            next(idx + 1);
+            return;
+          }
+
+          fetch('/api/posts', { method: 'POST', body: form, credentials: 'same-origin' })
+            .then(function (res) {
+              return res.json().catch(function () { return {}; }).then(function (data) {
+                if (res.ok) {
+                  sent++;
+                  self.deleteBuffered(item.id);
+                } else if (res.status === 401 || res.status === 408 || res.status === 429 || res.status >= 500) {
+                  // Keep it: sign-in expired or the server is busy. Try again on the next reconnect.
+                  failed.push((data && data.error) || ('Server returned ' + res.status + '; will retry later.'));
+                  self._flushing = false;
+                  idx = items.length; // stop this run
+                } else {
+                  failed.push((data && data.error) || ('A post was rejected (' + res.status + ').'));
+                  self.deleteBuffered(item.id);
+                }
+                next(idx + 1);
+              });
+            })
+            .catch(function () {
+              // Still offline / connection dropped mid-upload: leave the rest queued.
+              self._flushing = false;
+            });
+        };
+        next(0);
       };
+    },
+
+    deleteBuffered: function (id) {
+      if (!this.db) return;
+      try {
+        this.db.transaction('offline_posts', 'readwrite').objectStore('offline_posts').delete(id);
+      } catch (_e) {}
+    },
+
+    notify: function (kind, title, msg) {
+      if (typeof window.showAlert === 'function') {
+        try { window.showAlert(kind, title, msg); return; } catch (_e) {}
+      }
+      console.log('[:> PWA] ' + title + ': ' + msg);
     },
   };
 
