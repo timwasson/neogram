@@ -402,3 +402,44 @@
   50% { transform: scale(1.04); }
   100% { transform: scale(1); }
 }
+
+/* ---- embed.js widgets (v3): base styles at (0,1,0) so site owners can override freely ---- */
+.neogram-feed--grid {
+  max-width: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+.neogram-post__media {
+  display: block;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #000;
+}
+.neogram-post__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.neogram-post__likes,
+.neogram-post__date {
+  font-size: 11px;
+  margin-right: 8px;
+}
+.neogram-counter__image {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+}
+.neogram-guestbook__frame {
+  display: block;
+  width: 100%;
+  border: 0;
+}
+.neogram-empty {
+  font-family: monospace;
+  font-size: 12px;
+  opacity: 0.8;
+  padding: 8px 0;
+}

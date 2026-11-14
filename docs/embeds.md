@@ -264,15 +264,20 @@ Neogram provides an embed script (`/embed/embed.js`) and matching stylesheet (`/
 
 ### Declarative Widget Hooks:
 ```html
-<!-- Automatically renders your dynamic counter -->
+<!-- Live hit counter (styles: green_led, red_nixie, odometer, blue_vfd) -->
 <div data-neogram-widget="counter" data-user-id="your_handle" data-style="green_led"></div>
 
-<!-- Automatically renders your visitor guestbook -->
-<div data-neogram-widget="guestbook" data-user-id="your_handle"></div>
+<!-- Guestbook visitors can read and sign (themes: win95, dark, amber, clean) -->
+<div data-neogram-widget="guestbook" data-user-id="your_handle" data-theme="win95" data-height="550"></div>
 
-<!-- Automatically renders your photo feed -->
-<div data-neogram-widget="feed" data-user-id="your_handle"></div>
+<!-- Grid of your latest photos (data-limit: 1-50, default 6) -->
+<div data-neogram-widget="feed" data-user-id="your_handle" data-limit="6"></div>
+
+<!-- Floating chat pager -->
+<div data-neogram-widget="pager" data-station="your_handle"></div>
 ```
+
+`data-user-id` accepts your handle or your Neogram number. Add `data-slug="your-site-slug"` to any widget to point it at a specific site if you have more than one. Every widget uses plain BEM classes (`.neogram-counter`, `.neogram-guestbook`, `.neogram-feed`, `.neogram-post__caption`, ...) so you can restyle them with your own CSS.
 
 ---
 
