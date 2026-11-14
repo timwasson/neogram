@@ -3929,6 +3929,11 @@
       hash === 'upload'
     ) {
       executeDashboardTabSwitch(hash);
+    } else if (hash === 'archive') {
+      executeDashboardTabSwitch('edit');
+    } else if (hash === 'chat') {
+      executeDashboardTabSwitch('feed');
+      setTimeout(function () { if (window.AimClient && typeof window.AimClient.openWindow === 'function') window.AimClient.openWindow(); }, 300);
     } else {
       executeDashboardTabSwitch('feed');
     }
@@ -3938,6 +3943,36 @@
     window.addEventListener('DOMContentLoaded', syncDashboardTabFromHash);
   } else {
     syncDashboardTabFromHash();
+  }
+
+  // Photos shared from the phone's share sheet (stashed by the service worker) -> Studio selection
+  function pickUpSharedPhotos() {
+    if (!/[?&]shared=1/.test(window.location.search) || !window.indexedDB) return;
+    try { history.replaceState(null, '', '/' + window.location.hash); } catch (e) {}
+    var open = indexedDB.open('neogram_share_db', 1);
+    open.onupgradeneeded = function () { open.result.createObjectStore('shared'); };
+    open.onsuccess = function () {
+      var db = open.result;
+      var tx = db.transaction('shared', 'readwrite');
+      var store = tx.objectStore('shared');
+      var get = store.get('latest');
+      get.onsuccess = function () {
+        var item = get.result;
+        store.delete('latest');
+        if (!item || !item.files || item.files.length === 0) return;
+        executeDashboardTabSwitch('upload');
+        if (document.getElementById('publishForm') && !document.getElementById('publishForm').classList.contains('hidden')) {
+          loadFiles(item.files);
+          var cap = document.getElementById('captionInput');
+          if (cap && item.caption && !cap.value) cap.value = item.caption;
+        }
+      };
+    };
+  }
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', pickUpSharedPhotos);
+  } else {
+    pickUpSharedPhotos();
   }
   window.addEventListener('hashchange', syncDashboardTabFromHash);
   window.executeDashboardTabSwitch = executeDashboardTabSwitch;

@@ -3,7 +3,7 @@
  * Offline caching, navigation fallback, and carrier status management.
  */
 
-const CACHE_NAME = 'neogram-shell-v6';
+const CACHE_NAME = 'neogram-shell-v7';
 
 const STATIC_PRECACHE = [
   '/',
@@ -59,6 +59,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
+
+  // Web Share Target: the OS share sheet POSTs photos here. Stash them for the Studio, then open it.
+  if (req.method === 'POST' && url.origin === self.location.origin && url.pathname === '/share-target') {
+    event.respondWith(handleShareTarget(req));
+    return;
+  }
 
   // Skip WebSockets and non-GET requests
   if (req.method !== 'GET' || url.protocol === 'ws:' || url.protocol === 'wss:') {
@@ -225,3 +231,33 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+
+// ---------------------------------------------------------------------------
+// Web Share Target hand-off (shared photos -> IndexedDB -> Studio picks them up)
+// ---------------------------------------------------------------------------
+function openShareDb() {
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open('neogram_share_db', 1);
+    open.onupgradeneeded = () => open.result.createObjectStore('shared');
+    open.onsuccess = () => resolve(open.result);
+    open.onerror = () => reject(open.error);
+  });
+}
+
+async function handleShareTarget(req) {
+  try {
+    const form = await req.formData();
+    const files = form.getAll('photos').filter((f) => f && typeof f === 'object' && /^image\//.test(f.type || '')).slice(0, 5);
+    const caption = String(form.get('caption') || form.get('title') || '').slice(0, 1000);
+    const db = await openShareDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('shared', 'readwrite');
+      tx.objectStore('shared').put({ files, caption, at: Date.now() }, 'latest');
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.warn('[:> SW] Share target failed:', err);
+  }
+  return Response.redirect('/?shared=1#upload', 303);
+}

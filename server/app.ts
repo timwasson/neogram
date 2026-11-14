@@ -204,6 +204,12 @@ export function createApp(): Express {
     res.sendFile(path.resolve(process.cwd(), 'public', 'sw.js'));
   });
 
+  // Web Share Target fallback for when the service worker isn't active yet (first launch):
+  // the shared file can't be recovered here, so just open the Studio instead of a 404.
+  app.post('/share-target', (_req: Request, res: Response) => {
+    res.redirect(303, '/#upload');
+  });
+
   app.use(express.static(path.resolve(process.cwd(), 'public')));
   app.use('/embed', express.static(path.resolve(process.cwd(), 'embed')));
   app.use('/extension', express.static(path.resolve(process.cwd(), 'extension')));

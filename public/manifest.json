@@ -6,11 +6,19 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "any",
   "theme_color": "#000000",
   "background_color": "#080c10",
-  "categories": ["social", "photo", "utilities"],
+  "categories": [
+    "social",
+    "photo",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -31,25 +39,40 @@
       "short_name": "Upload",
       "description": "Snap or upload a photo to static web",
       "url": "/#upload",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Manage Archive",
       "short_name": "Archive",
       "description": "Manage and edit uploaded photo archive",
-      "url": "/#archive",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "url": "/#edit",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "NIM Messenger",
       "short_name": "NIM",
       "description": "Open retro instant messenger",
-      "url": "/extension/popup/popup.html",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "url": "/#chat",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ],
   "share_target": {
-    "action": "/",
+    "action": "/share-target",
     "method": "POST",
     "enctype": "multipart/form-data",
     "params": {
@@ -57,8 +80,10 @@
       "text": "caption",
       "files": [
         {
-          "name": "imageFile",
-          "accept": ["image/*"]
+          "name": "photos",
+          "accept": [
+            "image/*"
+          ]
         }
       ]
     }

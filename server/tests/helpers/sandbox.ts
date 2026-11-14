@@ -115,9 +115,9 @@ export async function bootSandbox(extraEnv: Record<string, string> = {}): Promis
   }
   // public/: assets are linked, uploads are private to the sandbox
   fs.mkdirSync(path.join(dir, 'public', 'uploads'), { recursive: true });
-  for (const name of ['css', 'js', 'icons', 'sw.js', 'manifest.json', 'offline.html']) {
-    const src = path.join(REPO_ROOT, 'public', name);
-    if (fs.existsSync(src)) fs.symlinkSync(src, path.join(dir, 'public', name));
+  for (const name of fs.readdirSync(path.join(REPO_ROOT, 'public'))) {
+    if (name === 'uploads' || name.startsWith('.')) continue;
+    fs.symlinkSync(path.join(REPO_ROOT, 'public', name), path.join(dir, 'public', name));
   }
   fs.mkdirSync(path.join(dir, 'dist', 'static-galleries'), { recursive: true });
   process.chdir(dir);
