@@ -64,7 +64,7 @@
             <!-- Bio / Status Message -->
             <div class="w-full text-left bg-black border border-main p-2.5 text-xs text-prompt space-y-1">
               <div class="text-xxs text-muted uppercase font-bold tracking-wider">
-                CYBER_BROADCAST_STATUS:
+                STATUS:
               </div>
               <p class="whitespace-pre-wrap leading-relaxed">
                 "{{ profileUser.statusMessage }}"
@@ -135,7 +135,7 @@
             <!-- Station Metadata Footer -->
             <div class="text-xs text-muted pt-2 border-t border-main w-full text-left space-y-1">
               <div>
-                <strong>Commissioned:</strong>
+                <strong>Joined:</strong>
                 {{ profileUser.createdAt | formatDate }}</div>
               {% if profileUser.lastDeployedAt %}
                 <div>
@@ -188,10 +188,9 @@
             {% if not posts or posts.length == 0 %}
               <!-- Empty State -->
               <div class="p-8 border-2 border-dashed border-main text-center bg-black text-prompt space-y-2">
-                <div class="font-bold text-sm">NO PHOTOGRAPHS DETECTED IN STORAGE LEDGER</div>
+                <div class="font-bold text-sm">No photos yet</div>
                 <p class="text-xs text-muted max-w-md mx-auto">
-                  Station @{{ profileUser.handle }} has not broadcasted any public photographs yet. Check back once their transmitter goes
-                  live!
+                  @{{ profileUser.handle }} hasn't posted any photos yet.
                 </p>
               </div>
             {% else %}

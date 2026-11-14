@@ -3058,6 +3058,14 @@ img.img--broken {
   align-items: center;
   justify-content: center;
   padding: 24px 16px;
+  /* Keep the form and its status message clear of the fixed mobile bottom bar */
+}
+@media (max-width: 767px) {
+  .login-viewport {
+    padding-bottom: 96px;
+  }
+}
+.login-viewport {
   background-image: radial-gradient(rgba(0, 0, 0, 0.25) 15%, transparent 16%), radial-gradient(rgba(0, 0, 0, 0.25) 15%, transparent 16%);
   background-size: 6px 6px;
   background-position: 0 0, 3px 3px;

@@ -177,7 +177,7 @@ export function initChatWebSocketServer(server: http.Server) {
     }
 
     if ((authenticatedUser && authenticatedUser.isBanned) || (passPagerUser && passPagerUser.isBanned)) {
-      ws.send(JSON.stringify({ type: 'error', code: 'NODE_BANNED', message: 'Station node suspended by network administrator.' }));
+      ws.send(JSON.stringify({ type: 'error', code: 'NODE_BANNED', message: 'This account has been suspended.' }));
       ws.close(4003, 'Node banned');
       return;
     }

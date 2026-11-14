@@ -14,7 +14,7 @@ const otpRequestLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     ok: false,
-    error: 'Carrier busy: Too many OTP dispatch requests. Please wait 15 minutes before requesting another code.',
+    error: 'Too many code requests. Please wait 15 minutes and try again.',
   },
   skip: (req) => (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test',
 });
@@ -26,7 +26,7 @@ const otpVerifyLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     ok: false,
-    error: 'Too many verification attempts. Please wait 5 minutes before trying again.',
+    error: 'Too many tries. Please wait 5 minutes and try again.',
   },
   skip: (req) => (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test',
 });
@@ -60,7 +60,7 @@ authRouter.post('/request-otp', otpRequestLimiter, async (req: Request, res: Res
   try {
     const { identifier } = req.body;
     if (!identifier || typeof identifier !== 'string') {
-      res.status(400).json({ ok: false, error: 'Identifier (email or mobile phone) is required.' });
+      res.status(400).json({ ok: false, error: 'Enter your email address or mobile number.' });
       return;
     }
 
@@ -73,7 +73,7 @@ authRouter.post('/request-otp', otpRequestLimiter, async (req: Request, res: Res
     if (!isTestBypass && !checkIdentifierRateLimit(`req:${normalizeIdentifier(cleanId)}`, 4, 15 * 60 * 1000)) {
       res.status(429).json({
         ok: false,
-        error: 'Carrier busy: Too many OTP dispatch requests for this destination. Please wait 15 minutes.',
+        error: 'Too many code requests. Please wait 15 minutes and try again.',
       });
       return;
     }
@@ -96,7 +96,7 @@ authRouter.post('/verify-otp', otpVerifyLimiter, async (req: Request, res: Respo
   try {
     const { identifier, code } = req.body;
     if (!identifier || !code) {
-      res.status(400).json({ ok: false, error: 'Identifier and OTP code are required.' });
+      res.status(400).json({ ok: false, error: 'Enter your email address or mobile number and the 6-digit code.' });
       return;
     }
 
@@ -104,7 +104,7 @@ authRouter.post('/verify-otp', otpVerifyLimiter, async (req: Request, res: Respo
     const isTestSuite = (req.headers['x-test-suite'] === 'true' && process.env.NODE_ENV !== 'production') || process.env.NODE_ENV === 'test';
 
     if (!isTestSuite && !checkIdentifierRateLimit(`verify:${normalizeIdentifier(cleanId)}`, 10, 5 * 60 * 1000)) {
-      res.status(429).json({ ok: false, error: 'Too many verification attempts for this account. Please wait 5 minutes.' });
+      res.status(429).json({ ok: false, error: 'Too many tries. Please wait 5 minutes and try again.' });
       return;
     }
 
@@ -197,7 +197,7 @@ authRouter.post('/handoff-ticket', async (req: Request, res: Response) => {
 
   const user = await getUserById(payload.userId);
   if (!user || user.isBanned) {
-    res.status(401).json({ ok: false, error: 'User node not found' });
+    res.status(401).json({ ok: false, error: 'Account not found' });
     return;
   }
 

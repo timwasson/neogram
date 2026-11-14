@@ -71,7 +71,7 @@ async function getSessionUser(req: Request, allowPass: boolean = false) {
   return getUserById(payload.userId);
 }
 
-const BANNED_ERROR = 'This station node has been suspended by the network administrator.';
+const BANNED_ERROR = 'This account has been suspended.';
 
 /**
  * 1. GET /api/posts - Fetch all posts with user metadata & comments from static JSON
@@ -132,7 +132,7 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
       res.status(user?.isBanned ? 403 : 401).json({
         ok: false,
         error: user?.isBanned
-          ? 'Station node suspended by network administrator. Publishing disabled.'
+          ? 'This account has been suspended, so posting is turned off.'
           : 'Authentication required. Please dial into your terminal session to publish photos.',
       });
       return;
@@ -525,7 +525,7 @@ postsRouter.post('/posts/:id/comments', commentRateLimiter, async (req: Request,
       res.status(user?.isBanned ? 403 : 401).json({
         ok: false,
         error: user?.isBanned
-          ? 'Station node suspended by network administrator. Comments disabled.'
+          ? 'This account has been suspended, so commenting is turned off.'
           : 'Authentication required. Please connect your Neogram Cyber-Pass to leave a comment.',
       });
       return;

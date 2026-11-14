@@ -1062,7 +1062,7 @@ async function runSmokeTests() {
     });
     assertTest('POST /api/auth/request-otp with @handle returns HTTP 400', handleRejectRes.status === 400);
     const handleRejectData = await handleRejectRes.json() as any;
-    assertTest('Handle login returns explicit explanation that @handle login is not supported', handleRejectData.error && handleRejectData.error.includes('Logging in with a @handle is not supported'));
+    assertTest('Handle login returns explicit explanation that @handle login is not supported', handleRejectData.error && handleRejectData.error.includes("Handles can change, so they can't be used to sign in"));
 
     // 2. Mobile phone number login validation
     const phoneRes = await fetch(`${API_BASE}/api/auth/request-otp`, {
@@ -1455,10 +1455,9 @@ async function runSmokeTests() {
     assertTest('GET / for new user returns HTTP 200', newbieHomeRes.status === 200);
     const newbieHomeHtml = await newbieHomeRes.text();
     assertTest('Dashboard contains Welcome Station window card', newbieHomeHtml.includes('welcomeStationCard'));
-    assertTest('Dashboard contains [PROFILE COMPLETE] badge', newbieHomeHtml.includes('[PROFILE COMPLETE]'));
-    assertTest('Dashboard contains "Welcome to Cyberspace"', newbieHomeHtml.includes('Welcome to Cyberspace'));
-    assertTest('Dashboard contains "WHAT\'S NEXT? — UNLOCK CREATOR STUDIO"', newbieHomeHtml.includes("WHAT'S NEXT? — UNLOCK CREATOR STUDIO"));
-    assertTest('Dashboard contains "ADD A STATIC SITE TARGET" button', newbieHomeHtml.includes('ADD A STATIC SITE TARGET'));
+    assertTest('Dashboard greets the new member by handle', newbieHomeHtml.includes(`Welcome, @${newbieUser.handle}!`));
+    assertTest('Dashboard shows the member number', newbieHomeHtml.includes(`Neogram #${newbieUser.uin}`));
+    assertTest('Dashboard offers "Connect your website" as the next step', newbieHomeHtml.includes('Connect your website'));
     assertTest('Dashboard contains #tabFeedBtn in navigation', newbieHomeHtml.includes('id="tabFeedBtn"'));
     assertTest('Upload section contains #noSiteUploadBanner', newbieHomeHtml.includes('id="noSiteUploadBanner"'));
 
@@ -2045,7 +2044,7 @@ async function runSmokeTests() {
     try {
       await requestOtp(modEmail);
     } catch (err: any) {
-      otpBlocked = err.message.includes('suspended by the network administrator');
+      otpBlocked = err.message.includes('This account has been suspended');
     }
     assertTest('Banned user blocked from requesting login OTP', otpBlocked);
 
@@ -2059,7 +2058,7 @@ async function runSmokeTests() {
     const profileRes = await fetch(`${API_BASE}/user/@${modUser.handle}`);
     assertTest('GET /user/:handle for banned user returns HTTP 404', profileRes.status === 404);
     const profileHtml = await profileRes.text();
-    assertTest('Profile 404 contains suspended notification', profileHtml.includes('suspended by network administrator'));
+    assertTest('Profile 404 contains suspended notification', profileHtml.includes('has been suspended'));
 
     // Banned user rejected when attempting to comment
     const bannedCommentRes = await fetch(`${API_BASE}/api/posts/${testPostId}/comments`, {

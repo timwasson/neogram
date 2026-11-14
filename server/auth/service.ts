@@ -96,7 +96,7 @@ function normalizeLoginIdentifier(rawIdentifier: string): { normalized: string; 
   const isPhoneNumber = digits.length >= 7 && digits.length <= 15 && !trimmed.includes('@');
   const isEmail = trimmed.includes('@') && trimmed.indexOf('@') > 0 && trimmed.indexOf('@') < trimmed.length - 1;
   if (!isEmail && !isPhoneNumber) {
-    throw new Error('Please provide a valid email address or mobile phone number.');
+    throw new Error('Enter a valid email address or mobile number.');
   }
   const normalized = isEmail ? trimmed.toLowerCase() : `${digits}@sms.neogram.local`;
   return { normalized, dispatchTarget: isPhoneNumber ? digits : normalized, isPhoneNumber };
@@ -104,14 +104,14 @@ function normalizeLoginIdentifier(rawIdentifier: string): { normalized: string; 
 
 export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; identifier: string; code: string; message: string }> {
   if (!rawIdentifier || !rawIdentifier.trim()) {
-    throw new Error('Please provide a valid email address or phone number.');
+    throw new Error('Enter a valid email address or mobile number.');
   }
 
   const trimmed = rawIdentifier.trim();
 
   // Reject @handle logins because handles are changeable and non-unique permanent identifiers
   if (trimmed.startsWith('@')) {
-    throw new Error('Logging in with a @handle is not supported because callsigns can be changed. Please enter your email address or mobile phone number.');
+    throw new Error('Sign in with your email address or mobile number. (Handles can change, so they can\'t be used to sign in.)');
   }
 
   const { normalized, dispatchTarget } = normalizeLoginIdentifier(trimmed);
@@ -122,7 +122,7 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
     [normalized]
   );
   if (existing.rows.length > 0 && existing.rows[0].isBanned) {
-    throw new Error('This station node has been suspended by the network administrator.');
+    throw new Error('This account has been suspended.');
   }
 
   const existingUser = existing.rows[0];
@@ -158,7 +158,7 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
 
   if (!notifyResult.ok && !config.allowDemoOtp) {
     await query('DELETE FROM otp_challenges WHERE identifier = $1', [normalized]).catch(() => {});
-    throw new Error('Could not deliver the authorization code right now. Please try again shortly.');
+    throw new Error('We couldn\'t send your code right now. Please try again in a minute.');
   }
 
   return {
@@ -169,7 +169,7 @@ export async function requestOtp(rawIdentifier: string): Promise<{ ok: boolean; 
   };
 }
 
-const GENERIC_OTP_FAILURE = 'Invalid or expired authorization key. Please request a new carrier signal.';
+const GENERIC_OTP_FAILURE = 'That code is wrong or has expired. Request a new one.';
 
 export async function verifyOtp(rawIdentifier: string, code: string): Promise<AuthUser> {
   const { normalized } = normalizeLoginIdentifier(String(rawIdentifier));
@@ -199,9 +199,9 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
     const attempts = upd.rows[0]?.attempts ?? OTP_MAX_ATTEMPTS;
     if (attempts >= OTP_MAX_ATTEMPTS) {
       await query('DELETE FROM otp_challenges WHERE identifier = $1', [normalized]);
-      throw new Error('Too many invalid attempts. Authorization key has been burned. Please request a new carrier signal.');
+      throw new Error('Too many wrong codes, so this one no longer works. Request a new one.');
     }
-    throw new Error(`Invalid authorization key. Code does not match. (${OTP_MAX_ATTEMPTS - attempts} attempts remaining)`);
+    throw new Error(`That code didn't match. ${OTP_MAX_ATTEMPTS - attempts} ${OTP_MAX_ATTEMPTS - attempts === 1 ? 'try' : 'tries'} left.`);
   }
 
   // Consume the challenge (single use)
@@ -229,7 +229,7 @@ export async function verifyOtp(rawIdentifier: string, code: string): Promise<Au
 
   const user = res.rows[0];
   if (user.isBanned) {
-    throw new Error('This station node has been suspended by the network administrator.');
+    throw new Error('This account has been suspended.');
   }
 
   await query('UPDATE users SET updated_at = NOW() WHERE id = $1', [user.id]);

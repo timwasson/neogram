@@ -91,7 +91,7 @@ describe('OTP authentication', () => {
       assert.equal(v.status, 401);
       last = await v.json();
     }
-    assert.match(last.error, /burned/i);
+    assert.match(last.error, /too many wrong codes/i);
     // Even the CORRECT code no longer works
     const ok = await fetch(`${sb.base}/api/auth/verify-otp`, { method: 'POST', headers: JSON_H, body: JSON.stringify({ identifier: email, code: demoCode }) });
     assert.equal(ok.status, 401);

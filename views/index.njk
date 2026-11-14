@@ -10,7 +10,7 @@
     <div class="pixel-box mb-6">
       <div class="window-header">
         <div class="flex items-center gap-2">
-          <span>[:&gt; NEOGRAM_STUDIO.EXE - Direct Mobile/Static Photo Publisher]</span>
+          <span>NEOGRAM.EXE</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-xs text-prompt">CARRIER: ACTIVE</span>
@@ -80,107 +80,43 @@
                 <!-- Welcome & What's Next Onboarding Card (Shown prominently if user has no mounted site) -->
                 {% if not userSites or userSites.length == 0 %}
                   <div id="welcomeStationCard" class="pixel-box p-4 mb-5 bg-window border-4 border-cyan">
-                    <div class="window-header mb-3 flex items-center justify-between">
-                      <div class="flex items-center gap-2">
-                        <span class="font-bold text-black font-mono">[:&gt; WELCOME_STATION.EXE - Account Active &amp; Node Online]</span>
-                      </div>
-                      <span class="text-xs font-mono font-bold text-black bg-cyan px-1.5 py-0.5 border border-black">[PROFILE COMPLETE]</span>
+                    <div class="window-header mb-3 flex items-center justify-between flex-wrap gap-2">
+                      <span class="font-bold font-mono">Welcome, @{{ currentUser.handle }}!</span>
+                      <span class="pixel-badge pixel-badge--cyan font-bold">Neogram #{{ currentUser.uin }}</span>
                     </div>
 
-                    <div class="p-3 bg-black border border-main text-xs font-mono mb-3">
-                      <div class="flex items-center justify-between flex-wrap gap-2 mb-2 pb-2 border-b border-main">
-                        <div class="flex items-center gap-2">
-                          <span class="status-led status-led--online"></span>
-                          <span class="text-mac font-bold text-sm">Welcome to Cyberspace, @{{ currentUser.handle }}!</span>
-                        </div>
-                        <span class="pixel-badge pixel-badge--cyan font-bold">NODE UIN: #{{ currentUser.uin or '100101' }}</span>
+                    <p class="text-xs text-main leading-relaxed mb-3">
+                      You're in. Here's what you can do right now:
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4 text-xs font-mono">
+                      <div class="p-2.5 bg-black border border-main">
+                        <span class="text-prompt font-bold block mb-0.5">Chat</span>
+                        <span class="text-muted leading-relaxed block">Instant messages with other members, AIM-style, with away messages and door chimes.</span>
+                        <button type="button" onclick="if(window.AimClient) window.AimClient.open();" class="link-btn text-mac hover:underline font-bold mt-1">Open chat →</button>
                       </div>
-                      <p class="text-muted leading-relaxed m-0">
-                        Your Neogram station profile is fully provisioned and complete! You don't need a static website or Neocities account to participate in the retro cyberspace webring.
-                      </p>
-                    </div>
-
-                    <!-- Station features available immediately -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 text-xs font-mono">
-                      <div class="p-2.5 bg-black border border-main flex items-start gap-2">
-                        <div>
-                          <span class="text-prompt font-bold block mb-0.5">Instant Messaging (NIM)</span>
-                          <span class="text-muted leading-relaxed block">
-                            Chat in real-time with buddy lists, sound chimes, away statuses, and offline store-and-forward queue.
-                          </span>
-                          <button type="button" onclick="if(window.AimClient) window.AimClient.open();" class="text-mac hover:underline font-bold mt-1 inline-block">
-                            Launch NIM Messenger ↗
-                          </button>
-                        </div>
+                      <div class="p-2.5 bg-black border border-main">
+                        <span class="text-prompt font-bold block mb-0.5">Find friends</span>
+                        <span class="text-muted leading-relaxed block">Browse the directory and add people as friends. Their new photos show up in your feed.</span>
+                        <button type="button" onclick="switchNetworkSubTab('directory')" class="link-btn text-mac hover:underline font-bold mt-1">Browse the directory →</button>
                       </div>
-
-                      <div class="p-2.5 bg-black border border-main flex items-start gap-2">
-                        <div>
-                          <span class="text-prompt font-bold block mb-0.5">1-Click Cyber-Pass</span>
-                          <span class="text-muted leading-relaxed block">
-                            Sign visitor guestbooks and post comments across any static website powered by Neogram with 1-click authentication.
-                          </span>
-                        </div>
-                      </div>
-
-                      <div class="p-2.5 bg-black border border-main flex items-start gap-2">
-                        <div>
-                          <span class="text-prompt font-bold block mb-0.5">Cyberspace Directory</span>
-                          <span class="text-muted leading-relaxed block">
-                            Explore registered stations, check real-time presence indicators, and follow your favorite web creators.
-                          </span>
-                          <button type="button" onclick="switchNetworkSubTab('directory')" class="text-mac hover:underline font-bold mt-1 inline-block">
-                            Open Station Directory ↗
-                          </button>
-                        </div>
-                      </div>
-
-                      <div class="p-2.5 bg-black border border-main flex items-start gap-2">
-                        <div>
-                          <span class="text-prompt font-bold block mb-0.5">Personal Follower Feed</span>
-                          <span class="text-muted leading-relaxed block">
-                            Follow stations across cyberspace to watch their photo transmissions and updates stream live in your feed below.
-                          </span>
-                        </div>
+                      <div class="p-2.5 bg-black border border-main">
+                        <span class="text-prompt font-bold block mb-0.5">Like, comment, sign</span>
+                        <span class="text-muted leading-relaxed block">Like and comment on photos and sign guestbooks on other members' sites, signed in as you.</span>
                       </div>
                     </div>
 
-                    <!-- WHAT'S NEXT: ADD A STATIC SITE -->
                     <div class="p-3 bg-desktop border-2 border-amber">
-                      <div class="flex items-center gap-2 mb-2">
-                        <span class="font-bold text-xs uppercase tracking-wider text-amber font-mono">[:&gt; WHAT'S NEXT? — UNLOCK CREATOR STUDIO]:</span>
-                      </div>
+                      <span class="font-bold text-xs uppercase tracking-wider text-amber font-mono block mb-2">Next: post photos to your own site</span>
                       <p class="text-xs text-main leading-relaxed mb-3">
-                        Want to publish photographs, upload a profile avatar, and deploy to your own personal static website? Adding a static site target enables all creator studio features:
+                        Connect your Neocities, Nekoweb or GitHub Pages site and Neogram publishes your photos there as a retro photo gallery, with filters, an avatar, a hit counter and a guestbook. Your photos live on your site, not on Neogram.
                       </p>
-
-                      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3 text-xxs font-mono text-muted">
-                        <div class="p-2 bg-black border border-main">
-                          <span class="text-prompt font-bold block mb-0.5">Photo Publishing</span>
-                          <span>Snap &amp; publish photos with authentic 90s CRT, VGA, and GameBoy shaders.</span>
-                        </div>
-                        <div class="p-2 bg-black border border-main">
-                          <span class="text-prompt font-bold block mb-0.5">Profile Avatar</span>
-                          <span>Upload custom 128x128 WebP profile avatars for your station.</span>
-                        </div>
-                        <div class="p-2 bg-black border border-main">
-                          <span class="text-prompt font-bold block mb-0.5">Static Deployments</span>
-                          <span>Push auto-compiled 11ty galleries to Neocities, Nekoweb, or GitHub Pages.</span>
-                        </div>
-                      </div>
-
-                      <div class="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-main">
-                        <button
-                          type="button"
-                          onclick="switchDashboardTab('settings/sites', event); setTimeout(function() { toggleProvisionForm(true); }, 150);"
-                          class="pixel-btn pixel-btn--yellow font-bold text-xs py-1.5 px-4"
-                        >
-                          <span>+ ADD A STATIC SITE TARGET :&gt;</span>
-                        </button>
-                        <span class="text-xxs text-muted font-mono">
-                          Enables image uploads, custom avatar, hit counters &amp; static gallery builds.
-                        </span>
-                      </div>
+                      <button
+                        type="button"
+                        onclick="switchDashboardTab('settings/sites', event); setTimeout(function() { toggleProvisionForm(true); }, 150);"
+                        class="pixel-btn pixel-btn--yellow font-bold text-xs py-1.5 px-4"
+                      >
+                        <span>Connect your website</span>
+                      </button>
                     </div>
                   </div>
                 {% endif %}
@@ -188,17 +124,17 @@
                 <!-- Feed Transmissions Grid -->
                 {% if not followerFeedPosts or followerFeedPosts.length == 0 %}
                   <div class="retro-card p-6 text-center flex flex-col items-center gap-3">
-                    <div class="text-sm font-bold text-mac">[:&gt; FOLLOWER FEED WAITING FOR TRANSMISSIONS]</div>
+                    <div class="text-sm font-bold text-mac">Your feed is empty</div>
                     <p class="text-xs text-muted max-w-md mx-auto leading-relaxed">
                       {% if followedCount == 0 %}
-                        You aren't following any station nodes yet. Browse the Cyberspace Directory to discover retro static sites, follow creators, and their photos will appear right here in your live feed!
+                        Add some friends and their new photos will show up here. The directory is a good place to start.
                       {% else %}
-                        You are following {{ followedCount }} station{% if followedCount != 1 %}s{% endif %}, but they haven't broadcasted any photographs yet. When they publish, their transmissions will stream here live.
+                        You have {{ followedCount }} friend{% if followedCount != 1 %}s{% endif %}, but they haven't posted any photos yet. New photos will show up here.
                       {% endif %}
                     </p>
                     <div class="flex items-center gap-2 mt-2">
                       <button type="button" onclick="switchNetworkSubTab('directory')" class="pixel-btn pixel-btn--green font-bold text-xs py-1.5 px-4">
-                        <span>Explore Cyberspace Directory →</span>
+                        <span>Browse the directory →</span>
                       </button>
                     </div>
                   </div>
@@ -273,7 +209,7 @@
                 <div class="p-2.5 bg-black border-2 border-main mb-4 flex items-center justify-between flex-wrap gap-2 text-xs font-mono">
                   <div class="flex items-center gap-2">
                     <div>
-                      <span class="text-muted text-3xs block uppercase tracking-wider">FRIENDS_ROSTER.SYS // CYBERSPACE_FRIENDS.EXE:</span>
+                      <span class="text-muted text-3xs block uppercase tracking-wider">FRIENDS</span>
                       <span class="text-prompt font-bold text-xs" id="workstationFriendsCountLabel">
                         {{ friends.length or 0 }} ACTIVE BUDDY CONNECTION{% if friends.length != 1 %}S{% endif %}
                       </span>
@@ -291,7 +227,7 @@
 
                 {% if not friends or friends.length == 0 %}
                   <div class="retro-card p-6 text-center flex flex-col items-center gap-3">
-                    <div class="text-sm font-bold text-mac">[:&gt; NO FRIENDS IN CARRIER DIRECTORY YET]</div>
+                    <div class="text-sm font-bold text-mac">No friends yet</div>
                     <p class="text-xs text-muted max-w-md mx-auto leading-relaxed">
                       You haven't followed any station nodes yet. Browse the Station Directory to add friends and build your static webring.
                     </p>
@@ -391,7 +327,7 @@
                 <div class="p-2.5 bg-black border-2 border-main mb-3 flex items-center justify-between flex-wrap gap-2 text-xs font-mono">
                   <div class="flex items-center gap-2">
                     <div>
-                      <span class="text-muted text-3xs block uppercase tracking-wider">CYBERSPACE_DIRECTORY.SYS:</span>
+                      <span class="text-muted text-3xs block uppercase tracking-wider">DIRECTORY</span>
                       <span class="text-prompt font-bold text-xs">
                         {{ totalDirectoryCount or 0 }} REGISTERED STATION NODES
                       </span>
@@ -450,7 +386,7 @@
                   <div class="p-3">
                     {% if not activeUsers or activeUsers.length == 0 %}
                       <div class="p-4 border border-dashed border-main text-center bg-black text-prompt text-xs">
-                        NO STATIONS CURRENTLY TRANSMITTING LIVE
+                        Nobody is online right now
                       </div>
                     {% else %}
                       <div class="directory-grid" id="activeGrid">
@@ -675,7 +611,7 @@
                     CLICK TO BROWSE OR DRAG &amp; DROP PHOTOS
                   </div>
                   <div class="text-xs text-muted mb-4">
-                    Supports 1 to 5 photos per gallery (JPEG, PNG, WebP, GIF, BMP)
+                    1 to 5 photos per post (JPEG, PNG, WebP or GIF)
                   </div>
                   
                   <div class="flex items-center justify-center">
@@ -775,7 +711,7 @@
                   type="file"
                   id="imageFileInput"
                   name="imageFiles"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
                   multiple
                   style="display:none;"
                   onchange="handleFileInputChange(event)"
@@ -792,21 +728,21 @@
               <!-- Caption Textarea -->
               <div>
                 <label for="captionInput" class="block text-xs font-bold mb-1">
-                  Post Caption &amp; Log Entry:
+                  Caption
                 </label>
                 <textarea
                   id="captionInput"
                   name="caption"
                   rows="6"
                   required
-                  placeholder=":> Enter your thoughts, hardware specs, or retro web commentary..."
+                  placeholder="Say something about this photo…"
                   class="retro-input leading-normal"
                 ></textarea>
               </div>
 
               <!-- Terminal Telemetry Log (During Upload) -->
               <div id="transmissionLog" class="transmission-terminal hidden">
-                <div id="transmissionText">[:&gt; CARRIER LINK READY]</div>
+                <div id="transmissionText">[:&gt; READY]</div>
               </div>
 
               <!-- Reusable Alert Box -->
@@ -825,7 +761,7 @@
                   id="publishBtn"
                   class="pixel-btn pixel-btn--green w-full py-2.5 font-bold text-sm"
                 >
-                  <span>TRANSMIT &amp; PUBLISH TO STATIC HOST :&gt;</span>
+                  <span>Publish</span>
                 </button>
               </div>
             </div>
@@ -838,7 +774,7 @@
         <div id="manageGallerySection" class="hidden">
           <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div class="text-xs text-muted">
-              Showing <strong class="text-main" id="manageTotalCount">{{ posts.length or 0 }}</strong> published transmissions anchored to your sovereign static JSON feed.
+              Showing <strong class="text-main" id="manageTotalCount">{{ posts.length or 0 }}</strong> published photos.
             </div>
             <button
               type="button"
@@ -846,7 +782,7 @@
               id="rebuildStaticBtn"
               class="pixel-btn pixel-btn--sm pixel-btn--green text-xs font-bold"
             >
-              <span>Rebuild 11ty Static Site</span>
+              <span>Republish site</span>
             </button>
           </div>
 
@@ -881,12 +817,12 @@
 
           {% if not posts or posts.length == 0 %}
             <div class="pixel-box p-6 text-center bg-window">
-              <div class="font-bold text-mac text-xs mb-1">[:&gt; ARCHIVE EMPTY]</div>
+              <div class="font-bold text-mac text-xs mb-1">No posts yet</div>
               <p class="text-muted text-xs mb-3">
-                No photographs uploaded to your gallery yet. Switch to the Upload Studio tab to publish your first photo.
+                Photos you post will show up here.
               </p>
               <button type="button" onclick="switchDashboardTab('upload')" class="pixel-btn pixel-btn--yellow text-xs font-bold">
-                <span>Open Upload Studio</span>
+                <span>Post a photo</span>
               </button>
             </div>
           {% else %}
@@ -993,7 +929,7 @@
           <div class="pixel-box max-w-lg w-full bg-window border-4 border-black">
             <div class="window-header flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <span class="font-bold" id="editDialogTitle">[:&gt; EDIT_TRANSMISSION.EXE - Modify Metadata]</span>
+                <span class="font-bold" id="editDialogTitle">EDIT_POST.EXE — Edit post</span>
               </div>
               <button type="button" class="pixel-btn pixel-btn--sm font-bold" onclick="closeEditModal()" aria-label="Close dialog">
                 <span>[X]</span>
@@ -1056,7 +992,7 @@
           <div class="pixel-box max-w-lg w-full bg-window border-4 border-black font-mono">
             <div class="window-header flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <span class="font-bold text-xs" id="commentsDialogTitle">[:&gt; COMMENTS_MODERATOR.EXE - Self-Hosted Ledger]</span>
+                <span class="font-bold text-xs" id="commentsDialogTitle">COMMENTS.EXE — Comments on this photo</span>
               </div>
               <button type="button" class="pixel-btn pixel-btn--sm font-bold" onclick="closeCommentsModal()" aria-label="Close dialog">
                 <span>[X]</span>
@@ -1100,7 +1036,7 @@
                 >
                   <span class="workstation-subnav__btn-label">
                     <svg class="retro-svg-icon retro-svg-icon--sm" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13.5c0-2.5 2.2-4 5-4s5 1.5 5 4"/></svg>
-                    <span>Profile &amp; ID</span>
+                    <span>Profile</span>
                   </span>
                   <span class="workstation-subnav__btn-arrow">›</span>
                 </button>
@@ -1112,7 +1048,7 @@
                 >
                   <span class="workstation-subnav__btn-label">
                     <svg class="retro-svg-icon retro-svg-icon--sm" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="10"/><path d="M2 6h12"/></svg>
-                    <span>Mounted Sites</span>
+                    <span>Your websites</span>
                   </span>
                   <span class="workstation-subnav__btn-arrow">›</span>
                 </button>
@@ -1136,7 +1072,7 @@
                 >
                   <span class="workstation-subnav__btn-label">
                     <svg class="retro-svg-icon retro-svg-icon--sm" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v9M5 5l3-3 3 3M3 13h10"/></svg>
-                    <span>Deploy &amp; Status</span>
+                    <span>Publish &amp; status</span>
                   </span>
                   <span class="workstation-subnav__btn-arrow">›</span>
                 </button>
@@ -1160,7 +1096,7 @@
                 >
                   <span class="workstation-subnav__btn-label">
                     <svg class="retro-svg-icon retro-svg-icon--sm" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8M5 7l3 3 3-3M3 13h10"/></svg>
-                    <span>Data &amp; Reset</span>
+                    <span>Your data</span>
                   </span>
                   <span class="workstation-subnav__btn-arrow">›</span>
                 </button>
@@ -1177,7 +1113,7 @@
                 <div class="retro-card p-4 m-0">
                   <div class="window-header mb-4 flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <span class="font-bold">[:&gt; CYBER_IDENTITY.SYS - Profile &amp; Call-Sign]</span>
+                      <span class="font-bold">PROFILE.SYS — Your profile</span>
                     </div>
                     <span class="text-xs font-mono text-prompt font-bold">[ONLINE]</span>
                   </div>
@@ -1241,7 +1177,7 @@
                               </span>
                             {% else %}
                               <div class="text-xxs text-muted font-mono leading-relaxed">
-                                <strong class="text-amber">Headless / Default Avatar Active:</strong> Custom profile images are hosted on your personal static site (Zero-Retention Policy). Connect a remote static host in <a href="#settings/hosting" onclick="switchDashboardTab('settings/hosting', event)" class="text-mac underline">Hosting &amp; Keys</a> to upload a custom avatar!
+                                Custom avatars are stored on your own website, so <a href="#settings/sites" onclick="switchDashboardTab('settings/sites', event)" class="text-mac underline">connect a website</a> to upload one. Until then you get one of the default avatars.
                               </div>
                             {% endif %}
                           </div>
@@ -1318,7 +1254,7 @@
                             id="saveProfileBtn"
                             class="pixel-btn pixel-btn--green font-bold text-xs w-full py-2.5"
                           >
-                            <span>UPDATE PROFILE &amp; CALL-SIGN :&gt;</span>
+                            <span>Save profile</span>
                           </button>
                         </div>
                       </div>
@@ -1335,7 +1271,7 @@
                 <div class="retro-card p-4 m-0">
                   <div class="window-header mb-4 flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <span class="font-bold">[:&gt; SITES_MANAGER.SYS — Mounted Static Targets]</span>
+                      <span class="font-bold">SITES.SYS — Your websites</span>
                     </div>
                     <span class="text-xs font-mono text-prompt font-bold">[{{ userSites.length or 0 }} MOUNTED]</span>
                   </div>
@@ -1430,7 +1366,7 @@
                           {% endfor %}
                         {% else %}
                           <div class="p-4 bg-black border-2 border-main text-center text-xs font-mono text-muted">
-                            <div class="font-bold text-mac mb-1">[:&gt; NO STATIC SITES MOUNTED YET]</div>
+                            <div class="font-bold text-mac mb-1">No websites connected yet</div>
                             <p class="leading-relaxed mb-3 max-w-md mx-auto">
                               Mount your first static site target using the form on the right to unlock photo publishing, profile avatars, and custom widgets.
                             </p>
@@ -1566,7 +1502,7 @@
                 <div class="retro-card p-4 m-0">
                   <div class="window-header mb-3 flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <span class="font-bold">[:&gt; TARGET_VAULT_CREDENTIALS.SYS - Encrypted at Rest]</span>
+                      <span class="font-bold">HOSTING.SYS — Hosting &amp; API keys</span>
                     </div>
                     <span class="text-xs font-mono text-prompt font-bold">[AES-256-GCM]</span>
                   </div>
@@ -1578,7 +1514,7 @@
 
                   {% if not userSites or userSites.length == 0 %}
                     <div class="p-4 bg-black border border-main text-xs font-mono text-muted text-center leading-relaxed">
-                      <span class="text-prompt font-bold block mb-1">[:&gt; TARGET VAULT UNINITIALIZED]</span>
+                      <span class="text-prompt font-bold block mb-1">No website connected yet</span>
                       No static site targets currently mounted. Open <strong>Mounted Sites</strong> to connect a Neocities, Nekoweb or GitHub Pages site first.
                       <div class="mt-3">
                         <button type="button" onclick="switchSettingsSubTab('sites')" class="pixel-btn pixel-btn--yellow text-xs font-bold py-1 px-3">
@@ -1829,7 +1765,7 @@
                 <div class="retro-card p-4 m-0">
                   <div class="window-header mb-4 flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <span class="font-bold">[:&gt; PUSH_TO_NEOCITIES.BAT — Remote Status &amp; 11ty Sync]</span>
+                      <span class="font-bold">PUBLISH.BAT — Publish &amp; status</span>
                     </div>
                     <span id="remoteNodeIndicator" class="text-xs font-mono text-muted">STANDBY</span>
                   </div>
@@ -1920,7 +1856,7 @@
                 <div class="retro-card p-4 m-0">
                   <div class="window-header mb-4 flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <span class="font-bold">[:&gt; NOTIFICATION_DISPATCHER.CFG - Cyber Alert Protocols]</span>
+                      <span class="font-bold">NOTIFY.CFG — Notifications</span>
                     </div>
                     <span class="text-xs font-mono text-prompt font-bold">[REAL-TIME]</span>
                   </div>
@@ -2106,7 +2042,7 @@
                 <div class="retro-card p-4 m-0">
                   <div class="window-header mb-4 flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <span class="font-bold">[:&gt; DATA_SOVEREIGNTY.EXE — Portable Archive &amp; Station Wipe]</span>
+                      <span class="font-bold">DATA.EXE — Export or delete your data</span>
                     </div>
                     <span class="text-xs font-mono text-prompt font-bold">ZERO LOCK-IN</span>
                   </div>
@@ -2117,10 +2053,10 @@
                     <div class="flex-1 flex flex-col justify-between gap-3 p-3 bg-black border-2 border-main">
                       <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-mac mb-2">
-                          1. Portable Station Archive (JSON):
+                          1. Download your data
                         </label>
                         <p class="text-xs text-muted leading-relaxed font-mono m-0">
-                          Download a complete, offline JSON archive of your entire cyberspace station—including all photo records, captions, comments, guestbook signatures, and friend connections.
+                          A JSON file with your profile, your post list and captions, guestbook signatures, hit counter and friends. Your photos and comment files already live on your own website, so download those from your host.
                         </p>
                       </div>
                       <div class="pt-3 border-t border-main">
@@ -2129,7 +2065,7 @@
                           class="pixel-btn pixel-btn--yellow font-bold text-xs py-2.5 px-3 w-full text-center block"
                           onclick="if(window.retroAudio) retroAudio.playClick();"
                         >
-                          <span>EXPORT STATION ARCHIVE (JSON) :&gt;</span>
+                          <span>Download my data (JSON)</span>
                         </a>
                       </div>
                     </div>
@@ -2288,7 +2224,7 @@
                 <div class="retro-card p-4 m-0">
                   <div class="window-header mb-4 flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <span class="font-bold">[:&gt; hit_counter_daemon.out — DYNAMIC SVG COUNTER]</span>
+                      <span class="font-bold">COUNTER.EXE — Hit counter</span>
                     </div>
                     <span id="counterHitsBadge" class="text-xs font-mono font-bold text-prompt">HITS: --</span>
                   </div>
@@ -2406,7 +2342,7 @@
                 <div class="retro-card p-4 m-0">
                   <div class="window-header mb-4 flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <span class="font-bold">[:&gt; guestbook_daemon.cgi — VISITOR LEDGER]</span>
+                      <span class="font-bold">GUESTBOOK.EXE — Guestbook</span>
                     </div>
                     <span id="gbCountBadge" class="text-xs font-mono font-bold text-prompt">-- SIGNATURES</span>
                   </div>
@@ -2553,7 +2489,7 @@
                 <div class="retro-card p-4 m-0">
                   <div class="window-header mb-4 flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <span class="font-bold">[:&gt; pager_daemon.sys — LIVE CHAT WIDGET]</span>
+                      <span class="font-bold">PAGER.EXE — Chat widget</span>
                     </div>
                     <span id="pagerEmbedStatusBadge" class="text-xs font-mono font-bold text-mac">LIVE 24H CARRIER</span>
                   </div>
@@ -2641,7 +2577,7 @@
                 <div class="retro-card p-4 m-0">
                   <div class="window-header mb-4 flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <span class="font-bold">[:&gt; json_feed_engine.cgi — PUBLIC FEED &amp; EMBED]</span>
+                      <span class="font-bold">FEED.EXE — Photo feed &amp; JSON</span>
                     </div>
                     <span class="text-xs font-mono text-prompt">JSONFEED 1.1</span>
                   </div>
@@ -2755,17 +2691,17 @@
             <!-- Hero Action Buttons -->
             <div class="flex items-center gap-3 flex-wrap mt-2">
               <a href="/login" class="pixel-btn pixel-btn--yellow font-bold text-xs sm:text-sm py-2 px-4 flex items-center gap-1.5" onclick="if(window.retroAudio) retroAudio.playClick();">
-                <span>🚀 Claim Your Free Station :&gt;</span>
+                <span>🚀 Sign up free</span>
               </a>
               <a href="https://neogramtest.neocities.org/neogram/" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--green text-xs font-bold py-2 px-3.5 flex items-center gap-1" onclick="if(window.retroAudio) retroAudio.playClick();">
-                <span>🌐 Explore Live Neocities Demo ↗</span>
+                <span>🌐 See an example gallery ↗</span>
               </a>
               <a href="/directory" class="pixel-btn text-xs font-bold py-2 px-3" onclick="if(window.retroAudio) retroAudio.playClick();">
-                <span>Station Directory :&gt;</span>
+                <span>Browse members</span>
               </a>
             </div>
             <div class="text-3xs text-muted">
-              (Free &amp; open for indie web explorers. No password needed—just a quick 6-digit carrier key.)
+              (Free. No password: we email or text you a 6-digit code.)
             </div>
           </div>
 
@@ -2875,7 +2811,7 @@
                 </p>
               </div>
               <div class="pt-2 border-t border-main text-3xs text-amber font-bold flex items-center justify-between">
-                <span>⚡ 100% Ephemeral Chat — Never logged or sold</span>
+                <span>⚡ No chat logs on our server: messages go straight to your friend</span>
               </div>
             </article>
 
@@ -2897,7 +2833,7 @@
             <!-- Left: Interactive Photo Preview with Toggleable Shaders -->
             <div class="flex-1 border-2 border-main bg-black p-3 text-xs font-mono w-full">
               <div class="flex items-center justify-between pb-1.5 mb-2 border-b border-main text-xxs text-muted">
-                <span class="text-mac font-bold">@skater_dan</span>
+                <span class="text-mac font-bold">Example post</span>
                 <span id="guestShowcaseFilterBadge" class="text-prompt font-bold">SHADER: CRT SCANLINES</span>
               </div>
 
@@ -2952,8 +2888,8 @@
                 "Sunset session down at the park. Snapped on my phone, filtered, and published to my Neocities page in 4 seconds."
               </p>
               <div class="flex items-center justify-between mt-2 pt-2 border-t border-main text-xxs text-muted">
-                <span>Station: #100108 // 33.6K</span>
-                <span class="text-crimson font-bold">♥ 128 RADICALS</span>
+                <span>@skater_dan // 33.6K</span>
+                <span class="text-crimson font-bold">♥ 128</span>
               </div>
             </div>
 
@@ -2965,7 +2901,7 @@
                   <span class="pixel-badge text-3xs font-bold">NO JAVASCRIPT</span>
                 </div>
                 <p class="text-xxs text-muted m-0">
-                  Drop into any static HTML page. Zero tracking cookies, purely animated SVGs that tick up on every visit:
+                  Drop into any static HTML page. No tracking cookies, just an SVG that ticks up with each visit:
                 </p>
 
                 <!-- Live Glowing Counter Visual Strip -->
@@ -3022,7 +2958,7 @@
                 class="pixel-btn pixel-btn--yellow font-bold text-xs py-2.5 text-center flex items-center justify-center gap-1.5"
                 onclick="if(window.retroAudio) retroAudio.playClick();"
               >
-                <span>Open Full Live Gallery on Neocities ↗</span>
+                <span>See an example gallery on Neocities ↗</span>
               </a>
             </div>
           </div>
@@ -3033,7 +2969,7 @@
              ========================================================== -->
         <section class="retro-alert is-visible retro-alert--info p-3 sm:p-5 flex flex-col gap-3 font-mono" aria-label="Safe-Sync Guarantee" style="overflow-wrap: anywhere; word-break: break-word;">
           <div class="flex items-center gap-2 flex-wrap">
-            <span class="retro-alert__tag font-bold text-xxs sm:text-xs">[:&gt; THE NEOCITIES SAFE-SYNC GUARANTEE]:</span>
+            <span class="retro-alert__tag font-bold text-xxs sm:text-xs">[:&gt; YOUR SITE STAYS YOURS]:</span>
             <span class="font-bold text-xs sm:text-sm text-prompt uppercase tracking-wide">
               🛡️ Built With Love for Hand-Crafted HTML Sites
             </span>
@@ -3042,10 +2978,10 @@
             We know you spent hours perfecting your custom CSS and layout. <strong>Neogram NEVER overwrites your homepage or existing files.</strong> Your photo gallery publishes neatly into an isolated <code>/neogram/</code> subfolder, and you own 100% of your HTML and images forever.
           </p>
           <div class="flex items-center gap-3 text-xxs text-muted pt-2 border-t border-main flex-wrap">
-            <span>✓ Root site non-destructive invariant</span>
-            <span>✓ 100% personal data sovereignty</span>
+            <span>✓ Never touches your other files</span>
+            <span>✓ Your photos live on your site</span>
             <span>✓ Zero algorithmic feeds</span>
-            <span>✓ Export full JSON station archives anytime</span>
+            <span>✓ Download your data anytime</span>
           </div>
         </section>
 
@@ -3110,11 +3046,11 @@
         <div class="p-4 bg-desktop border border-main flex items-center justify-between flex-wrap gap-3 font-mono">
           <div class="flex items-center gap-2">
             <span class="text-xs">
-              Ready to take your static site to cyberspace? Claim your permanent Node # in 10 seconds.
+              Ready? Sign up in under a minute and get your permanent Neogram number.
             </span>
           </div>
           <a href="/login" class="pixel-btn pixel-btn--yellow font-bold text-xs py-2 px-4 flex items-center gap-1.5" onclick="if(window.retroAudio) retroAudio.playClick();">
-            <span>✨ Claim Your Space :&gt;</span>
+            <span>✨ Sign up free</span>
           </a>
         </div>
 
@@ -3192,9 +3128,10 @@
 
   function isImageFile(file) {
     if (!file) return false;
-    if (file.type && file.type.startsWith('image/')) return true;
+    // Same formats the server accepts (SVG is refused server-side).
+    if (file.type) return /^image\/(jpeg|png|webp|gif|avif)$/i.test(file.type);
     var ext = (file.name || '').split('.').pop().toLowerCase();
-    return ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'avif', 'svg'].indexOf(ext) !== -1;
+    return ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'].indexOf(ext) !== -1;
   }
 
   function renderMultiPhotoStrip() {
@@ -3240,12 +3177,12 @@
           window.retroAudio.playError();
         }
       } catch(e) {}
-      showAlert('error', '[:> INVALID FILE]:', 'Selected files must be valid image formats (JPEG, PNG, WebP, GIF, BMP).');
+      showAlert('error', 'Not a photo:', 'Choose JPEG, PNG, WebP or GIF images.');
       return;
     }
 
     if (rawFiles.length > 5) {
-      showAlert('warning', '[:> PHOTO LIMIT EXCEEDED]:', 'Galleries are limited to 5 photos maximum. The first 5 photos have been loaded.');
+      showAlert('warning', 'Up to 5 photos:', 'A post can have up to 5 photos, so the first 5 were added.');
       rawFiles = rawFiles.slice(0, 5);
     }
 
@@ -3476,7 +3413,7 @@
         publishBtn.style.opacity = '1';
         logBox.classList.add('hidden');
         if (err) {
-          showAlert('error', '[:> OFFLINE BUFFER FAULT]:', err.message);
+          showAlert('error', "Couldn't save offline:", err.message);
         } else {
           showAlert(
             'success',
@@ -3534,7 +3471,7 @@
           ? data.error
           : ((data.error && typeof data.error.message === 'string' && data.error.message)
             || (typeof data.message === 'string' && data.message)
-            || 'Carrier transmission failed.');
+            || 'Publishing failed. Please try again.');
         throw new Error(errorMsg);
       }
 
@@ -3583,7 +3520,7 @@
             window.retroAudio.playError();
           }
         } catch(e) {}
-        showAlert('error', '[:> TRANSMISSION ERROR]:', err.message);
+        showAlert('error', "Couldn't publish:", err.message);
       }
     } finally {
       publishBtn.disabled = false;
@@ -4695,7 +4632,7 @@
       alertBox.classList.remove('hidden');
     } finally {
       saveBtn.disabled = false;
-      saveBtn.textContent = 'UPDATE PROFILE & CALL-SIGN :>';
+      saveBtn.textContent = 'Save profile';
     }
   }
 
@@ -4986,7 +4923,7 @@
     var saveBtn = document.getElementById('saveSettingsBtn');
 
     saveBtn.disabled = true;
-    saveBtn.textContent = 'ENCRYPTING & SAVING...';
+    saveBtn.textContent = 'Saving…';
 
     var alertBox = document.getElementById('settingsAlert');
     var alertTag = document.getElementById('settingsAlertTag');
@@ -5014,8 +4951,8 @@
       if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to save settings.');
 
       alertBox.className = 'retro-alert retro-alert--success mb-3';
-      alertTag.textContent = '[✓] VAULT UPDATED:';
-      alertMsg.textContent = 'Hosting credentials encrypted with AES-256-GCM and saved to PostgreSQL.';
+      alertTag.textContent = 'Saved:';
+      alertMsg.textContent = 'Your hosting settings were saved. Your API key is stored encrypted.';
       alertBox.classList.remove('hidden');
 
       appendTelemetryLog('Saved deployment settings for site. Key encrypted in PostgreSQL database.');
@@ -5030,7 +4967,7 @@
       appendTelemetryLog('Error saving settings: ' + err.message, true);
     } finally {
       saveBtn.disabled = false;
-      saveBtn.textContent = 'SAVE SETTINGS :>';
+      saveBtn.textContent = 'Save settings';
     }
   }
 
@@ -5123,7 +5060,7 @@
 
     deployBtn.disabled = true;
     deployBtn.textContent = 'COMPILING & COMMITTING TO ' + providerName.toUpperCase() + '...';
-    durationLabel.textContent = 'TRANSMITTING...';
+    durationLabel.textContent = 'PUBLISHING...';
 
     appendTelemetryLog('Preparing personal 11ty static compilation for user...');
 
@@ -5736,7 +5673,7 @@
     var msg = document.getElementById('rebuildAlertMsg');
 
     btn.disabled = true;
-    btn.textContent = 'COMPILING 11TY...';
+    btn.textContent = 'Publishing…';
     if (window.retroAudio) window.retroAudio.playClick();
 
     try {
@@ -5763,7 +5700,7 @@
       alertBox.classList.remove('hidden');
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Rebuild 11ty Static Site';
+      btn.textContent = 'Republish site';
     }
   }
 

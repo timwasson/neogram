@@ -354,7 +354,7 @@ adminRouter.post(
           activeSession.ws.send(
             JSON.stringify({
               type: 'sys:ban',
-              message: `Carrier connection terminated: Station node suspended by network administrator (${reason}).`,
+              message: `Your account has been suspended (${reason}).`,
             })
           );
           activeSession.ws.close(4003, 'Node banned');

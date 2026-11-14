@@ -7,10 +7,10 @@
   <div class="retro-card p-0 mb-6">
     <div class="window-header flex items-center justify-between p-2">
       <div class="flex items-center gap-2">
-        <span class="font-bold">[:&gt; PRIVACY_POLICY.TXT - Cyberspace Data Protection &amp; SMS Policy]</span>
+        <span class="font-bold">PRIVACY.TXT — Privacy Policy</span>
       </div>
       <a href="/" class="pixel-btn pixel-btn--sm text-xs py-0.5 px-2 text-white">
-        [ &lt; Return to Station ]
+        [ &lt; Back ]
       </a>
     </div>
 
@@ -18,8 +18,8 @@
 
       <!-- Effective Date Bar -->
       <div class="bg-black border border-main p-3 text-prompt flex items-center justify-between flex-wrap gap-2 text-xs">
-        <div><strong>DOCUMENT ID:</strong> NEOGRAM-PRIVACY-2026.1</div>
-        <div><strong>EFFECTIVE DATE:</strong> October 22, 2026</div>
+        <div><strong>VERSION:</strong> 2026.2</div>
+        <div><strong>EFFECTIVE DATE:</strong> November 13, 2026</div>
         <div><strong>SERVICE URL:</strong> https://neogram.club</div>
       </div>
 
@@ -29,18 +29,18 @@
           1. Privacy Philosophy &amp; Overview
         </h2>
         <p>
-          At <strong>Neogram</strong> ("we", "us", or "our"), hosted at <a href="https://neogram.club" class="text-mac underline">https://neogram.club</a>, we believe in radical digital privacy, minimal data retention, and authentic 90s-era decentralization. We collect only the minimum telemetry strictly necessary to authenticate your station, deliver one-time verification codes, and compile your photo galleries directly to your personal static site.
+          <strong>Neogram</strong> ("we", "us", or "our") is run by Tim Wasson at <a href="https://neogram.club" class="text-mac underline">https://neogram.club</a>. We try to collect as little as possible: enough to sign you in, run chat and notifications, and publish your photos to your own website. This page explains what we store, where, and for how long.
         </p>
       </section>
 
       <!-- Section 2: STRICT Mobile & SMS Privacy Policy (Carrier Mandate) -->
       <section class="space-y-3 bg-black border-2 border-prompt p-4">
         <div class="flex items-center gap-2 text-prompt font-bold text-sm">
-          <h3>2. Mobile Information &amp; SMS Privacy Policy (Strict Zero-Sharing Guarantee)</h3>
+          <h3>2. Mobile Information &amp; SMS Privacy Policy</h3>
         </div>
 
         <p class="text-white font-bold">
-          We deeply respect your mobile privacy. The following terms govern all mobile phone numbers and SMS consent data collected by Neogram:
+          The following terms apply to all mobile phone numbers and SMS consent data collected by Neogram:
         </p>
 
         <div class="bg-black border border-prompt p-3 text-prompt space-y-2 text-xs">
@@ -54,13 +54,13 @@
 
         <div class="space-y-2 pl-2">
           <p>
-            <strong>2.1 Purpose of Mobile Phone Collection:</strong> Mobile telephone numbers provided during login or registration are utilized solely and exclusively for two-factor authentication, identity verification, and transmitting single-use one-time password (OTP) authorization keys requested by you.
+            <strong>2.1 Purpose of Mobile Phone Collection:</strong> Mobile phone numbers you enter at sign-in are used only to send you the one-time sign-in codes you request, and to identify your account.
           </p>
           <p>
             <strong>2.2 No Marketing or Reselling:</strong> We do not sell, rent, lease, license, or disclose phone numbers or text messaging opt-in consent to any marketing agencies, data brokers, advertising networks, or third-party affiliates under any circumstances.
           </p>
           <p>
-            <strong>2.3 Infrastructure Subprocessors:</strong> Phone numbers are transmitted securely via TLS encryption to our trusted telecommunications transit provider (Twilio Inc.) solely to execute carrier delivery of the one-time authentication text message you requested.
+            <strong>2.3 Infrastructure Subprocessors:</strong> Phone numbers are sent over an encrypted connection to our SMS provider, Twilio Inc., only to deliver the sign-in text you requested.
           </p>
         </div>
       </section>
@@ -68,74 +68,84 @@
       <!-- Section 3: Information We Collect -->
       <section class="space-y-2">
         <h2 class="text-prompt text-base font-bold uppercase tracking-wider border-b border-main pb-1">
-          3. Information We Collect
+          3. What we store on our server
         </h2>
         <ul class="list-disc list-inside space-y-2 pl-2 text-muted">
-          <li>
-            <strong class="text-white">Account Authentication Credentials:</strong> Your email address or mobile phone number, utilized exclusively to dispatch one-time login OTP codes. We do not store permanent account passwords.
-          </li>
-          <li>
-            <strong class="text-white">Public Cyberspace Identity:</strong> Your public call-sign handle (<code>@handle</code>), avatar, status message, and immutable numeric node identifier (<code>#UIN</code>) used across Neogram social widgets and chat.
-          </li>
-          <li>
-            <strong class="text-white">Encrypted Deployment Keys:</strong> If you connect remote static publishing targets (e.g. Neocities API keys, GitHub tokens, or SFTP passwords), these credentials are stored encrypted at rest using AES-256-GCM.
-          </li>
+          <li><strong class="text-white">Account:</strong> your email address or mobile number (to sign you in), your handle, Neogram number, avatar link, status message and short bio. We don't use passwords. Sign-in codes are stored only as a one-way hash and expire after 10 minutes.</li>
+          <li><strong class="text-white">Connected websites:</strong> your site's address, folder and settings, and the API key or token you give us, stored encrypted (AES-256-GCM). We use it only to publish to and read from your site.</li>
+          <li><strong class="text-white">Social activity:</strong> who you've added as a friend, your in-app notifications, your notification settings, and a record of which photos you've liked (for visitors who aren't signed in, a one-way hash of their IP address instead of the address itself, so a photo can't be liked twice from one connection).</li>
+          <li><strong class="text-white">Guestbooks and hit counters:</strong> guestbook signatures are saved to the site owner's own website and a copy is kept in our database; hit counters store a running total per site.</li>
+          <li><strong class="text-white">Push notifications:</strong> if you turn on device notifications, the push address your browser gives us (delivered through Apple, Google or Mozilla's push services).</li>
+          <li><strong class="text-white">A working copy of your gallery:</strong> to build your site we keep the text files of your gallery (captions, comment lists, feed files) on our server. Your photos themselves are not kept: see section 4.</li>
+          <li><strong class="text-white">Short-lived technical data:</strong> IP addresses are held in memory for rate limiting and visitor counting and are not written to our database; standard server logs are kept for troubleshooting.</li>
         </ul>
       </section>
 
-      <!-- Section 4: Zero Server Media Storage -->
+      <!-- Section 4: Photos -->
       <section class="space-y-2">
         <h2 class="text-prompt text-base font-bold uppercase tracking-wider border-b border-main pb-1">
-          4. Zero Server Media Retention (0 MB)
+          4. Your photos live on your website
         </h2>
-        <p>
-          Unlike centralized social networks, Neogram maintains a strict <strong>Zero Local Media Retention</strong> invariant:
+        <p class="text-muted">
+          You can only post photos once you've connected your own website (Neocities, Nekoweb or GitHub Pages). When you post, our server resizes the photo, uploads it to your site, and then deletes its copy. If the upload to your site fails, we keep the files only until the next successful publish so nothing is lost. Profile avatars work the same way. Retro filters are applied in the browser and don't change your original.
         </p>
         <p class="text-muted">
-          When you snap or upload a photo, image processing (resizing and WebP compression) is performed ephemerally in server memory and isolated build staging, while retro filters are applied non-destructively in the client via CSS. The instant the generated files are uploaded to your personal static hosting provider (e.g. Neocities), <strong>the local media files are permanently deleted from our server disk</strong>. Our local server disk retention returns to 0 bytes.
+          Because your photos, comments and guestbook live on your own website, deleting files there deletes them for everyone; we don't keep a backup copy.
         </p>
       </section>
 
-      <!-- Section 5: Ephemeral Chat Architecture (NIM) -->
+      <!-- Section 5: Chat -->
       <section class="space-y-2">
         <h2 class="text-prompt text-base font-bold uppercase tracking-wider border-b border-main pb-1">
-          5. Neogram Instant Messenger (NIM) Ephemeral Architecture
+          5. Chat (NIM)
         </h2>
         <p>
-          Real-time chat messages routed via WebSockets are processed strictly in server memory without permanent database retention. If a recipient is offline, the message is temporarily held in an encrypted ephemeral queue for up to 24 hours. The instant the recipient establishes a connection, the message is delivered and <strong>immediately hard-deleted from the database</strong>. 100% of persistent chat history resides strictly in client-side browser storage (<code>localStorage</code>), which you can clear at any time.
+          Chat messages pass through our server in memory and are not saved to our database. If the person you're messaging is offline, the message waits in our database for up to 24 hours and is deleted as soon as it's delivered (or when it expires). We record that you have a new message (who it's from, not what it says) so we can notify you. Your chat history is kept only in your own browser or the Neogram extension, and you can clear it any time.
         </p>
       </section>
 
       <!-- Section 6: Cookies & Tracking -->
       <section class="space-y-2">
         <h2 class="text-prompt text-base font-bold uppercase tracking-wider border-b border-main pb-1">
-          6. Cookies &amp; Tracking Technologies
+          6. Cookies
         </h2>
         <p>
-          Neogram uses strictly essential, first-party HTTP-only session cookies (<code>neogram_session</code>) to maintain your login status. We employ zero third-party advertising cookies, zero analytics trackers, and zero cross-site behavioral tracking scripts.
+          We use two first-party cookies: <code>neogram_session</code> keeps you signed in, and <code>neogram_active_site</code> remembers which of your websites you're working on. Your browser also stores your chat history and a few preferences locally. We don't use advertising cookies, analytics trackers or cross-site tracking.
         </p>
       </section>
 
-      <!-- Section 7: Data Retention & Deletion Rights -->
+      <!-- Section 7: Service providers -->
       <section class="space-y-2">
         <h2 class="text-prompt text-base font-bold uppercase tracking-wider border-b border-main pb-1">
-          7. Data Retention &amp; User Deletion Rights
+          7. Service providers we use
+        </h2>
+        <ul class="list-disc list-inside space-y-1 pl-2 text-muted">
+          <li><strong class="text-white">DigitalOcean</strong> hosts our server and database.</li>
+          <li><strong class="text-white">Resend</strong> delivers sign-in codes by email.</li>
+          <li><strong class="text-white">Twilio</strong> delivers sign-in codes by text message.</li>
+          <li><strong class="text-white">Apple, Google and Mozilla push services</strong> deliver device notifications, if you turn them on.</li>
+          <li><strong class="text-white">Your website host</strong> (Neocities, Nekoweb or GitHub) receives what you publish, under their own policies.</li>
+        </ul>
+        <p class="text-muted">We don't sell or rent personal information to anyone.</p>
+      </section>
+
+      <!-- Section 8: Your choices -->
+      <section class="space-y-2">
+        <h2 class="text-prompt text-base font-bold uppercase tracking-wider border-b border-main pb-1">
+          8. Download or delete your data
         </h2>
         <p>
-          You have the right to request the inspection, correction, or complete deletion of your account record and associated metadata from our database. To request account deletion or data removal, contact us at <a href="mailto:auth@neogram.club" class="text-prompt underline">auth@neogram.club</a>.
+          In <strong>Settings → Your data</strong> you can download a copy of your data as JSON or delete your account. Deleting your account removes your profile, connected-site settings and keys, friends, notifications, hit counters and guestbook copies from our server right away. Files already published to your own website stay there until you remove them. You can also email us to ask what we hold about you or to have anything corrected or removed.
         </p>
       </section>
 
-      <!-- Section 8: Contact -->
+      <!-- Section 9: Contact -->
       <section class="space-y-2">
         <h2 class="text-prompt text-base font-bold uppercase tracking-wider border-b border-main pb-1">
-          8. Contact &amp; Privacy Officer
+          9. Contact
         </h2>
-        <p>
-          If you have questions, concerns, or requests regarding this Privacy Policy or your personal data, please contact:
-        </p>
         <div class="bg-black border border-main p-3 text-xs space-y-1">
-          <div><strong>PRIVACY OFFICER:</strong> Neogram Network Security</div>
+          <div><strong>OPERATOR:</strong> Tim Wasson</div>
           <div><strong>EMAIL:</strong> <a href="mailto:auth@neogram.club" class="text-prompt underline">auth@neogram.club</a></div>
           <div><strong>WEBSITE:</strong> <a href="https://neogram.club" class="text-mac underline">https://neogram.club</a></div>
         </div>
@@ -146,7 +156,7 @@
         <div>&copy; 2026 Neogram. All rights reserved.</div>
         <div class="flex items-center gap-3">
           <a href="/terms" class="text-mac underline hover:text-white">Terms of Service &gt;&gt;</a>
-          <a href="/login" class="text-prompt underline hover:text-white">Terminal Login &gt;&gt;</a>
+          <a href="/login" class="text-prompt underline hover:text-white">Sign in &gt;&gt;</a>
         </div>
       </div>
 

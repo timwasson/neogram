@@ -588,7 +588,7 @@ export function createApp(): Express {
           title: 'Neogram - Station Node Not Found',
           url: req.originalUrl,
           message: user?.is_banned
-            ? `[:> Station node "${identifier}" is currently suspended by network administrator.]`
+            ? `This account (${identifier}) has been suspended.`
             : `[:> Station node "${identifier}" not found in Neogram Cyberspace Directory.]`,
         });
         return;

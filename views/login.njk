@@ -7,12 +7,12 @@
     <!-- Modal Titlebar -->
     <div class="login-modal__titlebar">
       <div class="flex items-center gap-2">
-        <span>[:&gt; LOGIN_TERMINAL.EXE - Dial-Up Security Auth]</span>
+        <span>Sign in to Neogram</span>
       </div>
-      <div class="login-modal__controls">
-        <button type="button" class="login-modal__btn" onclick="handleWindowControlClick('minimize')" title="Minimize">_</button>
-        <button type="button" class="login-modal__btn" onclick="handleWindowControlClick('maximize')" title="Maximize">□</button>
-        <button type="button" class="login-modal__btn login-modal__btn--close" onclick="handleWindowControlClick('close')" title="Close">✕</button>
+      <div class="login-modal__controls" aria-hidden="true">
+        <span class="login-modal__btn">_</span>
+        <span class="login-modal__btn">□</span>
+        <span class="login-modal__btn login-modal__btn--close">✕</span>
       </div>
     </div>
 
@@ -20,7 +20,7 @@
     <div class="p-5">
 
       <!-- Baud Rate Telemetry Progress Indicator -->
-      <div class="baud-progress-bar crt-scanlines">
+      <div class="baud-progress-bar crt-scanlines" aria-hidden="true">
         <div class="baud-header">
           <span class="baud-header__title">CARRIER BAUD TELEMETRY</span>
           <span id="baudStatusLabel" class="baud-header__status">STANDBY // 300 BAUD</span>
@@ -72,10 +72,10 @@
         </div>
         <div class="text-left font-mono">
           <div class="font-pixel text-xs sm:text-sm text-mac mb-1">
-            NEOGRAM STATION TERMINAL
+            Welcome to Neogram
           </div>
           <div class="text-xs text-prompt leading-relaxed">
-            Grab your permanent Node # (just like an old-school ICQ number) and start building your corner of the web.
+            No password needed. We'll send you a 6-digit code. New here? The same form creates your account and your permanent Neogram number (like an old-school ICQ number).
           </div>
         </div>
       </div>
@@ -84,7 +84,7 @@
       <form id="step1Form" onsubmit="handleRequestOtp(event)">
         <div class="mb-4">
           <label for="identifierInput" class="block text-xs font-bold mb-2 tracking-wide">
-            Email address or mobile phone number:
+            Email address or mobile number
           </label>
           <input
             type="text"
@@ -92,7 +92,8 @@
             name="identifier"
             required
             autocomplete="username"
-            placeholder="e.g. operator@email.com or (555) 019-1996"
+            inputmode="email"
+            placeholder="you@example.com or (555) 019-1996"
             class="retro-input"
             autofocus
           />
@@ -103,11 +104,11 @@
           id="requestBtn"
           class="pixel-btn pixel-btn--yellow w-full text-sm py-2 font-bold"
         >
-          <span>CONNECT &amp; TRANSMIT OTP :&gt;</span>
+          <span>Send me a code</span>
         </button>
 
         <div class="mt-2 text-xxs text-muted text-center leading-normal">
-          By transmitting, you agree to our 
+          By continuing, you agree to our 
           <a href="/terms" class="text-mac underline hover:text-white" target="_blank">Terms of Service</a> &amp; 
           <a href="/privacy" class="text-mac underline hover:text-white" target="_blank">Privacy Policy</a>.
           <br />
@@ -120,14 +121,14 @@
         <div class="mb-3">
           <div class="flex justify-between items-center mb-2">
             <label for="otpCodeInput" class="text-xs font-bold">
-              Enter 6-Digit Authorization Key:
+              Enter the 6-digit code
             </label>
             <button
               type="button"
               onclick="resetToStep1()"
-              class="text-xs text-mac underline cursor-pointer p-0 bg-transparent border-0 font-bold"
+              class="text-xs text-mac underline cursor-pointer py-2 px-1 bg-transparent border-0 font-bold"
             >
-              [Change Address]
+              Use a different address
             </button>
           </div>
           <input
@@ -136,6 +137,8 @@
             name="code"
             maxlength="6"
             pattern="[0-9]{6}"
+            inputmode="numeric"
+            autocomplete="one-time-code"
             placeholder="123456"
             class="retro-input retro-input--otp"
           />
@@ -144,14 +147,14 @@
         <!-- Quick Demo Code Paste Helper -->
         <div id="demoHelperBox" class="retro-helper-box hidden">
           <div class="flex items-center gap-2">
-            <span class="retro-helper-box__key">[:&gt; DEV_CARRIER_KEY]:</span>
+            <span class="retro-helper-box__key">Dev code:</span>
             <span id="demoCodeText" class="retro-helper-box__code"></span>
           </div>
           <button
             type="button"
             onclick="quickFillDemoCode()"
             class="pixel-btn pixel-btn--yellow pixel-btn--sm font-bold"
-            title="Auto-fill 6-digit key"
+            title="Fill in the dev code"
           >
             <span>Auto-Fill</span>
           </button>
@@ -162,7 +165,7 @@
           id="verifyBtn"
           class="pixel-btn pixel-btn--green w-full text-sm py-2 font-bold"
         >
-          <span>AUTHENTICATE TERMINAL SESSION :&gt;</span>
+          <span>Sign in</span>
         </button>
       </form>
 
@@ -175,9 +178,9 @@
     </div>
 
     <!-- Window Footer Bar -->
-    <div class="window-header font-mono text-xs text-muted">
-      <span>DAEMON: SECURE_AUTH_V2</span>
-      <span class="text-prompt font-bold">PROTOCOL: OTP-PASSWORDLESS</span>
+    <div class="window-header font-mono text-xs text-muted" aria-hidden="true">
+      <span>NEOGRAM // SIGN-IN</span>
+      <span class="text-prompt font-bold">PASSWORDLESS</span>
     </div>
 
   </div>
@@ -200,16 +203,16 @@
 
     if (type === 'error') {
       box.classList.add('retro-alert--error');
-      tagEl.textContent = tag || '[!] ERROR:';
+      tagEl.textContent = tag || 'Error:';
       if (window.retroAudio) retroAudio.playError();
       triggerShake();
     } else if (type === 'success') {
       box.classList.add('retro-alert--success');
-      tagEl.textContent = tag || '[✓] SUCCESS:';
+      tagEl.textContent = tag || 'Done:';
       if (window.retroAudio) retroAudio.playSuccess();
     } else {
       box.classList.add('retro-alert--info');
-      tagEl.textContent = tag || '[:>] INFO:';
+      tagEl.textContent = tag || '';
       if (window.retroAudio) retroAudio.playClick();
     }
 
@@ -226,14 +229,6 @@
     modal.classList.remove('shake-anim');
     void modal.offsetWidth; // trigger reflow
     modal.classList.add('shake-anim');
-  }
-
-  function handleWindowControlClick(action) {
-    if (action === 'close') {
-      showAlert('info', 'Terminal session active. Click [About Neogram] in the top bar to return to the public deck, or transmit your key to authenticate.', '[:> NOTICE]:');
-    } else {
-      showAlert('info', 'Window geometry locked to fixed terminal dimensions during carrier handshake.', '[:> DISPLAY]:');
-    }
   }
 
   // Baud Rate Step Controller (0 to 7)
@@ -283,7 +278,7 @@
     btn.classList.add('opacity-50');
 
     if (window.retroAudio) retroAudio.playDialupBeep();
-    showAlert('info', 'Establishing carrier handshake with node registry for ' + val + '...', '[:>] CONNECTING:');
+    showAlert('info', 'Sending your code to ' + val + '…', '');
 
     // Animate baud speed progression up to 28.8k
     animateBaudProgression(0, 4);
@@ -301,13 +296,13 @@
 
       if (!res.ok || !data.ok) {
         setBaudProgress(0, 'CARRIER LOST // 300 BAUD');
-        showAlert('error', data.error || 'Server rejected carrier transmission.', '[!] AUTH FAULT:');
+        showAlert('error', data.error || "We couldn't send a code. Check the address and try again.", "Couldn't send code:");
         return;
       }
 
       // Success: Advance to 56.6k
-      setBaudProgress(5, 'CARRIER LOCKED // 56.6k V.90');
-      showAlert('success', 'Carrier locked at 56.6k! 6-digit authorization key transmitted.', '[✓] OTP DISPATCHED:');
+      setBaudProgress(4, 'CARRIER LOCKED // 28.8k V.34');
+      showAlert('success', 'We sent a 6-digit code to ' + val + '. It expires in 10 minutes. Check your spam folder if you don\'t see it.', 'Code sent:');
 
       // Transition to Step 2
       document.getElementById('step1Form').classList.add('hidden');
@@ -325,7 +320,7 @@
       btn.disabled = false;
       btn.classList.remove('opacity-50');
       setBaudProgress(0, 'CARRIER FAULT');
-      showAlert('error', 'Network failure: ' + err.message, '[!] COMMS ERROR:');
+      showAlert('error', "Couldn't reach Neogram. Check your connection and try again.", 'Connection problem:');
     }
   }
 
@@ -334,7 +329,7 @@
     var otpInput = document.getElementById('otpCodeInput');
     otpInput.value = receivedDemoCode;
     otpInput.focus();
-    showAlert('info', 'Auto-filled 6-digit authorization key from local carrier log.', '[:>] AUTO-FILL:');
+    showAlert('info', 'Dev code filled in.', '');
   }
 
   function resetToStep1() {
@@ -360,7 +355,7 @@
     btn.disabled = true;
     btn.classList.add('opacity-50');
 
-    showAlert('info', 'Verifying authorization key across secure carrier session...', '[:>] VERIFYING:');
+    showAlert('info', 'Checking your code…', '');
     setBaudProgress(6, 'ISDN PROTOCOL COMPRESSION');
 
     try {
@@ -376,13 +371,13 @@
 
       if (!res.ok || !data.ok) {
         setBaudProgress(5, '56.6k // KEY REJECTED');
-        showAlert('error', data.error || 'Invalid 6-digit authorization key.', '[!] ACCESS DENIED:');
+        showAlert('error', data.error || "That code didn't work.", "Couldn't sign in:");
         return;
       }
 
       // Max out progress bar to WWW
       setBaudProgress(7, 'WWW // ONLINE & AUTHENTICATED');
-      showAlert('success', 'Access granted! Welcome @' + data.user.handle + '. Booting workstation...', '[✓] TERMINAL UNLOCKED:');
+      showAlert('success', 'Welcome, @' + data.user.handle + '! Loading your dashboard…', 'Signed in:');
 
       setTimeout(function () {
         window.location.href = '/#feed';
@@ -390,7 +385,7 @@
     } catch (err) {
       btn.disabled = false;
       btn.classList.remove('opacity-50');
-      showAlert('error', 'Authentication exception: ' + err.message, '[!] SYSTEM FAULT:');
+      showAlert('error', "Couldn't reach Neogram. Check your connection and try again.", 'Connection problem:');
     }
   }
 </script>

@@ -8,6 +8,11 @@
   align-items: center;
   justify-content: center;
   padding: 24px 16px;
+
+  /* Keep the form and its status message clear of the fixed mobile bottom bar */
+  @media (max-width: 767px) {
+    padding-bottom: 96px;
+  }
   background-image: 
     radial-gradient(rgba(0, 0, 0, 0.25) 15%, transparent 16%),
     radial-gradient(rgba(0, 0, 0, 0.25) 15%, transparent 16%);

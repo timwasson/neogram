@@ -28,7 +28,7 @@ export function createRequireSession(messages: { missing: string; expired: strin
         return;
       }
       if (user.isBanned) {
-        res.status(403).json({ ok: false, error: 'This station node has been suspended by the network administrator.' });
+        res.status(403).json({ ok: false, error: 'This account has been suspended.' });
         return;
       }
       (req as any).user = payload;
