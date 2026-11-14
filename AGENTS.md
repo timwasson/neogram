@@ -11,6 +11,7 @@
 > - Static-host API calls go through `server/utils/hostFetch.ts` (90s deadline).
 > - `eleventy/src/_data/*.json` are generated per build and are not tracked in git.
 > - Tests: the hermetic sandbox fakes Neocities/Nekoweb APIs for requests carrying `FAKE_HOST_API_KEY`.
+> - Read **4.33 Copy & Tone** before writing any user-facing text, and **4.34 Known Limits** before claiming performance properties.
 
 ---
 
@@ -293,14 +294,18 @@ CREATE TABLE post_likes (
 ### 4.3 Static Publishing Pipeline (Dual-Tier: Eleventy Full Builds + High-Speed Delta Engine)
 1. User uploads photo payload (1 to 5 photos per gallery) and post metadata in Neogram Creator Studio (`POST /api/posts`).
 2. Server validates session, enforces the strict 5-photo limit per gallery, and processes all images via `sharp` (scale to max 1200px, create 400px square thumbnail, optimize to WebP; zero server-side filter manipulation, retro shaders are applied exclusively via client-side CSS helper classes across all frames).
-3. Server commits record to PostgreSQL `posts` table with full `photos` JSONB array while anchoring the primary frame to `image_path` and `thumbnail_path`.
+3. The post record is saved to the site's static JSON store (`dist/static-galleries/<siteId>/posts.json` via `savePost` in `server/services/postStorage.ts`; there is no `posts` table). Uploads are refused unless the target site has an API key, a site URL and a real provider (see 1.10).
 4. **Dual-Tier Static Site Engine:**
-   - **Tier 1 — Eleventy Full Multi-Tenant Builds (`server/services/staticBuilder.ts`):** Used for initial site provisioning, full manual re-syncs (`POST /api/build-static`), or structural template modifications. Serialized through `buildQueue.enqueue` with template caching disabled.
+   - **Tier 1 — Eleventy Full Multi-Tenant Builds (`server/services/staticBuilder.ts`):** Used for initial site provisioning, full re-publishes (`POST /api/sites/:id/deploy`), post edits/deletes, and structural template changes. Serialized through `buildQueue.enqueue` with template caching disabled.
+   - **posts.json is both the store and a build output.** Builders must call `snapshotPostsFile()` before reading posts and write feed/posts JSON only via `writeBuildJsonIfUnchanged()` (same mutex as `savePost`). Writing these files directly will silently drop posts, likes or comments saved during the build.
    - **Tier 2 — High-Speed Incremental Delta Builder (`server/services/incrementalBuilder.ts`):** Used for high-frequency operations:
-     - **New Photo Snaps:** Compiles *only* the new photo HTML (`photos/<id>/index.html`) with Instagram-style raw CSS sliding (`.neogram-slider`), updates the main gallery grid (`index.html`), and updates `feed.json` / `posts.json` in **~10–25ms**. Existing photo pages and static assets are untouched.
+     - **New Photo Snaps:** Compiles *only* the new photo HTML (`photos/<id>/index.html`) with Instagram-style raw CSS sliding (`.neogram-slider`), updates the main gallery grid (`index.html`), and updates `feed.json` / `posts.json` (local render ~10–25ms; the job is dominated by the host upload and per-key pacing, typically 1–3 s). Existing photo pages and static assets are untouched.
      - **Comment & Like Reactions:** Re-renders *only* the single affected photo's HTML page (`photos/<id>/index.html`), comment ledger JSON (`<file>.comments.json`), and feeds in **~15ms**. Zero full rebuilds.
      - **Friends Network Cascade:** Re-renders *only* the follower's `friends/index.html` and `friendsPosts.json` in **~10ms**. Follower's friend grid strictly references the original author's host URL for image and thumbnail assets (**0 bytes of media copied or uploaded to follower's site**).
-5. **Deployment Adapters & Delta Uploader (`neocitiesPublisher.ts` & `nekowebPublisher.ts`):**
+5. **Deployment Adapters & Delta Uploader (`neocitiesPublisher.ts`, `nekowebPublisher.ts`, `githubPublisher.ts`):**
+   - **One provider per site:** always dispatch through `server/services/deployDispatcher.ts` (`deploySite(siteId, deploymentType)` / `republishSiteInBackground`). Never call a provider's deploy for a site of another type: it would send that site's key to the wrong host. `/api/deploy/:provider` refuses a mismatched provider.
+   - **Timeouts:** every host API call goes through `server/utils/hostFetch.ts` (90 s overall deadline). Don't use bare `fetch` in publishers; one hung request would stall the single build queue for everyone.
+   - **GitHub Pages:** repo is derived from the `https://<owner>.github.io/<repo>` site URL; commits go to the `gh-pages` branch by default.
    - **Neocities Delta Upload (`deployFilesToNeocities`):** Direct multipart POST to `https://neocities.org/api/upload` transferring strictly the delta files (including all multi-photo assets in the gallery post, e.g. 1–10 files), bypassing full-directory scans.
    - **Nekoweb Delta Upload (`deployFilesToNekoweb`):** Uploads individual files or folder batches directly via `POST https://nekoweb.org/api/files/upload`. **Does NOT require a ZIP archive for incremental updates**, reducing deployment latency from 2.5s+ down to ~100–200ms. Bulk ZIP import (`/api/files/big/*` + `/api/files/import/:id`) is strictly reserved as an initial site setup fallback.
    - Initial site deployment seeds base assets (`css/`, `js/`, `icons/`, `embed/`), after which all publishing operations utilize the lightning-fast delta pipeline.
@@ -309,10 +314,11 @@ CREATE TABLE post_likes (
    - **Prioritized Queuing:** `buildQueue` guarantees `HIGH` priority execution for real-time user activity (new photo snaps, comments, likes, follower friends updates). Emergency sweeps execute as `LOW` priority jobs.
    - **Interruptible Throttling & Flood Warning Prevention:** Background sweeps enforce a configurable delay (default 2,500ms to 3,500ms) between site deployments to strictly respect Neocities and Nekoweb API rate limits (HTTP 429). If a high-priority user job arrives while the worker is in its baud delay, the delay is interrupted immediately to execute the user job with zero latency.
    - **Target Filtering (QA Fleet vs. All Stations):** Sweeps can target either strictly the QA fleet (`target: 'qa'`, filtering by `@qa.neogram.club` / `qa_*`) or all cyberspace nodes (`target: 'all'`).
-   - **Asset Delta Sweep vs. Full Rebuild:** Asset sweeps push strictly shared static files (`css/neogram.css`, `embed.js`, `pager.js`, `neogram-embed.css`) in ~150ms per site without compiling 11ty HTML. Full rebuilds execute 11ty compilation and upload the full bundle for emergency markup changes.
+   - **Asset Delta Sweep vs. Full Rebuild:** Asset sweeps push strictly shared static files (`css/neogram.css`, `embed.js`, `pager.js`, `friends.js`, `neogram-embed.css`). Run an asset sweep after deploying changes to anything in `embed/` in ~150ms per site without compiling 11ty HTML. Full rebuilds execute 11ty compilation and upload the full bundle for emergency markup changes.
    - **How to Perform a Flood-Safe QA Fleet Rebuild:**
      - **Admin UI Console:** Go to `https://neogram.club/admin`, navigate to `[:> FLEET_PROPAGATION_TERMINAL.SYS // EMERGENCY_SWEEP]`, select **Target:** `[•] QA Fleet Only (@qa.neogram.club)` and **Mode:** `[•] Full 11ty Rebuild`, then click **Initiate Fleet Sweep** and type `SWEEP`. The job worker will process each site with an enforced 3,500ms baud delay.
      - **CLI Terminal Command:** Run `npx tsx scripts/rebuild-qa-fleet.ts --delay=3500` to execute rate-paced sequential rebuilds across all personas in `qa-sessions.json`.
+   - **What gets copied to member sites:** `public/css`, `public/icons`, `embed/` and only `public/js/retroAudio.js`. Never publish workstation scripts to member sites.
    - **Unassigned Posts Auto-Adoption:** When compiling a user's default static site, `executeStaticBuild` automatically discovers any unassigned posts in user fallback storage (`dist/static-galleries/<userId>/posts.json` from legacy seeds), attaches them to the site target, compiles their detail pages, and synchronizes them live.
 
 
@@ -323,6 +329,8 @@ CREATE TABLE post_likes (
 - **Reusable Component Classes:** Buttons (`.pixel-btn`, `.pixel-btn--yellow`, `.pixel-btn--green`, etc.), boxes (`.pixel-box`, `.window-header`), alerts (`.retro-alert`, `.retro-alert--error`, `.retro-alert--success`, `.retro-alert--info`), and telemetry (`.baud-progress-bar`).
 - **Standardized Utility Classes:** Layout (`flex`, `flex-col`, `flex-row`, `items-center`, `justify-between`, `gap-1` through `gap-4`), spacing (`p-*`, `m-*`), text (`text-xs`, `text-sm`, `font-mono`, `text-bold`, `text-center`), and widths (`w-full`, `max-w-*`).
 - **No Inline Styles:** Template markup must avoid inline `style="..."` attributes; all layout, spacing, and colors must be composed using the utility library and component classes.
+- **Every class must exist:** before using a utility in a template, confirm it is defined in `src/styles/base/_utilities.scss` (4px scale; fractional steps like `gap-1.5` exist; `sm:`/`md:`/`lg:` and `hover:` variants exist only for the listed classes). Add new utilities there rather than inventing Tailwind-style names. Never use arbitrary-value classes (`text-[10px]`, `bg-[#120000]`); they silently do nothing. Run `npm run sass:build` and `npm run extension:sync` after SCSS changes.
+- **Link-style buttons:** use `.link-btn` on a `<button>` that should look like a text link. Don't use `focus:outline-none`; keyboard focus must stay visible.
 
 ### 4.5 Chat Engine Architecture & Privacy Invariant (Zero Server Retention)
 - **Zero Permanent Archival:** The Neogram server **never** stores chat transcripts permanently in PostgreSQL. 
@@ -339,13 +347,13 @@ CREATE TABLE post_likes (
 - **MV3 Stateless Worker Constraint:** Chrome MV3 background service workers terminate on idle. No long-lived in-memory state or WebSocket connections can exist in `background/service-worker.js`. Unread badge counters and notification tracking must be stored in `chrome.storage.local`.
 
 ### 4.7 Mobile-to-Static PWA Publishing & Offline Resilience
-- **App Shell & Manifest:** Web App Manifest (`public/manifest.json`) supports standalone display mode, orientation, app shortcuts, and mobile Web Share Target (`share_target`).
+- **App Shell & Manifest:** Web App Manifest (`public/manifest.json`) supports standalone display mode, orientation, app shortcuts, and mobile Web Share Target (`share_target` posts to `/share-target`; `public/sw.js` stashes the photos in IndexedDB `neogram_share_db` and redirects to `/?shared=1#upload`, where the Studio loads them. `POST /share-target` on the server is a fallback redirect for when the service worker isn't installed yet). Shortcuts use `/#upload`, `/#edit` and `/#chat`.
 - **Service Worker Caching & Cache Versioning Protocol (`public/sw.js`):** Cache-first strategy for static retro assets/fonts, network-first for HTML pages, with automated fallback to `public/offline.html` during disconnects. Modifications to the application shell or base assets require incrementing `CACHE_NAME` (e.g., `'neogram-shell-v2'`).
 - **Zero-Stale-Shell Invalidation:** In `public/sw.js`, the `activate` event purges all obsolete cache stores (`key !== CACHE_NAME`), immediately claims clients (`self.clients.claim()`), and broadcasts `postMessage({ type: 'CACHE_UPDATED' })` to all connected windows.
 - **Strict No-Cache Service Worker Route (`server/app.ts`):** `GET /sw.js` must always be served explicitly with `Cache-Control: no-cache, no-store, must-revalidate`, `Pragma: no-cache`, and `Expires: 0`. This prevents mobile Safari and standalone iOS PWAs from pinning stale service worker scripts in persistent HTTP disk cache.
 - **Client Auto-Update Dispatch (`public/js/pwa.js`):** On every page load, `pwa.js` triggers `reg.update()`. When a `CACHE_UPDATED` message is received from the newly activated service worker, the client automatically reloads (`window.location.reload()`), ensuring mobile standalone users transition to clean app shells without manual cache clearing.
-- **Offline Post Buffering (IndexedDB):** If a user transmits a post while disconnected, `public/js/pwa.js` intercepts submission and buffers the photo Blob, caption, and metadata in IndexedDB (`neogram_pwa_db`, store `pending_posts`).
-- **Carrier Telemetry & Auto-Drain:** Real-time COM2 carrier monitor in the desktop taskbar (`#taskbarCom2Panel`) switches between `NO CARRIER // 300 BAUD` and `CARRIER 33600 V.90`. When connectivity is restored, the client automatically drains the IndexedDB queue to `POST /api/posts`.
+- **Offline Post Buffering (IndexedDB):** If a user transmits a post while disconnected, `public/js/pwa.js` intercepts submission and stores the original File blobs, caption, filter and target `siteId` in IndexedDB (`neogram_pwa_db`, store `offline_posts`).
+- **Carrier Telemetry & Auto-Drain:** Real-time COM2 carrier monitor in the desktop taskbar (`#taskbarCom2Panel`) switches between `NO CARRIER // 300 BAUD` and `CARRIER 33600 V.90`. When connectivity returns (online event, service-worker message, or app start), `flushOfflineBuffer()` uploads queued posts one at a time to `POST /api/posts`, deleting each only after a 2xx (or a definitive 4xx); 401/408/429/5xx/network errors keep it queued.
 - **Native Hardware Camera Capture:** Uses standard `<input type="file" capture="environment">` for mobile camera snaps without WebRTC canvas overhead.
 
 ### 4.8 User Identity & Profile System (Handle & Avatar)
@@ -367,8 +375,8 @@ CREATE TABLE post_likes (
 - **Elevated Taskbar Safe Zone:** NIM window is positioned at `bottom: 54px`, preventing any overlap with the bottom CRT status bar.
 - **Header Popout Launcher:** Top navigation bar features a quick popout toggle to summon NIM from anywhere in the workstation.
 
-### 4.11 ICQ-Style Permanent Node UIN & Handle Mutability
-- **Immutable Embed Anchor (`users.uin`):** Every station is provisioned a permanent, immutable numeric node ID (e.g. `#100109`, generated from a PostgreSQL sequence starting at `100101`).
+### 4.11 ICQ-Style Permanent UIN & Handle Mutability
+- **Immutable Embed Anchor (`users.uin`):** Every account gets a permanent numeric **UIN**. In all user-facing text call it "UIN" (not Node #, Node UIN, UID, or "Neogram number") (e.g. `#100109`, generated from a PostgreSQL sequence starting at `100101`).
 - **Handle Mutability Without Broken Embeds:** Users can freely edit their cyber call-sign / handle (`@handle`) in Settings without breaking third-party static site embeds, guestbook ledgers, or dynamic web counters, which resolve permanently against `uin`.
 - **Anti-Impersonation:** Station handles are strictly unique, lowercase alphanumeric (3-30 chars).
 
@@ -379,10 +387,10 @@ CREATE TABLE post_likes (
 - **Graceful Dev Fallback:** When API credentials are left unconfigured, codes safely output directly to the local Node development terminal.
 - **In-Memory Rate Limiting:** `POST /api/auth/request-otp` enforces a sliding window rate limit of maximum 4 requests per 15 minutes per IP and per target identifier, eliminating credential spamming and protecting API quotas.
 
-### 4.13 Zero-Retention User Image Pipeline (0 MB Server Storage)
-- **Zero Local Retention Contract:** The Neogram host server **never** acts as a permanent media host or storage bucket for user photos.
+### 4.13 Zero-Retention User Image Pipeline
+- **Zero Local Retention Contract:** The Neogram host server **never** acts as a permanent media host for user photos. Accounts without a connected, credentialed site cannot upload (no sandbox/cold-start uploads).
 - **Ephemeral Build Staging:** Image uploads stream into memory via Multer and are processed by Sharp directly into the user's isolated static build directory (`dist/static-galleries/<userId>/uploads/`).
-- **Post-Deploy Disk Purge:** The moment `deployToNeocities` completes uploading the multipart bundle to the user's remote Neocities site, the local `uploads/` directory is **immediately wiped from disk** (`fs.rm(uploadsDir, { recursive: true, force: true })`). Local disk retention returns to `0 bytes`.
+- **Post-Deploy Disk Purge:** The moment `deployToNeocities` completes uploading the multipart bundle to the user's remote Neocities site, the local `uploads/` directory is **immediately wiped from disk** (`fs.rm(uploadsDir, { recursive: true, force: true })`). If the upload fails, the files are kept only until the next successful publish (so nothing is lost); the privacy policy states this, so keep the two in sync.
 
 ### 4.14 Safe Subdirectory Publishing & Non-Destructive Invariant
 - **Safe Subfolder (`users.deploy_path`):** Neogram defaults to publishing to `/neogram/` (e.g., `https://<user>.neocities.org/neogram/`). Users can customize the subfolder name in Settings or leave it blank for root.
@@ -391,7 +399,7 @@ CREATE TABLE post_likes (
 - **Eleventy `pathPrefix` Integration:** Compilations pass `process.env.ELEVENTY_PATH_PREFIX`, and all templates wrap stylesheet links, scripts, and internal page routes in Eleventy's built-in `| url` filter.
 
 ### 4.15 Production Containerization (Docker & DigitalOcean)
-- **Multi-Stage Dockerfile:** Node 22 Alpine runner with native Sharp/Postgres build dependencies, automated Sass stylesheet compilation (`npm run sass:build`), and non-interactive `tsx` runner.
+- **Dockerfile:** Node 22 Alpine; `npm ci`, Sass build, then `npm prune --omit=dev` (Playwright/TypeScript/Sass don't ship). Starts with `node --import tsx server/index.ts` (not `npx tsx`, which adds ~100 MB of wrapper processes against the 700 MB limit), so `tsx` is a runtime dependency. `.dockerignore` keeps `.env`, `qa-sessions.json`, `db-snapshot.json`, `.vapid-keys.json`, `.git` and generated `eleventy/src/_data/*.json` out of the image.
 - **1-Click Docker Compose:** `docker-compose.yml` orchestrates both the `neogram_app` Node service and `neogram_postgres` database container with automated migration mounting, container healthchecks, and volume persistence for instant deployment on DigitalOcean Droplets or VPS hosts.
 
 ### 4.16 Mobile Ergonomics & Responsive Dual-Mode Navigation
@@ -409,9 +417,9 @@ CREATE TABLE post_likes (
   - Browse and search the public Station Directory (`/directory`).
   - Follow other creator stations (`POST /api/users/:handle/follow`) and consume transmissions in their live Workstation Follower Feed (`[📰 Feed]` tab at `/#feed`).
 - **Welcoming Station Onboarding & "What's Next?":**
-  - **Station Welcome Card (`#welcomeStationCard`):** Displays `[PROFILE COMPLETE]`, welcoming the creator by handle and UIN, confirming their active capabilities.
-  - **"What's Next? — Unlock Creator Studio":** Contextual card explaining why a user would want to mount a static site target (enables photo transmissions, retro shaders, profile avatars, personal 11ty static photo grids, and SVG web hit counters) with a direct button `[ ➕ ADD A STATIC SITE TARGET :> ]` that opens the provisioning modal.
-  - **Zero-Site Creator Studio Guard (`#noSiteUploadBanner`):** When accessing Creator Studio (`#upload`), an informative banner guides the user to mount a site rather than throwing cryptic upload failures.
+  - **Welcome Card (`#welcomeStationCard`):** "Welcome, @handle!" with a `UIN #` badge, three things they can do now (chat, find friends, like/comment/sign), and one next step with a **Connect your website** button that opens Settings → Your websites → Add a website.
+  - **Upload/Embeds guard (`#noSiteUploadBanner`):** members with no site, or a site without a key, see a "Connect your website" panel instead of the upload form; the Embeds tab shows the same for widgets.
+  - **No invented sites:** `ensureDefaultSite()` returns `null` for members who never connected a site. Callers must handle `null` (counter/guestbook routes answer "not set up yet").
 
 ### 4.18 Archive Quick-Share Actions & Visual Filter Swatches
 - **One-Tap Static Sharing:** Every post card in the `#edit` archive ledger includes:
@@ -429,12 +437,12 @@ CREATE TABLE post_likes (
 
 ### 4.20 Production Infrastructure, Reverse Proxy & Automated CI/CD
 - **Production Host:** DigitalOcean Droplet (`104.248.57.128`) running Ubuntu 24.04 LTS, Docker 29, and a 2GB persistent swapfile.
-- **Reverse Proxy (Caddy v2):** Handles HTTP/2 and TLS v1.3 with automatic Let's Encrypt certificates for `neogram.club` and `www.neogram.club`, proxying traffic to internal port `127.0.0.1:4000`.
+- **Reverse Proxy (Caddy v2):** Handles HTTP/2 and TLS v1.3 with automatic Let's Encrypt certificates for `neogram.club` and `www.neogram.club`, proxying traffic to internal port `127.0.0.1:4000`. Each site block in `/etc/caddy/Caddyfile` must include `encode zstd gzip`; Express does no compression itself.
 - **Continuous Deployment (GitHub Actions):** `.github/workflows/deploy.yml` triggers on any push to `origin/main`. It executes TypeScript lint checks (`npm run lint`), SSHs into the Droplet, executes `git pull`, rebuilds containers via `docker compose up -d --build`, and polls `/api/health` until healthy.
 
 ### 4.21 Security Architecture, CORS Invariants & Content Sanitization
 - **The Cross-Domain Invariant (CORS vs. XSS):**
-  - **Permissive CORS on Public Routes:** Neogram's core service allows personal static websites (Neocities, GitHub Pages, self-hosted sites) to embed interactive feeds, dynamic SVG hit counters, guestbooks, and comment boxes. All public endpoints (`/counter/*`, `/feed/*`, `/embed/*`, `/api/guestbook/*`, `/api/posts/:id/comments`, `/api/posts/:id/like`, `/api/users/*`, `/api/network`) strictly maintain permissive CORS (`Access-Control-Allow-Origin: *`) and handle preflight `OPTIONS` requests.
+  - **Permissive CORS on Public Routes:** Neogram's core service allows personal static websites (Neocities, GitHub Pages, self-hosted sites) to embed interactive feeds, dynamic SVG hit counters, guestbooks, and comment boxes. All public endpoints (`/counter/*`, `/feed/*`, `/embed/*`, `/api/guestbook/*`, `/api/posts/:id/comments`, `/api/posts/:id/like`, `/api/users/*`) strictly maintain permissive CORS (`Access-Control-Allow-Origin: *`) and handle preflight `OPTIONS` requests.
   - **Strict Output Sanitization (Stored XSS Elimination):** External visitors can submit text across domains without authentication, so all user-supplied text rendered into templates, embeds, or dynamic DOM insertions (comment author/body, guestbook messages, screen handles, away statuses) must pass through HTML escaping (`escapeHtml()`). Nunjucks templates must **never** use `| safe` on untrusted user strings.
   - **URL Protocol Whitelisting:** User-supplied links (e.g. `visitor_website` in guestbooks) must strictly validate against `^https?://`, rejecting `javascript:`, `data:`, and `vbscript:` schemes.
 - **Dual Clickjacking & Frame Ancestors Policy:**
@@ -463,15 +471,15 @@ CREATE TABLE post_likes (
 - **Self-Hosted Storage on Static Host (0 MB Server Retention):**
   - Comments are stored in self-hosted JSON files directly alongside each photo on the user's connected static host (`uploads/images/<fileId>.comments.json`).
   - Visitor guestbook entries are stored in self-hosted JSON files under `data/guestbook.json`.
-  - The Neogram server acts as a **stateless broker/dispatcher**: when an authenticated visitor submits a comment or signature, Neogram validates their JWT, reads the remote JSON from the host, appends the entry, and pushes the updated file directly to Neocities (or Nekoweb) via API. PostgreSQL retains 0 bytes of comments or guestbooks.
+  - The Neogram server acts as a **stateless broker/dispatcher**: when an authenticated visitor submits a comment or signature, Neogram validates their JWT, reads the remote JSON from the host, appends the entry, and pushes the updated file directly to Neocities (or Nekoweb) via API. PostgreSQL keeps no comments; guestbook signatures are also mirrored to `guestbook_entries` (stated in the privacy policy).
   - Concurrency and race conditions are eliminated using an in-memory sequential file lock (`withFileLock`).
-- **Pure IndieWeb Federated Friends Aggregation (O(1) Publishing):**
+- **Federated Friends Aggregation:**
   - Instead of requiring fan-out pushes to dozens or hundreds of remote follower static sites whenever an author snaps a photo, Neogram employs **Federated Read Aggregation**:
     1. Each creator's host publishes a self-hosted `feed.json` containing their posts, captions, WebP image URLs, and likes.
-    2. Follower stations embed `<script src="/embed/friends.js"></script>` in their static `/friends/index.html`.
-    3. The widget dynamically fetches and entwines friends' public feeds in real-time, sorting them in reverse-chronological order.
+    2. Follower sites include `embed/friends.js` on their static `/friends/index.html`.
+    3. The widget calls Neogram (`GET /api/user/:id/friends-feed`), which fetches and merges friends' public feeds server-side.
     4. The authenticated workstation (`/friends`, `GET /api/friends`, and static follower builds) executes parallel WAN fetches (`server/services/federatedFriends.ts`) against friends' live `feed.json` endpoints. If a friend's feed is missing or 404 (e.g. wiped remotely or undeployed), that friend yields 0 posts. There is strictly **no database fallback** to resurrect dead posts or broken image links.
-    5. This eliminates the multi-site background deploy bottleneck, achieving constant O(1) publishing speed regardless of follower count.
+    5. Note: publishing still enqueues one `CascadeFollower` static rebuild per follower (see 4.34), so publishing cost is **not** O(1) in follower count yet.
 
 ### 4.23 Remote feed.json Single Source of Truth & Station Wipe / Reset Policy
 - **Authoritative Remote Feed (`feed.json`):**
@@ -503,7 +511,7 @@ CREATE TABLE post_likes (
   - Serves an authentic 90s cyber-identity profile page (`views/user.njk`) resolving any of three user identifier formats:
     1. **UUID:** `https://neogram.club/user/4587aa36-b626-4ebb-b6f1-1e9fbd11259f`
     2. **Handle / Callsign:** `https://neogram.club/user/wasson` or `https://neogram.club/user/@wasson`
-    3. **Immutable Node UIN:** `https://neogram.club/user/100102`
+    3. **UIN:** `https://neogram.club/user/100102`
 - **Clean Root Website Derivation:**
   - Extracts the root personal homepage on file using `new URL(siteUrl).origin`, cleanly stripping any configured subdirectories (`/neogram/`, `/photos/`).
 - **Profile Telemetry & Broadcast State:**
@@ -676,13 +684,15 @@ The following matrix documents all server routes, auth requirements, and functio
 | **Site Targets** | `GET` | `/api/sites/:id` | Bearer / Cookie | Retrieves single site configuration (or `default` primary site). |
 | **Site Targets** | `PUT` | `/api/sites/:id` | Bearer / Cookie | Updates site target credentials, deploy path, auto-deploy, custom CSS, or slug. |
 | **Site Targets** | `DELETE` | `/api/sites/:id` | Bearer / Cookie | Unmounts and cascades site, cleans static cache. Refuses deletion if it's the station's only site. |
-| **Site Targets** | `POST` | `/api/sites/:id/deploy` | Bearer / Cookie | Triggers isolated static build and direct deployment to the target host. |
+| **Site Targets** | `POST` | `/api/sites/:id/deploy` | Bearer / Cookie | Full build + publish of that site to its own provider (via `deployDispatcher`). 400 `needsSite` if the site has no key. Used by the Archive "Republish site" and Settings deploy buttons. |
+| **Site Targets** | `POST` | `/api/deploy/:provider` | Bearer / Cookie | Legacy alias; publishes the given (or default) site and refuses if `:provider` doesn't match the site's provider. |
 | **Site Targets** | `POST` | `/api/sites/:id/default` | Bearer / Cookie | Designates site target as the primary station default. |
 | **Site Targets** | `POST` | `/api/sites/:id/switch` | Bearer / Cookie | Switches active workstation session target (`neogram_active_site` cookie). |
 | **Posts & Media** | `POST` | `/api/posts` | Bearer / Cookie | 25MB Multer upload. Sharp processes WebP full (1200px) & thumb (400px). Accepts target `siteId`. Enqueues 11ty static build and triggers cascading follower rebuilds. |
-| **Posts & Media** | `PUT` | `/api/posts/:id` | Bearer / Cookie | Updates caption, mood, webring, location, and filter. Triggers 11ty rebuild and auto-deploy. |
-| **Posts & Media** | `DELETE` | `/api/posts/:id` | Bearer / Cookie | Purges post from PostgreSQL, deletes remote image on Neocities (`deploy_path` safe), triggers cascading follower rebuilds. |
-| **Posts & Media** | `POST` | `/api/build-static` | Bearer / Cookie | Manual trigger for 11ty compilation and live Neocities deployment via `buildQueue`. |
+| **Posts & Media** | `PUT` | `/api/posts/:id` | Bearer / Cookie | Updates caption, mood, webring, location, and filter. Republishes the site if it has credentials (`republishSiteInBackground`). |
+| **Posts & Media** | `DELETE` | `/api/posts/:id` | Bearer / Cookie | Removes the post from static JSON storage, deletes remote images (`deploy_path` safe), republishes the site, triggers follower rebuilds. |
+| **Posts & Media** | `POST` | `/api/build-static` | Bearer / Cookie | Legacy alias: publishes the requested (`siteId`) or default site to its own provider. Never reads legacy `users.deployment_credentials`. |
+| **PWA** | `POST` | `/share-target` | None | Fallback for the Web Share Target when the service worker isn't active: 303 to `/#upload`. |
 | **Comments & Likes** | `POST` | `/api/posts/:id/comments` | Cyber-Pass JWT | Stateless comment submission. Validates JWT, acquires file lock (`withFileLock`), appends to remote `<fileId>.comments.json`, pushes to host. Dispatches notifications to photo author and thread participants. |
 | **Comments & Likes** | `GET` | `/api/posts/:id/comments` | None (CORS: *) | Reads remote comment JSON ledger for given photo. |
 | **Comments & Likes** | `DELETE` | `/api/posts/:postId/comments/:commentId` | Post Owner | Purges comment from remote self-hosted JSON ledger and saves updated file. |
@@ -702,7 +712,7 @@ The following matrix documents all server routes, auth requirements, and functio
 | **Notifications** | `GET` | `/api/settings/notifications` | Bearer / Cookie | Returns user's notification preferences (all 8 event toggles + audio chime & desktop push booleans). |
 | **Notifications** | `PUT` | `/api/settings/notifications` | Bearer / Cookie | Updates user's notification preferences in PostgreSQL. |
 | **Settings & Profile** | `GET` | `/api/settings` | Bearer / Cookie | Returns station config: `handle`, `uin`, `siteUrl`, `deployPath`, `autoDeploy`, `hasApiKey`, `sitename`, `remoteViews`, `customCssUrl`. |
-| **Settings & Profile** | `PUT` | `/api/settings` | Bearer / Cookie | Updates site URL, deployment subfolder (`deploy_path`), Neocities API key (AES-256-GCM encrypted), auto-deploy, custom CSS URL. |
+| **Settings & Profile** | `PUT` | `/api/settings` | Bearer / Cookie | Updates **one site row** (`siteId`, else default): URL, provider, folder, API key (encrypted), auto-deploy, buildHtml, `customCssUrl`. Never writes the legacy `users.*` deployment columns. |
 | **Settings & Profile** | `POST` | `/api/settings/profile` | Bearer / Cookie | Updates handle and processes custom 128x128 WebP avatar via Sharp `.rotate().resize(128, 128)`. |
 | **Settings & Profile** | `GET` | `/api/settings/export-archive` | Bearer / Cookie | Data sovereignty export: packages posts, captions, comments, guestbook, followers, and counters into a JSON attachment. |
 | **Settings & Profile** | `POST`| `/api/settings/reset-station` | Bearer / Cookie | Wipes local post records and static build artifacts, resetting station to a clean slate. |
@@ -735,7 +745,8 @@ The following matrix documents all server routes, auth requirements, and functio
 - **Atomic Database Counter Buffer (`web_counters`):**
   - Hit counts are tracked in PostgreSQL via `web_counters` (keyed by `site_id`, `hits BIGINT`, `style VARCHAR`).
   - Strict O(1) storage invariant: each site has exactly one row regardless of traffic volume. Updates execute as in-place PostgreSQL HOT (Heap-Only Tuple) increments without page bloat.
-  - Serves dynamic SVG counters via `/counter/:identifier.svg` and `/counter/:identifier/:slug.svg` with strict no-cache headers in <15ms.
+  - Serves dynamic SVG counters via `/counter/:identifier.svg` and `/counter/:identifier/:slug.svg` with strict no-cache headers. Repeat views from one IP within a short window count once; `?preview=1` (used by the owner's dashboard preview) never counts.
+  - Owners can change the style or reset to 1, but cannot increment their own counter (`PUT /api/counter` has no increment action).
 - **Sovereign Static Host Backup (`data/counter.json`):**
   - To honor IndieWeb data sovereignty without subjecting visitors or static hosts to WAN read-modify-write latency and API rate limits, Neogram maintains a snapshot JSON file (`data/counter.json`) deployed alongside `data/guestbook.json` in the user's deploy directory (`<deploy_path>/data/counter.json`).
   - Snapshots are captured and deployed exclusively during intentional, low-frequency events:
@@ -747,6 +758,25 @@ The following matrix documents all server routes, auth requirements, and functio
     - No `data/counter.json` is generated or uploaded.
     - `visitorNumber` is strictly omitted from `data/guestbook.json` entries and set to `null` in the database mirror.
     - Both the guestbook template (`views/embeds/guestbook.njk`) and Workstation UI (`views/index.njk`) guard on `{% if entry.visitorNumber %}` / `if (entry.visitorNumber)`. If absent, null, or zero, the badge is suppressed entirely—ensuring unconfigured stations never render a placeholder or "Visitor #0".
+
+
+### 4.33 Copy & Tone Guidelines (all user-facing text)
+- **Retro voice belongs in decoration:** window title bars, taskbar, ticker, baud animation, badges, hero headings. Title bars use a short retro filename plus a plain description, e.g. `NOTIFY.CFG — Notifications`.
+- **Plain English for anything people act on or rely on:** buttons, form labels, errors, empty states, settings, sign-in, emails/SMS, legal pages, and `/docs` guides. Errors say what happened and what to do next.
+- **Vocabulary:** say *account* / *profile* (not station/node), *site* or *website* (not target/mounted target/host node), *post* / *photo* (not transmission/broadcast), *Friends* (not follow/buddies, except the NIM buddy list), *UIN* for the numeric ID, *chat* or *NIM*. Don't use "cyberspace" as a generic noun.
+- **Consistent labels:** sign-in buttons are "Send me a code" / "Sign in"; sign-up CTA is "Sign up free"; add-site is "Add a website" / "Connect your website". The Twilio A2P registration quotes the sign-in button text, so update it there if this button ever changes.
+- **Claims must be true:** no "0 MB", "never logged", "military-grade", "O(1)" or fake social proof unless the code guarantees it. Legal pages name the operator (Tim Wasson), contact `hello@neogram.club`, Illinois governing law; `/privacy` lists what is actually stored, so update it whenever storage behavior changes. The SMS non-disclosure clause in `/privacy` must stay word-for-word (carrier requirement).
+- `/admin` is operator-only and may keep the full retro jargon.
+
+### 4.34 Known Limits & Deferred Performance Work
+Fine at launch scale; revisit before growth. Don't claim these are solved.
+- **Post lookup is O(all posts):** `getPostById` reads every `posts.json` and hydrates via full-table scans, under one global `postsMutex` (not per-site). Fix: postId→siteId index + per-site mutex.
+- **Directory is O(users²)** (`fetchCategorizedDirectory` calls `getPostsForUser` per user) and runs on every logged-in `/` load and on public `/directory` with no cache.
+- **Friends' feeds are fetched live** on `/`, `/friends`, `/api/friends` and the public `/api/user/:id/friends-feed`, with no server cache or concurrency cap, and with a `?t=` cache-buster. Add a per-feed TTL cache, a concurrency cap and a deadline (`safeFetch` now has a wall-clock deadline).
+- **Follower cascade:** each publish/delete enqueues one `CascadeFollower` rebuild per follower; `friend_post` notifications fan out in parallel against a 10-connection pool.
+- **Single build queue (concurrency 1)** runs host uploads inline; `POST /api/posts` waits for the upload. Splitting render from per-site uploads would cut latency.
+- **Uploads are buffered in memory** (multer memoryStorage, 5 × 25 MB); full deploys re-upload every file (no hash diffing); GitHub publishes one blob per file.
+- **Hot endpoints:** counter SVG does a write (or no-op upsert) per view and the handle lookup isn't indexed on `LOWER(handle)`; no index on `follows(following_id)` or `web_counters(user_id)`; `notifications` is never pruned; `pager.js` polls status every 30 s without pausing on hidden tabs.
 
 ---
 
@@ -783,7 +813,7 @@ When building the production backend and views, extract and reuse the following 
    - Dynamic SVG web hit counters (`/counter/:handle.svg` with green phosphor, red nixie, mechanical odometer, and blue VFD styles).
    - Public JSON feeds (`/api/users/:handle/feed.json` and `/feed/:handle.json`) compliant with JSONFeed 1.1 for headless static sites.
    - Public guestbook ledger (`/api/guestbook/:handle`) with standalone iframe embed (`/embed/guestbook/:handle`) and moderation dashboard.
-   - Standalone photo feed embed card (`/embed/feed/:handle`) and creator cyberspace network with follow/unfollow toggle (`/api/network/users`).
+   - Standalone photo feed embed card (`/embed/feed/:handle`). (The old `/api/network/users` route was removed pre-launch.)
 8. **[x] Step 8 (Milestone 5A): In-Site AIM/ICQ Retro Chat Engine**
    - WebSockets router at `/ws/chat` for in-memory live presence tracking and real-time message routing.
    - Ephemeral store-and-forward queue (`ephemeral_chat_queue`) for offline delivery with immediate hard-deletion upon transmission.
@@ -921,7 +951,7 @@ npm run test:security
 # 2. Pure Unit Tests (safeFetch IP/URL tables, mock safeGet, crypto v2/rotation, Mutex, atomic writes)
 npm run test:unit
 
-# 3. Local / Self-Contained Integration Smoke Suite (380+ assertions in sandbox)
+# 3. Local / Self-Contained Integration Smoke Suite (~400 assertions in sandbox)
 npm test
 
 # 4. Live Static-Site Bot & Remote Propagation Monitor (Neocities & Nekoweb delta rebuilds & JSON sync)
@@ -943,6 +973,9 @@ npm run test:load
 npm run test:all
 ```
 
+> [!NOTE]
+> **Hermetic sandbox helpers:** the sandbox blocks all non-loopback network access, except that requests to `neocities.org/api/*` and `nekoweb.org/api/*` carrying `FAKE_HOST_API_KEY` (exported from `server/tests/helpers/sandbox.ts`) get canned success responses, so tests can connect a site and publish. Create test sites with that key; publishing now requires one. pg-mem corrupts BYTEA parameters, so `server/db/index.ts` stores Buffers as tagged base64 **only in memory mode**; credentials round-trip correctly in tests. `test:fleet`, `test:load`, `test:live-hosts`, `test:bot-static` hit production via `qa-sessions.json`; the fleet seeder only posts to QA accounts with a working connected site.
+
 > [!IMPORTANT]
 > **Hermetic Sandbox Invariant (`server/tests/helpers/sandbox.ts`):** Automated tests must **never** run against or modify the real PostgreSQL database or live stations in `dist/static-galleries`. The hermetic sandbox boots an ephemeral Express instance running on an in-memory database (`pg-mem`) in an isolated temporary directory. Tests should always run with `DATABASE_URL=""` to guarantee isolation.
 - **Live Static-Site Bot Monitoring (`test:bot-static`):** Automated bot personas publish test photos to mounted live Neocities/Nekoweb targets, poll remote URLs with cache-busting until live (`feed.json`, `index.html`, `photos/<id>/index.html`, full/thumb WebP images, `.comments.json`), have visitor bots comment and like, and verify delta synchronization.
@@ -952,7 +985,8 @@ npm run test:all
 - **Post-Test Cleanup on Production:** After running load or E2E tests on `https://neogram.club`, click **`[🧹 Purge QA Test Posts]`** in `https://neogram.club/admin` (or `POST /api/admin/qa-fleet/purge-posts`). This deletes all test posts, comments, and guestbook entries created by `@qa.neogram.club` users while preserving the QA accounts, mounted sites, and encrypted API keys.
 
 ### 7.5 Database Migrations & Seeding
-Migrations run automatically on server start via `server/db/migrate.ts`.
+Migrations run automatically on server start (`runMigrations` in `server/db/index.ts`); every migration must be idempotent and must also run on pg-mem (no correlated subqueries; see 022).
+Demo seed data (`seedInitialPostsIfEmpty`, `db-snapshot.json` import) runs **only** for the in-memory dev database, never in production. To put sample content on production, use the QA fleet seeder (`npm run test:fleet` from a laptop with `qa-sessions.json`), not the boot seed.
 Database connection resolves via `DATABASE_URL` in `.env`:
 ```bash
 # Default development database:
