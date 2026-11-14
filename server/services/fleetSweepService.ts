@@ -72,6 +72,7 @@ export async function initiateFleetSweep(options: SweepOptions): Promise<{ total
     { relativePath: 'embed/embed.js', absolutePath: path.join(process.cwd(), 'embed/embed.js') },
     { relativePath: 'embed.js', absolutePath: path.join(process.cwd(), 'embed/embed.js') },
     { relativePath: 'embed/pager.js', absolutePath: path.join(process.cwd(), 'embed/pager.js') },
+    { relativePath: 'embed/friends.js', absolutePath: path.join(process.cwd(), 'embed/friends.js') },
     { relativePath: 'pager.js', absolutePath: path.join(process.cwd(), 'embed/pager.js') },
     { relativePath: 'embed/neogram-embed.css', absolutePath: path.join(process.cwd(), 'embed/neogram-embed.css') },
     { relativePath: 'neogram-embed.css', absolutePath: path.join(process.cwd(), 'embed/neogram-embed.css') },
@@ -168,9 +169,3 @@ export async function cancelActiveFleetSweep(
   };
 }
 
-/**
- * Retrieves the current live status and telemetry of fleet sweep operations.
- */
-export function getFleetSweepStatus(): SweepTelemetry {
-  return buildQueue.getSweepTelemetry();
-}

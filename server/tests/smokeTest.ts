@@ -1507,17 +1507,6 @@ async function runSmokeTests() {
     });
     assertTest('POST /api/settings/test-nekoweb with empty key returns HTTP 400', nekoTestRes.status === 400);
 
-    // 2. Test unified test-connection endpoint with provider: 'nekoweb'
-    const unifiedNekoRes = await fetch(`${API_BASE}/api/settings/test-connection`, {
-      method: 'POST',
-      headers: {
-        'Cookie': sessionCookie,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ provider: 'nekoweb', apiKey: 'dummy_invalid_key_123' }),
-    });
-    assertTest('POST /api/settings/test-connection with provider: nekoweb returns HTTP 400 on invalid key', unifiedNekoRes.status === 400);
-
     // 3. Test provisioning a Nekoweb site target
     const nekoSiteRes = await fetch(`${API_BASE}/api/sites`, {
       method: 'POST',

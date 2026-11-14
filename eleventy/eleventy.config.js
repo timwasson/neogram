@@ -6,7 +6,8 @@ export default function (eleventyConfig) {
   // Passthrough static assets so the generated static site is completely self-contained
   eleventyConfig.addPassthroughCopy({ 'public/css': 'css' });
   eleventyConfig.addPassthroughCopy({ 'public/icons': 'icons' });
-  eleventyConfig.addPassthroughCopy({ 'public/js': 'js' });
+  // Galleries only use the audio helper; don't publish the workstation's own scripts to member sites.
+  eleventyConfig.addPassthroughCopy({ 'public/js/retroAudio.js': 'js/retroAudio.js' });
   eleventyConfig.addPassthroughCopy({ 'public/favicon.ico': 'favicon.ico' });
   eleventyConfig.addPassthroughCopy({ 'public/favicon-32x32.png': 'favicon-32x32.png' });
   eleventyConfig.addPassthroughCopy({ 'public/favicon-16x16.png': 'favicon-16x16.png' });

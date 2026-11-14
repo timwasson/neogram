@@ -32,3 +32,6 @@ dist/static-galleries/
 
 neogram-aim-extension.zip
 _site/
+
+# Generated per build by the static builder (never commit member data)
+eleventy/src/_data/*.json

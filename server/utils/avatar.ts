@@ -53,16 +53,6 @@ export function getDefaultAvatarPath(seed?: string | number | null): string {
 }
 
 /**
- * Returns true if the given path is one of the built-in default avatar SVGs.
- */
-export function isDefaultAvatarPath(avatarPath?: string | null): boolean {
-  if (!avatarPath || typeof avatarPath !== 'string') return true;
-  const clean = avatarPath.trim();
-  if (!clean) return true;
-  return clean.includes('/icons/default-avatar');
-}
-
-/**
  * Returns true strictly if `avatarPath` is a remote static host URL (`http://` or `https://`)
  * and does NOT point to local Neogram `/uploads/avatars/` storage or a default SVG icon.
  */

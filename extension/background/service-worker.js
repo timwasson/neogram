@@ -3,25 +3,43 @@
  * Handles badge counters, notifications, and storage synchronization.
  */
 
-// Initialize on extension installation
+// MV3 workers can't hold a socket open, so the toolbar badge is refreshed by polling the
+// server's unread-notification count on an alarm (and whenever the browser starts).
+async function refreshUnreadBadge() {
+  try {
+    const data = await chrome.storage.local.get(['neogram_token', 'neogram_server_url']);
+    if (!data.neogram_token) {
+      await chrome.action.setBadgeText({ text: '' });
+      return;
+    }
+    const serverUrl = (data.neogram_server_url || 'https://neogram.club').replace(/\/+$/, '');
+    const res = await fetch(serverUrl + '/api/notifications', {
+      headers: { Authorization: 'Bearer ' + data.neogram_token },
+    });
+    if (!res.ok) return;
+    const body = await res.json();
+    const count = Number(body && body.unreadCount) || 0;
+    await chrome.storage.local.set({ neogram_unread_count: count });
+    await chrome.action.setBadgeBackgroundColor({ color: '#ff3300' });
+    await chrome.action.setBadgeText({ text: count > 0 ? (count > 99 ? '99+' : String(count)) : '' });
+  } catch (err) {
+    console.warn('[:> AIM EXTENSION] Badge refresh failed:', err && err.message);
+  }
+}
+
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[:> AIM EXTENSION] Service Worker installed.');
-  await chrome.action.setBadgeBackgroundColor({ color: '#000080' });
   await chrome.action.setBadgeText({ text: '' });
-  
-  // Set up a 15-minute alarm for periodic status checks
-  chrome.alarms.create('neogram_pulse', { periodInMinutes: 15 });
+  chrome.alarms.create('neogram_pulse', { periodInMinutes: 5 });
+  refreshUnreadBadge();
 });
 
-// Periodic alarm handler
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === 'neogram_pulse') {
-    const data = await chrome.storage.local.get(['neogram_token', 'neogram_unread_count']);
-    if (data.neogram_unread_count && data.neogram_unread_count > 0) {
-      await chrome.action.setBadgeText({ text: String(data.neogram_unread_count) });
-      await chrome.action.setBadgeBackgroundColor({ color: '#ff3300' });
-    }
-  }
+chrome.runtime.onStartup.addListener(() => {
+  chrome.alarms.create('neogram_pulse', { periodInMinutes: 5 });
+  refreshUnreadBadge();
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'neogram_pulse') refreshUnreadBadge();
 });
 
 // Scoped Cyber-Pass cache: origin -> { token, handle, uin, avatar, expiresAt }

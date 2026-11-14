@@ -29,3 +29,6 @@ neogram-aim-extension.zip
 public/uploads/images/*
 public/uploads/thumbs/*
 public/uploads/avatars/*
+
+# Generated per build; may contain member data from local runs
+eleventy/src/_data/*.json

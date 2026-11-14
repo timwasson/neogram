@@ -225,7 +225,9 @@ export async function ensureStaticAssets(targetOutputDir: string): Promise<void>
 
   await copyDir(path.join(process.cwd(), 'public/css'), path.join(targetOutputDir, 'css'));
   await copyDir(path.join(process.cwd(), 'public/icons'), path.join(targetOutputDir, 'icons'));
-  await copyDir(path.join(process.cwd(), 'public/js'), path.join(targetOutputDir, 'js'));
+  // Galleries only use the audio helper; don't publish the workstation's own scripts to member sites.
+  await fs.mkdir(path.join(targetOutputDir, 'js'), { recursive: true });
+  await fs.copyFile(path.join(process.cwd(), 'public/js/retroAudio.js'), path.join(targetOutputDir, 'js', 'retroAudio.js')).catch(() => {});
   await copyDir(path.join(process.cwd(), 'embed'), path.join(targetOutputDir, 'embed'));
 
   // Root embed shortcuts and root favicons

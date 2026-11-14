@@ -743,53 +743,6 @@ embedsRouter.get(['/api/users/:identifier/feed.json', '/feed/:identifier.json'],
 // ============================================================================
 
 /**
- * GET /api/network/users
- * Lists creators on the Neogram network with follow status
- */
-embedsRouter.get('/api/network/users', async (req: Request, res: Response) => {
-  try {
-    const currentUser = await getAuthUser(req, true);
-    const currentUserId = currentUser ? currentUser.id : null;
-
-    const usersRes = await query(`
-      SELECT 
-        u.id,
-        COALESCE(u.handle, split_part(u.email, '@', 1)) as handle,
-        u.site_url as "siteUrl",
-        u.created_at as "createdAt",
-        0 as "postCount",
-        (SELECT COUNT(*) FROM follows f WHERE f.following_id = u.id) as "followersCount",
-        CASE 
-          WHEN $1::UUID IS NOT NULL AND EXISTS (
-            SELECT 1 FROM follows f WHERE f.follower_id = $1::UUID AND f.following_id = u.id
-          ) THEN true 
-          ELSE false 
-        END as "isFollowing"
-      FROM users u
-      ORDER BY u.created_at ASC
-    `, [currentUserId]);
-
-    const users = await Promise.all(usersRes.rows.map(async (u) => ({
-      id: u.id,
-      handle: u.handle,
-      siteUrl: u.siteUrl,
-      postCount: await getPostCountForUser(u.id),
-      followersCount: parseInt(u.followersCount, 10),
-      isFollowing: !!u.isFollowing,
-      isSelf: currentUserId === u.id,
-    })));
-
-    res.json({
-      ok: true,
-      users,
-    });
-  } catch (err: any) {
-    console.error('[:> EMBED ROUTE ERROR]', err);
-    res.status(500).json({ ok: false, error: 'Internal carrier error. Please try again.' });
-  }
-});
-
-/**
  * Helper to trigger background static rebuild & deploy for follower
  */
 async function syncFollowerStaticSite(userId: string) {

@@ -3993,7 +3993,6 @@
   async function loadEmbedsStudio() {
     loadCounterSettings();
     loadGuestbookEntries();
-    loadNetworkUsers();
   }
 
   async function loadCounterSettings() {
@@ -4421,68 +4420,6 @@
       console.error('Failed to update guestbook anon settings:', err);
     }
   };
-
-  async function loadNetworkUsers() {
-    var container = document.getElementById('networkUsersList');
-    if (!container) return;
-
-    try {
-      var res = await fetch('/api/network/users');
-      var data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to fetch');
-
-      if (data.users.length === 0) {
-        container.innerHTML = '<div class="text-center py-4 text-xs text-muted">No other creators detected on BBS.</div>';
-        return;
-      }
-
-      var html = '';
-      data.users.forEach(function(u) {
-        var actionBtn = '';
-        if (u.isSelf) {
-          actionBtn = '<span class="text-xs text-muted font-bold">[YOU]</span>';
-        } else if (u.isFollowing) {
-          actionBtn = '<button type="button" data-handle="' + escapeHtml(u.handle) + '" onclick="toggleFollowUser(this.dataset.handle, true)" class="pixel-btn pixel-btn--yellow text-xs py-0.5 px-2">✓ Friends</button>';
-        } else {
-          actionBtn = '<button type="button" data-handle="' + escapeHtml(u.handle) + '" onclick="toggleFollowUser(this.dataset.handle, false)" class="pixel-btn text-xs py-0.5 px-2">+ Add Friend</button>';
-        }
-
-        var safeSite = sanitizeUrl(u.siteUrl);
-        var site = safeSite ? '<a href="' + escapeHtml(safeSite) + '" target="_blank" rel="noopener noreferrer" class="text-mac underline text-xs">Site ↗</a>' : '';
-
-        html += '<div class="retro-card p-2 flex items-center justify-between gap-2 border border-main text-xs">' +
-          '<div class="flex items-center gap-2">' +
-            '<div>' +
-              '<div class="font-bold text-prompt">@' + escapeHtml(u.handle) + '</div>' +
-              '<div class="text-muted text-xs">' + Number(u.postCount || 0) + ' photos • ' + Number(u.followersCount || 0) + ' followers ' + (site ? '• ' + site : '') + '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div>' + actionBtn + '</div>' +
-        '</div>';
-      });
-
-      container.innerHTML = html;
-    } catch (e) {
-      container.innerHTML = '<div class="text-center py-4 text-xs text-crimson">Failed to load network: ' + e.message + '</div>';
-    }
-  }
-
-  async function toggleFollowUser(handle, isFollowing) {
-    if (window.retroAudio) window.retroAudio.playClick();
-    try {
-      var method = isFollowing ? 'DELETE' : 'POST';
-      var res = await fetch('/api/users/' + handle + '/follow', { method: method });
-      var data = await res.json();
-      if (data.ok) {
-        if (window.retroAudio) window.retroAudio.playSuccess();
-        loadNetworkUsers();
-      } else {
-        alert(data.error || 'Failed to update follow state');
-      }
-    } catch (e) {
-      alert(e.message);
-    }
-  }
 
   function appendTelemetryLog(text, isError, linkUrl) {
     var consoleEl = document.getElementById('telemetryConsole');
