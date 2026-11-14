@@ -4,6 +4,14 @@
 > The migration from the initial Google AI Studio React prototype to the target production system is **100% complete**. Neogram is an API-first, decoupled monolith built with Node.js (Express), Nunjucks server-rendered views, 11ty v3 static site generation, PostgreSQL, Sharp image processing, embeddable vanilla JS widgets, and a Manifest V3 browser extension.
 > **All styling is strictly Pure Vanilla CSS / Sass with BEM classes. Tailwind CSS is strictly prohibited.**
 
+> **Pre-launch fixes (Nov 2026) that change behavior described below:**
+> - Photo uploads require a connected, credentialed site (no server-side "sandbox" uploads).
+> - Each site deploys only to its own provider via `server/services/deployDispatcher.ts`; the legacy `users.deployment_*` columns are no longer written.
+> - Builders snapshot `posts.json` and only write JSON outputs if it is unchanged (`writeBuildJsonIfUnchanged` in `postStorage.ts`), so saves during a build are not lost.
+> - Static-host API calls go through `server/utils/hostFetch.ts` (90s deadline).
+> - `eleventy/src/_data/*.json` are generated per build and are not tracked in git.
+> - Tests: the hermetic sandbox fakes Neocities/Nekoweb APIs for requests carrying `FAKE_HOST_API_KEY`.
+
 ---
 
 ## 1. Project Overview & Vision
@@ -20,7 +28,7 @@ It provides:
 7. **Interactive Cyberspace Documentation Center (`/docs`) & Public Marketing Experience (`/`, `/login`):** Human-centered personal web nostalgia storytelling honoring GeoCities, MySpace, and AIM. Features a Windows 95 / System 7 hero window, 3-column nostalgia pillars, an interactive CRT/dither shader lab, live glowing hit counters, the Neocities Safe-Sync Guarantee, an expandable "Under the Hood for Nerds" architecture/crypto accordion on `/docs`, and friendly pixel-art welcoming on `/login`.
 8. **Configurable Cyberspace Notification Engine & In-App Alert Center (`[:> NOTIFY_CENTER.SYS]`):** Real-time WebSocket transmission alerts (`/ws/chat`), 8-bit synthesized audio chimes, native desktop/PWA service worker pushes, and a user dashboard configuration console (`[:> NOTIFICATION_DISPATCHER.CFG]`) to toggle delivery across 8 event types.
 9. **Headless Self-Hosted API & Static JSON Feeds:** Opt-out capability allowing users to disable 11ty static HTML generation (`users.build_html`) and compile/push strictly `feed.json`, `posts.json`, per-photo comment JSONs, and optimized media to their personal static host (Neocities or Nekoweb), enabling custom bespoke frontends in Vanilla JavaScript, React, or Vue.
-10. **Cold-Start Sandbox Publishing Mode:** Instant photo snaps and publication directly to station profiles (`/user/:handle`) without requiring an external Neocities account or API key first, giving creators immediate gratification and zero-friction onboarding.
+10. **Zero-Site Membership (No Uploads Without a Site):** Members without a connected, credentialed site can chat, add friends, like, comment and sign guestbooks, but **cannot upload photos**. `POST /api/posts` refuses uploads unless the target site has an API key/token, a site URL and a real provider, so photos are never stored on the Neogram server. `ensureDefaultSite()` never invents a `https://<handle>.neocities.org` URL (migration 022 removed earlier placeholders).
 11. **Mobile Cyber-Pass, Smart Handoff & Cross-Domain SSO:** Cross-domain authentication for static sites supporting desktop pop-up postMessage, mobile return URL redirects, and PWA-to-native-browser **Smart Handoff**.
     - **Smart Handoff Bridge (`/auth/handoff` & `POST /api/auth/handoff-ticket`):** Solves the iOS WebKit sandbox isolation between installed standalone PWAs and Mobile Safari. When an authenticated PWA user navigates to an external station (Neocities, Nekoweb, GitHub Pages), the PWA requests a short-lived (120s), single-use handoff ticket (`scope: 'handoff'`) and commands WebKit (`_system`) to launch Safari through `https://neogram.club/auth/handoff?ticket=...&target=...`. The server burns the ticket against replay attacks (`jti` ledger), sets the 7-day persistent `neogram_session` cookie inside Safari's cookie jar, issues a scoped 1-hour Cyber-Pass token, and immediately 302-redirects Safari to `target#neogram_pass=...`. The user is instantly logged into the destination static site, and Safari is permanently authenticated to `neogram.club` for seamless future surfing across all cyberspace nodes.
     - **Zero-Click Hash Ingestion:** Standard static templates (`index.njk`, `friends.njk`, `photo.njk`, `guestbook.njk`, `embed/pager.js`) ingest `#neogram_pass=` from the URL hash on page load, persist the session to `localStorage`, and cleanly strip the hash parameter via `history.replaceState()`.
@@ -44,7 +52,7 @@ It provides:
 | **Static Site Generator** | **Eleventy (11ty v3)** | Compiles multi-tenant static photo galleries (`dist/static-galleries/<siteId>`) via FIFO BuildQueue |
 | **Server Templating** | **Nunjucks** | Fast, secure server-rendered dashboard & embed markup templates |
 | **Styling & Design System** | **Dart Sass + Vanilla CSS (NO TAILWIND)** | Modular SCSS (`src/styles/`), CSS variables, BEM components (`pixel-box`, `pixel-btn`, `retro-alert`, `baud-progress-bar`), CRT phosphor glow, and utility classes. **Tailwind CSS is strictly prohibited.** |
-| **Static Deploy Pipeline** | **Neocities API / Nekoweb API / GitHub API / SFTP** | Automated pushes of generated 11ty HTML & media to the user's static host |
+| **Static Deploy Pipeline** | **Neocities API / Nekoweb API / GitHub API** (SFTP not implemented yet) | Automated pushes of generated 11ty HTML & media to the user's static host |
 | **Client Embeds** | **Vanilla JS + BEM Hooks** | Zero-dependency async embed scripts with strict BEM CSS hooks for user customization |
 | **Audio Synthesis** | **Web Audio API (`retroAudio`)** | Synthesized 8-bit beeps, shutter sounds, dial-up handshakes, click SFX |
 | **Chat Extension** | **WebExtension (Manifest V3)** | AIM/ICQ-style popup/sidebar chat client |
@@ -269,13 +277,13 @@ CREATE TABLE post_likes (
 - `.pager-led`: Status indicator dot (`--online` green, `--away` amber, `--offline` grey)
 
 ### 4.2 Credential Security & Dual-Channel Authentication
-- **Encryption at Rest (Crypto v2):** Static hosting credentials (GitHub PATs, Neocities API keys, SFTP passwords) must be **encrypted at rest** using AES-256-GCM (`users.deployment_credentials`) with the `NGv2` envelope format: `[4-byte "NGv2"][12-byte IV][16-byte AuthTag][Ciphertext]`. Keys are derived via `scrypt(secret, domain_salt)`. Legacy v1 records (`[12-byte IV][16-byte AuthTag][Ciphertext]` derived via `sha256`) remain fully readable and are transparently upgraded to v2 on next write. `ENCRYPTION_SECRET_PREVIOUS` provides zero-downtime key rotation windows. Never return sensitive credentials in API responses.
+- **Encryption at Rest (Crypto v2):** Static hosting credentials (GitHub PATs, Neocities and Nekoweb API keys) must be **encrypted at rest** using AES-256-GCM (`users.deployment_credentials`) with the `NGv2` envelope format: `[4-byte "NGv2"][12-byte IV][16-byte AuthTag][Ciphertext]`. Keys are derived via `scrypt(secret, domain_salt)`. Legacy v1 records (`[12-byte IV][16-byte AuthTag][Ciphertext]` derived via `sha256`) remain fully readable and are transparently upgraded to v2 on next write. `ENCRYPTION_SECRET_PREVIOUS` provides zero-downtime key rotation windows. Never return sensitive credentials in API responses.
 - **Dual-Channel Authentication Standard (`extractToken(req)`):**
   - Web workstation dashboard uses HTTP-only, SameSite cookies (`neogram_session`).
   - Browser extensions (`chrome-extension://`) and headless API clients use `Authorization: Bearer <token>` headers.
   - Real-time WebSockets (`/ws/chat`) inspect cookies first, falling back to the `?token=<jwt>` URL query parameter for extension background scripts.
   - Standard HTTP endpoints reject `?token=` query parameters (preventing leakage via logs, history, and Referer headers).
-  - Authentication endpoints (`/api/auth/verify-otp`, `/api/auth/magic-login`) return both `Set-Cookie` and JSON responses `{ success: true, token, user }` to support programmatic consumers.
+  - The authentication endpoint (`/api/auth/verify-otp`) returns both `Set-Cookie` and JSON responses `{ success: true, token, user }` to support programmatic consumers.
 - **Stateless HS256-Pinned JWT Sessions:** JWTs are strictly signed and verified using algorithm `HS256` (pinned explicitly; `alg: none` or foreign signatures are rejected). 7-day expiration for workstation dashboard sessions.
 - **Scoped Cyber-Pass Tokens:** `signPassToken` creates short-lived (1-hour) tokens scoped with `{ scope: 'pass' }`. Verification via `verifySessionToken(token, allowPass = false)` rejects `pass` tokens on all administrative and mutating account settings routes; pass tokens are strictly permitted on public social interactions (like, comment, guestbook signature, pager DM).
 - **Single-Use Smart Handoff Tokens:** `signHandoffToken` mints short-lived (120-second) JWTs scoped with `{ scope: 'handoff', jti, target }`. `verifyHandoffToken` tracks and burns consumed `jti` nonces in an in-memory TTL map, guaranteeing single-use replay protection while safely transferring sessions from PWA standalone containers into native mobile Safari/Chrome.
@@ -305,7 +313,7 @@ CREATE TABLE post_likes (
    - **How to Perform a Flood-Safe QA Fleet Rebuild:**
      - **Admin UI Console:** Go to `https://neogram.club/admin`, navigate to `[:> FLEET_PROPAGATION_TERMINAL.SYS // EMERGENCY_SWEEP]`, select **Target:** `[•] QA Fleet Only (@qa.neogram.club)` and **Mode:** `[•] Full 11ty Rebuild`, then click **Initiate Fleet Sweep** and type `SWEEP`. The job worker will process each site with an enforced 3,500ms baud delay.
      - **CLI Terminal Command:** Run `npx tsx scripts/rebuild-qa-fleet.ts --delay=3500` to execute rate-paced sequential rebuilds across all personas in `qa-sessions.json`.
-   - **Unassigned Posts Auto-Adoption:** When compiling a user's default static site, `executeStaticBuild` automatically discovers any unassigned posts in user fallback storage (`dist/static-galleries/<userId>/posts.json` from initial seeds or cold-start sandbox snaps), attaches them to the site target, compiles their detail pages, and synchronizes them live.
+   - **Unassigned Posts Auto-Adoption:** When compiling a user's default static site, `executeStaticBuild` automatically discovers any unassigned posts in user fallback storage (`dist/static-galleries/<userId>/posts.json` from legacy seeds), attaches them to the site target, compiles their detail pages, and synchronizes them live.
 
 
 ### 4.4 Styling Architecture: Pure Custom Utilities & BEM (Strictly NO Tailwind)
@@ -472,14 +480,14 @@ CREATE TABLE post_likes (
 - **Handling Remote FTP Deletion / Missing Feeds:**
   - If a creator connects via FTP/file manager to their personal Neocities/Nekoweb site and deletes their static files, their content is truly deleted. Neogram cannot—and should not—attempt to rebuild or resurrect that data from central records.
   - When Neogram inspects the station (`server/services/stationSync.ts` via `checkAndSyncStationFeed`) and encounters an HTTP 404 on `feed.json` for a previously deployed station, it recognizes the remote site was wiped.
-  - Neogram purges any local post records (`DELETE FROM posts WHERE user_id = $1`), clears the local static cache in `dist/static-galleries/<userId>`, resets `last_deployed_at = NULL`, and resets the station back to a clean slate:
+  - Neogram clears the local static cache (post JSON lives there; the `posts` table was dropped in migration 015) in `dist/static-galleries/<userId>`, resets `last_deployed_at = NULL`, and resets the station back to a clean slate:
     `[:> STATION PURGED // 0 TRANSMISSIONS RECORDED. READY FOR TRANSMISSION_01]`
 - **Self-Serve Station Reset:**
   - Creators can manually wipe their station's post history and start from scratch at any time via `POST /api/settings/reset-station`.
 - **Neogram Cyber-Pass Handshake (`/auth/connect`):**
   - Cross-domain static photo pages require a verified Neogram identity to prevent anonymous bot spam.
-  - Clicking `[⚡ Connect Cyber-Pass]` triggers a lightweight 1-click popup handshake with `neogram.net/auth/connect`, transmitting `{ token, handle, uin }` back via `window.postMessage` and caching to the site's `localStorage.getItem('neogram_pass')`.
-  - Token stays valid for 90 days across all photos and guestbooks under that creator's origin without re-prompting.
+  - Clicking `[⚡ Connect Cyber-Pass]` triggers a lightweight 1-click popup handshake with `https://neogram.club/auth/connect`, transmitting `{ token, handle, uin }` back via `window.postMessage` and caching to the site's `localStorage.getItem('neogram_pass')`.
+  - The scoped pass token is valid for 1 hour (social actions only), after which the visitor reconnects.
 - **WebExtension Auto-Authentication Bridge:**
   - The Neogram WebExtension includes a content script (`extension/content/auth-bridge.js`) matching `*.neocities.org` and `*.nekoweb.org`.
   - When a user with the extension installed loads any Neogram static gallery, the content script automatically broadcasts their active session pass to the page with 0 clicks.
@@ -661,8 +669,7 @@ The following matrix documents all server routes, auth requirements, and functio
 | **Workstation UI** | `GET` | `/offline.html` | None (Public) | Retro 90s offline fallback shell with 300-baud modem telemetry. |
 | **Authentication** | `POST` | `/api/auth/request-otp` | IP Rate Limited | Generates 6-digit numeric OTP; dispatches via Resend (email), Twilio (SMS), or console fallback (dev). Max 4 req / 15 min. |
 | **Authentication** | `POST` | `/api/auth/verify-otp` | IP Rate Limited | Verifies OTP, auto-provisions station UIN if new, sets `neogram_session` cookie, and returns `{ success, token, user }`. |
-| **Authentication** | `GET` | `/api/auth/magic-login` | Query `?token=` | One-click magic URL authentication link. Sets cookie and redirects to `/`. |
-| **Authentication** | `GET` | `/api/auth/logout` | None | Clears `neogram_session` cookie and redirects to `/`. |
+| **Authentication** | `POST` / `GET` | `/api/auth/logout` (JSON), `/logout` (redirect) | None | Clears `neogram_session` cookie. |
 | **Authentication** | `POST` | `/api/auth/handoff-ticket` | Bearer / Cookie | Mints single-use 120s handoff ticket for PWA-to-native-browser session transfer (`{ target }`). |
 | **Site Targets** | `GET` | `/api/sites` | Bearer / Cookie | Retrieves all mounted static site targets for authenticated creator. |
 | **Site Targets** | `POST` | `/api/sites` | Bearer / Cookie | Provisions a new static site target (`name`, `slug`, `siteUrl`, `deploymentType`, `deployPath`, `apiKey`, `autoDeploy`, `buildHtml`, `customCssUrl`). |
@@ -696,7 +703,7 @@ The following matrix documents all server routes, auth requirements, and functio
 | **Notifications** | `PUT` | `/api/settings/notifications` | Bearer / Cookie | Updates user's notification preferences in PostgreSQL. |
 | **Settings & Profile** | `GET` | `/api/settings` | Bearer / Cookie | Returns station config: `handle`, `uin`, `siteUrl`, `deployPath`, `autoDeploy`, `hasApiKey`, `sitename`, `remoteViews`, `customCssUrl`. |
 | **Settings & Profile** | `PUT` | `/api/settings` | Bearer / Cookie | Updates site URL, deployment subfolder (`deploy_path`), Neocities API key (AES-256-GCM encrypted), auto-deploy, custom CSS URL. |
-| **Settings & Profile** | `PUT` | `/api/settings/profile` | Bearer / Cookie | Updates handle and processes custom 128x128 WebP avatar via Sharp `.rotate().resize(128, 128)`. |
+| **Settings & Profile** | `POST` | `/api/settings/profile` | Bearer / Cookie | Updates handle and processes custom 128x128 WebP avatar via Sharp `.rotate().resize(128, 128)`. |
 | **Settings & Profile** | `GET` | `/api/settings/export-archive` | Bearer / Cookie | Data sovereignty export: packages posts, captions, comments, guestbook, followers, and counters into a JSON attachment. |
 | **Settings & Profile** | `POST`| `/api/settings/reset-station` | Bearer / Cookie | Wipes local post records and static build artifacts, resetting station to a clean slate. |
 | **Settings & Profile** | `DELETE`| `/api/settings/account` | Bearer / Cookie | GDPR account deletion: wipes PostgreSQL records, removes static cache, and clears session cookie. |
@@ -721,7 +728,7 @@ The following matrix documents all server routes, auth requirements, and functio
 - **Federated Ownership Invariant:** Remote `feed.json` files on personal static sites are unauthenticated external input. Hydration and aggregation logic in `federatedFriends.ts` strictly ignores any `userId` or `siteId` claimed inside remote feeds. **The authenticated local friend record alone dictates identity and station ownership.**
 - **Media Upload Pipeline:** Upload filters enforce a strict MIME whitelist (`image/jpeg`, `image/png`, `image/webp`, `image/gif`). SVG uploads are strictly prohibited (preventing stored XSS via embedded SVG scripts). Image processing enforces a 50-megapixel pixel cap, 25MB file limit, and bounded sharp decoding concurrency (max 2 parallel operations).
 - **Post Store Concurrency:** All read-modify-write operations on static JSON data (`posts.json`, `feed.json`, comments) must serialize through the per-station `Mutex` and write via `writeFileAtomic` to prevent data corruption or partial reads under load.
-- **Like De-Duplication & Debounced Deployment:** Likes are recorded in the `post_likes` table (keyed by post ID and user ID or hashed visitor IP). Background static site deployments triggered by like events are debounced with a 20-second coalescing window (`server/services/likeDebouncer.ts`).
+- **Like De-Duplication & Debounced Deployment:** Likes are recorded in the `post_likes` table (keyed by post ID and user ID or hashed visitor IP). Background static site deployments triggered by like events are debounced with a 20-second coalescing window (`scheduleLikeRebuild` in `server/routes/posts.ts`).
 - **Fail-Closed Configuration:** If `NODE_ENV` is unset or blank, the system fails closed and treats the runtime as `production`. Development-only conveniences (such as `ALLOW_DEMO_OTP` and memory DB fallback) are strictly disabled in production.
 
 ### 4.32 Web Hit Counters, Sovereign Snapshots (`data/counter.json`), & Guestbook Visitor Numbers
@@ -746,7 +753,7 @@ The following matrix documents all server routes, auth requirements, and functio
 ## 5. Prototype Assets to Preserve & Port
 
 When building the production backend and views, extract and reuse the following tested prototype assets:
-- **Audio Synthesis Engine:** `src/utils/audio.ts` / `public/js/retroAudio.js` (Web Audio API sound generator for clicks, shutters, success chimes, and dial-up tones).
+- **Audio Synthesis Engine:** `public/js/retroAudio.js` (Web Audio API sound generator for clicks, shutters, success chimes, and dial-up tones).
 - **CSS Tokens & Design System:** `src/styles/` (`.pixel-box`, `.pixel-btn`, `.mac-pinstripes`, CRT scanline shaders, color tokens).
 - **SVG Graphics & 88x31 Badges:** `src/utils/sampleData.ts` (Retro workstation SVGs, pixel art icons, badge definitions).
 - **Embed Code Formats:** `embed/` (HTML snippets, iframe fallbacks, and CSS inclusion patterns).

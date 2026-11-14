@@ -40,7 +40,7 @@ Your creator identity (`@handle`, numeric ICQ `#uin`, avatar, and friends networ
 | **Callsign / Handle** | `@handle` (Across Cyberspace) | Inherits `@handle` in attribution & feeds |
 | **Node Identity** | Permanent Numeric UIN (`#100101+`) | Anchors per-site counters (`/counter/:uin/:slug.svg`) |
 | **Authentication** | One passwordless OTP login session | Managed seamlessly without re-logging in |
-| **Static Host** | N/A | Neocities, Nekoweb, GitHub Pages, SFTP |
+| **Static Host** | N/A | Neocities, Nekoweb, GitHub Pages (SFTP planned) |
 | **Host Credentials** | N/A | AES-256-GCM encrypted API key per target |
 | **Deploy Subfolder** | N/A | Custom path (e.g. `/neogram/`, `/shrine/`, or `/`) |
 | **Web Hit Counter** | Main station counter | Isolated hits per site (`/counter/:uin/:slug.svg`) |
@@ -59,7 +59,7 @@ Your creator identity (`@handle`, numeric ICQ `#uin`, avatar, and friends networ
 5. Enter your configuration:
    - **Target Site Name:** A friendly label (e.g. `Cyber Shrine 1999` or `Pixel Art Portfolio`).
    - **Unique Site Slug:** Lowercase identifier used in URLs (e.g. `shrine`, `portfolio`).
-   - **Target Provider:** `Neocities` or `Nekoweb` (with GitHub Pages & SFTP on roadmap).
+   - **Target Provider:** `Neocities`, `Nekoweb` or `GitHub Pages` (SFTP planned).
    - **Host Subdomain / Site URL:** Must be a public `https://` address (e.g. `https://shrine.neocities.org`). Private IP ranges, internal hostnames (`localhost`, `.local`, `.internal`), credentials in URLs, and unencrypted `http://` protocols are strictly rejected by edge SSRF guards.
    - **Host API Key:** The private API key for that specific host account (stored with AES-256-GCM vault encryption).
    - **Target Subfolder:** The subfolder on your host (e.g. `shrine` or `neogram`).

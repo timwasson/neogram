@@ -150,8 +150,8 @@ You can manually recompile your entire static site at any time:
 - Make sure there are no accidental spaces before or after the key.
 - Verify that your Neocities account is active and verified.
 
-### Q: Can I use Neogram before setting up my Neocities API key? (Sandbox Mode)
-- **Yes!** Neogram features a **Zero-Barrier Sandbox Mode**. You can register, snap camera photos, experiment with vintage CRT/phosphor shaders, and publish immediately without supplying Neocities credentials. Your transmissions will be live and browseable on your central Cyberspace Station profile (`/user/:handle`). When you are ready to publish to your personal static site, simply enter your Neocities API key and click **Force Static Rebuild & Deploy**.
+### Q: Can I use Neogram before setting up my Neocities API key?
+- **Yes, for everything except posting photos.** You can sign up, chat, add friends, like, comment and sign guestbooks right away. Posting photos needs a connected site with an API key, because your photos are published to your site rather than stored on Neogram.
 
 ### Q: Neocities returns "429 Too Many Requests" (Rate Limit)
 - Neocities protects its API against high-frequency automated uploads. If you or your followers broadcast multiple posts in rapid succession, Neogram automatically paces remote follower static grid updates with a 1.2-second safety buffer. If you trigger a manual sync too frequently, wait 60 seconds before initiating another rebuild.
@@ -174,5 +174,5 @@ Neogram's deployment engine is built with a modular adapter interface (`StaticPu
 
 - **Nekoweb API (v1.1):** Direct REST API v1 upload integration to personal Nekoweb web spaces.
 - **GitHub Pages (v1.1):** Automated Git commit and tree push pipeline directly to a `gh-pages` branch or repository via GitHub Personal Access Token (PAT).
-- **SFTP / SSH Static Sync (v1.1):** Universal remote directory synchronization to any self-hosted Linux VPS, shared cPanel host, or Raspberry Pi static server.
+- **SFTP / SSH Static Sync (planned):** Universal remote directory synchronization to any self-hosted Linux VPS, shared cPanel host, or Raspberry Pi static server.
 - **Local Bundle Export (Zip Archive):** Download a complete, self-contained static site ready to drop onto any static host.

@@ -194,19 +194,16 @@ Neogram strictly refuses to delete any remote files on Neocities outside of `upl
 
 ---
 
-## 7. Zero-Barrier Sandbox Publishing Mode
+## 7. Members Without a Site
 
-To eliminate activation friction for new creators, Neogram features a **Sandbox Publishing Mode**:
-- **Immediate Transmission:** Creators can snap photos, apply CRT/phosphor filter shaders, write captions, and publish immediately—even before configuring a Neocities API key.
-- **Central Cyberspace Station:** Posts published in Sandbox mode are instantly live on the user's central Cyberspace Station profile (`/user/:handle`) and in public feeds (`feed.json`).
-- **Seamless Upgrade:** When the creator connects their Neocities API key later, clicking `[ ⚡ Force Static Rebuild & Deploy ]` automatically builds the 11ty static bundle and publishes all previous posts directly to their static site.
+Members who haven't connected a website can chat, add friends, like, comment and sign guestbooks right away. Posting photos requires a connected site with an API key or token (Neocities, Nekoweb or GitHub Pages): `POST /api/posts` refuses uploads otherwise, so photos are never stored on the Neogram server.
 
 ---
 
 ## 8. Data Sovereignty, Portability & Decommissioning
 
 In alignment with cyberspace freedom and GDPR compliance:
-- **Station Archive Export (`GET /api/settings/export-archive`):** Station operators can export their complete profile, posts, comments, guestbook ledger, and connections as a single structured JSON archive at any time from the workstation Settings tab (`[:> DATA_SOVEREIGNTY.EXE]`).
+- **Station Archive Export (`GET /api/settings/export-archive`):** Members can export their profile, post list and captions, guestbook entries, hit counter and friends as JSON (photos and comment files already live on their own site) at any time from the workstation Settings tab (`[:> DATA_SOVEREIGNTY.EXE]`).
 - **Self-Serve Node Decommissioning (`DELETE /api/settings/account`):** Users can permanently delete their account with single-click confirmation (`[:> DECOMMISSION_NODE.EXE]`). This triggers a cascading deletion of all user records, posts, comments, guestbook entries, follower links, and isolated static build folders from the database and disk, immediately terminating their session cookie.
 
 ---
