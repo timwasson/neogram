@@ -29,6 +29,41 @@ export const ADMIN_EMAIL = 'sysop@test.local';
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 let networkGuardInstalled = false;
 
+/** API key / token that the fake static hosts below accept. Anything else is treated as offline. */
+export const FAKE_HOST_API_KEY = 'test-ok-fake-host-key';
+
+function readAuthHeader(init?: any, input?: any): string {
+  const h = init?.headers ?? input?.headers;
+  if (!h) return '';
+  if (typeof h.get === 'function') return h.get('authorization') || '';
+  const key = Object.keys(h).find((k) => k.toLowerCase() === 'authorization');
+  return key ? String(h[key]) : '';
+}
+
+/**
+ * Minimal in-process stand-ins for the Neocities and Nekoweb APIs, so hermetic suites can exercise
+ * publishing (which requires a connected, credentialed site) without any real network traffic.
+ * Only requests carrying FAKE_HOST_API_KEY are answered; others fall through to the block.
+ */
+function fakeHostResponse(url: URL, init?: any, input?: any): Response | null {
+  if (!readAuthHeader(init, input).includes(FAKE_HOST_API_KEY)) return null;
+  const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  if (url.hostname === 'neocities.org' && url.pathname.startsWith('/api/')) {
+    if (url.pathname === '/api/info') {
+      return json({ result: 'success', info: { sitename: 'fakehost', views: 0, hits: 0, last_updated: null } });
+    }
+    if (url.pathname === '/api/list') return json({ result: 'success', files: [] });
+    return json({ result: 'success', message: 'fake host ok' });
+  }
+  if (url.hostname === 'nekoweb.org' && url.pathname.startsWith('/api/')) {
+    if (url.pathname === '/api/site/info') return json({ id: 1, username: 'fakehost', title: 'fakehost', updates: 0, followers: 0, views: 0 });
+    if (url.pathname.startsWith('/api/files/readfolder')) return json([]);
+    if (url.pathname === '/api/files/big/create') return json({ id: 'fake-big-id' });
+    return new Response('ok', { status: 200 });
+  }
+  return null;
+}
+
 /**
  * Blocks every outbound network call that is not loopback, so the hermetic suites can never reach
  * neogram.club, Neocities, Nekoweb, picsum.photos or any other real host (DNS included).
@@ -41,7 +76,10 @@ function installNetworkGuard(): void {
   const realFetch = globalThis.fetch;
   globalThis.fetch = (async (input: any, init?: any) => {
     const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input?.url;
-    const host = new URL(String(raw)).hostname;
+    const url = new URL(String(raw));
+    const host = url.hostname;
+    const fake = fakeHostResponse(url, init, input);
+    if (fake) return fake;
     if (!LOOPBACK_HOSTS.has(host)) {
       throw new TypeError(`fetch failed: [hermetic sandbox] outbound request to ${host} blocked`);
     }

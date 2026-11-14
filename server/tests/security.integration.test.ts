@@ -366,7 +366,7 @@ describe('Hit counter', () => {
     });
     assert.equal(bump.status, 200);
     const after = (await q('SELECT hits FROM web_counters WHERE site_id = $1', [siteId])).rows[0];
-    assert.ok(parseInt(after.hits, 10) >= 1, 'negative amounts are clamped to +1, counter never goes down');
+    assert.equal(parseInt(after.hits, 10), 1, 'owners cannot inflate or lower their own counter');
   });
 });
 

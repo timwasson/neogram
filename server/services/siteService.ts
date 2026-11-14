@@ -217,9 +217,11 @@ export async function getDefaultSite(userId: string): Promise<Site | null> {
 }
 
 /**
- * Ensure a default site exists for a user, provisioning from user profile if missing
+ * Return the user's default site. For legacy accounts that configured a host on
+ * the users table before multi-site existed, a site row is provisioned from that
+ * config. Users who never connected a site get null; we never invent a URL.
  */
-export async function ensureDefaultSite(userId: string): Promise<Site> {
+export async function ensureDefaultSite(userId: string): Promise<Site | null> {
   const existing = await getDefaultSite(userId);
   if (existing) return existing;
 
@@ -234,9 +236,10 @@ export async function ensureDefaultSite(userId: string): Promise<Site> {
   }
 
   const u = userRes.rows[0];
-  const userHandle = u.handle || u.email.split('@')[0] || 'user';
-  const siteName = `${userHandle.toUpperCase()}'s Personal Site`;
-  const defaultUrl = u.site_url || `https://${userHandle}.neocities.org`;
+  if (!u.site_url) return null;
+  const userHandle = u.handle || 'user';
+  const siteName = `@${userHandle}'s site`;
+  const defaultUrl = u.site_url;
 
   const insertRes = await query(
     `INSERT INTO sites (

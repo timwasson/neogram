@@ -278,12 +278,11 @@ export function createApp(): Express {
   app.get('/', async (_req: Request, res: Response, next: NextFunction) => {
     try {
       const { query } = await import('./db');
-      const { getAllPosts, getPostsForUser } = await import('./services/postStorage');
+      const { getPostsForUser } = await import('./services/postStorage');
 
       // Fetch personal archive posts from static JSON for authenticated user
       const currentUser = res.locals.currentUser;
       const userArchivePosts = currentUser ? await getPostsForUser(currentUser.id) : [];
-      const allPosts = await getAllPosts();
 
       // Query Follower Feed, Friends Roster, & Station Directory for authenticated user
       let followerFeedPosts: any[] = [];
@@ -340,7 +339,6 @@ export function createApp(): Express {
         appUrl: res.locals.appUrl,
         tickerAnnouncement: res.locals.tickerAnnouncement,
         posts: userArchivePosts,
-        allPosts,
         followerFeedPosts,
         followedCount,
         friends,

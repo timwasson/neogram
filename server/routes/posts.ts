@@ -155,6 +155,16 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
     }
 
     const hasApiKey = targetSite.hasApiKey;
+    // Photos are only ever stored on the member's own host. Accounts without a
+    // connected, credentialed site can like, comment and chat, but not upload.
+    if (!hasApiKey || !targetSite.siteUrl || targetSite.deploymentType === 'none') {
+      res.status(400).json({
+        ok: false,
+        needsSite: true,
+        error: 'Connect your website (Neocities, Nekoweb or GitHub Pages) in Settings before posting photos. Photos are published to your site, not stored on Neogram.',
+      });
+      return;
+    }
 
     const { caption, filterApplied, mood, webring, location, imageBase64 } = req.body;
     const allowedFilters = ['none', 'crt', 'sepia', 'vga', 'gameboy', 'cyberpunk'];
@@ -356,10 +366,7 @@ postsRouter.post('/posts', handleUploadMiddleware, async (req: Request, res: Res
 
     res.status(201).json({
       ok: true,
-      message: hasApiKey
-        ? `Photo published live to your ${targetSite.deploymentType === 'nekoweb' ? 'Nekoweb' : 'Neocities'} site!`
-        : 'Photo published to your Cyberspace Station profile! (Connect Neocities or Nekoweb in Settings whenever you want to sync live to your static site)',
-      isSandbox: !hasApiKey,
+      message: `Published to your ${targetSite.deploymentType === 'nekoweb' ? 'Nekoweb' : (targetSite.deploymentType === 'github' ? 'GitHub Pages' : 'Neocities')} site. It may take a few seconds to appear.`,
       post: {
         id: newPost.id,
         userId: newPost.userId,

@@ -110,7 +110,8 @@ embedsRouter.get(['/counter/:identifier.svg', '/counter/:identifier/:slug.svg'],
 
       if (site) {
         // Upsert hit counter for this site (only once per visitor per window; repeat views just read)
-        const updateRes = shouldCountHit(site.id, req.ip)
+        const isPreview = req.query.preview === '1';
+        const updateRes = !isPreview && shouldCountHit(site.id, req.ip)
           ? await query(
               `INSERT INTO web_counters (site_id, user_id, hits, style, updated_at)
                VALUES ($1, $2, 1, $3, CURRENT_TIMESTAMP)
@@ -180,6 +181,10 @@ embedsRouter.get('/api/counter', async (req: Request, res: Response) => {
     const site = reqSiteId
       ? ((await getSiteById(reqSiteId, user.id)) || (await ensureDefaultSite(user.id)))
       : (await ensureDefaultSite(user.id));
+    if (!site) {
+      res.status(409).json({ ok: false, needsSite: true, error: 'Connect a website in Settings to get a hit counter and guestbook.' });
+      return;
+    }
 
     let counterRes = await query('SELECT hits, style FROM web_counters WHERE site_id = $1', [site.id]);
     if (counterRes.rows.length === 0) {
@@ -244,6 +249,10 @@ embedsRouter.put('/api/counter', async (req: Request, res: Response) => {
     const site = siteId
       ? ((await getSiteById(siteId, user.id)) || (await ensureDefaultSite(user.id)))
       : (await ensureDefaultSite(user.id));
+    if (!site) {
+      res.status(409).json({ ok: false, needsSite: true, error: 'Connect a website in Settings to get a hit counter and guestbook.' });
+      return;
+    }
 
     if (action === 'reset') {
       await query(
@@ -251,15 +260,6 @@ embedsRouter.put('/api/counter', async (req: Request, res: Response) => {
          VALUES ($1, $2, 1, $3, CURRENT_TIMESTAMP)
          ON CONFLICT (site_id) DO UPDATE SET hits = 1, updated_at = CURRENT_TIMESTAMP`,
         [site.id, user.id, style || 'green_led']
-      );
-    } else if (action === 'increment') {
-      // Clamp: owner-initiated bumps only, 1..100000 (no negative / absurd values)
-      const inc = Math.min(100000, Math.max(1, parseInt(amount, 10) || 1));
-      await query(
-        `INSERT INTO web_counters (site_id, user_id, hits, style, updated_at)
-         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-         ON CONFLICT (site_id) DO UPDATE SET hits = web_counters.hits + $3, updated_at = CURRENT_TIMESTAMP`,
-        [site.id, user.id, inc, style || 'green_led']
       );
     } else if (style) {
       await query(
@@ -304,6 +304,10 @@ embedsRouter.get(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:slu
     const targetSite = rawSlug
       ? ((await getSiteBySlug(hostUser.id, rawSlug)) || (await ensureDefaultSite(hostUser.id)))
       : (await ensureDefaultSite(hostUser.id));
+    if (!targetSite) {
+      res.status(404).json({ ok: false, needsSite: true, error: "This member hasn't set up a guestbook yet." });
+      return;
+    }
 
     const { readRemoteJson, getGuestbookRelativePath, getSiteStorageTarget } = await import('../services/staticStorage');
     const gbStorage = (targetSite && (await getSiteStorageTarget(targetSite.userId, targetSite.id))) || null;
@@ -411,6 +415,10 @@ embedsRouter.post(['/api/guestbook/:identifier', '/api/guestbook/:identifier/:sl
     const targetSite = rawSlug
       ? ((await getSiteBySlug(hostUser.id, rawSlug)) || (await ensureDefaultSite(hostUser.id)))
       : (await ensureDefaultSite(hostUser.id));
+    if (!targetSite) {
+      res.status(404).json({ ok: false, needsSite: true, error: "This member hasn't set up a guestbook yet." });
+      return;
+    }
 
     const { getNotificationPreferences } = await import('../services/notificationService');
     const prefs = await getNotificationPreferences(hostUser.id);
@@ -1095,6 +1103,10 @@ embedsRouter.get(['/embed/guestbook/:identifier', '/embed/guestbook/:identifier/
     const targetSite = rawSlug
       ? ((await getSiteBySlug(user.id, rawSlug)) || (await ensureDefaultSite(user.id)))
       : (await ensureDefaultSite(user.id));
+    if (!targetSite) {
+      res.status(404).type('text/plain').send("This guestbook isn't set up yet.");
+      return;
+    }
 
     const { getNotificationPreferences } = await import('../services/notificationService');
     const prefs = await getNotificationPreferences(user.id);

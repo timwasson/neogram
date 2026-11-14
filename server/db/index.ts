@@ -127,7 +127,29 @@ export async function query<R extends QueryResultRow = any, I extends any[] = an
   if (!activePool) {
     throw new Error('Database not initialized. Call initDatabase() first.');
   }
+  if (isMemoryFallback) return memoryQuery<R, I>(text, params);
   return activePool.query<R, I>(text, params);
+}
+
+// pg-mem (dev/test only) corrupts binary BYTEA parameters by round-tripping them through a UTF-8
+// string, so encrypted credentials could never be read back. Store Buffers as tagged base64 text and
+// decode them on the way out. Real PostgreSQL never takes this path.
+const MEM_BYTEA_TAG = 'ngmem-b64:';
+
+async function memoryQuery<R extends QueryResultRow, I extends any[]>(text: string, params?: I): Promise<QueryResult<R>> {
+  const encoded = params?.map((p) => (Buffer.isBuffer(p) ? MEM_BYTEA_TAG + p.toString('base64') : p)) as I | undefined;
+  const result = await activePool!.query<R, I>(text, encoded);
+  for (const row of result.rows as any[]) {
+    for (const key of Object.keys(row)) {
+      const v = row[key];
+      if (Buffer.isBuffer(v) && v.subarray(0, MEM_BYTEA_TAG.length).toString('latin1') === MEM_BYTEA_TAG) {
+        row[key] = Buffer.from(v.subarray(MEM_BYTEA_TAG.length).toString('latin1'), 'base64');
+      } else if (typeof v === 'string' && v.startsWith(MEM_BYTEA_TAG)) {
+        row[key] = Buffer.from(v.slice(MEM_BYTEA_TAG.length), 'base64');
+      }
+    }
+  }
+  return result;
 }
 
 export async function checkDbHealth(): Promise<{ status: 'up' | 'down'; isMemory: boolean; timestamp: string }> {

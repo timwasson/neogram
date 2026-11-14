@@ -255,6 +255,28 @@ async function runSmokeTests() {
     // TEST 7: Direct Photo Upload & Sharp WebP Processing
     // -------------------------------------------------------------------------
     logHeader('7. PHOTO INGESTION & SHARP PROCESSING');
+
+    // Publishing requires a connected, credentialed site (no server-side sandbox uploads).
+    const noSiteUpload = new FormData();
+    noSiteUpload.append('imageBase64', 'data:image/png;base64,iVBORw0KGgo=');
+    const noSiteUploadRes = await fetch(`${API_BASE}/api/posts`, { method: 'POST', headers: { 'Cookie': sessionCookie }, body: noSiteUpload });
+    assertTest('POST /api/posts without a connected site is refused', noSiteUploadRes.status === 400, `Status: ${noSiteUploadRes.status}`);
+
+    const { FAKE_HOST_API_KEY } = await import('./helpers/sandbox');
+    const primarySiteCreate = await fetch(`${API_BASE}/api/sites`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Cookie': sessionCookie, 'X-Test-Suite': 'true' },
+      body: JSON.stringify({
+        name: 'QA Smoke Site',
+        slug: 'main',
+        siteUrl: 'https://qasmoke.neocities.org',
+        deploymentType: 'neocities',
+        deployPath: 'neogram',
+        apiKey: FAKE_HOST_API_KEY,
+        isDefault: true,
+      }),
+    });
+    assertTest('Connect credentialed primary site for publishing', primarySiteCreate.status === 201, `Status: ${primarySiteCreate.status}`);
     // Grab a real photograph from picsum.photos for automated QA testing
     const { buffer: testImageBuffer, mimeType: testMimeType } = await fetchPicsumTestImage(800, 800);
 
@@ -272,8 +294,8 @@ async function runSmokeTests() {
       body: formData,
     });
 
-    assertTest('POST /api/posts returns HTTP 201 Created', uploadRes.status === 201, `Status: ${uploadRes.status}`);
     const uploadData = await uploadRes.json() as any;
+    assertTest('POST /api/posts returns HTTP 201 Created', uploadRes.status === 201, `Status: ${uploadRes.status}`);
     assertTest('Upload response contains committed post', !!uploadData.post && !!uploadData.post.id);
 
     testPostId = uploadData.post.id;
@@ -776,6 +798,9 @@ async function runSmokeTests() {
     const verifyPrefsData = await verifyPrefsRes.json();
     assertTest('Saved notification preferences persist in PostgreSQL', verifyPrefsData.preferences.notifyLike === false);
 
+    // Successful publishes to the fake host leave deploy notifications behind; start from a clean inbox.
+    await query('DELETE FROM notifications WHERE user_id = $1', [testUser.id]);
+
     // 4. Initial notifications inbox query
     const initInboxRes = await fetch(`${API_BASE}/api/notifications`, {
       headers: { 'Cookie': sessionCookie },
@@ -1127,7 +1152,8 @@ async function runSmokeTests() {
         slug: 'shrine',
         siteUrl: 'https://shrine.neocities.org',
         deployPath: 'shrine',
-        deploymentType: 'none',
+        deploymentType: 'neocities',
+        apiKey: FAKE_HOST_API_KEY,
       }),
     });
     assertTest('POST /api/sites returns HTTP 201 Created', createSiteRes.status === 201);

@@ -570,57 +570,47 @@
 
         <!-- TAB 1: UPLOAD STUDIO SECTION -->
         <div id="uploadStudioSection" class="hidden">
-          <!-- No Mounted Static Site Notice (When user has 0 sites) -->
-          {% if not userSites or userSites.length == 0 %}
+          {% set canPublish = activeSite and activeSite.hasApiKey and activeSite.siteUrl and activeSite.deploymentType != 'none' %}
+          {% if not canPublish %}
             <div id="noSiteUploadBanner" class="pixel-box p-4 mb-5 bg-window border-4 border-amber">
               <div class="window-header mb-3 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="font-bold text-black font-mono">[:&gt; PUBLISHER_LOCKED.EXE - Static Site Target Required]</span>
-                </div>
-                <span class="text-xs font-mono font-bold text-black bg-amber px-1.5 py-0.5 border border-black">[SITE REQUIRED]</span>
+                <span class="font-bold font-mono">Connect your website to post photos</span>
               </div>
-              
-              <p class="text-xs text-main mb-3 leading-relaxed">
-                Photo publishing in Neogram operates under our <strong>Zero-Retention Policy</strong>: your photos are never permanently stored on Neogram servers—they publish directly to your personal static site (Neocities, Nekoweb, or GitHub Pages).
-              </p>
-
-              <div class="p-3 bg-black border border-main text-xs font-mono text-muted mb-3 flex items-start gap-2.5">
-                <div>
-                  <span class="text-prompt font-bold block mb-1">Why mount a static site target?</span>
-                  <span>Mounting a static site unlocks the full Creator Studio: snap photos with 90s CRT shaders, upload a profile avatar, and compile an authentic retro static gallery on your personal website!</span>
-                </div>
-              </div>
-
-              <div class="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-main">
-                <button
-                  type="button"
-                  onclick="switchDashboardTab('settings/sites', event); setTimeout(function() { toggleProvisionForm(true); }, 150);"
-                  class="pixel-btn pixel-btn--yellow font-bold text-xs py-1.5 px-3"
-                >
-                  <span>+ MOUNT A STATIC SITE TARGET :&gt;</span>
-                </button>
+              {% if not userSites or userSites.length == 0 %}
+                <p class="text-xs text-main mb-3 leading-relaxed">
+                  Neogram publishes your photos straight to your own site on Neocities, Nekoweb or GitHub Pages. We don't store them. Until you connect a site you can still chat, follow friends, comment, like and sign guestbooks.
+                </p>
+              {% else %}
+                <p class="text-xs text-main mb-3 leading-relaxed">
+                  "<strong>{{ activeSite.name }}</strong>" doesn't have an API key or token saved yet. Add one in Settings and you're ready to post.
+                </p>
+              {% endif %}
+              <div class="flex items-center flex-wrap gap-2 pt-2 border-t border-main">
+                {% if not userSites or userSites.length == 0 %}
+                  <button
+                    type="button"
+                    onclick="switchDashboardTab('settings/sites', event); setTimeout(function() { toggleProvisionForm(true); }, 150);"
+                    class="pixel-btn pixel-btn--yellow font-bold text-xs py-1 px-3"
+                  >
+                    <span>Connect your website</span>
+                  </button>
+                {% else %}
+                  <a
+                    href="#settings/hosting"
+                    onclick="switchDashboardTab('settings/hosting', event)"
+                    class="pixel-btn pixel-btn--yellow font-bold text-xs py-1 px-3"
+                  >
+                    <span>Add API key</span>
+                  </a>
+                {% endif %}
                 <button
                   type="button"
                   onclick="switchDashboardTab('feed', event);"
-                  class="pixel-btn font-bold text-xs py-1.5 px-3"
+                  class="pixel-btn font-bold text-xs py-1 px-3"
                 >
-                  <span>Return to Follower Feed</span>
+                  <span>Back to feed</span>
                 </button>
               </div>
-            </div>
-          {% elif activeSite and not activeSite.hasApiKey %}
-            <div class="p-2.5 bg-black border border-amber text-xs font-mono mb-4 flex items-center justify-between flex-wrap gap-2">
-              <div class="flex items-center gap-2">
-                <span class="text-amber font-bold">[NOTE]</span>
-                <span class="text-muted">Target site "<strong>{{ activeSite.name }}</strong>" has no API key linked yet. Photos will save locally and auto-deploy once connected in Settings.</span>
-              </div>
-              <a
-                href="#settings/hosting"
-                onclick="switchDashboardTab('settings/hosting', event)"
-                class="pixel-btn pixel-btn--yellow text-3xs font-bold py-0.5 px-2"
-              >
-                <span>Link Key :&gt;</span>
-              </a>
             </div>
           {% endif %}
 
@@ -658,7 +648,7 @@
           </div>
 
           <!-- 2-Column Publishing Grid -->
-          <form id="publishForm" onsubmit="handlePublishPost(event)">
+          <form id="publishForm" onsubmit="handlePublishPost(event)"{% if not canPublish %} class="hidden"{% endif %}>
             <input type="hidden" name="siteId" id="uploadSiteId" value="{{ activeSite.id if activeSite else '' }}">
             <div class="flex-responsive">
             
@@ -1503,10 +1493,9 @@
                               <label class="block font-bold mb-1">Host Provider:</label>
                               <select id="newSiteDeployType" class="retro-input text-xs" onchange="updateNewSiteProviderUI()">
                                 <option value="neocities" selected>Neocities</option>
-                                <option value="nekoweb">Nekoweb (Live REST API)</option>
-                                <option value="none">Cold-Start / Sandbox</option>
-                                <option value="github">GitHub Pages (Git Commit REST API)</option>
-                                <option value="sftp" disabled>SFTP (v1.1)</option>
+                                <option value="nekoweb">Nekoweb</option>
+                                <option value="github">GitHub Pages</option>
+                                <option value="sftp" disabled>SFTP (coming later)</option>
                               </select>
                             </div>
                           </div>
@@ -1587,7 +1576,7 @@
                   {% if not userSites or userSites.length == 0 %}
                     <div class="p-4 bg-black border border-main text-xs font-mono text-muted text-center leading-relaxed">
                       <span class="text-prompt font-bold block mb-1">[:&gt; TARGET VAULT UNINITIALIZED]</span>
-                      No static site targets currently mounted. Open <strong>Mounted Sites</strong> to mount a Neocities, Nekoweb, or Sandbox site first.
+                      No static site targets currently mounted. Open <strong>Mounted Sites</strong> to connect a Neocities, Nekoweb or GitHub Pages site first.
                       <div class="mt-3">
                         <button type="button" onclick="switchSettingsSubTab('sites')" class="pixel-btn pixel-btn--yellow text-xs font-bold py-1 px-3">
                           <span>Go to Mounted Sites :&gt;</span>
@@ -1630,11 +1619,10 @@
                               Target Hosting Provider:
                             </label>
                             <select id="settingsDeployType" name="deploymentType" class="retro-input text-xs" onchange="updateProviderSettingsUI()">
-                              <option value="neocities" selected>Neocities (Direct REST API v1.0 — Live)</option>
-                              <option value="nekoweb">Nekoweb (Direct REST API v1.0 — Live)</option>
-                              <option value="none">Cold-Start / Sandbox (Internal Station Profile)</option>
-                              <option value="github">GitHub Pages (Git Commit REST API — Live)</option>
-                              <option value="sftp" disabled>SFTP / SSH Static Sync — Arriving in v1.1</option>
+                              <option value="neocities" selected>Neocities</option>
+                              <option value="nekoweb">Nekoweb</option>
+                              <option value="github">GitHub Pages</option>
+                              <option value="sftp" disabled>SFTP (coming later)</option>
                             </select>
                           </div>
 
@@ -2164,8 +2152,24 @@
 
         <!-- TAB 4: EMBEDS & SOCIAL WIDGETS SECTION (4 Focused Sub-Pages with Left Menu) -->
         <div id="embedsSection" class="hidden">
+          {% set hasAnySite = userSites and userSites.length > 0 %}
+          {% if not hasAnySite %}
+            <div class="pixel-box p-4 mb-5 bg-window border-4 border-amber">
+              <div class="window-header mb-3"><span class="font-bold font-mono">Connect your website to get widgets</span></div>
+              <p class="text-xs text-main mb-3 leading-relaxed">
+                Hit counters, guestbooks and the chat pager live on your own site. Connect your Neocities, Nekoweb or GitHub Pages site and they'll show up here, ready to paste.
+              </p>
+              <button
+                type="button"
+                onclick="switchDashboardTab('settings/sites', event); setTimeout(function() { toggleProvisionForm(true); }, 150);"
+                class="pixel-btn pixel-btn--yellow font-bold text-xs py-1 px-3"
+              >
+                <span>Connect your website</span>
+              </button>
+            </div>
+          {% endif %}
           <!-- Shared Target Site Selector Bar (Matches Upload Studio Bar) -->
-          <div class="p-2.5 bg-black border-2 border-main mb-4 flex items-center justify-between flex-wrap gap-2 text-xs font-mono">
+          <div class="p-2.5 bg-black border-2 border-main mb-4 flex items-center justify-between flex-wrap gap-2 text-xs font-mono{% if not hasAnySite %} hidden{% endif %}">
             <div class="flex items-center gap-2">
               <div>
                 <span class="text-muted text-3xs uppercase font-bold tracking-wider block">GENERATE EMBEDS FOR TARGET SITE:</span>
@@ -2196,7 +2200,7 @@
             </div>
           </div>
 
-          <div class="workstation-sublayout">
+          <div class="workstation-sublayout{% if not hasAnySite %} hidden{% endif %}">
 
             <!-- LEFT-HAND MENU (Horizontal Strip on Mobile < 820px) -->
             <aside class="workstation-subnav" aria-label="Embeds navigation">
@@ -2284,7 +2288,7 @@
                         <div id="counterSvgPreviewContainer" class="p-2 border-2 border-main max-w-full overflow-x-auto">
                           <img
                             id="counterLiveSvg"
-                            src="/counter/{{ currentUser.handle }}.svg?style=green_led"
+                            src="/counter/{{ currentUser.handle }}.svg?style=green_led&preview=1"
                             alt="Live Hit Counter"
                             class="block"
                           />
@@ -2335,20 +2339,6 @@
                       </div>
 
                       <div class="flex items-center gap-2 border-t border-main pt-2 flex-wrap">
-                        <button
-                          type="button"
-                          onclick="simulateHit(1)"
-                          class="pixel-btn pixel-btn--yellow font-bold text-xs flex items-center gap-1"
-                        >
-                          <span>+ Simulate (+1)</span>
-                        </button>
-                        <button
-                          type="button"
-                          onclick="simulateHit(10)"
-                          class="pixel-btn font-bold text-xs flex items-center gap-1"
-                        >
-                          <span>+ Crawl (+10)</span>
-                        </button>
                         <button
                           type="button"
                           onclick="resetCounter(this)"
@@ -3520,7 +3510,7 @@
         throw new Error(errorMsg);
       }
 
-      await logStep('[:> TRANSMISSION SUCCESSFUL] Photo compiled and published live!', 500);
+      await logStep('[:> DONE] Photo published.', 500);
 
       try {
         if (window.retroAudio && typeof window.retroAudio.playSuccess === 'function') {
@@ -3530,31 +3520,25 @@
 
       var pubSite = data.site || null;
       var baseSite = pubSite && pubSite.siteUrl ? pubSite.siteUrl : '{{ activeSite.siteUrl if activeSite and activeSite.siteUrl else (currentUser.siteUrl or "") }}';
-      var userHandle = '{{ currentUser.handle or "" }}';
       var deployFolder = pubSite && pubSite.deployPath !== undefined ? pubSite.deployPath : '{{ activeSite.deployPath if activeSite else (currentUser.deployPath or "neogram") }}';
-      var isSandbox = Boolean(data.isSandbox);
-      var finalHost = baseSite || (userHandle ? ('https://' + userHandle + '.neocities.org') : '');
-      var photoUrl = (!isSandbox && finalHost && data.post && data.post.id) ? (finalHost.replace(/\/+$/, '') + (deployFolder ? ('/' + deployFolder) : '') + '/photos/' + data.post.id + '/') : '';
-      var galleryUrl = (!isSandbox && finalHost) ? (finalHost.replace(/\/+$/, '') + (deployFolder ? ('/' + deployFolder + '/') : '/')) : '';
-      var stationUrl = '{{ currentUser.uin }}' ? ('/user/{{ currentUser.uin }}') : (userHandle ? ('/user/' + userHandle) : '/user');
+      var finalHost = baseSite;
+      var photoUrl = (finalHost && data.post && data.post.id) ? (finalHost.replace(/\/+$/, '') + (deployFolder ? ('/' + deployFolder) : '') + '/photos/' + data.post.id + '/') : '';
+      var galleryUrl = finalHost ? (finalHost.replace(/\/+$/, '') + (deployFolder ? ('/' + deployFolder + '/') : '/')) : '';
 
       var actions = '<div class="flex items-center gap-2 flex-wrap mt-2">';
-      if (isSandbox) {
-        actions += '<a href="' + stationUrl + '" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">View Station Profile ↗</a>';
-        actions += '<button type="button" onclick="switchDashboardTab(\'settings/hosting\', event)" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs">Connect Neocities</button>';
-      } else if (photoUrl) {
-        actions += '<a href="' + escapeHtml(sanitizeUrl(photoUrl)) + '" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">View Photo on Site ↗</a>';
-        actions += '<button type="button" data-copy-url="' + escapeHtml(sanitizeUrl(photoUrl)) + '" onclick="navigator.clipboard?.writeText(this.dataset.copyUrl); this.innerHTML=\'<span>✓ Copied Link!</span>\';" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs">Copy Photo Link</button>';
+      if (photoUrl) {
+        actions += '<a href="' + escapeHtml(sanitizeUrl(photoUrl)) + '" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">View photo on your site ↗</a>';
+        actions += '<button type="button" data-copy-url="' + escapeHtml(sanitizeUrl(photoUrl)) + '" onclick="navigator.clipboard?.writeText(this.dataset.copyUrl); this.innerHTML=\'<span>✓ Copied</span>\';" class="pixel-btn pixel-btn--sm pixel-btn--yellow font-bold text-xs">Copy link</button>';
       } else if (galleryUrl) {
-        actions += '<a href="' + escapeHtml(sanitizeUrl(galleryUrl)) + '" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">View Gallery on Site ↗</a>';
+        actions += '<a href="' + escapeHtml(sanitizeUrl(galleryUrl)) + '" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn--sm pixel-btn--green font-bold text-xs" onclick="if(window.retroAudio) retroAudio.playClick();">View gallery on your site ↗</a>';
       }
-      actions += '<a href="/#edit" onclick="window.location.href=\'/#edit\'; window.location.reload();" class="pixel-btn pixel-btn--sm text-xs font-bold">Open Archive →</a>';
+      actions += '<a href="/#edit" onclick="window.location.href=\'/#edit\'; window.location.reload();" class="pixel-btn pixel-btn--sm text-xs font-bold">Go to my posts →</a>';
       actions += '</div>';
 
       showAlert(
         'success',
-        isSandbox ? '[✓] PHOTO TRANSMITTED TO YOUR STATION!' : '[✓] PHOTO PUBLISHED LIVE!',
-        data.message || 'Your photograph has been processed with authentic retro shaders and deployed live to your personal static website.',
+        'Photo posted!',
+        data.message || 'It may take a few seconds to show up on your site.',
         actions
       );
 
@@ -4068,7 +4052,7 @@
     var label = document.getElementById('counterLiveUrlLabel');
     var snippet = document.getElementById('counterCodeSnippet');
     var slugPart = currentEmbedSiteSlug ? ('/' + currentEmbedSiteSlug) : '';
-    var url = '/counter/' + userHandle + slugPart + '.svg?style=' + style + '&t=' + Date.now();
+    var url = '/counter/' + userHandle + slugPart + '.svg?style=' + style + '&preview=1&t=' + Date.now();
     var fullUrl = publicEmbedOrigin + '/counter/' + userHandle + slugPart + '.svg?style=' + style;
     if (img) img.src = url;
     if (label) label.textContent = '/counter/' + userHandle + slugPart + '.svg?style=' + style;
@@ -4089,29 +4073,6 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ style: style, siteId: currentEmbedSiteId })
       });
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  async function simulateHit(amount) {
-    if (window.retroAudio) {
-      if (amount > 1) window.retroAudio.playDialupBeep();
-      else window.retroAudio.playCounterTick();
-    }
-    try {
-      var queryParam = currentEmbedSiteId ? ('?siteId=' + encodeURIComponent(currentEmbedSiteId)) : '';
-      var res = await fetch('/api/counter' + queryParam, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'increment', amount: amount, style: currentCounterStyle, siteId: currentEmbedSiteId })
-      });
-      var data = await res.json();
-      if (data.ok) {
-        var badge = document.getElementById('counterHitsBadge');
-        if (badge) badge.textContent = 'HITS: ' + data.hits;
-        updateCounterPreview(data.hits, currentCounterStyle);
-      }
     } catch (e) {
       console.error(e);
     }
