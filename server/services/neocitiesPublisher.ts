@@ -4,6 +4,7 @@ import { query } from '../db';
 import { decryptCredentials, NeocitiesCredentials } from '../utils/crypto';
 import { isSafeRemoteDeletePath } from '../utils/remotePaths';
 import { buildStaticGallery, executeStaticBuild } from './staticBuilder';
+import { hostFetch } from '../utils/hostFetch';
 
 export interface DeltaFile {
   relativePath: string;
@@ -41,7 +42,7 @@ export async function testNeocitiesConnection(apiKey: string): Promise<{ ok: boo
       return { ok: false, error: 'API key cannot be empty.' };
     }
 
-    const res = await fetch('https://neocities.org/api/info', {
+    const res = await hostFetch('https://neocities.org/api/info', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${apiKey.trim()}`,
@@ -203,7 +204,7 @@ export async function deployToNeocities(
   }
 
   // 5. POST to https://neocities.org/api/upload
-  const res = await fetch('https://neocities.org/api/upload', {
+  const res = await hostFetch('https://neocities.org/api/upload', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
@@ -349,7 +350,7 @@ export async function deleteFromNeocities(targetId: string, filenames: string[])
       return true;
     }
 
-    const res = await fetch('https://neocities.org/api/delete', {
+    const res = await hostFetch('https://neocities.org/api/delete', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${creds.apiKey.trim()}`,
@@ -403,7 +404,7 @@ export async function purgeRemoteNeocitiesPhotos(targetId: string): Promise<bool
       : 'neogram';
 
     // 1. Fetch file list from Neocities
-    const listRes = await fetch('https://neocities.org/api/list', {
+    const listRes = await hostFetch('https://neocities.org/api/list', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${creds.apiKey.trim()}`,
@@ -447,7 +448,7 @@ export async function purgeRemoteNeocitiesPhotos(targetId: string): Promise<bool
         formData.append('filenames[]', filePath);
       }
 
-      const delRes = await fetch('https://neocities.org/api/delete', {
+      const delRes = await hostFetch('https://neocities.org/api/delete', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${creds.apiKey.trim()}`,
@@ -564,7 +565,7 @@ export async function deployFilesToNeocities(
   }
 
   lastNeocitiesUploadByKey.set(apiKey, Date.now());
-  let res = await fetch('https://neocities.org/api/upload', {
+  let res = await hostFetch('https://neocities.org/api/upload', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
@@ -580,7 +581,7 @@ export async function deployFilesToNeocities(
       await new Promise((r) => setTimeout(r, 3500));
       const retryPayload = await buildFormData();
       lastNeocitiesUploadByKey.set(apiKey, Date.now());
-      res = await fetch('https://neocities.org/api/upload', {
+      res = await hostFetch('https://neocities.org/api/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,

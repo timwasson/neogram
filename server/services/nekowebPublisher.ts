@@ -6,6 +6,7 @@ import { decryptCredentials, NekowebCredentials } from '../utils/crypto';
 import { isSafeRemoteDeletePath } from '../utils/remotePaths';
 import { buildStaticGallery, executeStaticBuild } from './staticBuilder';
 import { DeltaFile } from './neocitiesPublisher';
+import { hostFetch } from '../utils/hostFetch';
 export type { DeltaFile };
 
 
@@ -56,7 +57,7 @@ async function resolveNekowebDeployPrefix(
     const now = Date.now();
     let cached = nekowebRootFoldersCache.get(cacheKey);
     if (!cached || cached.expiresAt < now) {
-      const res = await fetch('https://nekoweb.org/api/files/readfolder?pathname=/', {
+      const res = await hostFetch('https://nekoweb.org/api/files/readfolder?pathname=/', {
         method: 'GET',
         headers: { Authorization: cacheKey },
       });
@@ -98,7 +99,7 @@ export async function testNekowebConnection(apiKey: string): Promise<{ ok: boole
       return { ok: false, error: 'API key cannot be empty.' };
     }
 
-    const res = await fetch('https://nekoweb.org/api/site/info', {
+    const res = await hostFetch('https://nekoweb.org/api/site/info', {
       method: 'GET',
       headers: {
         'Authorization': apiKey.trim(),
@@ -274,7 +275,7 @@ export async function deployToNekoweb(
   // 5. Nekoweb Multi-Step Deployment Pipeline:
   // Step 5A: Initialize big file upload session
   console.log('[:> NEKOWEB DEPLOY] Requesting big upload session from Nekoweb API...');
-  const initRes = await fetch('https://nekoweb.org/api/files/big/create', {
+  const initRes = await hostFetch('https://nekoweb.org/api/files/big/create', {
     method: 'GET',
     headers: {
       'Authorization': apiKey,
@@ -296,7 +297,7 @@ export async function deployToNekoweb(
   const zipBlob = new Blob([new Uint8Array(zipBuffer)], { type: 'application/zip' });
   formData.append('file', zipBlob, 'static-gallery.zip');
 
-  const appendRes = await fetch('https://nekoweb.org/api/files/big/append', {
+  const appendRes = await hostFetch('https://nekoweb.org/api/files/big/append', {
     method: 'POST',
     headers: {
       'Authorization': apiKey,
@@ -316,7 +317,7 @@ export async function deployToNekoweb(
   const importParams = new URLSearchParams();
   importParams.append('path', destinationPath);
 
-  const importRes = await fetch(`https://nekoweb.org/api/files/import/${bigId}`, {
+  const importRes = await hostFetch(`https://nekoweb.org/api/files/import/${bigId}`, {
     method: 'POST',
     headers: {
       'Authorization': apiKey,
@@ -453,7 +454,7 @@ export async function deleteFromNekoweb(targetId: string, filenames: string[]): 
       params.append('pathname', remotePath);
 
       try {
-        const res = await fetch('https://nekoweb.org/api/files/delete', {
+        const res = await hostFetch('https://nekoweb.org/api/files/delete', {
           method: 'POST',
           headers: {
             'Authorization': creds.apiKey.trim(),
@@ -530,7 +531,7 @@ export async function purgeRemoteNekowebPhotos(targetId: string): Promise<boolea
         const params = new URLSearchParams();
         params.append('pathname', delPath);
 
-        const res = await fetch('https://nekoweb.org/api/files/delete', {
+        const res = await hostFetch('https://nekoweb.org/api/files/delete', {
           method: 'POST',
           headers: {
             'Authorization': creds.apiKey.trim(),
@@ -656,7 +657,7 @@ export async function deployFilesToNekoweb(
           const createParams = new URLSearchParams();
           createParams.append('isFolder', 'true');
           createParams.append('pathname', accum);
-          await fetch('https://nekoweb.org/api/files/create', {
+          await hostFetch('https://nekoweb.org/api/files/create', {
             method: 'POST',
             headers: {
               'Authorization': apiKey,
@@ -677,7 +678,7 @@ export async function deployFilesToNekoweb(
       formData.append('files', blob, f.filename);
     }
 
-    const res = await fetch('https://nekoweb.org/api/files/upload', {
+    const res = await hostFetch('https://nekoweb.org/api/files/upload', {
       method: 'POST',
       headers: {
         'Authorization': apiKey,

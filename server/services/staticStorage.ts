@@ -5,6 +5,7 @@ import { writeFileAtomic } from '../utils/atomicFile';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import { decryptCredentials, NeocitiesCredentials } from '../utils/crypto';
+import { hostFetch } from '../utils/hostFetch';
 
 /**
  * Mutex lock map to serialize reads, mutations, and re-uploads
@@ -218,7 +219,7 @@ export async function writeRemoteJson(user: any, relPath: string, data: any): Pr
         const blob = new Blob([Buffer.from(jsonString)], { type: 'application/json' });
         formData.append(remotePath, blob, path.basename(remotePath));
 
-        const res = await fetch('https://neocities.org/api/upload', {
+        const res = await hostFetch('https://neocities.org/api/upload', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${apiKey}`,
@@ -247,7 +248,7 @@ export async function writeRemoteJson(user: any, relPath: string, data: any): Pr
         formData.append('pathname', normalizedDirPath);
         formData.append('files', blob, path.basename(remotePath));
 
-        const res = await fetch('https://nekoweb.org/api/files/upload', {
+        const res = await hostFetch('https://nekoweb.org/api/files/upload', {
           method: 'POST',
           headers: {
             'Authorization': apiKey,

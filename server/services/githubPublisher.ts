@@ -5,6 +5,7 @@ import { decryptCredentials, GitHubCredentials } from '../utils/crypto';
 import { isSafeRemoteDeletePath } from '../utils/remotePaths';
 import { buildStaticGallery, executeStaticBuild } from './staticBuilder';
 import { DeltaFile, DeployResult } from './neocitiesPublisher';
+import { hostFetch } from '../utils/hostFetch';
 
 export type { DeltaFile, DeployResult };
 
@@ -40,7 +41,7 @@ async function githubFetch(
     headers.set('Content-Type', 'application/json');
   }
 
-  const res = await fetch(url, {
+  const res = await hostFetch(url, {
     ...options,
     headers,
   });
