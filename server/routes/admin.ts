@@ -8,7 +8,7 @@ import { getTickerAnnouncement, setTickerAnnouncement, logAdminAction } from '..
 import { buildQueue, buildStaticGallery } from '../services/staticBuilder';
 import { initiateFleetSweep, cancelActiveFleetSweep } from '../services/fleetSweepService';
 import { activeSockets } from '../services/chatSocket';
-import { getUserSites, createSite, updateSite, Site } from '../services/siteService';
+import { getUserSites, getSiteById, createSite, updateSite, Site } from '../services/siteService';
 import { decryptCredentials } from '../utils/crypto';
 import { getAllPosts, getPostCountForUser, getPostsForUser, deletePost, updatePost } from '../services/postStorage';
 import { signSessionToken, COOKIE_NAME } from '../auth/jwt';
@@ -25,7 +25,59 @@ export interface QaFleetUser {
   description: string;
   avatarPath?: string;
   postCount: number;
-  sites: Site[];
+  sites: QaFleetSite[];
+}
+
+export interface QaFleetSite extends Site {
+  /** Public gallery index on the member's host ('' for sandbox sites). */
+  galleryUrl: string;
+  /** Short label for the site's custom stylesheet (QA theme name, or the stylesheet's host). */
+  themeLabel: string;
+  /** True when the site can be rebuilt from /admin (real provider + key + URL). */
+  canRebuild: boolean;
+}
+
+/** Hosted QA themes live in public/qa-themes/ and are linked through each site's Custom CSS URL. */
+export function qaThemeUrl(name: string): string {
+  return `${config.appUrl.replace(/\/+$/, '')}/qa-themes/${name}.css`;
+}
+
+/** The custom stylesheet @qa_cyberpunk loads from its own site (upload public/qa-themes/neogramtest-custom.css there). */
+export const NEOGRAMTEST_CUSTOM_CSS_URL = 'https://neogramtest.neocities.org/neogram-custom.css';
+
+/** Gallery index URL: site URL + deploy folder (same rule as postStorage's galleryUrl). */
+export function siteGalleryUrl(siteUrl: string, deployPath: string): string {
+  if (!siteUrl || !/^https?:\/\//i.test(siteUrl)) return '';
+  try {
+    const parsed = new URL(siteUrl.trim());
+    const base = `${parsed.protocol}//${parsed.host}${parsed.pathname.replace(/\/+$/, '')}`;
+    const folder = String(deployPath || '').trim().replace(/^\/+|\/+$/g, '');
+    if (folder && !base.toLowerCase().endsWith(`/${folder.toLowerCase()}`)) return `${base}/${folder}/`;
+    return `${base}/`;
+  } catch {
+    return '';
+  }
+}
+
+function themeLabelFor(customCssUrl: string | null): string {
+  if (!customCssUrl) return '';
+  const hosted = customCssUrl.match(/\/qa-themes\/([a-z0-9-]+)\.css/i);
+  if (hosted) return hosted[1];
+  try {
+    return `custom (${new URL(customCssUrl).host})`;
+  } catch {
+    return 'custom';
+  }
+}
+
+function toQaFleetSite(s: Site): QaFleetSite {
+  const hasHost = ['neocities', 'nekoweb', 'github'].includes(s.deploymentType);
+  return {
+    ...s,
+    galleryUrl: hasHost ? siteGalleryUrl(s.siteUrl, s.deployPath) : '',
+    themeLabel: themeLabelFor(s.customCssUrl),
+    canRebuild: hasHost && s.hasApiKey && !!s.siteUrl,
+  };
 }
 
 async function getQaFleetUsers(): Promise<QaFleetUser[]> {
@@ -46,7 +98,7 @@ async function getQaFleetUsers(): Promise<QaFleetUser[]> {
 
   const fleet: QaFleetUser[] = [];
   for (const row of res.rows) {
-    const sites = await getUserSites(row.id);
+    const sites = (await getUserSites(row.id)).map(toQaFleetSite);
     const postCount = await getPostCountForUser(row.id);
     fleet.push({
       id: row.id,
@@ -194,6 +246,7 @@ adminRouter.get('/admin', requireAdmin, async (req: Request, res: Response, next
       },
       users,
       qaFleet,
+      qaGalleryCount: qaFleet.reduce((n, u) => n + u.sites.filter((site) => site.galleryUrl).length, 0),
       currentTicker,
       pipelineTelemetry,
       auditLogs: auditRes.rows,
@@ -471,6 +524,8 @@ adminRouter.post(
           deployPath: string;
           buildHtml: boolean;
           autoDeploy: boolean;
+          /** QA theme stylesheet (see qaThemeUrl); applied unless an operator set a different custom CSS URL. */
+          customCssUrl?: string;
         }>,
         canonicalUin?: number
       ) => {
@@ -496,7 +551,11 @@ adminRouter.post(
             autoDeploy: false,
           };
           let ins;
-          if (canonicalUin) {
+          // The canonical UIN is a convenience; if another account already holds it, use the sequence
+          const uinTaken = canonicalUin
+            ? (await query('SELECT 1 FROM users WHERE uin = $1', [canonicalUin])).rows.length > 0
+            : false;
+          if (canonicalUin && !uinTaken) {
             ins = await query(
               `INSERT INTO users (email, handle, uin, status_message, site_url, deploy_path, deployment_type, build_html, auto_deploy)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -551,7 +610,26 @@ adminRouter.post(
             });
           }
         }
+        await applyQaThemes(userId, defaultSites);
         return userId;
+      };
+
+      // Set each QA site's theme stylesheet. Written directly (not via createSite/updateSite) because
+      // in local dev APP_URL is http://, which the https-only Custom CSS validator would reject.
+      // Only overwrites an empty value or one of our own QA themes, so a URL an operator typed in stays.
+      let themesApplied = 0;
+      const applyQaThemes = async (userId: string, specs: Array<{ slug: string; customCssUrl?: string }>) => {
+        for (const spec of specs) {
+          if (!spec.customCssUrl) continue;
+          const upd = await query(
+            `UPDATE sites SET custom_css_url = $1, updated_at = CURRENT_TIMESTAMP
+             WHERE user_id = $2 AND slug = $3
+               AND (custom_css_url IS NULL OR custom_css_url = '' OR custom_css_url LIKE '%/qa-themes/%')
+               AND COALESCE(custom_css_url, '') <> $1`,
+            [spec.customCssUrl, userId, spec.slug]
+          );
+          themesApplied += upd.rowCount || 0;
+        }
       };
 
       if (mode === 'core' || mode === 'fleet12') {
@@ -564,6 +642,7 @@ adminRouter.post(
             deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,
+            customCssUrl: qaThemeUrl('geocities'),
           },
           {
             name: 'Alice Secondary Zine',
@@ -573,6 +652,7 @@ adminRouter.post(
             deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,
+            customCssUrl: qaThemeUrl('zine'),
           },
         ], 100107);
 
@@ -585,6 +665,7 @@ adminRouter.post(
             deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,
+            customCssUrl: qaThemeUrl('vaporwave'),
           },
         ], 100108);
 
@@ -609,6 +690,7 @@ adminRouter.post(
             deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,
+            customCssUrl: qaThemeUrl('terminal'),
           },
         ], 100110);
 
@@ -633,6 +715,7 @@ adminRouter.post(
             deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,
+            customCssUrl: NEOGRAMTEST_CUSTOM_CSS_URL,
           },
         ], 100116);
 
@@ -645,6 +728,7 @@ adminRouter.post(
             deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,
+            customCssUrl: qaThemeUrl('win95'),
           },
         ], 100117);
 
@@ -669,6 +753,7 @@ adminRouter.post(
             deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,
+            customCssUrl: qaThemeUrl('arcade'),
           },
         ], 100120);
 
@@ -693,6 +778,7 @@ adminRouter.post(
             deployPath: 'neogram',
             buildHtml: true,
             autoDeploy: true,
+            customCssUrl: qaThemeUrl('winamp'),
           },
         ], 100122);
 
@@ -736,6 +822,7 @@ adminRouter.post(
                  AND follower_id IN (SELECT id FROM users WHERE email LIKE '%@qa.neogram.club'))
         `);
       } else if (mode === 'load20') {
+        const LOAD_FLEET_THEMES = ['geocities', 'zine', 'vaporwave', 'terminal', 'win95', 'arcade', 'winamp'];
         for (let i = 1; i <= 20; i++) {
           const num = String(i).padStart(2, '0');
           const handle = `qa_agent_${num}`;
@@ -753,6 +840,7 @@ adminRouter.post(
               deployPath: 'neogram',
               buildHtml: i % 5 !== 0,
               autoDeploy: true,
+              customCssUrl: qaThemeUrl(LOAD_FLEET_THEMES[i % LOAD_FLEET_THEMES.length]),
             },
           ]);
         }
@@ -776,17 +864,21 @@ adminRouter.post(
         adminId: adminUser.id,
         adminEmail: adminUser.email,
         action: 'PROVISION_QA_FLEET',
-        details: { mode, provisionedHandles },
+        details: { mode, provisionedHandles, themesApplied },
         ipAddress: req.ip,
       });
 
       const qaFleet = await getQaFleetUsers();
+      const themeNote = themesApplied > 0
+        ? ` Set the theme on ${themesApplied} site(s); rebuild them to see it.`
+        : '';
       res.json({
         ok: true,
         message:
-          provisionedHandles.length > 0
-            ? `Provisioned ${provisionedHandles.length} QA test account(s): ${provisionedHandles.join(', ')}`
-            : 'QA Fleet verified (all requested accounts already exist).',
+          (provisionedHandles.length > 0
+            ? `Provisioned ${provisionedHandles.length} QA test account(s): ${provisionedHandles.join(', ')}.`
+            : 'QA Fleet verified (all requested accounts already exist).') + themeNote,
+        themesApplied,
         qaFleet,
       });
     } catch (err) {
@@ -806,7 +898,9 @@ adminRouter.post(
     try {
       const adminUser = (req as AdminRequest).adminUser!;
       const { userId } = req.params;
-      const { siteId, name, slug, siteUrl, deploymentType, deployPath, apiKey, buildHtml, autoDeploy, isDefault } = req.body;
+      const { siteId, name, slug, siteUrl, deploymentType, deployPath, apiKey, buildHtml, autoDeploy, isDefault, customCssUrl } = req.body;
+      // '' clears the stylesheet; undefined leaves it alone
+      const cssInput = customCssUrl === undefined ? undefined : String(customCssUrl).trim();
 
       // Ensure target user is a QA fleet account
       const userCheck = await query(
@@ -831,6 +925,7 @@ adminRouter.post(
           buildHtml: buildHtml !== undefined ? Boolean(buildHtml) : undefined,
           autoDeploy: autoDeploy !== undefined ? Boolean(autoDeploy) : undefined,
           isDefault: isDefault !== undefined ? Boolean(isDefault) : undefined,
+          customCssUrl: cssInput,
         });
       } else {
         updatedSite = await createSite(userId, {
@@ -843,6 +938,7 @@ adminRouter.post(
           buildHtml: buildHtml !== false,
           autoDeploy: autoDeploy !== false,
           isDefault: Boolean(isDefault),
+          customCssUrl: cssInput || undefined,
         });
       }
 
@@ -869,6 +965,84 @@ adminRouter.post(
       });
     } catch (err: any) {
       res.status(400).json({ ok: false, error: err.message || 'Failed to update QA site.' });
+    }
+  }
+);
+
+/**
+ * 7b. POST /api/admin/qa-fleet/sites/:siteId/rebuild - Full rebuild + publish of ONE QA site
+ * (for checking a single feature or theme without sweeping the whole fleet).
+ */
+adminRouter.post(
+  '/api/admin/qa-fleet/sites/:siteId/rebuild',
+  requireAdminApi,
+  validateAdminMutationHeader,
+  async (req: Request, res: Response) => {
+    const adminUser = (req as AdminRequest).adminUser!;
+    const { siteId } = req.params;
+    try {
+      // QA sites only: real members' sites are never published from /admin
+      const owner = await query(
+        `SELECT s.user_id, u.handle FROM sites s JOIN users u ON s.user_id = u.id
+         WHERE s.id = $1 AND LOWER(u.email) LIKE '%@qa.neogram.club'`,
+        [siteId]
+      );
+      if (owner.rows.length === 0) {
+        res.status(404).json({ ok: false, error: 'QA site not found.' });
+        return;
+      }
+      const site = await getSiteById(siteId, owner.rows[0].user_id);
+      if (!site) {
+        res.status(404).json({ ok: false, error: 'QA site not found.' });
+        return;
+      }
+      const qaSite = toQaFleetSite(site);
+      if (!qaSite.canRebuild) {
+        res.status(400).json({
+          ok: false,
+          error: site.deploymentType === 'none'
+            ? 'This is a sandbox site with no host, so there is nothing to publish.'
+            : `"${site.name}" has no API key or site URL. Add one with Edit Site / Key first.`,
+        });
+        return;
+      }
+
+      const { deploySite, providerLabel } = await import('../services/deployDispatcher');
+      const result = await deploySite(site.id, site.deploymentType);
+
+      await logAdminAction({
+        adminId: adminUser.id,
+        adminEmail: adminUser.email,
+        action: 'REBUILD_QA_SITE',
+        targetId: site.userId,
+        details: {
+          handle: owner.rows[0].handle,
+          siteId: site.id,
+          slug: site.slug,
+          deploymentType: site.deploymentType,
+          ok: result.ok !== false,
+          filesCount: result.filesCount,
+          durationMs: result.durationMs,
+        },
+        ipAddress: req.ip,
+      });
+
+      if (result.ok === false) {
+        res.status(502).json({ ok: false, error: result.error || result.message || 'Publish failed.' });
+        return;
+      }
+      res.json({
+        ok: true,
+        message: `Rebuilt "${site.name}" and published ${result.filesCount} files to ${providerLabel(site.deploymentType)} in ${(result.durationMs / 1000).toFixed(1)}s.`,
+        filesCount: result.filesCount,
+        durationMs: result.durationMs,
+        galleryUrl: qaSite.galleryUrl,
+        lastDeployedAt: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      console.error('[:> QA SITE REBUILD ERROR]', err);
+      // Operator-only route: the raw host error is the useful part when testing
+      res.status(500).json({ ok: false, error: err?.message || 'Rebuild failed.' });
     }
   }
 );

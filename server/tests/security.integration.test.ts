@@ -1009,6 +1009,68 @@ describe('Admin & QA tooling guardrails', () => {
     assert.ok(!(await generateUniqueHandle('qa_mallory')).startsWith('qa_'), 'auto-generated handles never get the qa_ prefix');
   });
 
+  test('QA fleet: themes are applied, galleries are listed, and one site can be rebuilt', async () => {
+    const { FAKE_HOST_API_KEY } = await import('./helpers/sandbox');
+    const sysop = await login(sb.base, ADMIN_EMAIL);
+    const H = { ...bearer(sysop.token), 'x-neogram-sysop-op': '1' };
+
+    const prov = await fetch(`${sb.base}/api/admin/qa-fleet/provision`, { method: 'POST', headers: H, body: JSON.stringify({ mode: 'fleet12' }) });
+    assert.equal(prov.status, 200, await prov.clone().text());
+    const fleet = (await prov.json()).qaFleet as any[];
+    const alice = fleet.find((u) => u.handle === 'qa_alice');
+    const cyber = fleet.find((u) => u.handle === 'qa_cyberpunk');
+    const aliceMain = alice.sites.find((s: any) => s.slug === 'main');
+    const aliceZine = alice.sites.find((s: any) => s.slug === 'zine');
+    assert.match(aliceMain.customCssUrl, /\/qa-themes\/geocities\.css$/);
+    assert.match(aliceZine.customCssUrl, /\/qa-themes\/zine\.css$/);
+    assert.equal(cyber.sites[0].customCssUrl, 'https://neogramtest.neocities.org/neogram-custom.css');
+    assert.equal(aliceMain.galleryUrl, 'https://chemicalmachine.neocities.org/neogram/');
+    assert.equal(aliceMain.themeLabel, 'geocities');
+
+    // An operator-chosen stylesheet survives re-provisioning
+    await q(`UPDATE sites SET custom_css_url = 'https://example.org/mine.css' WHERE id = $1`, [aliceZine.id]);
+    const again = await (await fetch(`${sb.base}/api/admin/qa-fleet/provision`, { method: 'POST', headers: H, body: JSON.stringify({ mode: 'fleet12' }) })).json();
+    const zine2 = again.qaFleet.find((u: any) => u.handle === 'qa_alice').sites.find((s: any) => s.slug === 'zine');
+    assert.equal(zine2.customCssUrl, 'https://example.org/mine.css');
+
+    const page = await (await fetch(`${sb.base}/admin`, { headers: bearer(sysop.token) })).text();
+    assert.ok(page.includes('QA_GALLERIES.LST'), 'gallery list renders');
+    assert.ok(page.includes('href="https://chemicalmachine.neocities.org/neogram/"'), 'gallery link renders');
+
+    // Guardrails: real members' sites and keyless QA sites are refused
+    const memberSite = (await q(`SELECT id FROM sites WHERE user_id = $1 LIMIT 1`, [bob.userId])).rows[0];
+    if (memberSite) {
+      const r = await fetch(`${sb.base}/api/admin/qa-fleet/sites/${memberSite.id}/rebuild`, { method: 'POST', headers: H });
+      assert.equal(r.status, 404, 'rebuild must not touch real members');
+    }
+    const keyless = await fetch(`${sb.base}/api/admin/qa-fleet/sites/${aliceMain.id}/rebuild`, { method: 'POST', headers: H });
+    assert.equal(keyless.status, 400);
+    const noHeader = await fetch(`${sb.base}/api/admin/qa-fleet/sites/${aliceMain.id}/rebuild`, { method: 'POST', headers: bearer(sysop.token) });
+    assert.ok(noHeader.status >= 400, 'sysop mutation header is required');
+    const notAdmin = await fetch(`${sb.base}/api/admin/qa-fleet/sites/${aliceMain.id}/rebuild`, { method: 'POST', headers: { ...bearer(bob.token), 'x-neogram-sysop-op': '1' } });
+    assert.ok(notAdmin.status >= 400, 'non-admins are refused');
+
+    // Attach a (fake) key and the custom CSS through the site editor, then rebuild just that site
+    const save = await fetch(`${sb.base}/api/admin/qa-fleet/${alice.id}/sites`, {
+      method: 'POST', headers: H,
+      body: JSON.stringify({ siteId: aliceMain.id, apiKey: FAKE_HOST_API_KEY, customCssUrl: 'https://neogram.club/qa-themes/win95.css' }),
+    });
+    assert.equal(save.status, 200, await save.clone().text());
+    assert.equal((await save.json()).site.customCssUrl, 'https://neogram.club/qa-themes/win95.css');
+
+    const rebuild = await fetch(`${sb.base}/api/admin/qa-fleet/sites/${aliceMain.id}/rebuild`, { method: 'POST', headers: H });
+    const body = await rebuild.json();
+    assert.equal(rebuild.status, 200, JSON.stringify(body));
+    assert.ok(body.ok && body.filesCount > 0);
+    assert.equal(body.galleryUrl, 'https://chemicalmachine.neocities.org/neogram/');
+    const audit = await q(`SELECT 1 FROM admin_audit_logs WHERE action = 'REBUILD_QA_SITE'`);
+    assert.ok(audit.rows.length > 0, 'rebuild is audited');
+    const fsMod = await import('fs/promises');
+    const pathMod = await import('path');
+    const html = await fsMod.readFile(pathMod.join(process.cwd(), 'dist/static-galleries', aliceMain.id, 'index.html'), 'utf8');
+    assert.ok(html.includes('href="https://neogram.club/qa-themes/win95.css"'), 'built gallery links the custom stylesheet');
+  });
+
   test('PUT /api/posts/:id rejects non-string fields and caps lengths', async () => {
     const { savePost, getPostsForUser } = await import('../services/postStorage');
     const id = crypto.randomUUID();

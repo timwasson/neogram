@@ -1,0 +1,42 @@
+/* QA theme: photocopied zine. Linked as a site's Custom CSS URL by the /admin QA fleet; not shipped to member sites. */
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&display=swap');
+
+body.neogram-site {
+  --bg-desktop: #f4f1ea;
+  --surface-window: #ffffff;
+  --surface-title: #111111;
+  --border-main: #111111;
+  --text-main: #111111;
+  --text-muted: #444444;
+  --accent-prompt: #ff2d55;
+  --accent-mac: #111111;
+  --accent-yellow: #fff200;
+  --link-color: #111111;
+  --font-mono: 'Special Elite', 'Courier New', monospace;
+  font-family: 'Special Elite', 'Courier New', monospace;
+  background-color: #f4f1ea;
+  background-image: repeating-linear-gradient(-2deg, rgba(0, 0, 0, 0.03) 0 2px, transparent 2px 7px);
+}
+.neogram-site .neogram-site__taskbar { background: #111111; border-bottom: 0; }
+.neogram-site .neogram-site__title { color: #ffffff; text-transform: uppercase; letter-spacing: 3px; }
+.neogram-site .neogram-site__tag { color: #fff200; }
+.neogram-site .neogram-card,
+.neogram-site .neogram-banner,
+.neogram-site .neogram-detail,
+.neogram-site .neogram-empty {
+  border: 2px solid #111111;
+  box-shadow: 6px 6px 0 #111111;
+}
+.neogram-site .neogram-card:nth-child(odd) { transform: rotate(-1deg); }
+.neogram-site .neogram-card:nth-child(even) { transform: rotate(1deg); }
+.neogram-site .neogram-card:hover { transform: rotate(0deg) scale(1.02); }
+.neogram-site .neogram-card__media { background: #ffffff; }
+.neogram-site .neogram-card__image,
+.neogram-site .neogram-detail__image { filter: grayscale(1) contrast(1.4); }
+.neogram-site .neogram-card__header,
+.neogram-site .neogram-banner__header,
+.neogram-site .neogram-detail__header,
+.neogram-site .neogram-comments__header { background: #111111; color: #ffffff; text-transform: uppercase; }
+.neogram-site .neogram-card__caption { background: #fff200; display: inline; padding: 0 4px; }
+.neogram-site .neogram-btn { border: 2px solid #111111; background: #ffffff; box-shadow: 3px 3px 0 #ff2d55; }
+.neogram-site .neogram-site__footer { background: #f4f1ea; border-top: 2px dashed #111111; }

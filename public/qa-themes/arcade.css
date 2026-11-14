@@ -1,0 +1,50 @@
+/* QA theme: arcade cabinet. Linked as a site's Custom CSS URL by the /admin QA fleet; not shipped to member sites. */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+body.neogram-site {
+  --bg-desktop: #0b0b1e;
+  --surface-window: #14143a;
+  --surface-title: #ff004d;
+  --border-main: #29adff;
+  --text-main: #fff1e8;
+  --text-muted: #83769c;
+  --accent-prompt: #00e436;
+  --accent-mac: #ffec27;
+  --accent-yellow: #ffec27;
+  --link-color: #ffec27;
+  --font-mono: 'Press Start 2P', monospace;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  line-height: 1.8;
+  color: #fff1e8;
+  background-color: #0b0b1e;
+  background-image:
+    linear-gradient(rgba(41, 173, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(41, 173, 255, 0.12) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.neogram-site .neogram-site__taskbar,
+.neogram-site .neogram-site__footer { background: #000000; border-color: #ff004d; }
+.neogram-site .neogram-site__title { color: #ffec27; text-shadow: 3px 3px 0 #ff004d; }
+.neogram-site .neogram-site__title::after { content: '  1UP'; color: #00e436; animation: qa-arcade-blink 1s steps(1) infinite; }
+.neogram-site .neogram-site__footer-url,
+.neogram-site .neogram-profile__handle,
+.neogram-site .neogram-card__caption,
+.neogram-site .neogram-detail__caption { color: #fff1e8; }
+.neogram-site .neogram-card,
+.neogram-site .neogram-banner,
+.neogram-site .neogram-detail,
+.neogram-site .neogram-empty,
+.neogram-site .neogram-profile {
+  border: 4px solid #29adff;
+  box-shadow: 0 0 0 4px #000000, 0 0 18px rgba(41, 173, 255, 0.6);
+}
+.neogram-site .neogram-card__header,
+.neogram-site .neogram-banner__header,
+.neogram-site .neogram-detail__header,
+.neogram-site .neogram-comments__header { background: #ff004d; color: #ffffff; font-size: 9px; }
+.neogram-site .neogram-card__image,
+.neogram-site .neogram-detail__image { image-rendering: pixelated; }
+.neogram-site .neogram-btn { background: #ffec27; color: #000000; border: 3px solid #000000; box-shadow: 0 4px 0 #ab5236; font-size: 9px; }
+@keyframes qa-arcade-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .neogram-site .neogram-site__title::after { animation: none; } }
