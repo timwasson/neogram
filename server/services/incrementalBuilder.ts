@@ -6,7 +6,7 @@ import { config } from '../config';
 import { buildQueue } from './staticBuilder';
 import { renderPhotoPage, renderGalleryIndex, renderFriendsPage, ensureStaticAssets } from './incrementalRenderer';
 import { getCommentsRelativePath } from './staticStorage';
-import { getPostsForSite, getPostsForUser } from './postStorage';
+import { getPostsForSite, getPostsForUser, snapshotPostsFile, writeBuildJsonIfUnchanged } from './postStorage';
 import { deployFilesToNeocities, DeltaFile } from './neocitiesPublisher';
 import { deployFilesToNekoweb } from './nekowebPublisher';
 import { deployFilesToGitHub } from './githubPublisher';
@@ -324,7 +324,8 @@ export async function buildAndDeployNewPhoto(options: {
     await fs.mkdir(outputDir, { recursive: true });
     await ensureStaticAssets(outputDir);
 
-    // 1. Fetch all formatted posts
+    // 1. Fetch all formatted posts (snapshot first; see writeBuildJsonIfUnchanged)
+    const postsSnapshot = await snapshotPostsFile(outputDir);
     const formattedPosts = await fetchFormattedPosts(siteId, userId, fullSiteUrl, baseNeogramUrl);
     const newPost = formattedPosts.find((p) => p.id === postId) || formattedPosts[0];
 
@@ -360,8 +361,7 @@ export async function buildAndDeployNewPhoto(options: {
     };
     const feedJsonPath = path.join(outputDir, 'feed.json');
     const postsJsonPath = path.join(outputDir, 'posts.json');
-    await fs.writeFile(feedJsonPath, JSON.stringify(feedData, null, 2), 'utf-8');
-    await fs.writeFile(postsJsonPath, JSON.stringify(formattedPosts, null, 2), 'utf-8');
+    await writeBuildJsonIfUnchanged(outputDir, postsSnapshot, feedData, formattedPosts);
 
     // 4. Render HTML templates (only index.html and photos/<newPhotoId>/index.html)
     const deltaFiles: DeltaFile[] = [
@@ -481,7 +481,8 @@ export async function buildAndDeployComment(options: {
 
     await fs.mkdir(outputDir, { recursive: true });
 
-    // 1. Fetch updated posts
+    // 1. Fetch updated posts (snapshot first; see writeBuildJsonIfUnchanged)
+    const postsSnapshot = await snapshotPostsFile(outputDir);
     const formattedPosts = await fetchFormattedPosts(siteId, userId, fullSiteUrl, baseNeogramUrl);
     const post = formattedPosts.find((p) => p.id === postId);
 
@@ -509,8 +510,7 @@ export async function buildAndDeployComment(options: {
     };
     const feedJsonPath = path.join(outputDir, 'feed.json');
     const postsJsonPath = path.join(outputDir, 'posts.json');
-    await fs.writeFile(feedJsonPath, JSON.stringify(feedData, null, 2), 'utf-8');
-    await fs.writeFile(postsJsonPath, JSON.stringify(formattedPosts, null, 2), 'utf-8');
+    await writeBuildJsonIfUnchanged(outputDir, postsSnapshot, feedData, formattedPosts);
 
     // 3. Comments JSON relative path
     const relCommentsPath = getCommentsRelativePath(post.imagePath);

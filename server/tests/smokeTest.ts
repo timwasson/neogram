@@ -985,8 +985,8 @@ async function runSmokeTests() {
     assertTest('PUT /api/settings response reflects updated buildHtml = false', putSettingsData.settings.buildHtml === false);
 
     // 3. Verify setting persisted in PostgreSQL
-    const userDbRes = await query('SELECT build_html FROM users WHERE id = $1', [testUser.id]);
-    assertTest('build_html setting persisted as false in PostgreSQL', userDbRes.rows[0].build_html === false);
+    const userDbRes = await query('SELECT build_html FROM sites WHERE id = $1', [putSettingsData.settings.siteId]);
+    assertTest('build_html setting persisted as false on the site in PostgreSQL', userDbRes.rows[0]?.build_html === false);
 
     // 4. Trigger static build in Headless mode
     const headlessBuildRes = await buildStaticGallery({ userId: testUser.id, outputDir: userGalleryDir });
@@ -1539,14 +1539,32 @@ async function runSmokeTests() {
     assertTest('Nekoweb site target persisted with deploymentType "nekoweb"', nekoSite.deploymentType === 'nekoweb');
     assertTest('Nekoweb site target has correct Nekoweb URL', nekoSite.siteUrl === 'https://cybercat.nekoweb.org');
 
-    // 4. Test deploying Nekoweb site target locally (when no key configured)
+    // 4. Publishing a Nekoweb site without a key is refused with a clear message
     const nekoDeployRes = await fetch(`${API_BASE}/api/sites/${nekoSite.id}/deploy`, {
       method: 'POST',
       headers: { 'Cookie': sessionCookie },
     });
-    assertTest('POST /api/sites/:id/deploy for Nekoweb site returns HTTP 200', nekoDeployRes.status === 200);
     const nekoDeployData = await nekoDeployRes.json() as any;
-    assertTest('Nekoweb deploy response confirms local build success', nekoDeployData.ok === true && !!nekoDeployData.build);
+    assertTest('POST /api/sites/:id/deploy without a key returns HTTP 400', nekoDeployRes.status === 400 && nekoDeployData.needsSite === true);
+
+    // 4b. With a key, the deploy goes to Nekoweb (the site's own provider)
+    const { FAKE_HOST_API_KEY: nekoKey } = await import('./helpers/sandbox');
+    await fetch(`${API_BASE}/api/sites/${nekoSite.id}`, {
+      method: 'PUT',
+      headers: { 'Cookie': sessionCookie, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey: nekoKey }),
+    });
+    const nekoDeploy2 = await fetch(`${API_BASE}/api/sites/${nekoSite.id}/deploy`, { method: 'POST', headers: { 'Cookie': sessionCookie } });
+    const nekoDeploy2Data = await nekoDeploy2.json() as any;
+    assertTest('POST /api/sites/:id/deploy with key publishes to Nekoweb', nekoDeploy2.status === 200 && /Nekoweb/.test(nekoDeploy2Data.message || ''), JSON.stringify(nekoDeploy2Data).slice(0, 200));
+
+    // 4c. Provider mismatch on the legacy endpoint is refused
+    const mismatch = await fetch(`${API_BASE}/api/deploy/neocities`, {
+      method: 'POST',
+      headers: { 'Cookie': sessionCookie, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ siteId: nekoSite.id }),
+    });
+    assertTest('POST /api/deploy/neocities for a Nekoweb site is refused', mismatch.status === 400);
 
     // 5. Test ZIP archiver utility from nekowebPublisher
     const { zipDirectoryToBuffer } = await import('../services/nekowebPublisher');

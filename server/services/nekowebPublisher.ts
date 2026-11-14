@@ -552,54 +552,6 @@ export async function purgeRemoteNekowebPhotos(targetId: string): Promise<boolea
 }
 
 /**
- * Triggers automated background deployment to Nekoweb if auto_deploy is enabled.
- */
-export async function triggerNekowebAutoDeployIfEnabled(targetId: string): Promise<void> {
-  try {
-    const siteRes = await query(
-      `SELECT id, auto_deploy, deployment_type, deployment_credentials FROM sites WHERE id = $1`,
-      [targetId]
-    );
-
-    if (siteRes.rows.length > 0) {
-      const site = siteRes.rows[0];
-      if (!site.auto_deploy || site.deployment_type !== 'nekoweb') return;
-      const creds = decryptCredentials<NekowebCredentials>(site.deployment_credentials);
-      if (!creds || !creds.apiKey) return;
-      console.log(`[:> AUTO-DEPLOY] Nekoweb auto-deploy triggered for site ${site.id}...`);
-      deployToNekoweb(site.id, true)
-        .then((res) => console.log(`[:> NEKOWEB AUTO-DEPLOY FINISHED] Deployed ${res.filesCount} files in ${res.durationMs}ms.`))
-        .catch((err) => console.error('[:> NEKOWEB AUTO-DEPLOY ERROR]', err.message));
-      return;
-    }
-
-    const userRes = await query(
-      `SELECT id, auto_deploy, deployment_type, deployment_credentials FROM users WHERE id = $1`,
-      [targetId]
-    );
-
-    if (userRes.rows.length === 0) return;
-    const user = userRes.rows[0];
-
-    if (!user.auto_deploy || user.deployment_type !== 'nekoweb') return;
-
-    const creds = decryptCredentials<NekowebCredentials>(user.deployment_credentials);
-    if (!creds || !creds.apiKey) return;
-
-    console.log(`[:> AUTO-DEPLOY] Nekoweb auto-deploy triggered for user ${targetId}...`);
-    deployToNekoweb(targetId)
-      .then((res) => {
-        console.log(`[:> NEKOWEB AUTO-DEPLOY FINISHED] Deployed ${res.filesCount} files in ${res.durationMs}ms.`);
-      })
-      .catch((err) => {
-        console.error('[:> NEKOWEB AUTO-DEPLOY ERROR]', err.message);
-      });
-  } catch (err: any) {
-    console.error('[:> NEKOWEB AUTO-DEPLOY HOOK ERROR]', err.message);
-  }
-}
-
-/**
  * Deploys an explicit list of delta files directly to Nekoweb via POST /api/files/upload.
  * Bypasses ZIP creation and big file imports for individual/small updates.
  */
@@ -755,4 +707,3 @@ export async function deployFilesToNekoweb(
     siteUrl: deployedSiteUrl,
   };
 }
-

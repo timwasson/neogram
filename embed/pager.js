@@ -33,9 +33,16 @@
                  (widgetElement && widgetElement.getAttribute('data-position')) ||
                  'bottom-right';
 
-  // Derive API host from script source
+  // API host: explicit data-api (static galleries host pager.js on the member's own domain),
+  // otherwise the origin the script was loaded from.
   var apiHost = '';
-  if (scriptTag && scriptTag.src) {
+  var explicitApi = (scriptTag && scriptTag.getAttribute('data-api')) || (widgetElement && widgetElement.getAttribute('data-api')) || '';
+  if (explicitApi && /^https?:\/\//i.test(explicitApi)) {
+    try { apiHost = new URL(explicitApi).origin; } catch (e) { apiHost = ''; }
+  }
+  if (apiHost) {
+    // use explicit host
+  } else if (scriptTag && scriptTag.src) {
     try {
       var url = new URL(scriptTag.src);
       apiHost = url.origin;

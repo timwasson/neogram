@@ -11,7 +11,7 @@ rootPath: .
 <section class="neogram-profile" data-author="{{ site.author | upper }}">
   <div class="neogram-profile__avatar-frame">
     <img
-      src="{{ site.avatarUrl or (rel + '/icons/default-avatar.svg') }}"
+      src="{% if site.avatarUrl and site.avatarUrl.indexOf('/') == 0 %}{{ rel }}{{ site.avatarUrl }}{% else %}{{ site.avatarUrl or (rel + '/icons/default-avatar.svg') }}{% endif %}"
       alt="@{{ site.author }}"
       class="neogram-profile__avatar"
       onerror="this.onerror=null;this.src='{{ rel }}/icons/default-avatar.svg';"

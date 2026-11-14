@@ -836,21 +836,8 @@ postsRouter.put('/posts/:id', async (req: Request, res: Response, next) => {
       return;
     }
 
-    // Trigger 11ty static rebuild so static gallery immediately reflects edits
-    import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery({ siteId: updated.siteId, userId: updated.userId }))
-      .catch((err) => console.error('[:> 11ty] Rebuild error after edit:', err));
-
-    // Trigger auto-deploy if enabled
-    import('../services/neocitiesPublisher')
-      .then((m) => m.triggerAutoDeployIfEnabled(updated.siteId || updated.userId))
-      .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
-    import('../services/nekowebPublisher')
-      .then((m) => m.triggerNekowebAutoDeployIfEnabled(updated.siteId || updated.userId))
-      .catch((err) => console.error('[:> NEKOWEB AUTO-DEPLOY] Hook error:', err));
-    import('../services/githubPublisher')
-      .then((m) => m.triggerGitHubAutoDeployIfEnabled(updated.siteId || updated.userId))
-      .catch((err) => console.error('[:> GITHUB AUTO-DEPLOY] Hook error:', err));
+    const { republishSiteInBackground } = await import('../services/deployDispatcher');
+    republishSiteInBackground(updated.siteId, updated.userId, `edit post ${updated.id}`);
 
     res.json({
       ok: true,
@@ -932,20 +919,8 @@ postsRouter.delete('/posts/:id', async (req: Request, res: Response, next) => {
       }
     }
 
-    // Trigger 11ty static rebuild so the static gallery no longer contains the deleted post
-    import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery({ siteId, userId: user.id }))
-      .catch((err) => console.error('[:> 11ty] Rebuild error after delete:', err));
-
-    import('../services/neocitiesPublisher')
-      .then((m) => m.triggerAutoDeployIfEnabled(siteId || user.id))
-      .catch((err) => console.error('[:> AUTO-DEPLOY] Hook error:', err));
-    import('../services/nekowebPublisher')
-      .then((m) => m.triggerNekowebAutoDeployIfEnabled(siteId || user.id))
-      .catch((err) => console.error('[:> NEKOWEB AUTO-DEPLOY] Hook error:', err));
-    import('../services/githubPublisher')
-      .then((m) => m.triggerGitHubAutoDeployIfEnabled(siteId || user.id))
-      .catch((err) => console.error('[:> GITHUB AUTO-DEPLOY] Hook error:', err));
+    const { republishSiteInBackground } = await import('../services/deployDispatcher');
+    republishSiteInBackground(siteId, user.id, `delete post ${req.params.id}`);
 
     triggerFollowersCascade(user.id);
 

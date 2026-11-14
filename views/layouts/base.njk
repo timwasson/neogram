@@ -254,7 +254,7 @@
                         <span>{% if activeSite and activeSite.id == s.id %}▶{% else %}○{% endif %}</span>
                         <span class="truncate">{{ s.name }}</span>
                       </div>
-                      {% if s.is_default %}
+                      {% if s.isDefault %}
                         <span class="text-3xs text-prompt shrink-0">[DEFAULT]</span>
                       {% endif %}
                     </button>

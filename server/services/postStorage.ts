@@ -359,6 +359,38 @@ export async function getPostById(postId: string): Promise<PostRecord | null> {
 /**
  * Saves (inserts or updates) a post in its site's posts.json and updates feed.json.
  */
+/**
+ * Builders read posts.json at the start of a job and write feed.json/posts.json back at the end.
+ * Because posts.json is also the post store, a save that lands mid-build would be silently
+ * overwritten by the builder's stale copy. Builders take a snapshot of the file when they read and
+ * only write if it is still unchanged (checked under the same mutex savePost uses); otherwise the
+ * newer data wins and the next queued build renders it.
+ */
+export async function snapshotPostsFile(dir: string): Promise<string | null> {
+  return postsMutex.run(() => fs.readFile(path.join(dir, 'posts.json'), 'utf-8').catch(() => null));
+}
+
+export async function writeBuildJsonIfUnchanged(
+  dir: string,
+  snapshot: string | null,
+  feedData: unknown,
+  formattedPosts: unknown
+): Promise<{ written: boolean; snapshot: string | null }> {
+  return postsMutex.run(async () => {
+    const postsPath = path.join(dir, 'posts.json');
+    const current = await fs.readFile(postsPath, 'utf-8').catch(() => null);
+    if (current !== snapshot) {
+      console.warn(`[:> STATIC-BUILD] posts.json changed during build in ${path.basename(dir)}; keeping the newer copy.`);
+      return { written: false, snapshot: current };
+    }
+    const postsText = JSON.stringify(formattedPosts, null, 2);
+    await fs.mkdir(dir, { recursive: true });
+    await writeFileAtomic(path.join(dir, 'feed.json'), JSON.stringify(feedData, null, 2));
+    await writeFileAtomic(postsPath, postsText);
+    return { written: true, snapshot: postsText };
+  });
+}
+
 export async function savePost(post: PostRecord): Promise<void> {
   return postsMutex.run(() => savePostUnlocked(post));
 }

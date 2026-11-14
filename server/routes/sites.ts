@@ -158,34 +158,20 @@ sitesRouter.post('/sites/:id/deploy', async (req: Request, res: Response, next: 
       return;
     }
 
-    if (site.hasApiKey) {
-      let deployRes;
-      let hostLabel = 'Neocities';
-      if (site.deploymentType === 'nekoweb') {
-        hostLabel = 'Nekoweb';
-        const { deployToNekoweb } = await import('../services/nekowebPublisher');
-        deployRes = await deployToNekoweb(site.id, true);
-      } else if (site.deploymentType === 'github') {
-        hostLabel = 'GitHub Pages';
-        const { deployToGitHub } = await import('../services/githubPublisher');
-        deployRes = await deployToGitHub(site.id, true);
-      } else {
-        const { deployToNeocities } = await import('../services/neocitiesPublisher');
-        deployRes = await deployToNeocities(site.id, true);
-      }
-      res.json({
-        ok: true,
-        message: `Site "${site.name}" published live to ${hostLabel}!`,
-        deploy: deployRes,
-      });
-    } else {
-      const buildRes = await buildStaticGallery({ siteId: site.id });
-      res.json({
-        ok: true,
-        message: `Static gallery built locally for site "${site.name}". (Connect API key in settings to push live).`,
-        build: buildRes,
-      });
+    if (!site.hasApiKey || !site.siteUrl) {
+      res.status(400).json({ ok: false, needsSite: true, error: `Add an API key for "${site.name}" in Settings before publishing.` });
+      return;
     }
+    const { deploySite, providerLabel } = await import('../services/deployDispatcher');
+    const deployRes = await deploySite(site.id, site.deploymentType);
+    res.json({
+      ok: true,
+      message: `Published "${site.name}" to ${providerLabel(site.deploymentType)}.`,
+      filesCount: deployRes.filesCount,
+      durationMs: deployRes.durationMs,
+      siteUrl: deployRes.siteUrl,
+      deploy: deployRes,
+    });
   } catch (err: any) {
     console.error('[:> SITE DEPLOY ERROR]', err);
     res.status(500).json({ ok: false, error: 'Deployment error. Check your host credentials and try again.' });

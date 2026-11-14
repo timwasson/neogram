@@ -24,11 +24,12 @@ async function bootstrap() {
     const { ensureVapidKeys } = await import('./services/webPushService');
     await ensureVapidKeys();
 
-    const { seedInitialPostsIfEmpty } = await import('./db/seed');
-    await seedInitialPostsIfEmpty();
-
-    const { buildStaticGallery } = await import('./services/staticBuilder');
-    await buildStaticGallery();
+    // Demo seed data (sample users/posts, db-snapshot.json import) is for the local in-memory
+    // database only. It must never attach fake posts to real members in production.
+    if (dbStatus.isMemory && process.env.NODE_ENV !== 'production') {
+      const { seedInitialPostsIfEmpty } = await import('./db/seed');
+      await seedInitialPostsIfEmpty();
+    }
   } catch (err: any) {
     console.error('[:> FATAL] Failed to initialize database:', err);
     process.exit(1);

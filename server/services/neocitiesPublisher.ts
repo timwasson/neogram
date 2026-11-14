@@ -466,54 +466,6 @@ export async function purgeRemoteNeocitiesPhotos(targetId: string): Promise<bool
   }
 }
 
-/**
- * Triggers automated background deployment if the target has auto_deploy enabled.
- */
-export async function triggerAutoDeployIfEnabled(targetId: string): Promise<void> {
-  try {
-    const siteRes = await query(
-      `SELECT id, auto_deploy, deployment_credentials FROM sites WHERE id = $1`,
-      [targetId]
-    );
-
-    if (siteRes.rows.length > 0) {
-      const site = siteRes.rows[0];
-      if (!site.auto_deploy) return;
-      const creds = decryptCredentials<NeocitiesCredentials>(site.deployment_credentials);
-      if (!creds || !creds.apiKey) return;
-      console.log(`[:> AUTO-DEPLOY] Auto-deploy triggered for site ${site.id}. Processing in background...`);
-      deployToNeocities(site.id, true)
-        .then((res) => console.log(`[:> AUTO-DEPLOY FINISHED] Deployed ${res.filesCount} files in ${res.durationMs}ms.`))
-        .catch((err) => console.error('[:> AUTO-DEPLOY ERROR]', err.message));
-      return;
-    }
-
-    const userRes = await query(
-      `SELECT id, auto_deploy, deployment_credentials FROM users WHERE id = $1`,
-      [targetId]
-    );
-
-    if (userRes.rows.length === 0) return;
-    const user = userRes.rows[0];
-
-    if (!user.auto_deploy) return;
-
-    const creds = decryptCredentials<NeocitiesCredentials>(user.deployment_credentials);
-    if (!creds || !creds.apiKey) return;
-
-    console.log(`[:> AUTO-DEPLOY] Auto-deploy triggered for user ${targetId}. Processing in background...`);
-    deployToNeocities(targetId)
-      .then((res) => {
-        console.log(`[:> AUTO-DEPLOY FINISHED] Deployed ${res.filesCount} files in ${res.durationMs}ms.`);
-      })
-      .catch((err) => {
-        console.error('[:> AUTO-DEPLOY ERROR]', err.message);
-      });
-  } catch (err: any) {
-    console.error('[:> AUTO-DEPLOY HOOK ERROR]', err.message);
-  }
-}
-
 const lastNeocitiesUploadByKey = new Map<string, number>();
 
 /**
@@ -664,4 +616,3 @@ export async function deployFilesToNeocities(
     siteUrl: deployedSiteUrl,
   };
 }
-

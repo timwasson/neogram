@@ -2,14 +2,15 @@ import fs from 'fs';
 import { createRequireSession } from '../auth/requireSession';
 import path from 'path';
 import { isSafePublicUrl, normalizePublicSiteUrl } from '../utils/safeFetch';
+import { deploySite, providerLabel } from '../services/deployDispatcher';
 import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import { query } from '../db';
 import { COOKIE_NAME, verifySessionToken, extractToken, signSessionToken, setSessionCookie, clearSessionCookie } from '../auth/jwt';
 import { encryptCredentials, decryptCredentials, maskApiKey, NeocitiesCredentials } from '../utils/crypto';
-import { testNeocitiesConnection, deployToNeocities } from '../services/neocitiesPublisher';
-import { testNekowebConnection, deployToNekoweb } from '../services/nekowebPublisher';
-import { testGitHubConnection, deployToGitHub } from '../services/githubPublisher';
+import { testNeocitiesConnection } from '../services/neocitiesPublisher';
+import { testNekowebConnection } from '../services/nekowebPublisher';
+import { testGitHubConnection } from '../services/githubPublisher';
 import { processAvatarBuffer } from '../services/imageProcessor';
 import { getDefaultAvatarPath, isRemoteAvatarUrl, resolveAvatarPath } from '../utils/avatar';
 
@@ -80,10 +81,11 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
         hasCustomAvatar: isRemoteAvatarUrl(resolvedAvatar),
         siteId: activeSite ? activeSite.id : null,
         siteSlug: activeSite ? activeSite.slug : null,
-        siteUrl: activeSite ? (activeSite.siteUrl || `https://${user.handle || 'user'}.neocities.org`) : (user.site_url || `https://${user.handle || 'user'}.neocities.org`),
-        siteName: activeSite ? activeSite.name : '',
+        siteUrl: activeSite ? (activeSite.siteUrl || '') : '',
+        siteName: activeSite ? (activeSite.siteName || '') : '',
+        siteDisplayName: activeSite ? activeSite.name : '',
         deployPath: activeSite ? activeSite.deployPath : (user.deploy_path || 'neogram'),
-        deploymentType: activeSite ? (activeSite.deploymentType || 'neocities') : (user.deployment_type || 'none'),
+        deploymentType: activeSite ? (activeSite.deploymentType || 'neocities') : 'neocities',
         hasApiKey: activeSite ? activeSite.hasApiKey : false,
         maskedApiKey: activeSite ? activeSite.maskedApiKey : '',
         autoDeploy: activeSite ? activeSite.autoDeploy : (user.auto_deploy || false),
@@ -278,181 +280,123 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
     const userId = (req as any).user.userId;
     const { siteUrl, siteName, apiKey, deploymentType, autoDeploy, deployPath, buildHtml } = req.body;
 
-    // Fetch existing user to preserve existing apiKey if user didn't change it
-    const existingRes = await query(
-      `SELECT id, deployment_credentials, site_url, deployment_type, auto_deploy, deploy_path, build_html
-       FROM users
-       WHERE id = $1`,
-      [userId]
-    );
+    const userRes = await query('SELECT id, handle FROM users WHERE id = $1', [userId]);
+    if (userRes.rows.length === 0) {
+      res.status(404).json({ ok: false, error: 'Account not found.' });
+      return;
+    }
+    const handle: string = userRes.rows[0].handle || 'user';
 
-    if (existingRes.rows.length === 0) {
-      res.status(404).json({ ok: false, error: 'User node not found.' });
+    // All hosting settings belong to one site row. The legacy users.* deployment columns are no
+    // longer written: they drifted out of sync with the sites table and leaked between sites.
+    const { getDefaultSite, getSiteById, updateSite, createSite, getUserSites } = await import('../services/siteService');
+    const targetSiteId = typeof req.body.siteId === 'string' && req.body.siteId ? req.body.siteId : '';
+    const existing = targetSiteId ? await getSiteById(targetSiteId, userId) : await getDefaultSite(userId);
+    if (targetSiteId && !existing) {
+      res.status(404).json({ ok: false, error: 'Site not found.' });
       return;
     }
 
-    const existingUser = existingRes.rows[0];
-    let creds: any = decryptCredentials<any>(existingUser.deployment_credentials) || { apiKey: '' };
+    const allowedTypes = ['neocities', 'nekoweb', 'github'];
+    const finalDeployType: string = allowedTypes.includes(deploymentType)
+      ? deploymentType
+      : (existing?.deploymentType && allowedTypes.includes(existing.deploymentType) ? existing.deploymentType : 'neocities');
 
-    // If a new API key was provided (and not just masked stars)
-    if (apiKey && typeof apiKey === 'string' && !apiKey.startsWith('••••') && apiKey.trim().length > 0) {
-      creds.apiKey = apiKey.trim();
-    }
+    const cleanSiteName = typeof siteName === 'string' ? siteName.trim() : '';
+    const repo = typeof req.body.repo === 'string' ? req.body.repo.trim() : '';
+    const branch = typeof req.body.branch === 'string' ? req.body.branch.trim() : '';
 
-    if (siteName && typeof siteName === 'string') {
-      creds.siteName = siteName.trim();
-    }
-
-    if (req.body.repo && typeof req.body.repo === 'string') {
-      creds.repo = req.body.repo.trim();
-    }
-
-    if (req.body.branch && typeof req.body.branch === 'string') {
-      creds.branch = req.body.branch.trim();
-    }
-
-    const encryptedCreds = encryptCredentials(creds);
-
-    let finalSiteUrl = existingUser.site_url;
-    if (siteUrl && typeof siteUrl === 'string') {
+    let finalSiteUrl: string | undefined;
+    if (typeof siteUrl === 'string' && siteUrl.trim()) {
       const trimmed = siteUrl.trim();
-      if (trimmed.length > 0) {
-        if (!/^https?:\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=]+$/i.test(trimmed)) {
-          res.status(400).json({
-            ok: false,
-            error: 'Site URL must be a valid HTTP or HTTPS address (e.g. https://yoursite.neocities.org).',
-          });
-          return;
-        }
-        if (!isSafePublicUrl(trimmed)) {
-          res.status(400).json({
-            ok: false,
-            error: 'Site URL must be a public https:// address (private/internal hosts are not allowed).',
-          });
-          return;
-        }
-        finalSiteUrl = normalizePublicSiteUrl(trimmed).slice(0, 500);
-      }
-    }
-
-    const finalDeployType = deploymentType || existingUser.deployment_type || 'neocities';
-    if (!finalSiteUrl && (creds.siteName || creds.repo)) {
-      if (finalDeployType === 'github') {
-        const { parseRepoString } = await import('../services/githubPublisher');
-        const parsed = parseRepoString(creds.repo || creds.siteName || '', existingUser.handle || 'user');
-        if (parsed.repo) {
-          creds.repo = `${parsed.owner}/${parsed.repo}`;
-          creds.siteName = creds.repo;
-          finalSiteUrl = `https://${parsed.owner}.github.io/${parsed.repo}`;
-        }
-      } else {
-        const hostDomain = finalDeployType === 'nekoweb' ? 'nekoweb.org' : 'neocities.org';
-        finalSiteUrl = `https://${creds.siteName}.${hostDomain}`;
-      }
-    }
-    // URLs derived from a free-text siteName / repo must pass the same canonicalisation as typed URLs
-    if (finalSiteUrl && finalSiteUrl !== existingUser.site_url) {
-      try {
-        finalSiteUrl = normalizePublicSiteUrl(finalSiteUrl).slice(0, 500);
-      } catch {
-        res.status(400).json({ ok: false, error: 'Site name produces an invalid site address. Use letters, numbers and hyphens only.' });
+      if (!/^https?:\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=]+$/i.test(trimmed)) {
+        res.status(400).json({ ok: false, error: 'Site URL must start with https:// (for example https://yoursite.neocities.org).' });
         return;
       }
-    }
-    const finalAutoDeploy = typeof autoDeploy === 'boolean' ? autoDeploy : !!existingUser.auto_deploy;
-    const finalBuildHtml = typeof buildHtml === 'boolean' ? buildHtml : (existingUser.build_html !== false);
-
-    // Sanitize deploy_path (alphanumeric/hyphen/underscore whitelist, max 50 chars, or empty for root)
-    let finalDeployPath = existingUser.deploy_path !== null ? existingUser.deploy_path : 'neogram';
-    if (deployPath !== undefined && deployPath !== null) {
-      const cleanPath = String(deployPath).trim().replace(/^\/+|\/+$/g, '');
-      if (cleanPath.length > 0) {
-        if (!/^[a-zA-Z0-9_-]{1,50}$/.test(cleanPath)) {
-          res.status(400).json({
-            ok: false,
-            error: 'Target subfolder must only contain letters, numbers, underscores, and hyphens (max 50 chars).',
-          });
+      if (!isSafePublicUrl(trimmed)) {
+        res.status(400).json({ ok: false, error: 'Site URL must be a public https:// address.' });
+        return;
+      }
+      finalSiteUrl = normalizePublicSiteUrl(trimmed).slice(0, 500);
+    } else if (!existing?.siteUrl && (cleanSiteName || repo)) {
+      let derived = '';
+      if (finalDeployType === 'github') {
+        const { parseRepoString } = await import('../services/githubPublisher');
+        const parsed = parseRepoString(repo || cleanSiteName, handle);
+        if (parsed.repo) derived = `https://${parsed.owner}.github.io/${parsed.repo}`;
+      } else {
+        derived = `https://${cleanSiteName}.${finalDeployType === 'nekoweb' ? 'nekoweb.org' : 'neocities.org'}`;
+      }
+      if (derived) {
+        try {
+          finalSiteUrl = normalizePublicSiteUrl(derived).slice(0, 500);
+        } catch {
+          res.status(400).json({ ok: false, error: 'That site name makes an invalid address. Use letters, numbers and hyphens only.' });
           return;
         }
-        finalDeployPath = cleanPath;
-      } else {
-        finalDeployPath = ''; // Root deploy
       }
     }
 
-    await query(
-      `UPDATE users
-       SET site_url = $1,
-           deployment_type = $2,
-           deployment_credentials = $3,
-           auto_deploy = $4,
-           deploy_path = $5,
-           build_html = $6,
-           updated_at = NOW()
-       WHERE id = $7`,
-      [finalSiteUrl, finalDeployType, encryptedCreds, finalAutoDeploy, finalDeployPath, finalBuildHtml, userId]
-    );
-
-    // Also synchronize corresponding site in sites table
-    const { getDefaultSite, getSiteById, updateSite, createSite, getUserSites } = await import('../services/siteService');
-    const targetSiteId = req.body.siteId as string;
-    let siteToUpdate = targetSiteId ? await getSiteById(targetSiteId, userId) : await getDefaultSite(userId);
-    let updatedSite: any = null;
-    if (siteToUpdate) {
-      updatedSite = await updateSite(siteToUpdate.id, userId, {
-        name: siteName || siteToUpdate.name,
-        siteUrl: finalSiteUrl,
-        deploymentType: finalDeployType,
-        deployPath: finalDeployPath,
-        apiKey: apiKey && !apiKey.startsWith('••••') ? apiKey : undefined,
-        siteName: creds.siteName,
-        repo: creds.repo,
-        branch: creds.branch,
-        autoDeploy: finalAutoDeploy,
-        buildHtml: finalBuildHtml,
-      });
-    } else if (siteName || finalSiteUrl || creds.apiKey) {
-      // User is configuring their first static site target via settings
-      updatedSite = await createSite(userId, {
-        name: siteName || `${existingUser.handle ? existingUser.handle.toUpperCase() : 'Personal'} Site`,
-        siteUrl: finalSiteUrl,
-        deploymentType: finalDeployType,
-        deployPath: finalDeployPath,
-        apiKey: apiKey && !apiKey.startsWith('••••') ? apiKey : undefined,
-        siteName: creds.siteName,
-        repo: creds.repo,
-        branch: creds.branch,
-        autoDeploy: finalAutoDeploy,
-        buildHtml: finalBuildHtml,
-        isDefault: true,
-      });
+    let finalDeployPath: string | undefined;
+    if (deployPath !== undefined && deployPath !== null) {
+      const cleanPath = String(deployPath).trim().replace(/^\/+|\/+$/g, '');
+      if (cleanPath.length > 0 && !/^[a-zA-Z0-9_-]{1,50}$/.test(cleanPath)) {
+        res.status(400).json({ ok: false, error: 'Folder name can only use letters, numbers, underscores and hyphens (max 50).' });
+        return;
+      }
+      finalDeployPath = cleanPath;
     }
 
-    console.log(`[:> SETTINGS] Updated deployment settings for user ${userId} (deployPath: "${finalDeployPath}", buildHtml: ${finalBuildHtml})`);
+    const newKey = typeof apiKey === 'string' && apiKey.trim() && !apiKey.startsWith('••••') ? apiKey.trim() : undefined;
+    const common = {
+      siteUrl: finalSiteUrl,
+      deploymentType: finalDeployType,
+      deployPath: finalDeployPath,
+      apiKey: newKey,
+      siteName: cleanSiteName || undefined,
+      repo: repo || undefined,
+      branch: branch || undefined,
+      autoDeploy: typeof autoDeploy === 'boolean' ? autoDeploy : undefined,
+      buildHtml: typeof buildHtml === 'boolean' ? buildHtml : undefined,
+    };
 
-    // Trigger static gallery rebuild in background with new settings
+    let updatedSite: any;
+    if (existing) {
+      updatedSite = await updateSite(existing.id, userId, common);
+    } else if (finalSiteUrl || newKey) {
+      updatedSite = await createSite(userId, { ...common, name: `@${handle}'s site`, isDefault: true });
+    } else {
+      res.status(400).json({ ok: false, error: 'Enter your site address or API key to connect a site.' });
+      return;
+    }
+
     import('../services/staticBuilder')
-      .then((m) => m.buildStaticGallery({ siteId: updatedSite ? updatedSite.id : undefined, userId }))
+      .then((m) => m.buildStaticGallery({ siteId: updatedSite.id, userId }))
       .catch((err) => console.error('[:> 11ty] Settings rebuild error:', err));
 
     res.json({
       ok: true,
-      message: 'Deployment settings saved and encrypted in database.',
+      message: 'Settings saved.',
       settings: {
-        siteId: updatedSite ? updatedSite.id : undefined,
-        siteSlug: updatedSite ? updatedSite.slug : undefined,
-        siteUrl: finalSiteUrl,
-        siteName: creds.siteName || (updatedSite ? updatedSite.name : ''),
-        deployPath: finalDeployPath,
-        deploymentType: finalDeployType,
-        hasApiKey: !!creds.apiKey,
-        maskedApiKey: maskApiKey(creds.apiKey),
-        autoDeploy: finalAutoDeploy,
-        buildHtml: finalBuildHtml,
+        siteId: updatedSite.id,
+        siteSlug: updatedSite.slug,
+        siteUrl: updatedSite.siteUrl,
+        siteName: updatedSite.siteName || '',
+        siteDisplayName: updatedSite.name,
+        deployPath: updatedSite.deployPath,
+        deploymentType: updatedSite.deploymentType,
+        hasApiKey: updatedSite.hasApiKey,
+        maskedApiKey: updatedSite.maskedApiKey,
+        autoDeploy: updatedSite.autoDeploy,
+        buildHtml: updatedSite.buildHtml,
         sites: await getUserSites(userId),
       },
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err && typeof err.message === 'string' && /Site URL|slug|CSS/.test(err.message)) {
+      res.status(400).json({ ok: false, error: err.message });
+      return;
+    }
     next(err);
   }
 });
@@ -723,29 +667,40 @@ settingsRouter.post('/settings/test-connection', async (req: Request, res: Respo
  * Resolves a deploy target strictly within the caller's own stations. A foreign siteId (or a raw
  * userId) is never passed to the publishers, which load and use that target's stored credentials.
  */
-async function resolveOwnedDeployTarget(userId: string, rawSiteId: unknown): Promise<{ targetId: string; isSiteId: boolean } | null> {
-  const { getSiteById } = await import('../services/siteService');
-  if (rawSiteId !== undefined && rawSiteId !== null && rawSiteId !== '') {
-    if (typeof rawSiteId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawSiteId)) return null;
-    const site = await getSiteById(rawSiteId, userId);
-    return site ? { targetId: site.id, isSiteId: true } : null;
-  }
-  return { targetId: userId, isSiteId: false };
-}
-
 /**
- * 4. POST /api/deploy/neocities - Trigger immediate live deployment of user's 11ty static gallery
+ * 4. POST /api/deploy/:provider - Publish one of the caller's sites now.
+ * Kept for API compatibility; the workstation uses POST /api/sites/:id/deploy. The provider in the
+ * URL must match the site's saved provider so a key is never sent to the wrong host.
  */
-settingsRouter.post('/deploy/neocities', async (req: Request, res: Response, next: NextFunction) => {
+settingsRouter.post('/deploy/:provider', async (req: Request, res: Response) => {
+  const provider = req.params.provider;
   try {
-    const userId = (req as any).user.userId;
-    const target = await resolveOwnedDeployTarget(userId, req.body?.siteId || req.query?.siteId);
-    if (!target) {
-      res.status(404).json({ ok: false, error: 'Site target not found or access denied.' });
+    if (!['neocities', 'nekoweb', 'github'].includes(provider)) {
+      res.status(404).json({ ok: false, error: 'Unknown host provider.' });
       return;
     }
-    const { targetId, isSiteId } = target;
-    const deployResult = await deployToNeocities(targetId, isSiteId);
+    const userId = (req as any).user.userId;
+    const { getSiteById, getDefaultSite } = await import('../services/siteService');
+    const rawSiteId = req.body?.siteId || req.query?.siteId;
+    let site = null;
+    if (rawSiteId) {
+      if (typeof rawSiteId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawSiteId)) {
+        res.status(404).json({ ok: false, error: 'Site not found.' });
+        return;
+      }
+      site = await getSiteById(rawSiteId, userId);
+    } else {
+      site = await getDefaultSite(userId);
+    }
+    if (!site) {
+      res.status(404).json({ ok: false, error: 'Site not found.' });
+      return;
+    }
+    if ((site.deploymentType || 'neocities') !== provider) {
+      res.status(400).json({ ok: false, error: `This site is set up for ${providerLabel(site.deploymentType)}, not ${providerLabel(provider)}.` });
+      return;
+    }
+    const deployResult = await deploySite(site.id, site.deploymentType);
     res.json({
       ok: true,
       message: deployResult.message,
@@ -754,66 +709,7 @@ settingsRouter.post('/deploy/neocities', async (req: Request, res: Response, nex
       siteUrl: deployResult.siteUrl,
     });
   } catch (err: any) {
-    res.status(400).json({
-      ok: false,
-      error: err.message || 'Deployment to Neocities failed.',
-    });
-  }
-});
-
-/**
- * 4b. POST /api/deploy/nekoweb - Trigger immediate live deployment to Nekoweb
- */
-settingsRouter.post('/deploy/nekoweb', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const userId = (req as any).user.userId;
-    const target = await resolveOwnedDeployTarget(userId, req.body?.siteId || req.query?.siteId);
-    if (!target) {
-      res.status(404).json({ ok: false, error: 'Site target not found or access denied.' });
-      return;
-    }
-    const { targetId, isSiteId } = target;
-    const deployResult = await deployToNekoweb(targetId, isSiteId);
-    res.json({
-      ok: true,
-      message: deployResult.message,
-      filesCount: deployResult.filesCount,
-      durationMs: deployResult.durationMs,
-      siteUrl: deployResult.siteUrl,
-    });
-  } catch (err: any) {
-    res.status(400).json({
-      ok: false,
-      error: err.message || 'Deployment to Nekoweb failed.',
-    });
-  }
-});
-
-/**
- * 4c. POST /api/deploy/github - Trigger immediate live deployment to GitHub Pages
- */
-settingsRouter.post('/deploy/github', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const userId = (req as any).user.userId;
-    const target = await resolveOwnedDeployTarget(userId, req.body?.siteId || req.query?.siteId);
-    if (!target) {
-      res.status(404).json({ ok: false, error: 'Site target not found or access denied.' });
-      return;
-    }
-    const { targetId, isSiteId } = target;
-    const deployResult = await deployToGitHub(targetId, isSiteId);
-    res.json({
-      ok: true,
-      message: deployResult.message,
-      filesCount: deployResult.filesCount,
-      durationMs: deployResult.durationMs,
-      siteUrl: deployResult.siteUrl,
-    });
-  } catch (err: any) {
-    res.status(400).json({
-      ok: false,
-      error: err.message || 'Deployment to GitHub Pages failed.',
-    });
+    res.status(400).json({ ok: false, error: err.message || `Publishing to ${providerLabel(provider)} failed.` });
   }
 });
 
@@ -895,10 +791,11 @@ settingsRouter.delete('/settings/account', async (req: Request, res: Response, n
 
     const path = await import('path');
     const fs = await import('fs/promises');
-    const staticDir = path.join(process.cwd(), 'dist', 'static-galleries', userId);
-    try {
-      await fs.rm(staticDir, { recursive: true, force: true });
-    } catch (_rmErr) {}
+    const siteRows = await query('SELECT id FROM sites WHERE user_id = $1', [userId]);
+    for (const id of [userId, ...siteRows.rows.map((r: any) => String(r.id))]) {
+      if (!/^[0-9a-f-]{36}$/i.test(id)) continue;
+      await fs.rm(path.join(process.cwd(), 'dist', 'static-galleries', id), { recursive: true, force: true }).catch(() => {});
+    }
 
     // Cascade delete user and all related records from PostgreSQL
     await query('DELETE FROM users WHERE id = $1', [userId]);
@@ -907,7 +804,7 @@ settingsRouter.delete('/settings/account', async (req: Request, res: Response, n
 
     res.json({
       ok: true,
-      message: 'Station decommissioned cleanly. All local credentials and database records permanently purged.',
+      message: 'Your account has been deleted. Files on your own website were not touched.',
     });
   } catch (err) {
     next(err);

@@ -913,27 +913,3 @@ export async function purgeRemoteGitHubPhotos(targetId: string): Promise<number>
     return 0;
   }
 }
-
-/**
- * Triggers deployment if auto_deploy is enabled for site or user.
- */
-export async function triggerGitHubAutoDeployIfEnabled(targetId: string): Promise<void> {
-  try {
-    const siteRes = await query('SELECT auto_deploy FROM sites WHERE id = $1', [targetId]);
-    if (siteRes.rows.length > 0 && siteRes.rows[0].auto_deploy) {
-      deployToGitHub(targetId, true).catch((err) =>
-        console.error(`[:> GITHUB AUTO-DEPLOY] Error deploying site ${targetId}:`, err)
-      );
-      return;
-    }
-
-    const userRes = await query('SELECT auto_deploy FROM users WHERE id = $1', [targetId]);
-    if (userRes.rows.length > 0 && userRes.rows[0].auto_deploy) {
-      deployToGitHub(targetId, false).catch((err) =>
-        console.error(`[:> GITHUB AUTO-DEPLOY] Error deploying user ${targetId}:`, err)
-      );
-    }
-  } catch (err) {
-    console.error('[:> GITHUB AUTO-DEPLOY CHECK ERROR]', err);
-  }
-}

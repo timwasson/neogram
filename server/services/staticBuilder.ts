@@ -459,8 +459,10 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
     );
 
     // 1. Fetch posts from static storage
-    const { getPostsForSite, getPostsForUser, getAllPosts } = await import('./postStorage');
+    const { getPostsForSite, getPostsForUser, getAllPosts, snapshotPostsFile, writeBuildJsonIfUnchanged } = await import('./postStorage');
     const { getCommentsRelativePath } = await import('./staticStorage');
+    // Snapshot before reading so a post saved mid-build is never overwritten by this build's copy.
+    let postsSnapshot = await snapshotPostsFile(targetOutputDir);
 
     const rawPosts = siteId
       ? await getPostsForSite(siteId)
@@ -803,7 +805,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
         followUrl: `${baseNeogramUrl}/api/users/${author}/follow`,
         unfollowUrl: `${baseNeogramUrl}/api/users/${author}/follow`,
         guestbookUrl: `${baseNeogramUrl}/api/guestbook/${authorUin || author}`,
-        counterUrl: `${baseNeogramUrl}/api/counter/${author}.svg`,
+        counterUrl: `${baseNeogramUrl}/counter/${author}.svg`,
         feedUrl: `${fullSiteUrl}/feed.json`,
       },
       posts: formattedPosts,
@@ -811,10 +813,11 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
     };
 
     await fs.mkdir(targetOutputDir, { recursive: true });
-    const feedJsonOutPath = path.join(targetOutputDir, 'feed.json');
-    const postsJsonOutPath = path.join(targetOutputDir, 'posts.json');
-    await fs.writeFile(feedJsonOutPath, JSON.stringify(feedData, null, 2), 'utf-8');
-    await fs.writeFile(postsJsonOutPath, JSON.stringify(formattedPosts, null, 2), 'utf-8');
+    const writeJsonOutputs = async () => {
+      const r = await writeBuildJsonIfUnchanged(targetOutputDir, postsSnapshot, feedData, formattedPosts);
+      postsSnapshot = r.snapshot;
+    };
+    await writeJsonOutputs();
 
     // Capture counter snapshot to data/counter.json if user has a counter configured
     const { getCounterRelativePath, getCounterSnapshot } = await import('./staticStorage');
@@ -843,8 +846,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
       await elev.write();
 
       // Re-ensure self-hosted feed.json and posts.json are preserved in targetOutputDir
-      await fs.writeFile(feedJsonOutPath, JSON.stringify(feedData, null, 2), 'utf-8');
-      await fs.writeFile(postsJsonOutPath, JSON.stringify(formattedPosts, null, 2), 'utf-8');
+      await writeJsonOutputs();
 
       const durationMs = Date.now() - startTime;
       console.log(`[:> 11ty] Static gallery compiled (HTML + JSON): ${posts.length} photos in ${durationMs}ms -> ${targetOutputDir}`);
@@ -860,8 +862,7 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
       await cleanHtmlArtifacts(targetOutputDir);
 
       // Re-write feed.json and posts.json in targetOutputDir
-      await fs.writeFile(feedJsonOutPath, JSON.stringify(feedData, null, 2), 'utf-8');
-      await fs.writeFile(postsJsonOutPath, JSON.stringify(formattedPosts, null, 2), 'utf-8');
+      await writeJsonOutputs();
 
       const durationMs = Date.now() - startTime;
       console.log(`[:> STATIC-BUILD] Headless API mode active for ${userId || 'station'}: ${posts.length} photos in JSON feeds (${durationMs}ms) -> ${targetOutputDir} (HTML generation skipped)`);

@@ -70,32 +70,26 @@ apiRouter.post('/build-static', async (req: Request, res: Response, next) => {
       return;
     }
 
-    // Check if user has Neocities credentials linked for live deployment
-    const { query } = await import('../db');
-    const { decryptCredentials } = await import('../utils/crypto');
-    const userRes = await query('SELECT deployment_credentials FROM users WHERE id = $1', [userId]);
-    const userRow = userRes.rows[0];
-    const creds = userRow?.deployment_credentials
-      ? decryptCredentials<{ apiKey?: string }>(userRow.deployment_credentials)
-      : null;
-
-    if (creds && creds.apiKey && creds.apiKey.trim()) {
-      const { deployToNeocities } = await import('../services/neocitiesPublisher');
-      const deployResult = await deployToNeocities(userId);
+    // Publish the requested (or default) site to its own provider. Never reads the legacy
+    // users.deployment_credentials, which could send one provider's key to another host.
+    const { getSiteById, getDefaultSite } = await import('../services/siteService');
+    const reqSiteId = typeof req.body?.siteId === 'string' ? req.body.siteId : '';
+    const site = reqSiteId ? await getSiteById(reqSiteId, userId) : await getDefaultSite(userId);
+    if (site && site.hasApiKey && site.siteUrl) {
+      const { deploySite, providerLabel } = await import('../services/deployDispatcher');
+      const deployResult = await deploySite(site.id, site.deploymentType);
       res.json({
         ok: true,
         deployed: true,
         siteUrl: deployResult.siteUrl,
         filesCount: deployResult.filesCount,
         durationMs: deployResult.durationMs,
-        message: 'Static site compiled and deployed live to Neocities!',
+        message: `Published to ${providerLabel(site.deploymentType)}.`,
       });
       return;
     }
 
-    const { buildStaticGallery } = await import('../services/staticBuilder');
-    const result = await buildStaticGallery({ userId });
-    res.json(result);
+    res.status(400).json({ ok: false, needsSite: true, error: 'Connect a website with an API key before publishing.' });
   } catch (err) {
     next(err);
   }

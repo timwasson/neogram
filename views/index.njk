@@ -1363,19 +1363,19 @@
                                   <span class="text-3xs text-muted">({{ s.slug }})</span>
                                 </div>
                                 <div class="flex items-center gap-1">
-                                  {% if s.is_default %}
+                                  {% if s.isDefault %}
                                     <span class="pixel-badge pixel-badge--cyan font-bold text-3xs">[PRIMARY]</span>
                                   {% endif %}
                                   {% if activeSite and activeSite.id == s.id %}
                                     <span class="pixel-badge pixel-badge--yellow font-bold text-3xs">[ACTIVE]</span>
                                   {% endif %}
-                                  <span class="pixel-badge text-3xs uppercase">{{ s.deployment_type or 'neocities' }}</span>
+                                  <span class="pixel-badge text-3xs uppercase">{{ s.deploymentType or 'neocities' }}</span>
                                 </div>
                               </div>
 
                               <div class="text-xxs text-muted flex flex-col gap-0.5">
-                                <div>URL: <a href="{{ s.site_url or '#' }}" target="_blank" class="text-mac hover:underline font-bold">{{ s.site_url or 'Not configured' }}</a></div>
-                                <div>Deploy Path: <code>/{{ s.deploy_path }}/</code> | Status: {% if s.has_api_key or s.deployment_credentials %}<span class="text-prompt">Key Connected</span>{% else %}<span class="text-amber">No API Key</span>{% endif %}</div>
+                                <div>URL: <a href="{{ s.siteUrl or '#' }}" target="_blank" class="text-mac hover:underline font-bold">{{ s.siteUrl or 'Not configured' }}</a></div>
+                                <div>Deploy Path: <code>/{{ s.deployPath }}{% if s.deployPath %}/{% endif %}</code> | Status: {% if s.hasApiKey %}<span class="text-prompt">Key Connected</span>{% else %}<span class="text-amber">No API Key</span>{% endif %}</div>
                               </div>
 
                               <div class="flex items-center gap-1.5 flex-wrap pt-1 border-t border-main mt-1">
@@ -1389,7 +1389,7 @@
                                     <span>⇄ Switch Target</span>
                                   </button>
                                 {% endif %}
-                                {% if not s.is_default %}
+                                {% if not s.isDefault %}
                                   <button
                                     type="button"
                                     onclick="handleSetDefaultSite('{{ s.id }}')"
@@ -1598,7 +1598,7 @@
                         >
                           {% for s in userSites %}
                             <option value="{{ s.id }}" {% if activeSite and activeSite.id == s.id %}selected{% endif %}>
-                              {{ s.name }} ({{ s.slug }}) {% if s.is_default %}[Primary]{% endif %}
+                              {{ s.name }} ({{ s.slug }}) {% if s.isDefault %}[Primary]{% endif %}
                             </option>
                           {% endfor %}
                         </select>
@@ -2121,12 +2121,12 @@
                       <div>
                         <div class="flex items-center justify-between mb-2">
                           <label class="block text-xs font-bold uppercase tracking-wider text-red-300">
-                            2. Danger Zone — Station Wipe:
+                            2. Delete your account
                           </label>
-                          <span class="text-3xs font-mono text-red-400 font-bold">[IRREVERSIBLE]</span>
+                          <span class="text-3xs font-mono text-red-400 font-bold">[CAN'T BE UNDONE]</span>
                         </div>
                         <p class="text-xs text-red-200 leading-relaxed font-mono m-0">
-                          Permanently purge your cyberspace station node. This cascades and deletes all posts, comments, guestbook entries, web counters, and removes your static cache from the server.
+                          Deletes your Neogram account: your profile, connected-site settings and saved keys, hit counters, guestbook copies, friends and notifications. Files already published to your own website are not touched; delete those from your host if you want them gone.
                         </p>
                       </div>
                       <div class="pt-3 border-t border-red-900">
@@ -2136,7 +2136,7 @@
                           onclick="handleDecommissionAccount()"
                           class="pixel-btn pixel-btn--danger font-bold text-xs py-2.5 px-3 w-full"
                         >
-                          <span>PERMANENTLY DECOMMISSION STATION (NUKE)</span>
+                          <span>Delete my account</span>
                         </button>
                       </div>
                     </div>
@@ -2193,7 +2193,7 @@
                     data-name="{{ s.name }}"
                     {% if activeSite and activeSite.id == s.id %}selected{% endif %}
                   >
-                    {{ s.name }} (slug: {{ s.slug }}) {% if s.is_default %}[Primary]{% endif %}
+                    {{ s.name }} (slug: {{ s.slug }}) {% if s.isDefault %}[Primary]{% endif %}
                   </option>
                 {% endfor %}
               </select>
@@ -5118,7 +5118,9 @@
     var durationLabel = document.getElementById('deployDurationLabel');
     var deployType = document.getElementById('settingsDeployType').value;
     var providerName = deployType === 'github' ? 'GitHub Pages' : (deployType === 'nekoweb' ? 'Nekoweb' : 'Neocities');
-    var deployEndpoint = deployType === 'github' ? '/api/deploy/github' : (deployType === 'nekoweb' ? '/api/deploy/nekoweb' : '/api/deploy/neocities');
+    var deploySiteId = document.getElementById('settingsSiteId') ? document.getElementById('settingsSiteId').value : '';
+    if (!deploySiteId) { alert('Save your site settings first.'); return; }
+    var deployEndpoint = '/api/sites/' + encodeURIComponent(deploySiteId) + '/deploy';
 
     deployBtn.disabled = true;
     deployBtn.textContent = 'COMPILING & COMMITTING TO ' + providerName.toUpperCase() + '...';
@@ -5149,7 +5151,7 @@
       durationLabel.textContent = 'DEPLOYED (' + data.durationMs + 'ms)';
 
       if (window.retroAudio) window.retroAudio.playSuccess();
-      loadSettings();
+      loadSettings(deploySiteId);
     } catch (err) {
       durationLabel.textContent = 'FAILED';
       appendTelemetryLog('Deployment error: ' + err.message, true);
@@ -5163,12 +5165,11 @@
 
   async function handleDecommissionAccount() {
     if (window.retroAudio) window.retroAudio.playError();
-    var confirmed = confirm('[!] DANGER: Are you absolutely sure you want to permanently decommission your station? This will wipe your account, posts, web counters, and delete all records from the server.');
-    if (!confirmed) return;
-
-    var callsignPrompt = prompt('To confirm permanent deletion, enter your station callsign (@{{ currentUser.handle }}):');
-    if (!callsignPrompt || callsignPrompt.trim().replace(/^@/, '').toLowerCase() !== '{{ currentUser.handle }}'.toLowerCase()) {
-      alert('Decommission aborted. Station callsign did not match.');
+    var handle = '{{ currentUser.handle }}';
+    var typed = prompt('This permanently deletes your Neogram account. Type your handle (' + handle + ') to confirm:');
+    if (typed === null) return;
+    if (typed.trim().replace(/^@/, '').toLowerCase() !== handle.toLowerCase()) {
+      alert("That didn't match your handle, so nothing was deleted.");
       return;
     }
 
@@ -5178,11 +5179,11 @@
         headers: { 'Content-Type': 'application/json' }
       });
       var data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to decommission station.');
-      alert(data.message || 'Station decommissioned cleanly.');
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Could not delete your account.');
+      alert(data.message || 'Your account has been deleted.');
       window.location.href = '/login';
     } catch (err) {
-      alert('Error decommissioning station: ' + err.message);
+      alert('Could not delete your account: ' + err.message);
     }
   }
 
@@ -5740,7 +5741,9 @@
     if (window.retroAudio) window.retroAudio.playClick();
 
     try {
-      var res = await fetch('/api/build-static', { method: 'POST' });
+      var rebuildSiteId = '{{ activeSite.id if activeSite else "" }}';
+      if (!rebuildSiteId) throw new Error('Connect a website first.');
+      var res = await fetch('/api/sites/' + encodeURIComponent(rebuildSiteId) + '/deploy', { method: 'POST' });
       var data = await res.json();
 
       if (!res.ok || !data.ok) {
@@ -5748,10 +5751,8 @@
       }
 
       alertBox.className = 'retro-alert retro-alert--success mb-3';
-      tag.textContent = data.deployed ? '[✓] 11TY DEPLOYED:' : '[✓] 11TY COMPILED:';
-      msg.textContent = data.deployed
-        ? (data.filesCount + ' files uploaded live to ' + (data.siteUrl || 'Neocities') + ' in ' + data.durationMs + 'ms')
-        : (data.postsCount + ' photos generated in ' + data.durationMs + 'ms -> dist/static-gallery');
+      tag.textContent = '[✓] Republished:';
+      msg.textContent = data.filesCount + ' files uploaded to ' + (data.siteUrl || 'your site') + '.';
       alertBox.classList.remove('hidden');
 
       if (window.retroAudio) window.retroAudio.playSuccess();

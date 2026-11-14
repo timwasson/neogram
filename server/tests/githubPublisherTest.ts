@@ -194,11 +194,11 @@ export async function runGitHubPublisherTests() {
   console.log('\n[:> SECTION 4] Template Markup Verification');
   const fs = await import('fs/promises');
   const indexNjk = await fs.readFile('views/index.njk', 'utf-8');
-  assertTest('views/index.njk enables <option value="github"> in settingsDeployType', indexNjk.includes('<option value="github">GitHub Pages (Git Commit REST API — Live)</option>'));
-  assertTest('views/index.njk enables <option value="github"> in newSiteDeployType', indexNjk.includes('<option value="github">GitHub Pages (Git Commit REST API)</option>'));
+  const githubOptions = indexNjk.match(/<option value="github">[^<]*GitHub Pages[^<]*<\/option>/g) || [];
+  assertTest('views/index.njk offers an enabled GitHub Pages option in both provider selects', githubOptions.length >= 2, `found ${githubOptions.length}`);
   assertTest('views/index.njk handles updateProviderSettingsUI for GitHub', indexNjk.includes("deployTypeEl.value === 'github'") && indexNjk.includes('COMMIT & PUSH TO GITHUB PAGES :>'));
   assertTest('views/index.njk includes testEndpoint for GitHub test', indexNjk.includes("'/api/settings/test-github'"));
-  assertTest('views/index.njk includes deployEndpoint for GitHub deploy', indexNjk.includes("'/api/deploy/github'"));
+  assertTest('views/index.njk deploys through the per-site endpoint (provider chosen server-side)', indexNjk.includes("'/api/sites/' + encodeURIComponent(deploySiteId) + '/deploy'"));
 
   const adminNjk = await fs.readFile('views/admin.njk', 'utf-8');
   assertTest('views/admin.njk enables <option value="github"> in qaModalDeployType', adminNjk.includes('<option value="github">GitHub Pages (Git Commit REST API)</option>'));
