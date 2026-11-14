@@ -1,0 +1,47 @@
+/* QA theme: vaporwave. Linked as a site's Custom CSS URL by the /admin QA fleet; not shipped to member sites. */
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+body.neogram-site {
+  --bg-desktop: #2b0b3f;
+  --surface-window: #ffd6f5;
+  --surface-title: #5b2a86;
+  --border-main: #2b0b3f;
+  --text-main: #2b0b3f;
+  --text-muted: #7a3e9d;
+  --accent-prompt: #00fff0;
+  --accent-mac: #ff3cac;
+  --accent-cyan: #00fff0;
+  --accent-yellow: #ff9de2;
+  --link-color: #ff3cac;
+  --font-mono: 'VT323', monospace;
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  background:
+    linear-gradient(transparent 60%, rgba(255, 60, 172, 0.35) 60.5%, transparent 61%) 0 0 / 100% 40px,
+    linear-gradient(180deg, #2b0b3f 0%, #784ba0 45%, #ff3cac 80%, #ffb86c 100%) fixed;
+}
+.neogram-site .neogram-site__taskbar {
+  background: linear-gradient(90deg, #00fff0, #ff3cac);
+  border-bottom: 2px solid #ffffff;
+}
+.neogram-site .neogram-site__title { color: #ffffff; letter-spacing: 6px; text-shadow: 3px 3px 0 #2b0b3f; }
+.neogram-site .neogram-site__tag { color: #2b0b3f; }
+.neogram-site .neogram-card,
+.neogram-site .neogram-banner,
+.neogram-site .neogram-detail,
+.neogram-site .neogram-empty {
+  border: 3px solid #ffffff;
+  border-radius: 6px;
+  box-shadow: 8px 8px 0 rgba(0, 255, 240, 0.6);
+}
+.neogram-site .neogram-card__header,
+.neogram-site .neogram-banner__header,
+.neogram-site .neogram-detail__header,
+.neogram-site .neogram-comments__header {
+  background: linear-gradient(90deg, #5b2a86, #ff3cac);
+  color: #ffffff;
+}
+.neogram-site .neogram-card__media { background: linear-gradient(180deg, #784ba0, #2b0b3f); }
+.neogram-site .neogram-btn { border: 2px solid #ffffff; border-radius: 4px; background: #00fff0; color: #2b0b3f; box-shadow: 3px 3px 0 #ff3cac; }
+.neogram-site .neogram-site__footer { background: rgba(43, 11, 63, 0.85); color: #ffd6f5; border-top: 2px solid #00fff0; }
+.neogram-site .neogram-site__footer-url { color: #00fff0; }

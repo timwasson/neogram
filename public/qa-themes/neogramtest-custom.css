@@ -1,0 +1,66 @@
+/*
+ * QA custom CSS for neogramtest (@qa_cyberpunk).
+ * Upload this file to the ROOT of https://neogramtest.neocities.org as "neogram-custom.css"
+ * (outside the /neogram folder, so Neogram's own publishes never overwrite it).
+ * The site's Custom CSS URL is https://neogramtest.neocities.org/neogram-custom.css.
+ * It is served from a different origin than neogram.club, which is the point of the test.
+ * If the theme shows a hot-pink "CUSTOM CSS LOADED" strip at the top, the link works.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&family=Share+Tech+Mono&display=swap');
+
+body.neogram-site {
+  --bg-desktop: #07010f;
+  --surface-window: #120624;
+  --surface-title: #ff007f;
+  --border-main: #00f0ff;
+  --text-main: #e0e0ff;
+  --text-muted: #9a7fcf;
+  --accent-prompt: #fcee0a;
+  --accent-mac: #00f0ff;
+  --accent-yellow: #fcee0a;
+  --link-color: #00f0ff;
+  --font-mono: 'Share Tech Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
+  color: #e0e0ff;
+  background:
+    linear-gradient(135deg, rgba(255, 0, 127, 0.15), transparent 40%),
+    linear-gradient(315deg, rgba(0, 240, 255, 0.15), transparent 40%),
+    #07010f;
+}
+body.neogram-site::before {
+  content: 'CUSTOM CSS LOADED // neogramtest.neocities.org/neogram-custom.css';
+  display: block;
+  padding: 4px 12px;
+  background: #ff007f;
+  color: #07010f;
+  font: 800 11px/1.4 'Orbitron', sans-serif;
+  letter-spacing: 2px;
+  text-align: center;
+}
+.neogram-site .neogram-site__taskbar,
+.neogram-site .neogram-site__footer { background: #07010f; border-color: #ff007f; }
+.neogram-site .neogram-site__title { font-family: 'Orbitron', sans-serif; font-weight: 800; color: #fcee0a; text-transform: uppercase; letter-spacing: 3px; }
+.neogram-site .neogram-site__footer-url,
+.neogram-site .neogram-profile__handle,
+.neogram-site .neogram-card__caption,
+.neogram-site .neogram-detail__caption { color: #e0e0ff; }
+.neogram-site .neogram-card,
+.neogram-site .neogram-banner,
+.neogram-site .neogram-detail,
+.neogram-site .neogram-empty,
+.neogram-site .neogram-profile {
+  border: 2px solid #00f0ff;
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+  box-shadow: none;
+}
+.neogram-site .neogram-card__header,
+.neogram-site .neogram-banner__header,
+.neogram-site .neogram-detail__header,
+.neogram-site .neogram-comments__header {
+  background: #ff007f;
+  color: #07010f;
+  font-family: 'Orbitron', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.neogram-site .neogram-btn { background: #fcee0a; color: #07010f; border: 0; box-shadow: 4px 4px 0 #00f0ff; font-family: 'Orbitron', sans-serif; }

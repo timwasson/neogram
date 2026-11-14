@@ -1,0 +1,50 @@
+/* QA theme: green phosphor terminal. Linked as a site's Custom CSS URL by the /admin QA fleet; not shipped to member sites. */
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+body.neogram-site {
+  --bg-desktop: #000000;
+  --surface-window: #001a00;
+  --surface-title: #003300;
+  --surface-card: #000000;
+  --border-main: #00ff41;
+  --text-main: #00ff41;
+  --text-muted: #00aa2b;
+  --accent-prompt: #ccffcc;
+  --accent-mac: #00ff41;
+  --accent-yellow: #00ff41;
+  --accent-cyan: #00ff41;
+  --link-color: #ccffcc;
+  --font-mono: 'VT323', 'Courier New', monospace;
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 18px;
+  color: #00ff41;
+  text-shadow: 0 0 4px rgba(0, 255, 65, 0.6);
+  background-color: #000000;
+  background-image: repeating-linear-gradient(0deg, rgba(0, 255, 65, 0.05) 0 1px, transparent 1px 3px);
+}
+.neogram-site .neogram-site__taskbar,
+.neogram-site .neogram-site__footer { background: #000000; border-color: #00ff41; }
+.neogram-site .neogram-site__title,
+.neogram-site .neogram-site__footer-url,
+.neogram-site .neogram-profile__handle,
+.neogram-site .neogram-card__caption,
+.neogram-site .neogram-detail__caption { color: #00ff41; }
+.neogram-site .neogram-site__title::before { content: '> '; }
+.neogram-site .neogram-card,
+.neogram-site .neogram-banner,
+.neogram-site .neogram-detail,
+.neogram-site .neogram-empty,
+.neogram-site .neogram-profile {
+  border: 1px solid #00ff41;
+  box-shadow: 0 0 12px rgba(0, 255, 65, 0.35);
+}
+.neogram-site .neogram-card__header,
+.neogram-site .neogram-banner__header,
+.neogram-site .neogram-detail__header,
+.neogram-site .neogram-comments__header { background: #003300; color: #00ff41; border-color: #00ff41; }
+.neogram-site .neogram-card__image,
+.neogram-site .neogram-detail__image { filter: grayscale(1) sepia(1) hue-rotate(70deg) saturate(3); }
+.neogram-site .neogram-btn,
+.neogram-site .neogram-btn--primary,
+.neogram-site .neogram-btn--yellow { background: #000000 !important; color: #00ff41 !important; border: 1px solid #00ff41 !important; box-shadow: none; }
+.neogram-site .neogram-btn:hover { background: #00ff41 !important; color: #000000 !important; }

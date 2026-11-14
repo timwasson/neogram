@@ -1,0 +1,54 @@
+/* QA theme: Windows 95 desktop. Linked as a site's Custom CSS URL by the /admin QA fleet; not shipped to member sites. */
+body.neogram-site {
+  --bg-desktop: #008080;
+  --surface-window: #c0c0c0;
+  --surface-title: #000080;
+  --border-main: #000000;
+  --text-main: #000000;
+  --text-muted: #404040;
+  --accent-prompt: #ffffff;
+  --accent-mac: #000080;
+  --link-color: #0000ff;
+  --font-mono: 'Tahoma', 'MS Sans Serif', 'Segoe UI', sans-serif;
+  font-family: 'Tahoma', 'MS Sans Serif', 'Segoe UI', sans-serif;
+  background: #008080;
+}
+.neogram-site .neogram-site__taskbar,
+.neogram-site .neogram-site__footer {
+  background: #c0c0c0;
+  border: 0;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080;
+}
+.neogram-site .neogram-site__tag { color: #000080; }
+.neogram-site .neogram-card,
+.neogram-site .neogram-banner,
+.neogram-site .neogram-detail,
+.neogram-site .neogram-empty,
+.neogram-site .neogram-profile {
+  border: 2px solid;
+  border-color: #ffffff #000000 #000000 #ffffff;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+}
+.neogram-site .neogram-card:hover { transform: none; }
+.neogram-site .neogram-card__header,
+.neogram-site .neogram-banner__header,
+.neogram-site .neogram-detail__header,
+.neogram-site .neogram-comments__header {
+  background: linear-gradient(90deg, #000080, #1084d0);
+  color: #ffffff;
+  border-bottom: 0;
+  margin: 2px;
+}
+.neogram-site .neogram-card__header::after,
+.neogram-site .neogram-banner__header::after { content: '_ \25A1 \00D7'; letter-spacing: 6px; font-weight: 700; }
+.neogram-site .neogram-card__media { background: #ffffff; box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #ffffff; }
+.neogram-site .neogram-btn,
+.neogram-site .neogram-btn--primary,
+.neogram-site .neogram-btn--yellow {
+  background: #c0c0c0 !important;
+  color: #000000 !important;
+  border: 2px solid !important;
+  border-color: #ffffff #000000 #000000 #ffffff !important;
+  box-shadow: inset -1px -1px 0 #808080;
+}
+.neogram-site .neogram-btn:active { border-color: #000000 #ffffff #ffffff #000000 !important; transform: none; }

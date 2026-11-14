@@ -1,0 +1,46 @@
+/* QA theme: GeoCities. Linked as a site's Custom CSS URL by the /admin QA fleet; not shipped to member sites. */
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+
+body.neogram-site {
+  --bg-desktop: #000033;
+  --surface-window: #ffffcc;
+  --surface-title: #990099;
+  --border-main: #ff00ff;
+  --text-main: #000066;
+  --text-muted: #663399;
+  --accent-prompt: #ffff00;
+  --accent-mac: #0000ff;
+  --link-color: #0000ee;
+  --font-mono: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  background-color: #000033;
+  background-image:
+    radial-gradient(#ffffff 1px, transparent 1.5px),
+    radial-gradient(#ffff99 1px, transparent 1.5px);
+  background-size: 60px 60px, 90px 90px;
+  background-position: 0 0, 30px 45px;
+}
+.neogram-site .neogram-site__taskbar {
+  background: linear-gradient(90deg, #ff0000, #ff9900, #ffff00, #00cc00, #0099ff, #9900ff);
+  border-bottom: 4px ridge #ff00ff;
+}
+.neogram-site .neogram-site__title,
+.neogram-site .neogram-site__tag { color: #000066; text-shadow: 1px 1px 0 #ffffff; }
+.neogram-site .neogram-banner,
+.neogram-site .neogram-card,
+.neogram-site .neogram-detail,
+.neogram-site .neogram-empty {
+  border: 5px ridge #ff00ff;
+  box-shadow: none;
+}
+.neogram-site .neogram-banner__header,
+.neogram-site .neogram-card__header,
+.neogram-site .neogram-detail__header,
+.neogram-site .neogram-comments__header {
+  background: linear-gradient(90deg, #990099, #ff00ff);
+  color: #ffff00;
+}
+.neogram-site .neogram-banner__title::before { content: '\2605  '; }
+.neogram-site .neogram-btn { border: 3px outset #ff66ff; background: #ffccff; color: #000066; box-shadow: none; }
+.neogram-site .neogram-site__footer { background: #000033; color: #ffff00; border-top: 4px ridge #ff00ff; }
+.neogram-site .neogram-site__footer-url { color: #00ffff; }

@@ -711,9 +711,92 @@
               Exports <code>db-snapshot.json</code> (users, sites, follows, counters) to sync production state into a local dev database via <code>npm run db:sync</code>.
             </div>
             <div class="sysop-guide__item">
+              <strong>Galleries &amp; Rebuild</strong>
+              Each QA site has its own theme (a Custom CSS URL from <code>/qa-themes/</code>). The gallery list below links every built site; <strong>Rebuild</strong> republishes just that one site.
+            </div>
+            <div class="sysop-guide__item">
               <strong>Purge QA Test Posts</strong>
               Deletes test photos and comments created by <code>@qa_*</code> accounts while strictly preserving QA user accounts, friendships, and encrypted API keys.
             </div>
+          </div>
+        </div>
+
+        <!-- QA Gallery Checklist: one row per QA site with a host -->
+        {% set galleryCount = qaGalleryCount | default(0) %}
+        <div class="pixel-box mb-4" id="qaGallerySection">
+          <div class="window-header flex justify-between items-center">
+            <span class="font-bold text-xs">[:&gt; QA_GALLERIES.LST // Galleries to check]</span>
+            <span class="sysop-badge sysop-badge--online">{{ galleryCount }} sites</span>
+          </div>
+          <div class="p-3">
+            <p class="text-xs font-mono mb-3 text-muted">
+              Every QA site that publishes to a real host. Open each gallery after a build to check it. <strong>Rebuild</strong> does a full build and publish of that one site only, and waits for the upload to finish.
+            </p>
+            {% if galleryCount == 0 %}
+              <p class="text-xs font-mono text-muted">No QA sites with a host yet. Provision the QA personas first.</p>
+            {% else %}
+              <div class="sysop-table-wrapper" tabindex="0" role="region" aria-label="QA galleries">
+                <table class="sysop-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Account / Site</th>
+                      <th scope="col">Theme</th>
+                      <th scope="col">Last published</th>
+                      <th scope="col">Open</th>
+                      <th scope="col">Rebuild</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for qa in qaFleet %}
+                      {% for s in qa.sites %}
+                        {% if s.galleryUrl %}
+                          <tr>
+                            <th scope="row">
+                              <div class="font-bold text-xs font-mono">@{{ qa.handle }} <span class="text-3xs text-muted">/{{ s.slug }}</span></div>
+                              <div class="text-3xs text-muted font-normal font-mono">
+                                <span class="uppercase">[{{ s.deploymentType }}]</span> {{ s.name }}
+                                {% if not s.buildHtml %}<span class="sysop-badge sysop-badge--online">HEADLESS JSON</span>{% endif %}
+                              </div>
+                            </th>
+                            <td class="font-mono text-3xs">
+                              {% if s.themeLabel %}
+                                <a href="{{ s.customCssUrl }}" target="_blank" rel="noopener" class="underline">{{ s.themeLabel }}</a>
+                              {% else %}
+                                <span class="text-muted">default</span>
+                              {% endif %}
+                            </td>
+                            <td class="font-mono text-3xs" id="qaLastBuilt-{{ s.id }}">
+                              {% if s.lastDeployedAt %}
+                                <span data-local-time="{{ s.lastDeployedAt.toISOString() if s.lastDeployedAt.toISOString else s.lastDeployedAt }}">{{ s.lastDeployedAt }}</span>
+                              {% else %}
+                                <span class="text-muted">never</span>
+                              {% endif %}
+                            </td>
+                            <td class="font-mono text-3xs">
+                              <div class="flex flex-wrap gap-1.5">
+                                {% if s.buildHtml %}
+                                  <a href="{{ s.galleryUrl }}" target="_blank" rel="noopener" class="pixel-btn pixel-btn--sm text-3xs font-bold">Gallery ↗</a>
+                                  <a href="{{ s.galleryUrl }}friends/" target="_blank" rel="noopener" class="pixel-btn pixel-btn--sm text-3xs">Friends ↗</a>
+                                {% endif %}
+                                <a href="{{ s.galleryUrl }}feed.json" target="_blank" rel="noopener" class="pixel-btn pixel-btn--sm text-3xs">feed.json ↗</a>
+                              </div>
+                            </td>
+                            <td class="font-mono text-3xs">
+                              {% if s.canRebuild %}
+                                <button type="button" class="pixel-btn pixel-btn--sm pixel-btn--yellow text-3xs font-bold" data-site-id="{{ s.id }}" data-label="@{{ qa.handle }}/{{ s.slug }}" onclick="rebuildQaSite(this);">Rebuild</button>
+                                <div class="text-3xs mt-1" id="qaRebuildStatus-{{ s.id }}" role="status" aria-live="polite"></div>
+                              {% else %}
+                                <span class="sysop-badge sysop-badge--banned">NO API KEY</span>
+                              {% endif %}
+                            </td>
+                          </tr>
+                        {% endif %}
+                      {% endfor %}
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% endif %}
           </div>
         </div>
 
@@ -796,6 +879,10 @@
                                   {% if not s.buildHtml %}
                                     <span class="sysop-badge sysop-badge--online">HEADLESS JSON</span>
                                   {% endif %}
+                                  {% if s.galleryUrl %}
+                                    — <a href="{{ s.galleryUrl }}" target="_blank" rel="noopener" class="underline">gallery ↗</a>
+                                  {% endif %}
+                                  <span class="text-muted">(theme: {{ s.themeLabel or 'default' }})</span>
                                   {% if s.hasApiKey %}
                                     <span class="sysop-badge sysop-badge--active">KEY SAVED ({{ s.maskedApiKey }})</span>
                                   {% elif s.deploymentType != 'none' %}
@@ -817,6 +904,7 @@
                                   data-deploy-path="{{ s.deployPath }}"
                                   data-build-html="{{ 'true' if s.buildHtml else 'false' }}"
                                   data-auto-deploy="{{ 'true' if s.autoDeploy else 'false' }}"
+                                  data-custom-css-url="{{ s.customCssUrl or '' }}"
                                   onclick="openQaSiteModalFromDataset(this);"
                                 >
                                   Edit Site / Key
@@ -952,7 +1040,7 @@
           <div class="sysop-guide__grid">
             <div class="sysop-guide__item">
               <strong>Tracked Mutations</strong>
-              Logs <code>BAN_USER</code>, <code>UNBAN_USER</code>, <code>UPDATE_MARQUEE</code>, <code>FLEET_SWEEP_START</code>, <code>FLEET_SWEEP_CANCEL</code>, <code>PROVISION_QA_FLEET</code>, <code>PURGE_QA_POSTS</code>, and <code>UPDATE_QA_SITE</code>.
+              Logs <code>BAN_USER</code>, <code>UNBAN_USER</code>, <code>UPDATE_MARQUEE</code>, <code>FLEET_SWEEP_START</code>, <code>FLEET_SWEEP_CANCEL</code>, <code>PROVISION_QA_FLEET</code>, <code>PURGE_QA_POSTS</code>, <code>UPDATE_QA_SITE</code>, and <code>REBUILD_QA_SITE</code>.
             </div>
             <div class="sysop-guide__item">
               <strong>Action Badges</strong>
@@ -1113,6 +1201,12 @@
           <label class="block font-bold mb-1" for="qaModalDeployPath">Remote Subdirectory Deploy Path (optional):</label>
           <input type="text" id="qaModalDeployPath" placeholder="neogram (leave blank for root /)" class="retro-input text-xs w-full" />
           <span class="text-3xs text-muted block mt-0.5">Files deploy to &lt;Base URL&gt;/&lt;Deploy Path&gt;/ (e.g. /neogram, or blank for site root)</span>
+        </div>
+
+        <div class="mb-2">
+          <label class="block font-bold mb-1" for="qaModalCustomCssUrl">Custom CSS URL (optional):</label>
+          <input type="url" id="qaModalCustomCssUrl" placeholder="https://neogram.club/qa-themes/win95.css" class="retro-input text-xs w-full" />
+          <span class="text-3xs text-muted block mt-0.5">Linked after Neogram's own CSS on every page. Leave blank for the default look. Rebuild the site to apply a change.</span>
         </div>
 
         <div class="mb-3">
@@ -1600,11 +1694,12 @@
       d.siteUrl,
       d.deployPath,
       d.buildHtml === 'true',
-      d.autoDeploy === 'true'
+      d.autoDeploy === 'true',
+      d.customCssUrl || ''
     );
   }
 
-  function openQaSiteModal(userId, handle, siteId, name, slug, deployType, siteUrl, deployPath, buildHtml, autoDeploy) {
+  function openQaSiteModal(userId, handle, siteId, name, slug, deployType, siteUrl, deployPath, buildHtml, autoDeploy, customCssUrl) {
     if (window.retroAudio) retroAudio.playClick();
     document.getElementById('qaModalUserId').value = userId;
     document.getElementById('qaModalSiteId').value = siteId || '';
@@ -1619,6 +1714,7 @@
     document.getElementById('qaModalApiKey').value = '';
     document.getElementById('qaModalBuildHtml').checked = buildHtml !== false;
     document.getElementById('qaModalAutoDeploy').checked = autoDeploy !== false;
+    document.getElementById('qaModalCustomCssUrl').value = customCssUrl || '';
     document.getElementById('qaSiteModalBackdrop').classList.remove('hidden');
     document.getElementById('qaModalApiKey').focus();
   }
@@ -1652,6 +1748,7 @@
           apiKey: document.getElementById('qaModalApiKey').value.trim(),
           buildHtml: document.getElementById('qaModalBuildHtml').checked,
           autoDeploy: document.getElementById('qaModalAutoDeploy').checked,
+          customCssUrl: document.getElementById('qaModalCustomCssUrl').value.trim(),
         }),
       });
       const data = await res.json();
@@ -1665,6 +1762,50 @@
     } finally {
       btn.disabled = false;
       btn.textContent = 'Save Site & Encrypt Key';
+    }
+  }
+
+  // Show "last published" in the viewer's local time
+  document.querySelectorAll('[data-local-time]').forEach(function (el) {
+    var d = new Date(el.getAttribute('data-local-time'));
+    if (!isNaN(d.getTime())) el.textContent = d.toLocaleString();
+  });
+
+  // Full rebuild + publish of a single QA site
+  async function rebuildQaSite(btn) {
+    if (btn.disabled) return;
+    const siteId = btn.dataset.siteId;
+    const statusEl = document.getElementById('qaRebuildStatus-' + siteId);
+    const startedAt = Date.now();
+    btn.disabled = true;
+    btn.textContent = 'Rebuilding...';
+    if (statusEl) {
+      statusEl.className = 'text-3xs mt-1 text-amber';
+      statusEl.textContent = 'Building and uploading ' + btn.dataset.label + '. This can take a minute.';
+    }
+    if (window.retroAudio) retroAudio.playClick();
+    try {
+      const res = await fetch('/api/admin/qa-fleet/sites/' + encodeURIComponent(siteId) + '/rebuild', {
+        method: 'POST',
+        headers: { 'x-neogram-sysop-op': '1' },
+      });
+      const data = await res.json().catch(function () { return {}; });
+      if (!res.ok || !data.ok) throw new Error(data.error || ('Rebuild failed (HTTP ' + res.status + ').'));
+      if (statusEl) {
+        statusEl.className = 'text-3xs mt-1 text-green';
+        statusEl.textContent = '✓ ' + data.message;
+      }
+      const lastEl = document.getElementById('qaLastBuilt-' + siteId);
+      if (lastEl && data.lastDeployedAt) lastEl.textContent = new Date(data.lastDeployedAt).toLocaleString();
+      if (window.retroAudio && retroAudio.playSuccess) retroAudio.playSuccess();
+    } catch (err) {
+      if (statusEl) {
+        statusEl.className = 'text-3xs mt-1 text-danger';
+        statusEl.textContent = 'Failed after ' + Math.round((Date.now() - startedAt) / 1000) + 's: ' + err.message;
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Rebuild';
     }
   }
 
