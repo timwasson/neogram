@@ -82,7 +82,7 @@
                   <div id="welcomeStationCard" class="pixel-box p-4 mb-5 bg-window border-4 border-cyan">
                     <div class="window-header mb-3 flex items-center justify-between flex-wrap gap-2">
                       <span class="font-bold font-mono">Welcome, @{{ currentUser.handle }}!</span>
-                      <span class="pixel-badge pixel-badge--cyan font-bold">Neogram #{{ currentUser.uin }}</span>
+                      <span class="pixel-badge pixel-badge--cyan font-bold">UIN #{{ currentUser.uin }}</span>
                     </div>
 
                     <p class="text-xs text-main leading-relaxed mb-3">
@@ -554,7 +554,7 @@
           <div class="p-2.5 bg-black border-2 border-main mb-4 flex items-center justify-between flex-wrap gap-2 text-xs font-mono">
             <div class="flex items-center gap-2">
               <div>
-                <span class="text-muted text-3xs block uppercase tracking-wider">TARGET STATIC SITE:</span>
+                <span class="text-muted text-3xs block uppercase tracking-wider">POSTING TO:</span>
                 <span class="text-prompt font-bold text-xs" id="uploadActiveSiteLabel">
                   {{ activeSite.name if activeSite else 'Primary Site' }}
                   {% if activeSite and activeSite.siteUrl %}<span class="text-muted text-xxs font-normal">({{ activeSite.siteUrl }}{% if activeSite.deployPath %}/{{ activeSite.deployPath }}/{% else %}/{% endif %})</span>{% endif %}
@@ -567,9 +567,9 @@
                   type="button"
                   onclick="toggleSiteMenu()"
                   class="pixel-btn pixel-btn--sm pixel-btn--yellow text-3xs font-bold py-1 px-2.5"
-                  title="Switch to another mounted site target"
+                  title="Post to a different site"
                 >
-                  <span>⇄ SWITCH TARGET</span>
+                  <span>⇄ Switch site</span>
                 </button>
               {% endif %}
               <button
@@ -1183,20 +1183,20 @@
                           </div>
                         </div>
 
-                        <!-- Permanent Node UIN (ICQ Protocol) -->
+                        <!-- Permanent UIN -->
                         <div class="p-3 bg-black border border-main">
                           <div class="flex items-center justify-between">
                             <div>
-                              <span class="text-3xs text-muted font-mono block uppercase">Permanent Node UIN (Immutable Identity):</span>
+                              <span class="text-3xs text-muted font-mono block uppercase">Your UIN (never changes):</span>
                               <span class="font-bold text-prompt font-pixel text-base tracking-widest">#{{ currentUser.uin or '100101' }}</span>
                             </div>
                             <div class="text-right">
-                              <span class="text-3xs text-muted font-mono block">ANCHOR</span>
-                              <span class="text-xs text-mac font-bold font-mono">ICQ-STATIC-NODE</span>
+                              <span class="text-3xs text-muted font-mono block">LIKE AN</span>
+                              <span class="text-xs text-mac font-bold font-mono">ICQ #</span>
                             </div>
                           </div>
                           <span class="text-3xs text-muted font-mono block mt-1.5 pt-1.5 border-t border-main">
-                            <strong>Station Tip:</strong> Your web counters and guestbooks stay permanently tied to this number even if you change your @handle later.
+                            <strong>Tip:</strong> use your UIN in counter and guestbook embeds and they'll keep working if you change your @handle.
                           </span>
                         </div>
                       </div>
@@ -1386,7 +1386,7 @@
                     <div class="flex-1 flex flex-col gap-3">
                       <div class="flex items-center justify-between">
                         <label class="block text-xs font-bold uppercase tracking-wider text-mac">
-                          2. Provision New Static Site Target:
+                          2. Add a website
                         </label>
                         <button
                           type="button"
@@ -1484,7 +1484,7 @@
 
                           <div class="pt-2">
                             <button type="submit" id="btnSubmitNewSite" class="pixel-btn pixel-btn--green font-bold text-xs py-2 px-3 w-full">
-                              <span>PROVISION TARGET :&gt;</span>
+                              <span>Add website</span>
                             </button>
                           </div>
                         </form>
@@ -2126,7 +2126,7 @@
           <div class="p-2.5 bg-black border-2 border-main mb-4 flex items-center justify-between flex-wrap gap-2 text-xs font-mono{% if not hasAnySite %} hidden{% endif %}">
             <div class="flex items-center gap-2">
               <div>
-                <span class="text-muted text-3xs uppercase font-bold tracking-wider block">GENERATE EMBEDS FOR TARGET SITE:</span>
+                <span class="text-muted text-3xs uppercase font-bold tracking-wider block">WIDGETS FOR:</span>
                 <span class="text-prompt font-bold text-xs" id="embedTargetLabel">
                   {{ activeSite.name if activeSite else 'Primary Site' }}
                 </span>
@@ -3046,7 +3046,7 @@
         <div class="p-4 bg-desktop border border-main flex items-center justify-between flex-wrap gap-3 font-mono">
           <div class="flex items-center gap-2">
             <span class="text-xs">
-              Ready? Sign up in under a minute and get your permanent Neogram number.
+              Ready? Sign up in under a minute and get your permanent UIN.
             </span>
           </div>
           <a href="/login" class="pixel-btn pixel-btn--yellow font-bold text-xs py-2 px-4 flex items-center gap-1.5" onclick="if(window.retroAudio) retroAudio.playClick();">
@@ -4720,7 +4720,7 @@
     var submitBtn = document.getElementById('btnSubmitNewSite');
 
     submitBtn.disabled = true;
-    submitBtn.textContent = 'PROVISIONING TARGET...';
+    submitBtn.textContent = 'Adding…';
 
     var alertBox = document.getElementById('sitesManagerAlert');
     var alertTag = document.getElementById('sitesManagerAlertTag');
@@ -4744,7 +4744,7 @@
       });
 
       var data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to provision site target.');
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Could not add that website.');
 
       if (window.retroAudio) window.retroAudio.playSuccess();
       window.location.reload();
@@ -4756,10 +4756,10 @@
         if (alertMsg) alertMsg.textContent = err.message;
         alertBox.classList.remove('hidden');
       }
-      alert('Failed to provision site: ' + err.message);
+      alert('Could not add that website: ' + err.message);
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = 'PROVISION TARGET :>';
+      submitBtn.textContent = 'Add website';
     }
   }
   window.handleProvisionSite = handleProvisionSite;

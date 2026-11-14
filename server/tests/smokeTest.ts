@@ -171,7 +171,7 @@ async function runSmokeTests() {
     assertTest('GET /api/auth/me with session cookie returns HTTP 200', meRes.status === 200);
     const meData = await meRes.json() as any;
     assertTest('Session resolves verified user handle', meData.user && meData.user.handle === testUser.handle, `@${meData.user?.handle}`);
-    assertTest('Session resolves permanent Node UIN', meData.user && meData.user.uin === testUser.uin, `#${meData.user?.uin}`);
+    assertTest('Session resolves permanent UIN', meData.user && meData.user.uin === testUser.uin, `#${meData.user?.uin}`);
 
     // -------------------------------------------------------------------------
     // TEST 6: Settings & Safe Subdirectory Configuration
@@ -624,7 +624,7 @@ async function runSmokeTests() {
       docsHtml.includes('Dynamic SVG Web Hit Counter') && docsHtml.includes('neogram-counter')
     );
     assertTest('Docs HTML contains Public Visitor Guestbook embed section',
-      docsHtml.includes('Public Visitor Guestbook Ledger') && docsHtml.includes('/embed/guestbook/')
+      docsHtml.includes('id="docSection-guestbook"') && docsHtml.includes('/embed/guestbook/')
     );
     assertTest('Docs HTML contains Publishing & Processing Pipeline section',
       docsHtml.includes('Publishing &amp; Processing Pipeline') && docsHtml.includes('Sharp') && docsHtml.includes('WebP')
@@ -1456,7 +1456,7 @@ async function runSmokeTests() {
     const newbieHomeHtml = await newbieHomeRes.text();
     assertTest('Dashboard contains Welcome Station window card', newbieHomeHtml.includes('welcomeStationCard'));
     assertTest('Dashboard greets the new member by handle', newbieHomeHtml.includes(`Welcome, @${newbieUser.handle}!`));
-    assertTest('Dashboard shows the member number', newbieHomeHtml.includes(`Neogram #${newbieUser.uin}`));
+    assertTest('Dashboard shows the member number', newbieHomeHtml.includes(`UIN #${newbieUser.uin}`));
     assertTest('Dashboard offers "Connect your website" as the next step', newbieHomeHtml.includes('Connect your website'));
     assertTest('Dashboard contains #tabFeedBtn in navigation', newbieHomeHtml.includes('id="tabFeedBtn"'));
     assertTest('Upload section contains #noSiteUploadBanner', newbieHomeHtml.includes('id="noSiteUploadBanner"'));
