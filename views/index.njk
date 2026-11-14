@@ -1684,6 +1684,21 @@
                               Live Gallery URL: <span id="deployUrlPreview" class="text-prompt font-bold break-all">https://user.neocities.org/neogram/</span>
                             </div>
                           </div>
+
+                          <!-- Custom stylesheet -->
+                          <div>
+                            <label for="settingsCustomCssUrl" class="block text-xs font-bold mb-1">
+                              Custom stylesheet URL (optional):
+                            </label>
+                            <input
+                              type="url"
+                              id="settingsCustomCssUrl"
+                              name="customCssUrl"
+                              placeholder="https://your-site.neocities.org/my-gallery.css"
+                              class="retro-input text-xs"
+                            />
+                            <div class="mt-1 text-xxs text-muted">Linked after Neogram's styles on every gallery page, so your rules win. See <a href="/docs/theming" class="text-mac">Docs → Theming</a>.</div>
+                          </div>
                         </div>
 
                         <!-- RIGHT COLUMN: API Key, Auto-Deploy & Headless Options -->
@@ -4939,6 +4954,7 @@
       document.getElementById('settingsSiteName').value = s.siteName || '';
       document.getElementById('settingsSiteUrl').value = s.siteUrl || '';
       document.getElementById('settingsDeployPath').value = (s.deployPath !== undefined && s.deployPath !== null) ? s.deployPath : 'neogram';
+      if (document.getElementById('settingsCustomCssUrl')) document.getElementById('settingsCustomCssUrl').value = s.customCssUrl || '';
       if (s.deploymentType) document.getElementById('settingsDeployType').value = s.deploymentType;
       updateProviderSettingsUI();
       document.getElementById('settingsAutoDeploy').checked = !!s.autoDeploy;
@@ -4985,6 +5001,7 @@
     var deploymentType = document.getElementById('settingsDeployType').value;
     var autoDeploy = document.getElementById('settingsAutoDeploy').checked;
     var buildHtml = document.getElementById('settingsBuildHtml') ? document.getElementById('settingsBuildHtml').checked : true;
+    var customCssUrl = document.getElementById('settingsCustomCssUrl') ? document.getElementById('settingsCustomCssUrl').value.trim() : undefined;
     var saveBtn = document.getElementById('saveSettingsBtn');
 
     saveBtn.disabled = true;
@@ -5007,7 +5024,8 @@
           apiKey: apiKey,
           deploymentType: deploymentType,
           autoDeploy: autoDeploy,
-          buildHtml: buildHtml
+          buildHtml: buildHtml,
+          customCssUrl: customCssUrl
         })
       });
 

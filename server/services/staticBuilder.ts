@@ -591,7 +591,8 @@ export async function executeStaticBuild(options: StaticBuildOptions = {}): Prom
         apiUrl: config.appUrl || 'http://localhost:4000',
         systemMood: '[:> SURFING THE RETRO STATIC WEBRING]',
         customCssUrl: customCssUrl,
-        chatWidgetEnabled: targetSite.chat_widget_enabled !== false,
+        // The workstation toggle is per member (notification_preferences), not per site.
+        chatWidgetEnabled: (await (await import('./notificationService')).getNotificationPreferences(targetSite.user_id)).chatWidgetEnabled !== false,
       };
       const siteJsonPath = path.join(process.cwd(), 'eleventy/src/_data/site.json');
       await fs.writeFile(siteJsonPath, JSON.stringify(siteData, null, 2), 'utf-8');

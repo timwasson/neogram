@@ -89,7 +89,8 @@ async function resolveTargetContext(siteId?: string, userId?: string) {
     description = targetSite.description || targetSite.status_message || 'Personal photo stream published via Neogram';
     customCssUrl = targetSite.custom_css_url || null;
     shouldBuildHtml = targetSite.build_html !== false;
-    chatWidgetEnabled = targetSite.chat_widget_enabled !== false;
+    // The workstation toggle is per member (notification_preferences), not per site.
+    chatWidgetEnabled = (await (await import('./notificationService')).getNotificationPreferences(targetSite.user_id)).chatWidgetEnabled !== false;
     deploymentType = targetSite.deployment_type || 'none';
     deploymentCredsRaw = targetSite.deployment_credentials;
     autoDeploy = targetSite.auto_deploy === true;

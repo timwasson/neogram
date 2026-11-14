@@ -52,6 +52,12 @@
         }
       });
 
+      // Switching dashboard tabs (mobile bottom bar, links) must close the dropdown and its backdrop,
+      // otherwise the backdrop keeps intercepting every tap on the new tab.
+      window.addEventListener('hashchange', function () {
+        if (self.isOpen) self.toggleDropdown(false);
+      });
+
       window.addEventListener('resize', function () {
         if (window.innerWidth >= 768 && self.isOpen) {
           document.body.classList.remove('mobile-notify-open');

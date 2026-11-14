@@ -1011,6 +1011,14 @@
     },
   };
 
+  // On phones the chat is a full-height drawer; leaving it open when the member switches tabs
+  // hides the tab they just picked. (On desktop it stays as a floating window.)
+  window.addEventListener('hashchange', function () {
+    if (AimClient.isOpen && window.innerWidth < 768 && location.hash !== '#aimMessengerWindow') {
+      AimClient.closeWindow();
+    }
+  });
+
   window.AimClient = AimClient;
   window.aimMessenger = AimClient;
 })(window, document);

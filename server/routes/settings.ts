@@ -90,6 +90,7 @@ settingsRouter.get('/settings', async (req: Request, res: Response, next: NextFu
         maskedApiKey: activeSite ? activeSite.maskedApiKey : '',
         autoDeploy: activeSite ? activeSite.autoDeploy : (user.auto_deploy || false),
         buildHtml: activeSite ? activeSite.buildHtml : (user.build_html !== false),
+        customCssUrl: activeSite ? (activeSite.customCssUrl || '') : '',
         lastDeployedAt: activeSite ? activeSite.lastDeployedAt : user.last_deployed_at,
         isDefault: activeSite ? activeSite.isDefault : false,
         sites,
@@ -358,6 +359,8 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
       branch: branch || undefined,
       autoDeploy: typeof autoDeploy === 'boolean' ? autoDeploy : undefined,
       buildHtml: typeof buildHtml === 'boolean' ? buildHtml : undefined,
+      // '' clears it; undefined leaves it unchanged. updateSite enforces https.
+      customCssUrl: typeof req.body.customCssUrl === 'string' ? req.body.customCssUrl.trim() : undefined,
     };
 
     let updatedSite: any;
@@ -389,6 +392,7 @@ settingsRouter.put('/settings', async (req: Request, res: Response, next: NextFu
         maskedApiKey: updatedSite.maskedApiKey,
         autoDeploy: updatedSite.autoDeploy,
         buildHtml: updatedSite.buildHtml,
+        customCssUrl: updatedSite.customCssUrl || '',
         sites: await getUserSites(userId),
       },
     });

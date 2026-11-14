@@ -1234,13 +1234,9 @@ embedsRouter.get(['/api/chat/status/:identifier', '/api/chat/status/:identifier/
       : (user.status_message || 'Surfing cyberspace');
 
     // Site settings override or fallback to user prefs
-    const widgetEnabled = targetSite && targetSite.chatWidgetEnabled !== undefined
-      ? targetSite.chatWidgetEnabled
-      : (prefs.chatWidgetEnabled !== false);
+    const widgetEnabled = prefs.chatWidgetEnabled !== false;
 
-    const allowAnonymous = targetSite && targetSite.allowAnonChat !== undefined
-      ? targetSite.allowAnonChat
-      : (prefs.allowAnonChat !== false);
+    const allowAnonymous = prefs.allowAnonChat !== false;
 
     res.json({
       ok: true,
@@ -1315,18 +1311,14 @@ embedsRouter.post(['/api/chat/pager/send', '/api/chat/pager/send/:identifier'], 
       targetSite = await getSiteBySlug(targetUser.id, siteSlug);
     }
 
-    const widgetEnabled = targetSite && targetSite.chatWidgetEnabled !== undefined
-      ? targetSite.chatWidgetEnabled
-      : (prefs.chatWidgetEnabled !== false);
+    const widgetEnabled = prefs.chatWidgetEnabled !== false;
 
     if (!widgetEnabled) {
       res.status(403).json({ ok: false, error: 'Chat widget is disabled on this station.' });
       return;
     }
 
-    const allowAnonymous = targetSite && targetSite.allowAnonChat !== undefined
-      ? targetSite.allowAnonChat
-      : (prefs.allowAnonChat !== false);
+    const allowAnonymous = prefs.allowAnonChat !== false;
 
     // Check caller authentication (Cyber-Pass token or cookie)
     const authUser = await getAuthUser(req, true);
@@ -1511,13 +1503,9 @@ embedsRouter.get(['/embed/pager/:identifier', '/embed/pager/:identifier/:slug'],
       ? activeSession.awayMessage
       : (user.status_message || 'Surfing cyberspace');
 
-    const widgetEnabled = targetSite && targetSite.chatWidgetEnabled !== undefined
-      ? targetSite.chatWidgetEnabled
-      : (prefs.chatWidgetEnabled !== false);
+    const widgetEnabled = prefs.chatWidgetEnabled !== false;
 
-    const allowAnonymous = targetSite && targetSite.allowAnonChat !== undefined
-      ? targetSite.allowAnonChat
-      : (prefs.allowAnonChat !== false);
+    const allowAnonymous = prefs.allowAnonChat !== false;
 
     const { config } = await import('../config');
 
