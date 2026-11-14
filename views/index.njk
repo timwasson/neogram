@@ -1508,6 +1508,9 @@
                               placeholder="https://yoursite.neocities.org"
                               class="retro-input text-xs"
                             />
+                            <div id="newSiteGithubHint" class="hidden mt-1 text-xxs text-muted leading-relaxed">
+                              Use your Pages address (https://username.github.io/repo) so Neogram knows which repo to use. Neogram commits to the <code>gh-pages</code> branch; in the repo's Settings → Pages, set the source to that branch. The token needs Contents: read &amp; write.
+                            </div>
                           </div>
 
                           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -4574,15 +4577,15 @@
       keyLabel.textContent = type === 'github' ? 'Personal Access Token (PAT):' : (type === 'nekoweb' ? 'Nekoweb API Key:' : 'Neocities API Key:');
     }
     if (keyInput) {
-      keyInput.placeholder = type === 'github' ? 'ghp_... or gho_...' : (type === 'none' ? 'None required' : 'API key for auto-deploy');
+      keyInput.placeholder = type === 'github' ? 'github_pat_... or ghp_...' : 'Paste your API key';
     }
+    var ghHint = document.getElementById('newSiteGithubHint');
+    if (ghHint) ghHint.classList.toggle('hidden', type !== 'github');
     if (!urlInput) return;
     if (type === 'nekoweb') {
       urlInput.placeholder = 'https://yoursite.nekoweb.org';
     } else if (type === 'github') {
       urlInput.placeholder = 'https://username.github.io/repo';
-    } else if (type === 'none') {
-      urlInput.placeholder = 'None (Cold-start station profile)';
     } else {
       urlInput.placeholder = 'https://yoursite.neocities.org';
     }
